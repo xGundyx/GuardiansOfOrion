@@ -69,9 +69,6 @@ void UOrionTCPLink::LoginComplete(bool bSucceded, int32 error)
 {
 	bShouldUpdate = false;
 
-	if (PlayerOwner)
-		PlayerOwner->OpenInventory();
-
 	if (bSucceded)
 		UE_LOG(LogClass, Log, _T("SUCCESS"));
 	if (!bSucceded)
