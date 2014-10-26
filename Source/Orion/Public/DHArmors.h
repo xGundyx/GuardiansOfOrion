@@ -10,10 +10,10 @@ struct FArmorColor
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditDefaultsOnly, Category = Mat)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Mat)
 		UMaterialInstance* Mat;
 
-	UPROPERTY(EditDefaultsOnly, Category = Mat)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Mat)
 		FName ArmorName;
 };
 
@@ -22,22 +22,22 @@ struct FArmorInfo
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditDefaultsOnly, Category = Mesh)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Mesh)
 		USkeletalMesh* HelmetMesh;
 
-	UPROPERTY(EditDefaultsOnly, Category = Mesh)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Mesh)
 		USkeletalMesh* BodyMesh;
 
-	UPROPERTY(EditDefaultsOnly, Category = Mesh)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Mesh)
 		USkeletalMesh* ArmsMesh;
 
-	UPROPERTY(EditDefaultsOnly, Category = Mesh)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Mesh)
 		USkeletalMesh* LegsMesh;
 
-	UPROPERTY(EditDefaultsOnly, Category = Mesh)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Mesh)
 		USkeletalMesh* Flight1Mesh;
 
-	UPROPERTY(EditDefaultsOnly, Category = Mesh)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Mesh)
 		USkeletalMesh* Flight2Mesh;
 };
 

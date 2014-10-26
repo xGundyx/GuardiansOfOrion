@@ -147,7 +147,7 @@ AOrionCharacter::AOrionCharacter(const class FPostConstructInitializeProperties&
 	// derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 }
 
-FVector2D AOrionCharacter::GetAim() const
+FVector2D AOrionCharacter::GetAim(float DeltaTime)
 {
 	FVector pos;
 	FRotator rot;
@@ -159,6 +159,7 @@ FVector2D AOrionCharacter::GetAim() const
 		return FVector2D(0.0f, 0.0f);
 
 	GetPawnMesh()->GetSocketWorldLocationAndRotation(FName("Aim"), pos, rot);
+
 	//GetWeapon()->GetWeaponMesh(false)->GetSocketWorldLocationAndRotation(FName("MuzzleFlashSocket"), pos, rot);
 	FVector AimDirWS = (ThirdPersonCameraComponent->GetComponentLocation() + ThirdPersonCameraComponent->GetComponentRotation().Vector()*5000.0) - pos;// GetBaseAimRotation().Vector();
 	AimDirWS.Normalize();
@@ -172,10 +173,17 @@ FVector2D AOrionCharacter::GetAim() const
 void AOrionCharacter::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 {
 	if (IsFirstPerson())
+	{
 		FirstPersonCameraComponent->GetCameraView(DeltaTime, OutResult);
+		if (Controller)
+			OutResult.Rotation = Controller->GetControlRotation();
+	}
 	else
 	{
 		ThirdPersonCameraComponent->GetCameraView(DeltaTime, OutResult);
+
+		if (Controller)
+			OutResult.Rotation = Controller->GetControlRotation();
 
 		//adjust the camera to always point towards the character
 		//OutResult.Location = CameraOffset*CameraDist;
@@ -972,6 +980,11 @@ void AOrionCharacter::DoRoll()
 	}
 }
 
+APlayerController *AOrionCharacter::GetPlayerController()
+{
+	return Cast<APlayerController>(Controller);
+}
+
 void AOrionCharacter::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 {
 	if (IsRolling())
@@ -983,7 +996,7 @@ void AOrionCharacter::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 		return;
 	}
 
-	FRotator CurrentRotation = FMath::RInterpTo(GetActorRotation(), NewControlRotation, DeltaTime, 5.0f);
+	FRotator CurrentRotation = FMath::RInterpTo(GetActorRotation(), NewControlRotation, DeltaTime, 2.5f);
 
 	Super::FaceRotation(CurrentRotation, DeltaTime);
 }
@@ -1011,6 +1024,11 @@ void AOrionCharacter::Sprint()
 	StopAiming();
 
 	bRun = true;
+}
+
+float AOrionCharacter::PlayOneShotAnimation(UAnimMontage *Anim)
+{
+	return PlayAnimMontage(Anim);
 }
 
 bool AOrionCharacter::IsSprinting() const
@@ -1152,6 +1170,39 @@ void AOrionCharacter::MoveForward(float Value)
 	}
 }
 
+float AOrionCharacter::GetFootOffset(FName Socket) const
+{
+	//make sure we have a mesh
+	if (Mesh == NULL)
+		return 0.0;
+
+	FVector pos;
+	FRotator rot;
+
+	Mesh->GetSocketWorldLocationAndRotation(Socket, pos, rot);
+
+	FHitResult Hit;
+
+	FCollisionQueryParams TraceParams(FName(TEXT("FootTrace")), true, this);
+
+	TraceParams.AddIgnoredActor(this);
+	TraceParams.bTraceAsyncScene = true;
+	TraceParams.bReturnPhysicalMaterial = true;
+
+	FVector vStart = pos;
+	vStart.Z = GetActorLocation().Z;// +Mesh->RelativeLocation.Z;
+
+	FVector vEnd = vStart - FVector(0,0,CapsuleComponent->GetScaledCapsuleHalfHeight()*2.0);
+
+	//if (GWorld->LineTraceSingle(Hit, vStart, vEnd, COLLISION_WEAPON,TraceParams))
+	if (GWorld->SweepSingle(Hit, vStart, vEnd, FQuat::Identity, ECollisionChannel::ECC_Pawn, FCollisionShape::MakeSphere(5), TraceParams))
+	{
+		return vStart.Z - Hit.Location.Z;
+	}
+
+	return 96.0;
+}
+
 void AOrionCharacter::MoveRight(float Value)
 {
 	if (Value != 0.0f)
@@ -1208,4 +1259,29 @@ void AOrionCharacter::SetFlight1Mesh(USkeletalMesh* newMesh) const
 void AOrionCharacter::SetFlight2Mesh(USkeletalMesh* newMesh) const
 {
 	Flight2Mesh->SetSkeletalMesh(newMesh);
+}
+
+UBlendSpace* AOrionCharacter::GetAnimationWalkBlend() const
+{
+	return WalkBlend;
+}
+
+UBlendSpace* AOrionCharacter::GetAnimationHoverBlend() const
+{
+	return HoverBlend;
+}
+
+UBlendSpace* AOrionCharacter::GetAnimationAimBlend() const
+{
+	return AimBlend;
+}
+
+UAnimMontage* AOrionCharacter::GetAnimationAimBase() const
+{
+	return AimBase;
+}
+
+UAnimMontage* AOrionCharacter::GetSprintAnimation() const
+{
+	return SprintAnimation;
 }

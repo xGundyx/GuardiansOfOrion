@@ -2,6 +2,4 @@
 
 #include "Orion.h"
 
-
 IMPLEMENT_PRIMARY_GAME_MODULE( FDefaultGameModuleImpl, Orion, "Orion" );
- 

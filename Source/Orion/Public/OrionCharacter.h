@@ -189,22 +189,22 @@ class AOrionCharacter : public ACharacter
 	void UpdatePawnMeshes();
 
 	//modular pieces
-	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
 		TSubobjectPtr<class USkeletalMeshComponent> HelmetMesh;
 
-	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
 		TSubobjectPtr<class USkeletalMeshComponent> BodyMesh;
 
-	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
 		TSubobjectPtr<class USkeletalMeshComponent> ArmsMesh;
 
-	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
 		TSubobjectPtr<class USkeletalMeshComponent> LegsMesh;
 
-	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
 		TSubobjectPtr<class USkeletalMeshComponent> Flight1Mesh;
 
-	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
 		TSubobjectPtr<class USkeletalMeshComponent> Flight2Mesh;
 
 	/** First person camera */
@@ -230,6 +230,9 @@ class AOrionCharacter : public ACharacter
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		bool bAim;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Aim)
+		FVector2D CurrentAim2D;
 
 	/** Base look up/down rate, in deg/sec. Other scaling may affect final rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
@@ -289,6 +292,28 @@ class AOrionCharacter : public ACharacter
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Camera)
 		float CameraDist;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Mesh)
+		FName LeftFootSocket;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Mesh)
+		FName RightFootSocket;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Mesh)
+		FVector AimAjustment;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Mesh)
+		float MaxFootUp;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Mesh)
+		float MaxFootDown;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Mesh)
+		float MaxMeshAdjust;
+
+	//foot placement
+	UFUNCTION(BlueprintCallable, Category = Mesh)
+		virtual float GetFootOffset(FName Socket) const;
+
 	virtual class UPawnMovementComponent* GetMovementComponent() const override;
 
 	/** get camera view type */
@@ -320,7 +345,41 @@ class AOrionCharacter : public ACharacter
 		USkeletalMeshComponent* GetSpecifcPawnMesh(bool WantFirstPerson) const;
 
 	UFUNCTION(BlueprintCallable, Category = Mesh)
-		virtual FVector2D GetAim() const;
+		virtual FVector2D GetAim(float DeltaTime);
+
+	UFUNCTION(BlueprintCallable, Category = Mesh)
+		virtual float PlayOneShotAnimation(UAnimMontage *Anim);
+
+	//animation helpers
+	UFUNCTION(BlueprintCallable, Category = Mesh)
+		virtual UBlendSpace* GetAnimationWalkBlend() const;
+
+	UFUNCTION(BlueprintCallable, Category = Mesh)
+		virtual UBlendSpace* GetAnimationHoverBlend() const;
+
+	UFUNCTION(BlueprintCallable, Category = Mesh)
+		virtual UBlendSpace* GetAnimationAimBlend() const;
+	
+	UFUNCTION(BlueprintCallable, Category = Mesh)
+		virtual UAnimMontage* GetAnimationAimBase() const;
+
+	UFUNCTION(BlueprintCallable, Category = Mesh)
+		virtual UAnimMontage* GetSprintAnimation() const;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+		UBlendSpace *WalkBlend;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+		UBlendSpace *HoverBlend;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+		UBlendSpace *AimBlend;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+		UAnimMontage *AimBase;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+		UAnimMontage *SprintAnimation;
 
 	/** check if pawn is still alive */
 	bool IsAlive() const;
@@ -368,6 +427,9 @@ class AOrionCharacter : public ACharacter
 		USoundCue* DeathSound;
 
 	virtual void PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker) override;
+
+	UFUNCTION(BlueprintCallable, Category = Controller)
+		APlayerController *GetPlayerController();
 
 protected:
 	FRotator AimKick;

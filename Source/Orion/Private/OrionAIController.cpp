@@ -40,4 +40,14 @@ void AOrionAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn
 	}
 }
 
+void AOrionAIController::SetEnemy(APawn *pEnemy)
+{
+	myEnemy = pEnemy;
+}
+
+APawn *AOrionAIController::GetEnemy()
+{
+	return myEnemy;
+}
+
 

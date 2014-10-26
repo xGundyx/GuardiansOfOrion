@@ -9,6 +9,7 @@ AOrionWeather::AOrionWeather(const class FPostConstructInitializeProperties& PCI
 {
 }
 
+#if WITH_EDITOR
 void AOrionWeather::LoadedFromAnotherClass(const FName& OldClassName)
 {
 }
@@ -16,6 +17,16 @@ void AOrionWeather::LoadedFromAnotherClass(const FName& OldClassName)
 void AOrionWeather::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
 
+}
+#endif
+
+void AOrionWeather::BeginPlay()
+{
+	Super::BeginPlay();
+
+	//register us with the GRI
+	if (Cast<AOrionGRI>(GWorld->GameState))
+		Cast<AOrionGRI>(GWorld->GameState)->SetWeather(this);
 }
 
 void AOrionWeather::PostLoad()
@@ -61,9 +72,14 @@ void AOrionWeather::StartRaining()
 	{
 		FVector Origin = GetWeatherLocation();
 		FRotator Dir(0, 0, 0);
-		RainPSC = UGameplayStatics::SpawnEmitterAtLocation(this, Rain, Origin, Dir);
+		RainPSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Rain, Origin, Dir);
+		if (RainPSC)
+		{
+			bIsRaining = true;
+			RainTarget = 1.0f;
+		}
 	}
-	if (RainPSC)
+	else if (RainPSC)
 	{
 		bIsRaining = true;
 		RainPSC->ActivateSystem();

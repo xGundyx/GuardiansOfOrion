@@ -123,7 +123,7 @@ struct FInstantWeaponData
 *
 */
 UCLASS()
-class AOrionWeapon : public AActor
+class AOrionWeapon : public AOrionInventory
 {
 	GENERATED_UCLASS_BODY()
 

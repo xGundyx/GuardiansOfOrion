@@ -40,11 +40,11 @@ void AOrionPlayerCameraManager::UpdateCamera(float DeltaTime)
 
 void AOrionPlayerCameraManager::ProcessViewRotation(float DeltaTime, FRotator& OutViewRotation, FRotator& OutDeltaRot)\
 {
-	OutViewRotation = OldRotation;
+	//OutViewRotation = OldRotation;
 
 	Super::ProcessViewRotation(DeltaTime, OutViewRotation, OutDeltaRot);
 
-	OldRotation = OutViewRotation;
+	//OldRotation = OutViewRotation;
 
 	AOrionCharacter* MyPawn = PCOwner ? Cast<AOrionCharacter>(PCOwner->GetPawn()) : NULL;
 	if (MyPawn)
