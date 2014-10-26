@@ -18,4 +18,13 @@ class ORION_API AOrionAIController : public AAIController
 
 	/** Update direction AI is looking based on FocalPoint */
 	virtual void UpdateControlRotation(float DeltaTime, bool bUpdatePawn = true) override;
+
+	UFUNCTION(BlueprintCallable, Category = Target)
+		void SetEnemy(APawn *pEnemy);
+
+	UFUNCTION(BlueprintCallable, Category = Target)
+		APawn *GetEnemy();
+
+private:
+	APawn *myEnemy;
 };

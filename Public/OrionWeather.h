@@ -11,11 +11,11 @@ struct FTimeOfDay
 	GENERATED_USTRUCT_BODY()
 
 	/** animation played on pawn (1st person view) */
-	UPROPERTY(EditDefaultsOnly, Category = Time)
+	UPROPERTY(EditAnywhere, Category = Time)
 	float Hour;
 
 	/** animation played on pawn (3rd person view) */
-	UPROPERTY(EditDefaultsOnly, Category = Time)
+	UPROPERTY(EditAnywhere, Category = Time)
 		float Minute;
 };
 
@@ -308,6 +308,7 @@ class AOrionWeather : public ADirectionalLight
 		virtual void EventUpdateWeather(float DeltaSeconds);
 
 	virtual void PostLoad() override;
+	virtual void BeginPlay() override;
 #if WITH_EDITOR
 	virtual void LoadedFromAnotherClass(const FName& OldClassName) override;
 #endif

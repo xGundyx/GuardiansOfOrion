@@ -4,6 +4,7 @@
 #include "OrionGameMode.h"
 #include "OrionHUD.h"
 #include "OrionCharacter.h"
+#include "OrionGRI.h"
 
 AOrionGameMode::AOrionGameMode(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
@@ -15,7 +16,14 @@ AOrionGameMode::AOrionGameMode(const class FPostConstructInitializeProperties& P
 		DefaultPawnClass = (UClass*)PlayerPawnObject.Object->GeneratedClass;
 	}
 
-	PlayerControllerClass = AOrionPlayerController::StaticClass();
+	static ConstructorHelpers::FObjectFinder<UBlueprint> PlayerControllerObject(TEXT("/Game/Character/Blueprints/BasePlayerController"));
+	if (PlayerControllerObject.Object != NULL)
+	{
+		PlayerControllerClass = (UClass*)PlayerControllerObject.Object->GeneratedClass;
+	}
+	//PlayerControllerClass = AOrionPlayerController::StaticClass();
+
+	GameStateClass = AOrionGRI::StaticClass();
 
 	// use our custom HUD class
 	HUDClass = AOrionHUD::StaticClass();

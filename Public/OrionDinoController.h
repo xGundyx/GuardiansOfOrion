@@ -13,6 +13,4 @@ class ORION_API AOrionDinoController : public AOrionAIController
 {
 	GENERATED_UCLASS_BODY()
 
-	
-	
 };
