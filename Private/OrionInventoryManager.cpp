@@ -41,6 +41,24 @@ void AOrionInventoryManager::EquipItems(AOrionCharacter *aPawn)
 		aPawn->SetHelmetMesh(Armor->Mesh);
 	else
 		aPawn->SetHelmetMesh(NULL);
+
+	Armor = Cast<AOrionArmor>(BodySlot->Column[0].Row[0]);
+	if (Armor)
+		aPawn->SetBodyMesh(Armor->Mesh);
+	else
+		aPawn->SetBodyMesh(NULL);
+
+	Armor = Cast<AOrionArmor>(HandsSlot->Column[0].Row[0]);
+	if (Armor)
+		aPawn->SetArmsMesh(Armor->Mesh);
+	else
+		aPawn->SetArmsMesh(NULL);
+
+	Armor = Cast<AOrionArmor>(LegsSlot->Column[0].Row[0]);
+	if (Armor)
+		aPawn->SetLegsMesh(Armor->Mesh);
+	else
+		aPawn->SetLegsMesh(NULL);
 }
 
 void AOrionInventoryManager::Init()
