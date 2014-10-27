@@ -135,7 +135,7 @@ struct FDirectionalAnim
 		UAnimMontage* Right;
 };
 
-UCLASS(config = Game)
+UCLASS(BlueprintType, Blueprintable, config = Game)
 class AOrionCharacter : public ACharacter
 {
 	GENERATED_UCLASS_BODY()

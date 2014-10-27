@@ -7,6 +7,16 @@
 AOrionWeather::AOrionWeather(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
+	///RainPSC = PCIP.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("Rain"));
+	SnowPSC = PCIP.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("Snow"));
+
+	/*if (RainPSC)
+		RainPSC->SetTemplate(Rain);
+
+	RainPSC->RegisterComponentWithWorld(GetWorld());
+
+	RainPSC->bAutoActivate = false;
+	RainPSC->SetHiddenInGame(false);*/
 }
 
 #if WITH_EDITOR
@@ -34,7 +44,6 @@ void AOrionWeather::PostLoad()
 	ALight::PostLoad();
 
 	PrimaryActorTick.bCanEverTick = true;
-	RainPSC = NULL;
 }
 
 void AOrionWeather::ChooseWeather()
@@ -70,19 +79,23 @@ void AOrionWeather::StartRaining()
 
 	if (!RainPSC)
 	{
-		FVector Origin = GetWeatherLocation();
-		FRotator Dir(0, 0, 0);
-		RainPSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), Rain, Origin, Dir);
-		if (RainPSC)
-		{
-			bIsRaining = true;
-			RainTarget = 1.0f;
-		}
+		RainPSC = ConstructObject<UParticleSystemComponent>(UParticleSystemComponent::StaticClass());
+		RainPSC->SetTemplate(Rain);
+
+		RainPSC->RegisterComponentWithWorld(GetWorld());
+
+		RainPSC->bAutoActivate = false;
+		RainPSC->SetHiddenInGame(false);
 	}
-	else if (RainPSC)
+	
+	if (RainPSC)
 	{
-		bIsRaining = true;
+		//FVector Origin = GetWeatherLocation();
+		//FRotator Dir(0, 0, 0);
+		
 		RainPSC->ActivateSystem();
+		//RainPSC->SetWorldLocation(Origin);
+		bIsRaining = true;
 		RainTarget = 1.0f;
 	}
 
@@ -94,8 +107,10 @@ void AOrionWeather::StopRaining()
 	if (RainPSC)
 	{
 		bIsRaining = false;
-		RainPSC->DeactivateSystem();
+		if (RainPSC->Template)
+			RainPSC->DeactivateSystem();
 		RainTarget = 0.0f;
+		//RainPSC = NULL;
 	}
 
 	StopClouds();
@@ -109,7 +124,7 @@ void AOrionWeather::StartSnowing()
 	{
 		FVector Origin = GetWeatherLocation();
 		FRotator Dir(0, 0, 0);
-		SnowPSC = UGameplayStatics::SpawnEmitterAtLocation(this, Snow, Origin, Dir);
+		//SnowPSC = UGameplayStatics::SpawnEmitterAtLocation(this, Snow, Origin, Dir);
 	}
 	if (SnowPSC)
 	{

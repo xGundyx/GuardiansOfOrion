@@ -218,16 +218,16 @@ void AOrionCharacter::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 
 	float Speed2D = GetVelocity().Size2D();
 	if (Speed2D < 10)
-		BobTime += 0.2 * DeltaTime;
+		BobTime += 0.2 * FMath::Min(0.1f,DeltaTime);
 	else
-		BobTime += DeltaTime * (0.3 + 0.7 * Speed2D / GetMovementComponent()->GetMaxSpeed());
+		BobTime += FMath::Min(0.1f, DeltaTime) * (0.3 + 0.7 * Speed2D / GetMovementComponent()->GetMaxSpeed());
 
 	//Bob = Lerp(Bob, (bIsWalking ? default.Bob : default.Bob*BobScaleWhenRunning), DeltaSeconds * 10);
 
 	WalkBob = Y * 0.01 * Speed2D * FMath::Sin(8.0f * BobTime);
 	WalkBob.Z = 0.01 * Speed2D * FMath::Sin(16.0f * BobTime);
 
-	FirstPersonCameraComponent->SetRelativeLocation(FMath::Lerp(FirstPersonCameraComponent->RelativeLocation, FVector(0, 0, 64.0) + WalkBob, DeltaTime*10.0f));
+	FirstPersonCameraComponent->SetRelativeLocation(FMath::Lerp(FirstPersonCameraComponent->RelativeLocation, FVector(0, 0, 64.0) + WalkBob, FMath::Min(0.5f,DeltaTime*10.0f)));
 
 	//add some aim kick
 	/*if (IsFirstPerson())
@@ -1197,7 +1197,7 @@ float AOrionCharacter::GetFootOffset(FName Socket) const
 	//if (GWorld->LineTraceSingle(Hit, vStart, vEnd, COLLISION_WEAPON,TraceParams))
 	if (GWorld->SweepSingle(Hit, vStart, vEnd, FQuat::Identity, ECollisionChannel::ECC_Pawn, FCollisionShape::MakeSphere(5), TraceParams))
 	{
-		return vStart.Z - Hit.Location.Z;
+		return FMath::Clamp(vStart.Z - Hit.Location.Z, 40.0f, 165.0f);
 	}
 
 	return 96.0;

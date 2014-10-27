@@ -41,11 +41,11 @@ FORCEINLINE FTimeOfDay operator + (FTimeOfDay T1, float Minutes)
 	newTime.Minute = T1.Minute + Minutes;
 	newTime.Hour = T1.Hour;
 
-	if (newTime.Minute>60.0)
+	if (newTime.Minute>=60.0)
 	{
 		newTime.Minute -= 60.0;
 		newTime.Hour += 1.0;
-		if (newTime.Hour > 24.0)
+		if (newTime.Hour >= 24.0)
 		{
 			newTime.Hour -= 24.0;
 		}
@@ -298,8 +298,8 @@ class AOrionWeather : public ADirectionalLight
 	void StartClouds();
 	void StopClouds();
 
-	UParticleSystemComponent* RainPSC;
-	UParticleSystemComponent* SnowPSC;
+	UParticleSystemComponent *RainPSC;
+	TSubobjectPtr<UParticleSystemComponent> SnowPSC;
 
 	bool bIsRaining;
 	bool bIsSnowing;

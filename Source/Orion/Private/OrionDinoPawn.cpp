@@ -2,10 +2,12 @@
 
 #include "Orion.h"
 #include "OrionDinoPawn.h"
+#include "OrionDinoMovementComponent.h"
 #include "OrionAIController.h"
 
+//dinos have special movement code since some of them can be rather large
 AOrionDinoPawn::AOrionDinoPawn(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+	: Super(PCIP.SetDefaultSubobjectClass<UOrionDinoMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 
 }
