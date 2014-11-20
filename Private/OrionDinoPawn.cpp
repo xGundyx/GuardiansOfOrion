@@ -43,7 +43,7 @@ FVector2D AOrionDinoPawn::GetAim(float DeltaTime)
 
 	//we need to offset the aim a bit based on player third person camera offsets
 	const FVector2D start = CurrentAim2D;
-	const FVector2D end = FVector2D((2.5 + AimRotLS.Yaw) / 90.0, AimRotLS.Pitch / 90.0);
+	const FVector2D end = FVector2D((0.0 + AimRotLS.Yaw) / 90.0, AimRotLS.Pitch / 90.0);
 	CurrentAim2D = FMath::Vector2DInterpTo(start, end, DeltaTime, 3.0);
 	return CurrentAim2D;
 }

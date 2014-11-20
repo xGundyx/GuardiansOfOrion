@@ -20,7 +20,7 @@
 #include "OrionGRI.h"
 #include "OrionInventory.h"
 #include "OrionInventoryManager.h"
-#include "OrionOctTree.h"
+#include "OrionOcTree.h"
 #include "OrionGeneratedMeshComponent.h"
 #include "OrionVoxelBase.h"
 #include "OrionDiamondSquare.h"

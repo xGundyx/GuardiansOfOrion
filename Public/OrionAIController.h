@@ -25,6 +25,18 @@ class ORION_API AOrionAIController : public AAIController
 	UFUNCTION(BlueprintCallable, Category = Target)
 		APawn *GetEnemy();
 
+	UFUNCTION(BlueprintCallable, Category = Target)
+		void CheckEnemyStatus();
+
+	UFUNCTION(BlueprintCallable, Category = Target)
+		void RemoveEnemy();
+
+	UFUNCTION(BlueprintCallable, Category = Target)
+		void StartFiringWeapon(FName SocketName, FVector Direction);
+
+	UFUNCTION(BlueprintCallable, Category = Target)
+		void StopFiringWeapon();
+
 private:
 	APawn *myEnemy;
 };

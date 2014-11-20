@@ -7,6 +7,9 @@
 #include "OrionInventoryManager.h"
 #include "OrionQuest.h"
 #include "OrionQuestManager.h"
+#include "OrionStats.h"
+#include "OrionAchievements.h"
+#include "OrionDroidPawn.h"
 #include "OrionPlayerController.generated.h"
 
 /**
@@ -47,10 +50,6 @@ class AOrionPlayerController : public APlayerController
 	UFUNCTION(exec)
 		virtual void ArmorColor(int32 index);
 
-	//player inventory, kept in the controller so it persists through anything
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Inventory)
-		AOrionInventoryManager *InventoryManager;
-
 	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Give Default Inventory"))
 		void EventGiveDefaultInventory();
 
@@ -71,7 +70,58 @@ class AOrionPlayerController : public APlayerController
 
 	//retrieve our quest info and set it for the game to use
 	void InitQuestManager();
+	
+	//stats and achievements
+	void InitStatsAndAchievements();
+
+	//read in the stats from playfab
+	void ReadStats();
+
+	//only the server can actually save stats
+	void SaveStats();
+
+	void SetStatValue(FStatID id, int32 iAmount, int32 fAmount);
+	void IncreaseStatValue(FStatID id, int32 iAmount, int32 fAmount);
+
+	AOrionDroidPawn *DroidBuddy;
+
+	UFUNCTION(BlueprintCallable, Category = PlayFab)
+		void AttemptLogin(FString UserName, FString Password);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "LoginComplete"))
+		void EventLoginComplete(const bool bResult, const FString &ID, const FString &Error);
+
+	UFUNCTION(BlueprintCallable, Category = PlayFab)
+		void CreateNewAccount(FString UserName, FString Password, FString Email);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "AccountCreateComplete"))
+		void EventAccountCreationComplete(const bool bResult, const FString &Error);
+
+	UFUNCTION(BlueprintCallable, Category = PlayFab)
+		void CreateNewCharacter(FString UserName, FString Gender, FString BaseColor);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "CharacterCreateComplete"))
+		void EventCharacterCreationComplete(const bool bResult, const FString &Error);
+
+	void PreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel) override;
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "CleanupUMG"))
+		void EventCleanupUMG();
+
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		AOrionInventoryManager *GetInventoryManager();
+
+	void CleanupGameViewport() override;
+	void SeamlessTravelTo(class APlayerController* NewPC) override;
+	void SeamlessTravelFrom(class APlayerController* OldPC) override;
+
+	//UFUNCTION(exec)
+		virtual void ClearUMG();
+
+	virtual void Destroyed() override;
 
 private:
 	UOrionQuestManager *QuestManager;
+	UOrionStats *Stats;
+	UOrionAchievements *Achievements;
 };

@@ -4,7 +4,7 @@
 
 #include "OrionGeneratedMeshComponent.h"
 #include "GameFramework/Actor.h"
-#include "OrionOctTree.h"
+#include "OrionOcTree.h"
 #include "OrionVoxelBase.generated.h"
 
 /**
@@ -121,7 +121,7 @@ class AOrionVoxelBase : public AActor
 
 	void GenerateMeshFromChunks();
 	void GenerateMeshFromChunksDualContour();
-	void GenerateMeshFromOctree(UOrionOctTree *theTree, UOrionOctTree *parentTree, FVector center);
+	void GenerateMeshFromOctree(UOrionOcTree *theTree, UOrionOcTree *parentTree, FVector center);
 	FVector FindEdgeIntersection(FVector p1, FVector p2, float amount);
 	void AddTris(int32 x, int32 y, int32 z, DualContourCube cubes[VOXEL_X + 1][VOXEL_Y + 1][VOXEL_Z + 1], FVector quadPoints[4], BOOLEAN bInvert);
 	UOrionGeneratedMeshComponent* GetMeshFromPool();
@@ -137,7 +137,7 @@ class AOrionVoxelBase : public AActor
 
 	virtual void Tick(float DeltaSeconds) override;
 
-	void DrawPatch(UOrionOctTree *theTree, UOrionOctTree *parentTree, FVector center, int32 LOD);
+	void DrawPatch(UOrionOcTree *theTree, UOrionOcTree *parentTree, FVector center, int32 LOD);
 
 	//create a pool
 	TSubobjectPtr<UOrionGeneratedMeshComponent> mesh[CHUNK_SIZE_XY*CHUNK_SIZE_XY*CHUNK_SIZE_XY];
@@ -164,11 +164,15 @@ private:
 	FVoxelChunk ***Chunks;
 	int32 numChunks;
 
-	UOrionOctTree *VoxelTree;
+	UOrionOcTree *VoxelTree;
 
 	int32 PoolIndex;
 
 	TArray<FGeneratedMeshTriangle> triangles;
+
+	//index and vertex buffers
+	////TArray<int32> Indices;
+	////TArray<FVoxelVertex> Vertices;
 };
 
 static int32 edgeTable[256] = {

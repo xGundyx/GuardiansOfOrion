@@ -303,6 +303,26 @@ void AOrionWeapon::CancelMelee()
 	WeaponState = WEAP_IDLE;
 }
 
+void AOrionWeapon::FireSpecial(FName SocketName, FVector Direction)
+{
+	LastFireTime = GetWorld()->GetTimeSeconds();
+
+	const int32 RandomSeed = FMath::Rand();
+	FRandomStream WeaponRandomStream(RandomSeed);
+	const float CurrentSpread = GetCurrentSpread();
+	const float ConeHalfAngle = FMath::DegreesToRadians(CurrentSpread * 0.5f);
+
+	const FVector AimDir = GetAdjustedAim();
+	const FVector StartTrace = GetBarrelLocation(SocketName);
+	const FVector ShootDir = Direction;
+	const FVector EndTrace = StartTrace + ShootDir * InstantConfig.WeaponRange;
+
+	const FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
+	ProcessInstantHit(Impact, StartTrace, ShootDir, RandomSeed, CurrentSpread);
+
+	CurrentFiringSpread = FMath::Min(InstantConfig.FiringSpreadMax, CurrentFiringSpread + InstantConfig.FiringSpreadIncrement) * GetSpreadModifier();
+}
+
 void AOrionWeapon::FireWeapon()
 {
 	if (!CanFire())
@@ -452,6 +472,17 @@ FVector AOrionWeapon::GetAdjustedAim() const
 	}
 
 	return FinalAim;
+}
+
+FVector AOrionWeapon::GetBarrelLocation(FName SocketName)
+{
+	//third person stuff
+	FVector pos;
+	FRotator rot;
+	if (Mesh3P)
+		Mesh3P->GetSocketWorldLocationAndRotation(SocketName, pos, rot);
+
+	return pos;
 }
 
 FVector AOrionWeapon::GetCameraDamageStartLocation(const FVector& AimDir) const
@@ -808,13 +839,13 @@ void AOrionWeapon::ServerNotifyHit_Implementation(const FHitResult Impact, FVect
 FVector AOrionWeapon::GetMuzzleLocation() const
 {
 	USkeletalMeshComponent* UseMesh = GetWeaponMesh(MyPawn->IsFirstPerson());
-	return UseMesh->GetSocketLocation(MuzzleAttachPoint);
+	return UseMesh->GetSocketLocation(MuzzleAttachPoint[0]);
 }
 
 FVector AOrionWeapon::GetMuzzleDirection() const
 {
 	USkeletalMeshComponent* UseMesh = GetWeaponMesh(MyPawn->IsFirstPerson());
-	return UseMesh->GetSocketRotation(MuzzleAttachPoint).Vector();
+	return UseMesh->GetSocketRotation(MuzzleAttachPoint[0]).Vector();
 }
 
 void AOrionWeapon::OnRep_HitNotify()
@@ -906,7 +937,7 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 	const FVector Origin = GetMuzzleLocation();
 	const FRotator Dir = GetMuzzleDirection().Rotation();
 	FVector vDir = (EndPoint - Origin);
-	vDir.Normalize(0.1);
+	vDir.Normalize();
 
 	if (TrailFX)
 	{
@@ -926,14 +957,14 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 		}
 	}
 
-	if (MuzzleFX)
+	/*if (MuzzleFX.Num() > 0)
 	{
-		UParticleSystemComponent* MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, GetWeaponMesh(MyPawn->IsFirstPerson()), MuzzleAttachPoint);
-		if (MuzzlePSC)
+		UParticleSystemComponent* MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX[0], GetWeaponMesh(MyPawn->IsFirstPerson()), MuzzleAttachPoint[0]);
+		if (MuzzlePSC > 0)
 		{
 			MuzzlePSC->SetVectorParameter(FName("FlashScale"), FVector(InstantConfig.MuzzleScale));
 		}
-	}
+	}*/
 
 	PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim);
 
@@ -1140,10 +1171,10 @@ void AOrionWeapon::SimulateWeaponFire()
 		return;
 	}
 
-	if (MuzzleFX)
+	if (MuzzleFX.Num() > 0)
 	{
 		USkeletalMeshComponent* UseWeaponMesh = GetWeaponMesh(MyPawn->IsFirstPerson());
-		if (true ||/*!bLoopedMuzzleFX || */MuzzlePSC == NULL)
+		if (true ||/*!bLoopedMuzzleFX || */MuzzlePSC.Num() <= 0)
 		{
 			// Split screen requires we create 2 effects. One that we see and one that the other player sees.
 			if ((MyPawn != NULL) && (MyPawn->IsLocallyControlled() == true))
@@ -1151,10 +1182,10 @@ void AOrionWeapon::SimulateWeaponFire()
 				AController* PlayerCon = MyPawn->GetController();
 				if (PlayerCon != NULL)
 				{
-					UseWeaponMesh->GetSocketLocation(MuzzleAttachPoint);
-					MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, UseWeaponMesh, MuzzleAttachPoint);
-					MuzzlePSC->bOwnerNoSee = false;
-					MuzzlePSC->bOnlyOwnerSee = true;
+					UseWeaponMesh->GetSocketLocation(MuzzleAttachPoint[0]);
+					MuzzlePSC[0] = UGameplayStatics::SpawnEmitterAttached(MuzzleFX[0], UseWeaponMesh, MuzzleAttachPoint[0]);
+					MuzzlePSC[0]->bOwnerNoSee = false;
+					MuzzlePSC[0]->bOnlyOwnerSee = true;
 
 					/*Mesh3P->GetSocketLocation(MuzzleAttachPoint);
 					MuzzlePSCSecondary = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, Mesh3P, MuzzleAttachPoint);
@@ -1164,7 +1195,7 @@ void AOrionWeapon::SimulateWeaponFire()
 			}
 			else
 			{
-				MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX, UseWeaponMesh, MuzzleAttachPoint);
+				MuzzlePSC[0] = UGameplayStatics::SpawnEmitterAttached(MuzzleFX[0], UseWeaponMesh, MuzzleAttachPoint[0]);
 			}
 		}
 	}

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "OrionAIController.h"
+#include "OrionPlayerController.h"
 #include "OrionDroidController.generated.h"
 
 /**
@@ -13,6 +14,15 @@ class ORION_API AOrionDroidController : public AOrionAIController
 {
 	GENERATED_UCLASS_BODY()
 
-	
-	
+	UFUNCTION(BlueprintCallable, Category = Droid)
+		AOrionPlayerController *GetBuddy();
+
+	UFUNCTION(BlueprintCallable, Category = Droid)
+		void SetBuddy(AOrionPlayerController *newBuddy);
+
+	UFUNCTION(BlueprintCallable, Category = Target)
+		bool IsCloseToBuddy(float Radius);
+
+private:
+	AOrionPlayerController *Buddy;
 };

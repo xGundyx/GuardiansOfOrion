@@ -84,6 +84,45 @@ void AOrionInventoryManager::Init()
 		LegsSlot->CreateInventory(1, 1, 96, 1);
 }
 
+void AOrionInventoryManager::DestroyInventory()
+{
+	for (int32 i = 0; i < Grid->MaxHeight; i++)
+	{
+		for (int32 j = 0; j < Grid->MaxWidth; j++)
+		{
+			if (Grid->Column[i].Row[j])
+			{
+				Grid->Column[i].Row[j]->Destroy();
+				Grid->Column[i].Row[j] = NULL;
+			}
+		}
+	}
+
+	if (HelmetSlot->Column[0].Row[0])
+	{
+		HelmetSlot->Column[0].Row[0]->Destroy();
+		HelmetSlot->Column[0].Row[0] = NULL;
+	}
+
+	if (BodySlot->Column[0].Row[0])
+	{
+		BodySlot->Column[0].Row[0]->Destroy();
+		BodySlot->Column[0].Row[0] = NULL;
+	}
+
+	if (HandsSlot->Column[0].Row[0])
+	{
+		HandsSlot->Column[0].Row[0]->Destroy();
+		HandsSlot->Column[0].Row[0] = NULL;
+	}
+
+	if (LegsSlot->Column[0].Row[0])
+	{
+		LegsSlot->Column[0].Row[0]->Destroy();
+		LegsSlot->Column[0].Row[0] = NULL;
+	}
+}
+
 //returns index we were added at, -1 means failure
 int32 AOrionInventoryManager::AddItemToInventory(UOrionInventoryGrid *theGrid, AOrionInventory* newItem)
 {

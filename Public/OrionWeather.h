@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
+#include "Engine/DirectionalLight.h"
 #include "OrionWeather.generated.h"
 
 USTRUCT()
@@ -11,11 +12,11 @@ struct FTimeOfDay
 	GENERATED_USTRUCT_BODY()
 
 	/** animation played on pawn (1st person view) */
-	UPROPERTY(EditAnywhere, Category = Time)
-	float Hour;
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Time)
+		float Hour;
 
 	/** animation played on pawn (3rd person view) */
-	UPROPERTY(EditAnywhere, Category = Time)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere, Category = Time)
 		float Minute;
 };
 

@@ -26,7 +26,6 @@ void AOrionWeather::LoadedFromAnotherClass(const FName& OldClassName)
 
 void AOrionWeather::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
-
 }
 #endif
 

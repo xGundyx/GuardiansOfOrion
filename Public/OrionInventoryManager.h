@@ -96,6 +96,9 @@ class ORION_API AOrionInventoryManager : public AActor
 		void Init();
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
+		void DestroyInventory();
+
+	UFUNCTION(BlueprintCallable, Category = Inventory)
 		void EquipItems(AOrionCharacter *aPawn);
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)

@@ -316,6 +316,10 @@ class AOrionCharacter : public ACharacter
 
 	virtual class UPawnMovementComponent* GetMovementComponent() const override;
 
+	//weapon fire effect helper, mainly only used for special weapon types with multiple flashes going off
+	UFUNCTION(BlueprintCallable, Category = Weapon)
+		virtual void HandleSpecialWeaponFire(FName SocketName);
+
 	/** get camera view type */
 	UFUNCTION(BlueprintCallable, Category = Mesh)
 		virtual bool IsFirstPerson() const;
@@ -469,7 +473,6 @@ protected:
 	/** Handler for a touch input beginning. */
 	void TouchStarted(const ETouchIndex::Type FingerIndex, const FVector Location);
 
-	/** Fires a projectile. */
 	void OnFire();
 	void OnStopFire();
 
