@@ -161,10 +161,10 @@ class AOrionWeapon : public AOrionInventory
 		void ClientStartReload();
 
 	/** play weapon animations */
-	float PlayWeaponAnimation(const FWeaponAnim& Animation);
+	virtual float PlayWeaponAnimation(const FWeaponAnim& Animation);
 
 	/** stop playing weapon animations */
-	void StopWeaponAnimation(const FWeaponAnim& Animation);
+	virtual void StopWeaponAnimation(const FWeaponAnim& Animation);
 
 	/** check if weapon can be reloaded */
 	bool CanReload() const;
@@ -226,14 +226,14 @@ class AOrionWeapon : public AOrionInventory
 	virtual void StopSimulatingWeaponFire();
 
 	/** attaches weapon mesh to pawn's mesh */
-	void AttachMeshToPawn();
+	virtual void AttachMeshToPawn();
 
 	/** detaches weapon mesh from pawn */
 	void DetachMeshFromPawn();
 
 	/** get weapon mesh (needs pawn owner to determine variant) */
 	UFUNCTION(BlueprintCallable, Category = Mesh)
-		USkeletalMeshComponent* GetWeaponMesh(bool bFirstPerson) const;
+		virtual USkeletalMeshComponent* GetWeaponMesh(bool bFirstPerson) const;
 
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerMelee();
@@ -308,14 +308,26 @@ class AOrionWeapon : public AOrionInventory
 		float LastFireTime;
 
 	UPROPERTY(EditDefaultsOnly, Category = Effects)
-		FName MuzzleAttachPoint;
+		TArray<FName> MuzzleAttachPoint;
+
+	/** FX for muzzle flash */
+	UPROPERTY(EditDefaultsOnly, Category = Effects)
+		TArray<UParticleSystem*> MuzzleFX;
+
+	/** spawned component for muzzle FX */
+	UPROPERTY(Transient)
+		TArray<UParticleSystemComponent*> MuzzlePSC;
+
+	void FireSpecial(FName SocketName, FVector Direction);
+
+	virtual FVector GetBarrelLocation(FName SocketName);
 
 	FVector GetAdjustedAim() const;
 	FVector GetCameraDamageStartLocation(const FVector& AimDir) const;
 	FHitResult WeaponTrace(const FVector& StartTrace, const FVector& EndTrace) const;
 	float GetCurrentSpread() const;
-	FVector GetMuzzleLocation() const;
-	FVector GetMuzzleDirection() const;
+	virtual FVector GetMuzzleLocation() const;
+	virtual FVector GetMuzzleDirection() const;
 
 	UFUNCTION(BlueprintCallable, Category = Weapon)
 		int32 GetCurrentAmmo() const;
@@ -387,14 +399,6 @@ class AOrionWeapon : public AOrionInventory
 	/** tracer */
 	UPROPERTY(EditDefaultsOnly, Category = Effects)
 		UParticleSystem* TracerFX;
-
-	/** FX for muzzle flash */
-	UPROPERTY(EditDefaultsOnly, Category = Effects)
-		UParticleSystem* MuzzleFX;
-
-	/** spawned component for muzzle FX */
-	UPROPERTY(Transient)
-		UParticleSystemComponent* MuzzlePSC;
 
 	/** param name for beam target in smoke trail */
 	UPROPERTY(EditDefaultsOnly, Category = Effects)

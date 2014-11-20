@@ -27,6 +27,9 @@ AOrionGameMode::AOrionGameMode(const class FPostConstructInitializeProperties& P
 
 	// use our custom HUD class
 	HUDClass = AOrionHUD::StaticClass();
+
+	//this will keep players connected and keep their data persistent across map changes
+	bUseSeamlessTravel = true; 
 }
 
 void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APawn* KilledPawn, const UDamageType* DamageType)

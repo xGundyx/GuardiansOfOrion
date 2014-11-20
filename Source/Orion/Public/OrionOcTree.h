@@ -4,7 +4,7 @@
 
 #include "Object.h"
 #include "OrionGeneratedMeshComponent.h"
-#include "OrionOctTree.generated.h"
+#include "OrionOcTree.generated.h"
 
 struct TreeData
 {
@@ -21,7 +21,7 @@ struct TreeData
 * class for storing voxel data
 */
 UCLASS()
-class UOrionOctTree : public UObject
+class UOrionOcTree : public UObject
 {
 	GENERATED_UCLASS_BODY()
 
@@ -43,7 +43,7 @@ class UOrionOctTree : public UObject
 	//grab our stored data at a point
 	float GetData(FVector pos, FVector center, int32 LOD);
 
-	UOrionOctTree *Children[8];
+	UOrionOcTree *Children[8];
 
 	//-100 means we're empty/null
 	float Density;

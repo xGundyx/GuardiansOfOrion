@@ -363,6 +363,11 @@ void AOrionCharacter::OnRep_CurrentWeapon(AOrionWeapon* LastWeapon)
 	SetCurrentWeapon(CurrentWeapon, LastWeapon);
 }
 
+void AOrionCharacter::HandleSpecialWeaponFire(FName SocketName)
+{
+
+}
+
 void AOrionCharacter::SetCurrentWeapon(class AOrionWeapon* NewWeapon, class AOrionWeapon* LastWeapon)
 {
 	AOrionWeapon* LocalLastWeapon = NULL;

@@ -8,6 +8,15 @@
 /**
  * 
  */
+
+UENUM()
+enum EDinoType
+{
+	DINOTYPE_CARNIVORE,
+	DINOTYPE_HERBIVORE,
+	DINOTYPE_OMNIVORE
+};
+
 UCLASS()
 class ORION_API AOrionDinoPawn : public AOrionCharacter
 {
@@ -68,6 +77,12 @@ class ORION_API AOrionDinoPawn : public AOrionCharacter
 	virtual void Tick(float DeltaTime) override;
 	void OrientToGround(float DeltaTime);
 	void HandleFootPlacement(float DeltaTime);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Eco)
+		TEnumAsByte<EDinoType> DinoType;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Eco)
+		FName DinoName;
 
 private:
 	FVector GroundNormal;

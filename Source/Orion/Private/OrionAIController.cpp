@@ -1,6 +1,7 @@
 
 
 #include "Orion.h"
+#include "OrionWeapon.h"
 #include "OrionAIController.h"
 
 
@@ -50,4 +51,36 @@ APawn *AOrionAIController::GetEnemy()
 	return myEnemy;
 }
 
+//if we have an enemy, make sure he is still valid
+void AOrionAIController::CheckEnemyStatus()
+{
+	if (myEnemy == nullptr)
+		return;
 
+	//ignore dead players
+	if (Cast<AOrionCharacter>(myEnemy) && Cast<AOrionCharacter>(myEnemy)->Health <= 0)
+		RemoveEnemy();
+}
+
+void AOrionAIController::RemoveEnemy()
+{
+	myEnemy = nullptr;
+}
+
+void AOrionAIController::StartFiringWeapon(FName SocketName, FVector Direction)
+{
+	AOrionCharacter *pPawn = Cast<AOrionCharacter>(GetPawn());
+	if (pPawn && pPawn->GetWeapon())
+	{
+		pPawn->GetWeapon()->StartFire();
+	}
+}
+
+void AOrionAIController::StopFiringWeapon()
+{
+	AOrionCharacter *pPawn = Cast<AOrionCharacter>(GetPawn());
+	if (pPawn && pPawn->GetWeapon())
+	{
+		pPawn->GetWeapon()->StopFire();
+	}
+}

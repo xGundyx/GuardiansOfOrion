@@ -1,11 +1,11 @@
 
 
 #include "Orion.h"
-#include "OrionOctTree.h"
+#include "OrionOcTree.h"
 
-FVector UOrionOctTree::TreeOffsets[8];
+FVector UOrionOcTree::TreeOffsets[8];
 
-UOrionOctTree::UOrionOctTree(const class FPostConstructInitializeProperties& PCIP)
+UOrionOcTree::UOrionOcTree(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
 	Density = -100.0;
@@ -14,7 +14,7 @@ UOrionOctTree::UOrionOctTree(const class FPostConstructInitializeProperties& PCI
 	mesh = nullptr;
 }
 
-void UOrionOctTree::Init()
+void UOrionOcTree::Init()
 {
 	TreeOffsets[0] = FVector(0.25, 0.25, -0.25);
 	TreeOffsets[1] = FVector(0.25, -0.25, -0.25);
@@ -26,7 +26,7 @@ void UOrionOctTree::Init()
 	TreeOffsets[7] = FVector(-0.25, 0.25, 0.25);
 }
 
-void UOrionOctTree::FillIn(FVector pos)
+void UOrionOcTree::FillIn(FVector pos)
 {
 	FVector c = FVector(-0.5, -0.5, -0.5)*VOXEL_WIDTH*CHUNK_SIZE_XY*VOXEL_X;
 
@@ -49,7 +49,7 @@ void UOrionOctTree::FillIn(FVector pos)
 	}
 }
 
-void UOrionOctTree::InsertPoint(FVector pos, float den, FVector center, float width)
+void UOrionOcTree::InsertPoint(FVector pos, float den, FVector center, float width)
 {
 	if (den == -1.0 || den == 1.0)
 		return;
@@ -99,7 +99,7 @@ void UOrionOctTree::InsertPoint(FVector pos, float den, FVector center, float wi
 
 			for (int32 i = 0; i < 8; i++)
 			{
-				Children[i] = ConstructObject<UOrionOctTree>(UOrionOctTree::StaticClass());
+				Children[i] = ConstructObject<UOrionOcTree>(UOrionOcTree::StaticClass());
 				Children[i]->Density = -100.0;
 				//Children[i]->Position = center + (TreeOffsets[i] * width);
 				Children[i]->Width = width / 2.0;
@@ -113,7 +113,7 @@ void UOrionOctTree::InsertPoint(FVector pos, float den, FVector center, float wi
 	//}
 }
 
-int32 UOrionOctTree::GetChild(FVector pos, FVector center)
+int32 UOrionOcTree::GetChild(FVector pos, FVector center)
 {
 	if (pos.X >= center.X)
 	{
@@ -152,7 +152,7 @@ int32 UOrionOctTree::GetChild(FVector pos, FVector center)
 	return 0;
 }
 
-float UOrionOctTree::GetData(FVector pos, FVector center, int32 LOD)
+float UOrionOcTree::GetData(FVector pos, FVector center, int32 LOD)
 {
 	if (Width == VOXEL_WIDTH * LOD)
 		return Density;
@@ -165,7 +165,7 @@ float UOrionOctTree::GetData(FVector pos, FVector center, int32 LOD)
 		return Density;
 }
 
-void UOrionOctTree::RemovePoint(FVector pos)
+void UOrionOcTree::RemovePoint(FVector pos)
 {
 
 }

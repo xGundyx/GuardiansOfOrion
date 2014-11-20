@@ -227,7 +227,7 @@ void AOrionVoxelBase::RebuildTerrain()
 
 	float MaxHeight = UOrionDiamondSquare::MaxHeight*1.0 + 0.05;
 	//allocate memory for all of our chunks
-	VoxelTree = ConstructObject<UOrionOctTree>(UOrionOctTree::StaticClass());
+	VoxelTree = ConstructObject<UOrionOcTree>(UOrionOcTree::StaticClass());
 	VoxelTree->Width = DIAMOND_RES*VOXEL_WIDTH;
 
 	//init some values
@@ -453,7 +453,7 @@ UOrionGeneratedMeshComponent* AOrionVoxelBase::GetMeshFromPool()
 	return mesh[PoolIndex];
 }
 
-void AOrionVoxelBase::DrawPatch(UOrionOctTree *theTree, UOrionOctTree *parentTree, FVector center, int32 LOD)
+void AOrionVoxelBase::DrawPatch(UOrionOcTree *theTree, UOrionOcTree *parentTree, FVector center, int32 LOD)
 {
 	FGeneratedMeshTriangle tri;
 	FVector points[8];
@@ -727,7 +727,7 @@ void AOrionVoxelBase::DrawPatch(UOrionOctTree *theTree, UOrionOctTree *parentTre
 	triangles.Empty();
 }
 
-void AOrionVoxelBase::GenerateMeshFromOctree(UOrionOctTree *theTree, UOrionOctTree *parentTree, FVector center)
+void AOrionVoxelBase::GenerateMeshFromOctree(UOrionOcTree *theTree, UOrionOcTree *parentTree, FVector center)
 {
 	for (int32 i = 0; i < 8; i++)
 	{
@@ -737,7 +737,7 @@ void AOrionVoxelBase::GenerateMeshFromOctree(UOrionOctTree *theTree, UOrionOctTr
 			DrawPatch(theTree, parentTree, center, 4);
 		}
 		else if (theTree->Children[i] != nullptr)
-			GenerateMeshFromOctree(theTree->Children[i], theTree, center + UOrionOctTree::TreeOffsets[i] * theTree->Width);
+			GenerateMeshFromOctree(theTree->Children[i], theTree, center + UOrionOcTree::TreeOffsets[i] * theTree->Width);
 	}
 }
 

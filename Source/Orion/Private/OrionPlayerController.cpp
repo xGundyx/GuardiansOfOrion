@@ -6,12 +6,28 @@
 #include "OrionPlayerController.h"
 #include "OrionArmor.h"
 #include "OrionInventoryArmor.h"
+#include "OrionLocalPlayer.h"
 #include "OrionTCPLink.h"
 
 AOrionPlayerController::AOrionPlayerController(const class FPostConstructInitializeProperties& PCIP)
 : Super(PCIP)
 {
 	PlayerCameraManagerClass = AOrionPlayerCameraManager::StaticClass();
+}
+
+void AOrionPlayerController::AttemptLogin(FString UserName, FString Password)
+{
+	UOrionTCPLink::Login(UserName, Password);
+}
+
+void AOrionPlayerController::CreateNewAccount(FString UserName, FString Password, FString Email)
+{
+	UOrionTCPLink::CreateAccount(UserName, Password, Email);
+}
+
+void AOrionPlayerController::CreateNewCharacter(FString UserName, FString Gender, FString BaseColor)
+{
+	UOrionTCPLink::CreateCharacter(UserName, Gender, BaseColor);
 }
 
 void AOrionPlayerController::SetupInputComponent()
@@ -25,6 +41,45 @@ void AOrionPlayerController::SetupInputComponent()
 void AOrionPlayerController::OpenInventory()
 {
 	EventOpenInventoryScreen();
+}
+
+void AOrionPlayerController::PreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel)
+{
+	Super::PreClientTravel(PendingURL, TravelType, bIsSeamlessTravel);
+}
+
+void AOrionPlayerController::CleanupGameViewport()
+{
+	Super::CleanupGameViewport();
+}
+
+void AOrionPlayerController::SeamlessTravelTo(class APlayerController* NewPC)
+{
+	Super::SeamlessTravelTo(NewPC);
+}
+
+void AOrionPlayerController::SeamlessTravelFrom(class APlayerController* OldPC)
+{
+	Super::SeamlessTravelFrom(OldPC);
+}
+
+void AOrionPlayerController::ClearUMG()
+{
+	EventCleanupUMG();
+
+	if (Cast<UOrionLocalPlayer>(Player) && Cast<UOrionLocalPlayer>(Player)->InventoryManager)
+	{
+		Cast<UOrionLocalPlayer>(Player)->InventoryManager->Destroy();
+		Cast<UOrionLocalPlayer>(Player)->InventoryManager = NULL;
+	}
+}
+
+void AOrionPlayerController::Destroyed()
+{
+	//cleanup our menus so we don't get a garbage collection crash
+	ClearUMG();
+
+	Super::Destroyed();
 }
 
 void AOrionPlayerController::PostInitializeComponents()
@@ -44,9 +99,9 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 {
 	Super::Possess(aPawn);
 
-	if (InventoryManager)
+	if (GetInventoryManager())
 	{
-		InventoryManager->EquipItems(Cast<AOrionCharacter>(aPawn));
+		GetInventoryManager()->EquipItems(Cast<AOrionCharacter>(aPawn));
 	}
 }
 
@@ -71,7 +126,7 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 	if (TheSun)
 		TheSun->UpdateWeather(DeltaTime);
 
-	////UOrionTCPLink::Update();
+	UOrionTCPLink::Update();
 }
 
 void AOrionPlayerController::PerfectDay()
@@ -114,21 +169,42 @@ void AOrionPlayerController::ArmorColor(int32 index)
 	}
 }
 
+AOrionInventoryManager *AOrionPlayerController::GetInventoryManager()
+{
+	UOrionLocalPlayer *myPlayer = Cast<UOrionLocalPlayer>(Player);
+
+	if (!myPlayer)
+		return nullptr;
+
+	if (myPlayer->InventoryManager)
+		return myPlayer->InventoryManager;
+
+	return nullptr;
+}
+
 void AOrionPlayerController::CreateInventory()
 {
 	//make sure our current inventory is null
-	if (InventoryManager)
+	if (GetInventoryManager())
 		return;
+
+	UOrionLocalPlayer *myPlayer = Cast<UOrionLocalPlayer>(Player);
+
+	if (!myPlayer)
+	{
+		GetWorldTimerManager().SetTimer(this, &AOrionPlayerController::CreateInventory, 0.01, false);
+		return;
+	}
 
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.bNoCollisionFail = true;
-	InventoryManager = GetWorld()->SpawnActor<AOrionInventoryManager>(AOrionInventoryManager::StaticClass(), SpawnInfo);
+	myPlayer->InventoryManager = GetWorld()->SpawnActor<AOrionInventoryManager>(AOrionInventoryManager::StaticClass(), SpawnInfo);
 
-	if (!InventoryManager)
+	if (!myPlayer->InventoryManager)
 		return;
 
-	InventoryManager->Init();
-	InventoryManager->OwnerController = this;
+	myPlayer->InventoryManager->Init();
+	myPlayer->InventoryManager->OwnerController = this;
 
 	//give us some default inventory
 	GetDefaultInventory();
@@ -137,10 +213,52 @@ void AOrionPlayerController::CreateInventory()
 void AOrionPlayerController::GetDefaultInventory()
 {
 	//just hack it for now!
-	if (InventoryManager)
+	if (GetInventoryManager())
 	{
 		EventGiveDefaultInventory();
 	}
+}
+
+void AOrionPlayerController::InitStatsAndAchievements()
+{
+	Stats = ConstructObject<UOrionStats>(UOrionStats::StaticClass());
+	Achievements = ConstructObject<UOrionAchievements>(UOrionAchievements::StaticClass());
+}
+
+void AOrionPlayerController::ReadStats()
+{
+
+}
+
+void AOrionPlayerController::SaveStats()
+{
+
+}
+
+void AOrionPlayerController::IncreaseStatValue(FStatID id, int32 iAmount, int32 fAmount)
+{
+	if (!Stats)
+		return;
+
+	int32 i = int32(id) - 1;
+
+	if (Stats->aStats[i].StatType == STATTYPE_INT)
+		Stats->aStats[i].StatValueInt += iAmount;
+	else if (Stats->aStats[i].StatType == STATTYPE_FLOAT)
+		Stats->aStats[i].StatValueFloat += iAmount;
+}
+
+void AOrionPlayerController::SetStatValue(FStatID id, int32 iAmount, int32 fAmount)
+{
+	if (!Stats)
+		return;
+
+	int32 i = int32(id) - 1;
+
+	if (Stats->aStats[i].StatType == STATTYPE_INT)
+		Stats->aStats[i].StatValueInt = iAmount;
+	else if (Stats->aStats[i].StatType == STATTYPE_FLOAT)
+		Stats->aStats[i].StatValueFloat = iAmount;
 }
 
 void AOrionPlayerController::InitQuestManager()
