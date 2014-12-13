@@ -12,7 +12,9 @@
 UCLASS()
 class ORION_API AOrionGRI : public AGameState
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AOrionGRI(const FObjectInitializer& ObejctInitializer);
 
 	UPROPERTY(Transient, Replicated)
 		AOrionWeather *Weather;

@@ -4,8 +4,8 @@
 #include "OrionArmor.h"
 
 
-AOrionArmor::AOrionArmor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AOrionArmor::AOrionArmor(const FObjectInitializer& ObejctInitializer)
+	: Super(ObejctInitializer)
 {
 
 }

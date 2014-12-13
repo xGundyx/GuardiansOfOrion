@@ -5,8 +5,8 @@
 #include "OrionAIController.h"
 
 
-AOrionAIController::AOrionAIController(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AOrionAIController::AOrionAIController(const FObjectInitializer& ObejctInitializer)
+	: Super(ObejctInitializer)
 {
 
 }

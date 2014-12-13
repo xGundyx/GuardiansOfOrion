@@ -19,11 +19,11 @@ struct FTakeHitInfo
 
 	/** Who hit us */
 	UPROPERTY()
-		TWeakObjectPtr<class AOrionCharacter> PawnInstigator;
+		class AOrionCharacter* PawnInstigator;
 
 	/** Who actually caused the damage */
 	UPROPERTY()
-		TWeakObjectPtr<class AActor> DamageCauser;
+		class AActor* DamageCauser;
 
 	/** Specifies which DamageEvent below describes the damage received. */
 	UPROPERTY()
@@ -138,7 +138,9 @@ struct FDirectionalAnim
 UCLASS(BlueprintType, Blueprintable, config = Game)
 class AOrionCharacter : public ACharacter
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AOrionCharacter(const FObjectInitializer& ObejctInitializer);
 
 	/** spawn inventory, setup initial variables */
 	virtual void PostInitializeComponents() override;
@@ -190,30 +192,30 @@ class AOrionCharacter : public ACharacter
 
 	//modular pieces
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
-		TSubobjectPtr<class USkeletalMeshComponent> HelmetMesh;
+		class USkeletalMeshComponent* HelmetMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
-		TSubobjectPtr<class USkeletalMeshComponent> BodyMesh;
+		class USkeletalMeshComponent* BodyMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
-		TSubobjectPtr<class USkeletalMeshComponent> ArmsMesh;
+		class USkeletalMeshComponent* ArmsMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
-		TSubobjectPtr<class USkeletalMeshComponent> LegsMesh;
+		class USkeletalMeshComponent* LegsMesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
-		TSubobjectPtr<class USkeletalMeshComponent> Flight1Mesh;
+		class USkeletalMeshComponent* Flight1Mesh;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
-		TSubobjectPtr<class USkeletalMeshComponent> Flight2Mesh;
+		class USkeletalMeshComponent* Flight2Mesh;
 
 	/** First person camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
-		TSubobjectPtr<class UCameraComponent> FirstPersonCameraComponent;
+		class UCameraComponent* FirstPersonCameraComponent;
 
 	/** Third person camera */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
-		TSubobjectPtr<class UCameraComponent> ThirdPersonCameraComponent;
+		class UCameraComponent* ThirdPersonCameraComponent;
 
 	/** Base turn rate, in deg/sec. Other scaling may affect final turn rate. */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
@@ -442,6 +444,8 @@ protected:
 
 	float LastAimKickTime;
 
+	FVector GetPawnViewLocation() const override;
+
 	void UpdateAimKick(float DeltaSeconds);
 
 	void StopAllAnimMontages();
@@ -539,6 +543,8 @@ protected:
 	FRotator RootRotation;
 	float TargetYaw;
 	bool bRolling;
+public:
+	FVector CameraLocation;
 
 protected:
 	// APawn interface

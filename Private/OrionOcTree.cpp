@@ -5,8 +5,8 @@
 
 FVector UOrionOcTree::TreeOffsets[8];
 
-UOrionOcTree::UOrionOcTree(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UOrionOcTree::UOrionOcTree(const FObjectInitializer& ObejctInitializer)
+: Super(ObejctInitializer)
 {
 	Density = -100.0;
 

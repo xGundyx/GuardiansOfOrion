@@ -3,8 +3,8 @@
 #include "Orion.h"
 #include "OrionInventoryGrid.h"
 
-UOrionInventoryGrid::UOrionInventoryGrid(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UOrionInventoryGrid::UOrionInventoryGrid(const FObjectInitializer& ObejctInitializer)
+	: Super(ObejctInitializer)
 {
 
 }

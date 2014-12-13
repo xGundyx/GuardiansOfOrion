@@ -6,8 +6,8 @@
 #include "OrionMovementComponent.h"
 
 
-UOrionMovementComponent::UOrionMovementComponent(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UOrionMovementComponent::UOrionMovementComponent(const FObjectInitializer& ObejctInitializer)
+: Super(ObejctInitializer)
 {
 
 }

@@ -6,7 +6,9 @@
 UCLASS(minimalapi)
 class AOrionGameMode : public AGameMode
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AOrionGameMode(const FObjectInitializer& ObejctInitializer);
 
 	virtual void Killed(AController* Killer, AController* KilledPlayer, APawn* KilledPawn, const UDamageType* DamageType);
 };

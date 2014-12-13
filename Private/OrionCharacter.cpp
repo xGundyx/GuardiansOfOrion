@@ -12,11 +12,11 @@
 //////////////////////////////////////////////////////////////////////////
 // AOrionCharacter
 
-AOrionCharacter::AOrionCharacter(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP.SetDefaultSubobjectClass<UOrionMovementComponent>(ACharacter::CharacterMovementComponentName))
+AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObejctInitializer)
+: Super(ObejctInitializer.SetDefaultSubobjectClass<UOrionMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	// Set size for collision capsule
-	CapsuleComponent->InitCapsuleSize(42.f, 96.0f);
+	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 
 	// set our turn rates for input
 	BaseTurnRate = 45.f;
@@ -25,35 +25,35 @@ AOrionCharacter::AOrionCharacter(const class FPostConstructInitializeProperties&
 	//AIControllerClass = AOrionAIController::StaticClass();
 
 	// Create a CameraComponent	
-	FirstPersonCameraComponent = PCIP.CreateDefaultSubobject<UCameraComponent>(this, TEXT("FirstPersonCamera"));
-	FirstPersonCameraComponent->AttachParent = CapsuleComponent;
+	FirstPersonCameraComponent = ObejctInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("FirstPersonCamera"));
+	FirstPersonCameraComponent->AttachParent = GetCapsuleComponent();
 	FirstPersonCameraComponent->RelativeLocation = FVector(0, 0, 64.f); // Position the camera
 
-	ThirdPersonCameraComponent = PCIP.CreateDefaultSubobject<UCameraComponent>(this, TEXT("ThirdPersonCamera"));
-	ThirdPersonCameraComponent->AttachParent = CapsuleComponent;
+	ThirdPersonCameraComponent = ObejctInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("ThirdPersonCamera"));
+	ThirdPersonCameraComponent->AttachParent = GetCapsuleComponent();
 	ThirdPersonCameraComponent->RelativeLocation = FVector(0, 0, 0); // Position the camera
 
 	// Default offset from the character location for projectiles to spawn
 	GunOffset = FVector(100.0f, 30.0f, 10.0f);
 
 	// Create a mesh component that will be used when being viewed from a '1st person' view (when controlling this pawn)
-	/*Mesh1P = PCIP.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("CharacterMesh1P"));
+	/*Mesh1P = ObejctInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("CharacterMesh1P"));
 	Mesh1P->SetOnlyOwnerSee(true);			// only the owning player will see this mesh
 	Mesh1P->AttachParent = FirstPersonCameraComponent;
 	Mesh1P->RelativeLocation = FVector(0.f, 0.f, -150.f);
 	Mesh1P->bCastDynamicShadow = false;
 	Mesh1P->CastShadow = false;*/
 
-	Mesh->bOnlyOwnerSee = false;
-	Mesh->bOwnerNoSee = true;
-	Mesh->bReceivesDecals = false;
-	Mesh->SetCollisionObjectType(ECC_Pawn);
-	Mesh->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	//Mesh->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Block);
-	Mesh->SetCollisionResponseToChannel(COLLISION_PROJECTILE, ECR_Block);
-	Mesh->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
+	GetMesh()->bOnlyOwnerSee = false;
+	GetMesh()->bOwnerNoSee = true;
+	GetMesh()->bReceivesDecals = false;
+	GetMesh()->SetCollisionObjectType(ECC_Pawn);
+	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
+	//GetMesh()->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Block);
+	GetMesh()->SetCollisionResponseToChannel(COLLISION_PROJECTILE, ECR_Block);
+	GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 
-	BodyMesh = PCIP.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Body"));
+	BodyMesh = ObejctInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Body"));
 	BodyMesh->AlwaysLoadOnClient = true;
 	BodyMesh->AlwaysLoadOnServer = true;
 	BodyMesh->bOwnerNoSee = true;
@@ -64,10 +64,10 @@ AOrionCharacter::AOrionCharacter(const class FPostConstructInitializeProperties&
 	//BodyMesh->SetCollisionProfileName(CollisionProfileName);
 	BodyMesh->bGenerateOverlapEvents = false;
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
-	BodyMesh->AttachParent = Mesh;
-	BodyMesh->SetMasterPoseComponent(Mesh);
+	BodyMesh->AttachParent = GetMesh();
+	BodyMesh->SetMasterPoseComponent(GetMesh());
 
-	HelmetMesh = PCIP.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Helmet"));
+	HelmetMesh = ObejctInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Helmet"));
 	HelmetMesh->AlwaysLoadOnClient = true;
 	HelmetMesh->AlwaysLoadOnServer = true;
 	HelmetMesh->bOwnerNoSee = true;
@@ -78,10 +78,10 @@ AOrionCharacter::AOrionCharacter(const class FPostConstructInitializeProperties&
 	//HelmetMesh->SetCollisionProfileName(CollisionProfileName);
 	HelmetMesh->bGenerateOverlapEvents = false;
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
-	HelmetMesh->AttachParent = Mesh;
-	HelmetMesh->SetMasterPoseComponent(Mesh);
+	HelmetMesh->AttachParent = GetMesh();
+	HelmetMesh->SetMasterPoseComponent(GetMesh());
 
-	ArmsMesh = PCIP.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Arms"));
+	ArmsMesh = ObejctInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Arms"));
 	ArmsMesh->AlwaysLoadOnClient = true;
 	ArmsMesh->AlwaysLoadOnServer = true;
 	ArmsMesh->bOwnerNoSee = true;
@@ -92,10 +92,10 @@ AOrionCharacter::AOrionCharacter(const class FPostConstructInitializeProperties&
 	//ArmsMesh->SetCollisionProfileName(CollisionProfileName);
 	ArmsMesh->bGenerateOverlapEvents = false;
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
-	ArmsMesh->AttachParent = Mesh;
-	ArmsMesh->SetMasterPoseComponent(Mesh);
+	ArmsMesh->AttachParent = GetMesh();
+	ArmsMesh->SetMasterPoseComponent(GetMesh());
 
-	LegsMesh = PCIP.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Legs"));
+	LegsMesh = ObejctInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Legs"));
 	LegsMesh->AlwaysLoadOnClient = true;
 	LegsMesh->AlwaysLoadOnServer = true;
 	LegsMesh->bOwnerNoSee = true;
@@ -106,10 +106,10 @@ AOrionCharacter::AOrionCharacter(const class FPostConstructInitializeProperties&
 	//LegsMesh->SetCollisionProfileName(CollisionProfileName);
 	LegsMesh->bGenerateOverlapEvents = false;
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
-	LegsMesh->AttachParent = Mesh;
-	LegsMesh->SetMasterPoseComponent(Mesh);
+	LegsMesh->AttachParent = GetMesh();
+	LegsMesh->SetMasterPoseComponent(GetMesh());
 
-	Flight1Mesh = PCIP.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Flight1"));
+	Flight1Mesh = ObejctInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Flight1"));
 	Flight1Mesh->AlwaysLoadOnClient = true;
 	Flight1Mesh->AlwaysLoadOnServer = true;
 	Flight1Mesh->bOwnerNoSee = true;
@@ -120,10 +120,10 @@ AOrionCharacter::AOrionCharacter(const class FPostConstructInitializeProperties&
 	//Flight1Mesh->SetCollisionProfileName(CollisionProfileName);
 	Flight1Mesh->bGenerateOverlapEvents = false;
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
-	Flight1Mesh->AttachParent = Mesh;
-	Flight1Mesh->SetMasterPoseComponent(Mesh);
+	Flight1Mesh->AttachParent = GetMesh();
+	Flight1Mesh->SetMasterPoseComponent(GetMesh());
 
-	Flight2Mesh = PCIP.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Flight2"));
+	Flight2Mesh = ObejctInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Flight2"));
 	Flight2Mesh->AlwaysLoadOnClient = true;
 	Flight2Mesh->AlwaysLoadOnServer = true;
 	Flight2Mesh->bOwnerNoSee = true;
@@ -134,8 +134,8 @@ AOrionCharacter::AOrionCharacter(const class FPostConstructInitializeProperties&
 	//Flight2Mesh->SetCollisionProfileName(CollisionProfileName);
 	Flight2Mesh->bGenerateOverlapEvents = false;
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
-	Flight2Mesh->AttachParent = Mesh;
-	Flight2Mesh->SetMasterPoseComponent(Mesh);
+	Flight2Mesh->AttachParent = GetMesh();
+	Flight2Mesh->SetMasterPoseComponent(GetMesh());
 
 	Health = 100.0;
 	HealthMax = 100.0;
@@ -158,10 +158,14 @@ FVector2D AOrionCharacter::GetAim(float DeltaTime)
 	if (IsSprinting())
 		return FVector2D(0.0f, 0.0f);
 
+	if (!Controller)
+		return FVector2D(0.0f, 0.0f);
+
 	GetPawnMesh()->GetSocketWorldLocationAndRotation(FName("Aim"), pos, rot);
 
 	//GetWeapon()->GetWeaponMesh(false)->GetSocketWorldLocationAndRotation(FName("MuzzleFlashSocket"), pos, rot);
-	FVector AimDirWS = (ThirdPersonCameraComponent->GetComponentLocation() + ThirdPersonCameraComponent->GetComponentRotation().Vector()*5000.0) - pos;// GetBaseAimRotation().Vector();
+	FVector AimDirWS = (CameraLocation + Controller->GetControlRotation().Vector()/*ThirdPersonCameraComponent->GetComponentRotation().Vector()*/*5000.0) - pos;// GetBaseAimRotation().Vector();
+	//DrawDebugBox(GWorld, CameraLocation + Controller->GetControlRotation().Vector()*5000.0, FVector(10, 10, 10), FColor(255, 0, 0, 255), false);
 	AimDirWS.Normalize();
 	const FVector AimDirLS = ActorToWorld().InverseTransformVectorNoScale(AimDirWS);
 	const FRotator AimRotLS = AimDirLS.Rotation();
@@ -199,13 +203,15 @@ void AOrionCharacter::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 
 		if (Health > 0)
 		{
-			CamStart = Mesh->GetBoneLocation(FName("Spine_Bot_bj"));
-			CamStart.Z += CapsuleComponent->GetUnscaledCapsuleHalfHeight() - 18.0;
+			CamStart = GetMesh()->GetBoneLocation(FName("Trek_Spine02"));
+			CamStart.Z += GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() - 18.0;
 			if (bDuck)
 				CamStart.Z += 25.0;
 		}
 
 		OutResult.Location = CamStart - X*CameraOffset.X + CameraOffset.Y*Y;
+
+		CameraLocation = OutResult.Location;
 	}
 
 	//add some weapon bob and view sway
@@ -263,6 +269,14 @@ void AOrionCharacter::OnCameraUpdate(const FVector& CameraLocation, const FRotat
 void AOrionCharacter::ResetAimKick()
 {
 	AimKick = FRotator(0, 0, 0);
+}
+
+FVector AOrionCharacter::GetPawnViewLocation() const
+{
+	if (IsFirstPerson())
+		return GetActorLocation() + FVector(0.f, 0.f, BaseEyeHeight);
+	else
+		return CameraLocation; 
 }
 
 void AOrionCharacter::ProcessAimKick(FRotator& OutViewRotation, FRotator& OutDeltaRot)
@@ -436,7 +450,7 @@ void AOrionCharacter::RemoveWeapon(AOrionWeapon* Weapon)
 
 USkeletalMeshComponent* AOrionCharacter::GetPawnMesh() const
 {
-	return IsFirstPerson() && CurrentWeapon ? CurrentWeapon->ArmsMesh : Mesh;
+	return IsFirstPerson() && CurrentWeapon ? CurrentWeapon->ArmsMesh : GetMesh();
 }
 
 bool AOrionCharacter::IsAlive() const
@@ -446,7 +460,7 @@ bool AOrionCharacter::IsAlive() const
 
 USkeletalMeshComponent* AOrionCharacter::GetSpecifcPawnMesh(bool WantFirstPerson) const
 {
-	return WantFirstPerson && CurrentWeapon ? CurrentWeapon->ArmsMesh : Mesh;
+	return WantFirstPerson && CurrentWeapon ? CurrentWeapon->ArmsMesh : GetMesh();
 }
 
 void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
@@ -535,7 +549,7 @@ bool AOrionCharacter::Die(float KillingDamage, FDamageEvent const& DamageEvent, 
 	GetWorld()->GetAuthGameMode<AOrionGameMode>()->Killed(Killer, KilledPlayer, this, DamageType);
 
 	NetUpdateFrequency = GetDefault<AOrionCharacter>()->NetUpdateFrequency;
-	CharacterMovement->ForceReplicationUpdate();
+	GetCharacterMovement()->ForceReplicationUpdate();
 
 	OnDeath(KillingDamage, DamageEvent, Killer ? Killer->GetPawn() : NULL, DamageCauser);
 	return true;
@@ -586,11 +600,11 @@ void AOrionCharacter::OnRep_LastTakeHitInfo()
 {
 	if (LastTakeHitInfo.bKilled)
 	{
-		OnDeath(LastTakeHitInfo.ActualDamage, LastTakeHitInfo.GetDamageEvent(), LastTakeHitInfo.PawnInstigator.Get(), LastTakeHitInfo.DamageCauser.Get());
+		OnDeath(LastTakeHitInfo.ActualDamage, LastTakeHitInfo.GetDamageEvent(), LastTakeHitInfo.PawnInstigator, LastTakeHitInfo.DamageCauser);
 	}
 	else
 	{
-		PlayHit(LastTakeHitInfo.ActualDamage, LastTakeHitInfo.GetDamageEvent(), LastTakeHitInfo.PawnInstigator.Get(), LastTakeHitInfo.DamageCauser.Get());
+		PlayHit(LastTakeHitInfo.ActualDamage, LastTakeHitInfo.GetDamageEvent(), LastTakeHitInfo.PawnInstigator, LastTakeHitInfo.DamageCauser);
 	}
 }
 
@@ -599,7 +613,7 @@ void AOrionCharacter::ReplicateHit(float Damage, struct FDamageEvent const& Dama
 	const float TimeoutTime = GetWorld()->GetTimeSeconds() + 0.5f;
 
 	FDamageEvent const& LastDamageEvent = LastTakeHitInfo.GetDamageEvent();
-	if ((PawnInstigator == LastTakeHitInfo.PawnInstigator.Get()) && (LastDamageEvent.DamageTypeClass == LastTakeHitInfo.DamageTypeClass) && (LastTakeHitTimeTimeout == TimeoutTime))
+	if ((PawnInstigator == LastTakeHitInfo.PawnInstigator) && (LastDamageEvent.DamageTypeClass == LastTakeHitInfo.DamageTypeClass) && (LastTakeHitTimeTimeout == TimeoutTime))
 	{
 		// same frame damage
 		if (bKilled && LastTakeHitInfo.bKilled)
@@ -684,13 +698,13 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	}*/
 
 	// disable collisions on capsule
-	CapsuleComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	CapsuleComponent->SetCollisionResponseToAllChannels(ECR_Ignore);
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCapsuleComponent()->SetCollisionResponseToAllChannels(ECR_Ignore);
 
-	if (Mesh)
+	if (GetMesh())
 	{
 		static FName CollisionProfileName(TEXT("Ragdoll"));
-		Mesh->SetCollisionProfileName(CollisionProfileName);
+		GetMesh()->SetCollisionProfileName(CollisionProfileName);
 	}
 	SetActorEnableCollision(true);
 
@@ -716,24 +730,24 @@ void AOrionCharacter::SetRagdollPhysics()
 	{
 		bInRagdoll = false;
 	}
-	else if (!Mesh || !Mesh->GetPhysicsAsset())
+	else if (!GetMesh() || !GetMesh()->GetPhysicsAsset())
 	{
 		bInRagdoll = false;
 	}
 	else
 	{
 		// initialize physics/etc
-		Mesh->SetAllBodiesSimulatePhysics(true);
-		Mesh->SetSimulatePhysics(true);
-		Mesh->WakeAllRigidBodies();
-		Mesh->bBlendPhysics = true;
+		GetMesh()->SetAllBodiesSimulatePhysics(true);
+		GetMesh()->SetSimulatePhysics(true);
+		GetMesh()->WakeAllRigidBodies();
+		GetMesh()->bBlendPhysics = true;
 
 		bInRagdoll = true;
 	}
 
-	CharacterMovement->StopMovementImmediately();
-	CharacterMovement->DisableMovement();
-	CharacterMovement->SetComponentTickEnabled(false);
+	GetCharacterMovement()->StopMovementImmediately();
+	GetCharacterMovement()->DisableMovement();
+	GetCharacterMovement()->SetComponentTickEnabled(false);
 
 	if (!bInRagdoll)
 	{
@@ -789,8 +803,8 @@ void AOrionCharacter::UpdatePawnMeshes()
 {
 	bool const bFirst = IsFirstPerson();
 
-	Mesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	Mesh->SetOwnerNoSee(bFirst);
+	GetMesh()->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
+	GetMesh()->SetOwnerNoSee(bFirst);
 
 	BodyMesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	BodyMesh->SetOwnerNoSee(bFirst);
@@ -948,7 +962,7 @@ void AOrionCharacter::DoRoll()
 	if (RollAnimation.Backwards != NULL)
 	{
 		// Get the animation object for the arms mesh
-		UAnimInstance* AnimInstance = Mesh->GetAnimInstance();
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (AnimInstance != NULL)
 		{
 			FVector AimDirWS = GetVelocity();
@@ -1084,9 +1098,9 @@ void AOrionCharacter::StopAiming()
 bool AOrionCharacter::ShouldPlayWeaponAnim() const
 {
 	return !bRun && CurrentWeapon && !bRolling
-		&& !Mesh->AnimScriptInstance->Montage_IsActive(CurrentWeapon->ReloadAnim.Pawn3P)
-		&& !Mesh->AnimScriptInstance->Montage_IsActive(CurrentWeapon->MeleeAnim.Pawn3P)
-		&& !Mesh->AnimScriptInstance->Montage_IsActive(CurrentWeapon->EquipAnim.Pawn3P);
+		&& !GetMesh()->AnimScriptInstance->Montage_IsActive(CurrentWeapon->ReloadAnim.Pawn3P)
+		&& !GetMesh()->AnimScriptInstance->Montage_IsActive(CurrentWeapon->MeleeAnim.Pawn3P)
+		&& !GetMesh()->AnimScriptInstance->Montage_IsActive(CurrentWeapon->EquipAnim.Pawn3P);
 }
 
 int32 AOrionCharacter::GetWeaponIndex() const
@@ -1178,13 +1192,13 @@ void AOrionCharacter::MoveForward(float Value)
 float AOrionCharacter::GetFootOffset(FName Socket) const
 {
 	//make sure we have a mesh
-	if (Mesh == NULL)
+	if (GetMesh() == NULL)
 		return 0.0;
 
 	FVector pos;
 	FRotator rot;
 
-	Mesh->GetSocketWorldLocationAndRotation(Socket, pos, rot);
+	GetMesh()->GetSocketWorldLocationAndRotation(Socket, pos, rot);
 
 	FHitResult Hit;
 
@@ -1197,7 +1211,7 @@ float AOrionCharacter::GetFootOffset(FName Socket) const
 	FVector vStart = pos;
 	vStart.Z = GetActorLocation().Z;// +Mesh->RelativeLocation.Z;
 
-	FVector vEnd = vStart - FVector(0,0,CapsuleComponent->GetScaledCapsuleHalfHeight()*2.0);
+	FVector vEnd = vStart - FVector(0,0,GetCapsuleComponent()->GetScaledCapsuleHalfHeight()*2.0);
 
 	//if (GWorld->LineTraceSingle(Hit, vStart, vEnd, COLLISION_WEAPON,TraceParams))
 	if (GWorld->SweepSingle(Hit, vStart, vEnd, FQuat::Identity, ECollisionChannel::ECC_Pawn, FCollisionShape::MakeSphere(5), TraceParams))

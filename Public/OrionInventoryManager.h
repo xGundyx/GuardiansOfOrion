@@ -67,7 +67,10 @@ struct FInventoryGrid
 UCLASS()
 class ORION_API AOrionInventoryManager : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+
+public:
+	AOrionInventoryManager(const FObjectInitializer& ObejctInitializer);
 
 	//2 dimensional inventory grid representation
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory)

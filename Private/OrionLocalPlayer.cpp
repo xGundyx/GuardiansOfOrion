@@ -4,8 +4,8 @@
 #include "OrionLocalPlayer.h"
 
 
-UOrionLocalPlayer::UOrionLocalPlayer(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UOrionLocalPlayer::UOrionLocalPlayer(const FObjectInitializer& ObejctInitializer)
+	: Super(ObejctInitializer)
 {
 
 }

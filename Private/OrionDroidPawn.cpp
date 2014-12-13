@@ -4,8 +4,8 @@
 #include "OrionDroidPawn.h"
 
 
-AOrionDroidPawn::AOrionDroidPawn(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AOrionDroidPawn::AOrionDroidPawn(const FObjectInitializer& ObejctInitializer)
+	: Super(ObejctInitializer)
 {
 
 }
@@ -25,11 +25,11 @@ float AOrionDroidPawn::GetFinRotation(float DeltaTime)
 //fire weapon from weapon socket
 void AOrionDroidPawn::HandleSpecialWeaponFire(FName SocketName)
 {
-	if (Mesh)
+	if (GetMesh())
 	{
 		FVector pos;
 		FRotator rot;
-		Mesh->GetSocketWorldLocationAndRotation(SocketName, pos, rot);
+		GetMesh()->GetSocketWorldLocationAndRotation(SocketName, pos, rot);
 		CurrentWeapon->FireSpecial(SocketName, rot.Vector());
 	}
 }

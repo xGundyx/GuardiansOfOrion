@@ -12,7 +12,9 @@
 UCLASS()
 class ORION_API AOrionDroidController : public AOrionAIController
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AOrionDroidController(const FObjectInitializer& ObejctInitializer);
 
 	UFUNCTION(BlueprintCallable, Category = Droid)
 		AOrionPlayerController *GetBuddy();

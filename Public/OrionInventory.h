@@ -31,7 +31,9 @@ enum ItemRarity
 UCLASS()
 class ORION_API AOrionInventory : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AOrionInventory(const FObjectInitializer& ObejctInitializer);
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Inventory)
 		TEnumAsByte<ItemTypes> ItemType;

@@ -114,7 +114,9 @@ struct FVertexPoolData
 UCLASS()
 class AOrionVoxelBase : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AOrionVoxelBase(const FObjectInitializer& ObejctInitializer);
 
 	UFUNCTION(BlueprintCallable, Category = Weather)
 	void RebuildTerrain();
@@ -140,7 +142,7 @@ class AOrionVoxelBase : public AActor
 	void DrawPatch(UOrionOcTree *theTree, UOrionOcTree *parentTree, FVector center, int32 LOD);
 
 	//create a pool
-	TSubobjectPtr<UOrionGeneratedMeshComponent> mesh[CHUNK_SIZE_XY*CHUNK_SIZE_XY*CHUNK_SIZE_XY];
+	UOrionGeneratedMeshComponent* mesh[CHUNK_SIZE_XY*CHUNK_SIZE_XY*CHUNK_SIZE_XY];
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Terrain)
 		bool RecalculateTerrain;

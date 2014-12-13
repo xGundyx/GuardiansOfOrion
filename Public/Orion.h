@@ -12,6 +12,7 @@
 #include "Animation/AnimInstance.h"
 #include "OrionCharacter.h"
 #include "OrionPlayerController.h"
+#include "OrionTCPLink.h"
 #include "UMG.h"
 //#include "OrionAIController.h"
 //#include "OrionDroidController.h"

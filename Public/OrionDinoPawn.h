@@ -20,7 +20,9 @@ enum EDinoType
 UCLASS()
 class ORION_API AOrionDinoPawn : public AOrionCharacter
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AOrionDinoPawn(const FObjectInitializer& ObejctInitializer);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		UAnimMontage *Bite1Animation;

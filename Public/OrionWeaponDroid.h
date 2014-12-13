@@ -11,7 +11,9 @@
 UCLASS()
 class ORION_API AOrionWeaponDroid : public AOrionWeapon
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AOrionWeaponDroid(const FObjectInitializer& ObejctInitializer);
 
 	void AttachMeshToPawn() override;
 	float PlayWeaponAnimation(const FWeaponAnim& Animation) override;
@@ -27,7 +29,7 @@ class ORION_API AOrionWeaponDroid : public AOrionWeapon
 
 protected:
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		TSubobjectPtr<USkeletalMeshComponent> DroidGunMesh;
+		USkeletalMeshComponent* DroidGunMesh;
 
 	FVector MuzzleLocation;
 	FVector MuzzleDirection;

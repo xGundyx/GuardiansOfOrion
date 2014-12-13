@@ -4,9 +4,9 @@
 #include "OrionWeapon.h"
 
 
-AOrionWeapon::AOrionWeapon(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObejctInitializer) : Super(ObejctInitializer)
 {
-	Mesh1P = PCIP.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponMesh1P"));
+	Mesh1P = ObejctInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponMesh1P"));
 	Mesh1P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 	Mesh1P->bChartDistanceFactor = false;
 	Mesh1P->bReceivesDecals = false;
@@ -17,7 +17,7 @@ AOrionWeapon::AOrionWeapon(const class FPostConstructInitializeProperties& PCIP)
 	Mesh1P->bPerBoneMotionBlur = false;
 	RootComponent = Mesh1P;
 
-	ArmsMesh = PCIP.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("ArmsMesh1P"));
+	ArmsMesh = ObejctInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("ArmsMesh1P"));
 	ArmsMesh->AlwaysLoadOnClient = true;
 	ArmsMesh->AlwaysLoadOnServer = true;
 	ArmsMesh->bOwnerNoSee = false;
@@ -31,7 +31,7 @@ AOrionWeapon::AOrionWeapon(const class FPostConstructInitializeProperties& PCIP)
 	ArmsMesh->CastShadow = false;
 	ArmsMesh->SetMasterPoseComponent(Mesh1P);
 
-	Mesh3P = PCIP.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponMesh3P"));
+	Mesh3P = ObejctInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponMesh3P"));
 	Mesh3P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 	Mesh3P->bChartDistanceFactor = true;
 	Mesh3P->bReceivesDecals = false;
@@ -367,6 +367,11 @@ int32 AOrionWeapon::GetCurrentAmmo() const
 	return Ammo;
 }
 
+int32 AOrionWeapon::GetCurrentAmmoInClip() const
+{
+	return AmmoInClip;
+}
+
 int32 AOrionWeapon::GetMaxAmmo() const
 {
 	return InstantConfig.MaxAmmo;
@@ -412,6 +417,11 @@ UAnimMontage* AOrionWeapon::GetEquipMontage()
 UAnimMontage* AOrionWeapon::GetAimMontage()
 {
 	return AimAnim.Pawn3P;
+}
+
+UAnimMontage* AOrionWeapon::GetFireMontage()
+{
+	return FireAnim.Pawn3P;
 }
 
 UAnimMontage* AOrionWeapon::GetSprintMontage()
@@ -957,14 +967,14 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 		}
 	}
 
-	/*if (MuzzleFX.Num() > 0)
+	if (MuzzleFX.Num() > 0)
 	{
 		UParticleSystemComponent* MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX[0], GetWeaponMesh(MyPawn->IsFirstPerson()), MuzzleAttachPoint[0]);
 		if (MuzzlePSC > 0)
 		{
 			MuzzlePSC->SetVectorParameter(FName("FlashScale"), FVector(InstantConfig.MuzzleScale));
 		}
-	}*/
+	}
 
 	PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim);
 
@@ -1134,6 +1144,11 @@ float AOrionWeapon::PlayWeaponAnimation(const FWeaponAnim& Animation)
 		if (UseAnim)
 		{
 			Duration = MyPawn->IsFirstPerson() ? Mesh1P->AnimScriptInstance->Montage_Play(UseAnim, 1.0) : MyPawn->PlayAnimMontage(UseAnim);
+		}
+
+		if (!MyPawn->IsFirstPerson() && Mesh3P && Animation.Weapon3P)
+		{
+			Mesh3P->AnimScriptInstance->Montage_Play(Animation.Weapon3P, 1.0);
 		}
 	}
 

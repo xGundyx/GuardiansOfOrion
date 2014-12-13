@@ -17,7 +17,7 @@ public:
 
 		// Copy the vertex data into the vertex buffer.
 		void* VertexBufferData = RHILockVertexBuffer(VertexBufferRHI, 0, Vertices.Num() * sizeof(FDynamicTerrainVertex), RLM_WriteOnly);
-		FMemory::Memcpy(VertexBufferData, Vertices.GetTypedData(), Vertices.Num() * sizeof(FDynamicTerrainVertex));
+		FMemory::Memcpy(VertexBufferData, Vertices.GetData(), Vertices.Num() * sizeof(FDynamicTerrainVertex));
 		RHIUnlockVertexBuffer(VertexBufferRHI);
 	}
 
@@ -36,7 +36,7 @@ public:
 
 		// Write the indices to the index buffer.
 		void* Buffer = RHILockIndexBuffer(IndexBufferRHI, 0, Indices.Num() * sizeof(int32), RLM_WriteOnly);
-		FMemory::Memcpy(Buffer, Indices.GetTypedData(), Indices.Num() * sizeof(int32));
+		FMemory::Memcpy(Buffer, Indices.GetData(), Indices.Num() * sizeof(int32));
 		RHIUnlockIndexBuffer(IndexBufferRHI);
 	}
 };
@@ -84,8 +84,8 @@ public:
 
 //////////////////////////////////////////////////////////////////////////
 
-UOrionGeneratedMeshComponent::UOrionGeneratedMeshComponent(const FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UOrionGeneratedMeshComponent::UOrionGeneratedMeshComponent(const FObjectInitializer& ObejctInitializer)
+: Super(ObejctInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = false;
 

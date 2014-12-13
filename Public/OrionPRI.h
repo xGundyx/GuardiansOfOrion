@@ -11,8 +11,8 @@
 UCLASS()
 class ORION_API AOrionPRI : public APlayerState
 {
-	GENERATED_UCLASS_BODY()
-
-	
+	GENERATED_BODY()
+public:
+	AOrionPRI(const FObjectInitializer& ObejctInitializer);
 	
 };

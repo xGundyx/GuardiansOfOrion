@@ -11,8 +11,9 @@
 UCLASS()
 class ORION_API AOrionAIController : public AAIController
 {
-	GENERATED_UCLASS_BODY()
-
+	GENERATED_BODY()
+public:
+	AOrionAIController(const FObjectInitializer& ObejctInitializer);
 	
 	virtual void Tick(float DeltaTime) override;
 

@@ -11,7 +11,9 @@
 UCLASS()
 class UOrionMovementComponent : public UCharacterMovementComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UOrionMovementComponent(const FObjectInitializer& ObejctInitializer);
 
 	virtual float GetMaxSpeed() const override;
 	virtual bool IsCrouching() const override;

@@ -4,8 +4,8 @@
 #include "OrionStats.h"
 
 
-UOrionStats::UOrionStats(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UOrionStats::UOrionStats(const FObjectInitializer& ObejctInitializer)
+	: Super(ObejctInitializer)
 {
 	//initialize our stats arrray
 	aStats.Empty();

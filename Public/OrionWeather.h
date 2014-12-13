@@ -101,8 +101,9 @@ FORCEINLINE float operator / (FTimeOfDay T1, FTimeOfDay T2)
 UCLASS()
 class AOrionWeather : public ADirectionalLight
 {
-	GENERATED_UCLASS_BODY()
-
+	GENERATED_BODY()
+public:
+	AOrionWeather(const FObjectInitializer& ObejctInitializer);
 	//virtual void PostInitializeComponents() override;
 
 	APlayerController* PlayerOwner;
@@ -298,9 +299,6 @@ class AOrionWeather : public ADirectionalLight
 
 	void StartClouds();
 	void StopClouds();
-
-	UParticleSystemComponent *RainPSC;
-	TSubobjectPtr<UParticleSystemComponent> SnowPSC;
 
 	bool bIsRaining;
 	bool bIsSnowing;

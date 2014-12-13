@@ -4,8 +4,8 @@
 #include "OrionGameInstance.h"
 
 
-UOrionGameInstance::UOrionGameInstance(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UOrionGameInstance::UOrionGameInstance(const FObjectInitializer& ObejctInitializer)
+	: Super(ObejctInitializer)
 {
 
 }

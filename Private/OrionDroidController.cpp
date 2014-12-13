@@ -3,8 +3,8 @@
 #include "Orion.h"
 #include "OrionDroidController.h"
 
-AOrionDroidController::AOrionDroidController(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AOrionDroidController::AOrionDroidController(const FObjectInitializer& ObejctInitializer)
+	: Super(ObejctInitializer)
 {
 
 }

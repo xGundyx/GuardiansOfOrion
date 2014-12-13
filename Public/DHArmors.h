@@ -47,6 +47,7 @@ struct FArmorInfo
 UCLASS()
 class ADHArmors : public AActor
 {
-	GENERATED_UCLASS_BODY()
-
+	GENERATED_BODY()
+public:
+	ADHArmors(const FObjectInitializer& ObejctInitializer);
 };

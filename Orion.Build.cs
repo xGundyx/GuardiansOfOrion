@@ -41,6 +41,8 @@ public class Orion : ModuleRules
 
                 PublicIncludePaths.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabClientSDK", "include"));
                 PublicIncludePaths.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabClientSDK", "dependencies", "include"));
+
+                Definitions.Add("IS_SERVER=0");
             }
             else
             {
@@ -53,11 +55,19 @@ public class Orion : ModuleRules
 
                 PublicIncludePaths.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabServerSDK", "include"));
                 PublicIncludePaths.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabServerSDK", "dependencies", "include"));
+
+                Definitions.Add("IS_SERVER=1");
             }
+
+            PublicIncludePaths.Add(Path.Combine(ThirdPartyPath, "Shared"));
         }
 
         Definitions.Add(string.Format("WITH_PLAYFAB_BINDING={0}", 1));
 
+        //boost asio
+      //  PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "Boost", "stage", "lib", "PlayFabClientAPI.lib"));
+
+        PublicIncludePaths.Add(Path.Combine(ThirdPartyPath, "Boost"));
         return true;
     }
 }
