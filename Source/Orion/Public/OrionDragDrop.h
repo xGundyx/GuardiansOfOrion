@@ -11,9 +11,10 @@
 UCLASS()
 class ORION_API UOrionDragDrop : public UPanelWidget
 {
-	GENERATED_UCLASS_BODY()
-
+	GENERATED_BODY()
 public:
+	UOrionDragDrop(const FObjectInitializer& ObejctInitializer);
+
 	UPROPERTY(EditDefaultsOnly, Category = Events)
 		FOnPointerEvent OnMouseButtonDownEvent;
 

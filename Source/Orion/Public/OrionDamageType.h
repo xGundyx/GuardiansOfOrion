@@ -11,7 +11,9 @@
 UCLASS()
 class ORION_API UOrionDamageType : public UDamageType
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UOrionDamageType(const FObjectInitializer& ObejctInitializer);
 
 	/** force feedback effect to play on a player hit by this damage type */
 	UPROPERTY(EditDefaultsOnly, Category = Effects)

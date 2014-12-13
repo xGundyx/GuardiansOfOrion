@@ -15,16 +15,67 @@
 /**
 *
 */
+
+USTRUCT(BlueprintType)
+struct FCharacterData
+{
+	GENERATED_USTRUCT_BODY()
+
+		UPROPERTY(BlueprintReadOnly, Category = Character)
+		FString pName;
+
+	UPROPERTY(BlueprintReadOnly, Category = Character)
+		FString Sex;
+
+	UPROPERTY(BlueprintReadOnly, Category = Character)
+		int32 Level;
+
+	UPROPERTY(BlueprintReadOnly, Category = Character)
+		int32 Exp;
+
+	UPROPERTY(BlueprintReadOnly, Category = Character)
+		int32 HelmetID;
+
+	UPROPERTY(BlueprintReadOnly, Category = Character)
+		int32 ChestID;
+
+	UPROPERTY(BlueprintReadOnly, Category = Character)
+		int32 HandsID;
+
+	UPROPERTY(BlueprintReadOnly, Category = Character)
+		int32 LegsID;
+
+	UPROPERTY(BlueprintReadOnly, Category = Character)
+		int32 Weapon;
+
+	void Reset()
+	{
+		pName = FString("");
+		Level = 0;
+		Exp = 0;
+		HelmetID = 0;
+		ChestID = 0;
+		HandsID = 0;
+		LegsID = 0;
+		Sex = FString("");
+		Weapon = 0;
+	}
+};
+
 UCLASS()
 class AOrionPlayerController : public APlayerController
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AOrionPlayerController(const FObjectInitializer& ObejctInitializer);
 
 	virtual void PlayerTick(float DeltaTime) override;
 
 	virtual void PostInitializeComponents() override;
 
 	void SetupInputComponent() override;
+
+	void GetPlayerViewPoint(FVector& OutCamLoc, FRotator& OutCamRot) const override;
 
 	void OpenInventory();
 
@@ -89,7 +140,10 @@ class AOrionPlayerController : public APlayerController
 		void AttemptLogin(FString UserName, FString Password);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "LoginComplete"))
-		void EventLoginComplete(const bool bResult, const FString &ID, const FString &Error);
+		void EventLoginComplete(const bool bResult, const FString &Msg);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "DrawCharacterDatas"))
+		void EventDrawCharacterDatas(FCharacterData charData1, FCharacterData charData2, FCharacterData charData3, FCharacterData charData4);
 
 	UFUNCTION(BlueprintCallable, Category = PlayFab)
 		void CreateNewAccount(FString UserName, FString Password, FString Email);
@@ -97,8 +151,17 @@ class AOrionPlayerController : public APlayerController
 	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "AccountCreateComplete"))
 		void EventAccountCreationComplete(const bool bResult, const FString &Error);
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "ReceiveErrorMessage"))
+		void ReceiveErrorMessage(const FString &Message);
+
 	UFUNCTION(BlueprintCallable, Category = PlayFab)
 		void CreateNewCharacter(FString UserName, FString Gender, FString BaseColor);
+
+	UFUNCTION(BlueprintCallable, Category = PlayFab)
+		void SelectCharacterAtIndex(int32 Index);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "SelectCharacterComplete"))
+		void EventSelectCharacterComplete(const bool bResult, const FString &Error);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "CharacterCreateComplete"))
 		void EventCharacterCreationComplete(const bool bResult, const FString &Error);
@@ -115,10 +178,17 @@ class AOrionPlayerController : public APlayerController
 	void SeamlessTravelTo(class APlayerController* NewPC) override;
 	void SeamlessTravelFrom(class APlayerController* OldPC) override;
 
+	UFUNCTION(exec)
+		void TestConnection();
+
 	//UFUNCTION(exec)
 		virtual void ClearUMG();
 
 	virtual void Destroyed() override;
+
+public:
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rain)
+		UParticleSystemComponent *RainPSC;
 
 private:
 	UOrionQuestManager *QuestManager;

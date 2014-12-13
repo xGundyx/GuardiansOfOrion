@@ -21,7 +21,9 @@ enum ArmorSlots
 UCLASS()
 class ORION_API AOrionArmor : public AOrionInventory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AOrionArmor(const FObjectInitializer& ObejctInitializer);
 
 	UPROPERTY(EditAnywhere, Category = Inventory)
 		USkeletalMesh *Mesh;

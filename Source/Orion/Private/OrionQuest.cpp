@@ -4,8 +4,8 @@
 #include "OrionQuest.h"
 
 
-AOrionQuest::AOrionQuest(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AOrionQuest::AOrionQuest(const FObjectInitializer& ObejctInitializer)
+	: Super(ObejctInitializer)
 {
 
 }

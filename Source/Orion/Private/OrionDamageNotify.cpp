@@ -4,8 +4,8 @@
 #include "OrionDamageNotify.h"
 
 
-UOrionDamageNotify::UOrionDamageNotify(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UOrionDamageNotify::UOrionDamageNotify(const FObjectInitializer& ObejctInitializer)
+	: Super(ObejctInitializer)
 {
 
 }

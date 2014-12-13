@@ -11,9 +11,9 @@
 UCLASS()
 class ORION_API AOrionPlayerCameraManager : public APlayerCameraManager
 {
-	GENERATED_UCLASS_BODY()
-
+	GENERATED_BODY()
 public:
+	AOrionPlayerCameraManager(const FObjectInitializer& ObejctInitializer);
 
 	/** normal FOV */
 	float NormalFOV;

@@ -12,7 +12,9 @@
 UCLASS()
 class ORION_API UOrionQuestManager : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UOrionQuestManager(const FObjectInitializer& ObejctInitializer);
 
 	UPROPERTY(BlueprintReadWrite, Category = Inventory)
 		TArray<AOrionQuest*> CompletedQuests;

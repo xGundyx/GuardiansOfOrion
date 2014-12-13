@@ -4,8 +4,8 @@
 #include "OrionNotifyWeaponFire.h"
 
 
-UOrionNotifyWeaponFire::UOrionNotifyWeaponFire(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UOrionNotifyWeaponFire::UOrionNotifyWeaponFire(const FObjectInitializer& ObejctInitializer)
+	: Super(ObejctInitializer)
 {
 
 }

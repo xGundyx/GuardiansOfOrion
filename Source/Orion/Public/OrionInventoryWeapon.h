@@ -11,8 +11,9 @@
 UCLASS()
 class ORION_API AOrionInventoryWeapon : public AOrionInventory
 {
-	GENERATED_UCLASS_BODY()
-
+	GENERATED_BODY()
+public:
+	AOrionInventoryWeapon(const FObjectInitializer& ObejctInitializer);
 	
 	
 };

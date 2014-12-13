@@ -57,7 +57,9 @@ struct FPlayerStats
 UCLASS()
 class ORION_API UOrionStats : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UOrionStats(const FObjectInitializer& ObejctInitializer);
 	
 	TArray<FPlayerStats> aStats;
 };

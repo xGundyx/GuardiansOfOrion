@@ -23,7 +23,9 @@ struct TreeData
 UCLASS()
 class UOrionOcTree : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UOrionOcTree(const FObjectInitializer& ObejctInitializer);
 
 	//add a density to the tree
 	void InsertPoint(FVector pos, float den, FVector center, float width);

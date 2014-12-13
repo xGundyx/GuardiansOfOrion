@@ -5,8 +5,8 @@
 #include "OrionInventoryArmor.h"
 
 
-AOrionInventoryManager::AOrionInventoryManager(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AOrionInventoryManager::AOrionInventoryManager(const FObjectInitializer& ObejctInitializer)
+	: Super(ObejctInitializer)
 {
 }
 

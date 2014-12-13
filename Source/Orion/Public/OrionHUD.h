@@ -6,9 +6,9 @@
 UCLASS()
 class AOrionHUD : public AHUD
 {
-	GENERATED_UCLASS_BODY()
-
+	GENERATED_BODY()
 public:
+	AOrionHUD(const FObjectInitializer& ObejctInitializer);
 
 	/** Primary draw call for the HUD */
 	virtual void DrawHUD() override;

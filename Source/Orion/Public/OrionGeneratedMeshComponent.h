@@ -103,9 +103,10 @@ struct FGeneratedMeshTriangle
 UCLASS(editinlinenew, meta = (BlueprintSpawnableComponent), ClassGroup = Rendering)
 class UOrionGeneratedMeshComponent : public UMeshComponent, public IInterface_CollisionDataProvider
 {
-	GENERATED_UCLASS_BODY()
-
+	GENERATED_BODY()
 public:
+	UOrionGeneratedMeshComponent(const FObjectInitializer& ObejctInitializer);
+
 	/** Set the geometry to use on this triangle mesh */
 	UFUNCTION(BlueprintCallable, Category = "Components|GeneratedMesh")
 		bool SetGeneratedMeshTriangles(const TArray<FGeneratedMeshTriangle>& Triangles, UMaterial *newMaterial);

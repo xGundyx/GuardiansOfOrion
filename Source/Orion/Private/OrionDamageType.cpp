@@ -4,8 +4,8 @@
 #include "OrionDamageType.h"
 
 
-UOrionDamageType::UOrionDamageType(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UOrionDamageType::UOrionDamageType(const FObjectInitializer& ObejctInitializer)
+	: Super(ObejctInitializer)
 {
 
 }

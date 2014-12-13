@@ -4,8 +4,8 @@
 #include "OrionInventoryArmor.h"
 
 
-AOrionInventoryArmor::AOrionInventoryArmor(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AOrionInventoryArmor::AOrionInventoryArmor(const FObjectInitializer& ObejctInitializer)
+	: Super(ObejctInitializer)
 {
 
 }

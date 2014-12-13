@@ -6,8 +6,8 @@
 float UOrionDiamondSquare::HeightValues[int(DIAMOND_RES) + 1][int(DIAMOND_RES) + 1];
 float UOrionDiamondSquare::MaxHeight = 0.0f;
 
-UOrionDiamondSquare::UOrionDiamondSquare(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+UOrionDiamondSquare::UOrionDiamondSquare(const FObjectInitializer& ObejctInitializer)
+: Super(ObejctInitializer)
 {
 }
 

@@ -5,8 +5,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 
 
-UOrionDinoMovementComponent::UOrionDinoMovementComponent(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+UOrionDinoMovementComponent::UOrionDinoMovementComponent(const FObjectInitializer& ObejctInitializer)
+	: Super(ObejctInitializer)
 {
 
 }

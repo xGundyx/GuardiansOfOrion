@@ -11,6 +11,7 @@
 UCLASS()
 class ORION_API AOrionDinoController : public AOrionAIController
 {
-	GENERATED_UCLASS_BODY()
-
+	GENERATED_BODY()
+public:
+	AOrionDinoController(const FObjectInitializer& ObejctInitializer);
 };

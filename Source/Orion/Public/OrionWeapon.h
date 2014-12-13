@@ -48,6 +48,10 @@ struct FWeaponAnim
 	/** animation played on pawn (3rd person view) */
 	UPROPERTY(EditDefaultsOnly, Category = Animation)
 		UAnimMontage* Pawn3P;
+
+	/** animation played on the actual weapon model (mainly just reloads) */
+	UPROPERTY(EditDefaultsOnly, Category = Animation)
+		UAnimMontage* Weapon3P;
 };
 
 USTRUCT()
@@ -125,7 +129,9 @@ struct FInstantWeaponData
 UCLASS()
 class AOrionWeapon : public AOrionInventory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AOrionWeapon(const FObjectInitializer& ObejctInitializer);
 
 	UPROPERTY(EditDefaultsOnly, Category = Config)
 	FInstantWeaponData InstantConfig;
@@ -194,7 +200,6 @@ class AOrionWeapon : public AOrionInventory
 	UPROPERTY(EditDefaultsOnly, Category = Animation)
 		FWeaponAnim AimAnim;
 
-
 	/** weapon is being equipped by owner pawn */
 	virtual void OnEquip();
 
@@ -212,7 +217,7 @@ class AOrionWeapon : public AOrionInventory
 
 	/** Pawn mesh: 1st person view (arms; seen only by self) */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		TSubobjectPtr<class USkeletalMeshComponent> ArmsMesh;
+		class USkeletalMeshComponent* ArmsMesh;
 
 	/** set the weapon's owning pawn */
 	void SetOwningPawn(AOrionCharacter* AOrionCharacter);
@@ -333,6 +338,9 @@ class AOrionWeapon : public AOrionInventory
 		int32 GetCurrentAmmo() const;
 
 	UFUNCTION(BlueprintCallable, Category = Weapon)
+		int32 GetCurrentAmmoInClip() const;
+
+	UFUNCTION(BlueprintCallable, Category = Weapon)
 		int32 GetMaxAmmo() const;
 
 	UFUNCTION()
@@ -367,6 +375,9 @@ class AOrionWeapon : public AOrionInventory
 
 	UFUNCTION(BlueprintCallable, Category = Weapon)
 		virtual UAnimMontage* GetAimMontage();
+
+	UFUNCTION(BlueprintCallable, Category = Weapon)
+		virtual UAnimMontage* GetFireMontage();
 
 	void StartAiming();
 	void StopAiming();
@@ -416,11 +427,11 @@ protected:
 
 	/** weapon mesh: 1st person view */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		TSubobjectPtr<USkeletalMeshComponent> Mesh1P;
+		USkeletalMeshComponent* Mesh1P;
 
 	/** weapon mesh: 3rd person view */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		TSubobjectPtr<USkeletalMeshComponent> Mesh3P;
+		USkeletalMeshComponent* Mesh3P;
 
 	float TargetFOV;
 	float TargetViewOffset;

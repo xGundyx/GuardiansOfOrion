@@ -34,7 +34,9 @@ struct FQuestObjective
 UCLASS()
 class ORION_API AOrionQuest : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AOrionQuest(const FObjectInitializer& ObejctInitializer);
 
 	//next quest to start as part of a chain (if any)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Quest)

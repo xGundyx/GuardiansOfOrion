@@ -6,8 +6,8 @@
 #include "OrionAIController.h"
 
 //dinos have special movement code since some of them can be rather large
-AOrionDinoPawn::AOrionDinoPawn(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP.SetDefaultSubobjectClass<UOrionDinoMovementComponent>(ACharacter::CharacterMovementComponentName))
+AOrionDinoPawn::AOrionDinoPawn(const FObjectInitializer& ObejctInitializer)
+	: Super(ObejctInitializer.SetDefaultSubobjectClass<UOrionDinoMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 
 }
@@ -52,9 +52,11 @@ void AOrionDinoPawn::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	OrientToGround(DeltaTime);
-
-	HandleFootPlacement(DeltaTime);
+	if (Health > 0)
+	{
+		OrientToGround(DeltaTime);
+		HandleFootPlacement(DeltaTime);
+	}
 }
 
 //rotate our mesh so the feet are on the ground, this also adjusts the height offset of the mesh
@@ -62,7 +64,7 @@ void AOrionDinoPawn::OrientToGround(float DeltaTime)
 {
 	//do a trace from actor location down to the ground and find the normal of the ground we are on
 	FVector vStart = GetActorLocation();
-	FVector vEnd = vStart - FVector(0.0f, 0.0f, 1.0f)*CapsuleComponent->GetScaledCapsuleHalfHeight()*2.0f;
+	FVector vEnd = vStart - FVector(0.0f, 0.0f, 1.0f)*GetCapsuleComponent()->GetScaledCapsuleHalfHeight()*2.0f;
 
 	static FName BodyTag = FName(TEXT("BodyTrace"));
 
@@ -89,7 +91,7 @@ void AOrionDinoPawn::OrientToGround(float DeltaTime)
 		FVector Forward = FVector::CrossProduct(Right, GroundNormal);
 		FRotator rTarget = Forward.Rotation();
 		//Mesh->SetRelativeRotation(FRotator(FMath::FInterpTo(Mesh->RelativeRotation.Pitch, rTarget, DeltaTime, 3.0f), Mesh->RelativeRotation.Yaw, Mesh->RelativeRotation.Roll));
-		Mesh->SetRelativeRotation(FRotator(rTarget.Roll, Mesh->RelativeRotation.Yaw, -rTarget.Pitch));
+		GetMesh()->SetRelativeRotation(FRotator(rTarget.Roll, GetMesh()->RelativeRotation.Yaw, -rTarget.Pitch));
 	}
 }
 

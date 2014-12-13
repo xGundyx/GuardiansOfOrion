@@ -12,7 +12,9 @@
 UCLASS()
 class ORION_API UOrionDinoMovementComponent : public UOrionMovementComponent
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UOrionDinoMovementComponent(const FObjectInitializer& ObejctInitializer);
 
 	virtual void InitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;

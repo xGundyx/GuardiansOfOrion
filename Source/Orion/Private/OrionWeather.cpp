@@ -4,19 +4,11 @@
 #include "OrionWeather.h"
 #include "OrionPlayerController.h"
 
-AOrionWeather::AOrionWeather(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+AOrionWeather::AOrionWeather(const FObjectInitializer& ObejctInitializer)
+: Super(ObejctInitializer)
 {
-	///RainPSC = PCIP.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("Rain"));
-	SnowPSC = PCIP.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("Snow"));
-
-	/*if (RainPSC)
-		RainPSC->SetTemplate(Rain);
-
-	RainPSC->RegisterComponentWithWorld(GetWorld());
-
-	RainPSC->bAutoActivate = false;
-	RainPSC->SetHiddenInGame(false);*/
+	//RainPSC = ObejctInitializer.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("Rain"));
+	//SnowPSC = ObejctInitializer.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("Snow"));
 }
 
 #if WITH_EDITOR
@@ -36,6 +28,18 @@ void AOrionWeather::BeginPlay()
 	//register us with the GRI
 	if (Cast<AOrionGRI>(GWorld->GameState))
 		Cast<AOrionGRI>(GWorld->GameState)->SetWeather(this);
+
+	/*if (RainPSC)
+	{
+		RainPSC->SetTemplate(Rain);
+
+		RainPSC->RegisterComponentWithWorld(GetWorld());
+
+		RainPSC->bAutoActivate = false;
+		RainPSC->SetHiddenInGame(false);
+
+		//RainPSC->AttachTo(RootComponent);
+	}*/
 }
 
 void AOrionWeather::PostLoad()
@@ -76,23 +80,27 @@ void AOrionWeather::StartRaining()
 {
 	ClearWeatherTimers();
 
-	if (!RainPSC)
-	{
-		RainPSC = ConstructObject<UParticleSystemComponent>(UParticleSystemComponent::StaticClass());
-		RainPSC->SetTemplate(Rain);
+	//if (!Cast<AOrionPlayerController>(PlayerOwner)->RainPSC || !Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->Template)
+	//{
+		//RainPSC = ConstructObject<UParticleSystemComponent>(UParticleSystemComponent::StaticClass());
+		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC = UGameplayStatics::SpawnEmitterAtLocation(PlayerOwner, Rain, GetActorLocation(), FRotator::ZeroRotator, false);
+		//RainPSC = UGameplayStatics::SpawnEmitterAttached(Rain, RootComponent, NAME_None, GetActorLocation(), GetActorRotation(), EAttachLocation::KeepWorldPosition, false); 
+		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->SetTemplate(Rain);
 
-		RainPSC->RegisterComponentWithWorld(GetWorld());
+		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->RegisterComponentWithWorld(GetWorld());
 
-		RainPSC->bAutoActivate = false;
-		RainPSC->SetHiddenInGame(false);
-	}
+		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->bAutoActivate = false;
+		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->bAutoDestroy = false;
+		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->SetHiddenInGame(false);
+	//}
 	
-	if (RainPSC)
+	if (Cast<AOrionPlayerController>(PlayerOwner)->RainPSC)
 	{
 		//FVector Origin = GetWeatherLocation();
 		//FRotator Dir(0, 0, 0);
 		
-		RainPSC->ActivateSystem();
+		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->ActivateSystem();
+
 		//RainPSC->SetWorldLocation(Origin);
 		bIsRaining = true;
 		RainTarget = 1.0f;
@@ -103,13 +111,14 @@ void AOrionWeather::StartRaining()
 
 void AOrionWeather::StopRaining()
 {
-	if (RainPSC)
+	if (Cast<AOrionPlayerController>(PlayerOwner)->RainPSC)
 	{
 		bIsRaining = false;
-		if (RainPSC->Template)
-			RainPSC->DeactivateSystem();
+		//if (RainPSC->Template)
+		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->DeactivateSystem();
+		//RainPSC->SetHiddenInGame(true);
 		RainTarget = 0.0f;
-		//RainPSC = NULL;
+		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC = NULL;
 	}
 
 	StopClouds();
@@ -119,7 +128,7 @@ void AOrionWeather::StopRaining()
 
 void AOrionWeather::StartSnowing()
 {
-	if (!SnowPSC)
+	/*if (!SnowPSC)
 	{
 		FVector Origin = GetWeatherLocation();
 		FRotator Dir(0, 0, 0);
@@ -131,18 +140,18 @@ void AOrionWeather::StartSnowing()
 		SnowPSC->ActivateSystem();
 	}
 
-	GetWorldTimerManager().SetTimer(this, &AOrionWeather::StartSnowing, 60.0f, false);
+	GetWorldTimerManager().SetTimer(this, &AOrionWeather::StartSnowing, 60.0f, false);*/
 }
 
 void AOrionWeather::StopSnowing()
 {
-	if (SnowPSC)
+	/*if (SnowPSC)
 	{
 		bIsSnowing = false;
 		SnowPSC->DeactivateSystem();
 	}
 
-	CloudTarget = 0.0f;
+	CloudTarget = 0.0f;*/
 }
 
 void AOrionWeather::StartClouds()
@@ -242,7 +251,7 @@ void AOrionWeather::UpdateWeather(float DeltaSeconds)
 
 void AOrionWeather::UpdateFog(float DeltaSeconds)
 {
-	if (Fog && Fog->Component)
+	if (Fog && Fog->GetComponent())
 	{
 		//Fog->Component->SetFogDensity(MinFogDensity + (MaxFogDensity - MinFogDensity)*FogAmount);
 		//Fog->Component->SetStartDistance(MinFogDistance + (MaxFogDistance - MinFogDistance)*FogAmount);
@@ -251,8 +260,24 @@ void AOrionWeather::UpdateFog(float DeltaSeconds)
 
 void AOrionWeather::UpdateRain(float DeltaSeconds)
 {
-	if (RainPSC && RainPSC->Template == Rain && RainPSC->IsActive())
-		RainPSC->SetWorldLocation(GetWeatherLocation());
+	///this is a hack to get the rain to keep falling, for some reason it keeps shutting off:/
+	if (bIsRaining && Cast<AOrionPlayerController>(PlayerOwner)->RainPSC && Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->bWasCompleted)
+	{
+		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC = UGameplayStatics::SpawnEmitterAtLocation(PlayerOwner, Rain, GetActorLocation(), FRotator::ZeroRotator, false);
+
+		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->SetTemplate(Rain);
+
+		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->RegisterComponentWithWorld(GetWorld());
+
+		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->bAutoActivate = false;
+		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->bAutoDestroy = false;
+		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->SetHiddenInGame(false);
+
+		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->ActivateSystem();
+	}
+
+	if (Cast<AOrionPlayerController>(PlayerOwner)->RainPSC && Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->Template == Rain && Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->IsActive())
+		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->SetWorldLocation(GetWeatherLocation());
 }
 
 void AOrionWeather::UpdateClouds(float DeltaSeconds)

@@ -6,15 +6,17 @@
 UCLASS(config=Game)
 class AOrionProjectile : public AActor
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AOrionProjectile(const FObjectInitializer& ObejctInitializer);
 
 	/** Sphere collision component */
 	UPROPERTY(VisibleDefaultsOnly, Category=Projectile)
-	TSubobjectPtr<class USphereComponent> CollisionComp;
+	class USphereComponent* CollisionComp;
 
 	/** Projectile movement component */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Movement)
-	TSubobjectPtr<class UProjectileMovementComponent> ProjectileMovement;
+	class UProjectileMovementComponent* ProjectileMovement;
 
 	/** called when projectile hits something */
 	UFUNCTION()

@@ -23,7 +23,9 @@ struct FInventoryRow
 UCLASS()
 class ORION_API UOrionInventoryGrid : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UOrionInventoryGrid(const FObjectInitializer& ObejctInitializer);
 
 	UPROPERTY()
 		TArray<FInventoryRow> Column;

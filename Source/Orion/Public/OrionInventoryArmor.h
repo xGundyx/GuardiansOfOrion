@@ -12,7 +12,9 @@
 UCLASS()
 class ORION_API AOrionInventoryArmor : public AOrionInventory
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	AOrionInventoryArmor(const FObjectInitializer& ObejctInitializer);
 
 	UPROPERTY(EditAnywhere, Category = Inventory)
 		AOrionArmor *Armor;

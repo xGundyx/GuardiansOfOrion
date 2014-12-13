@@ -15,7 +15,9 @@
 UCLASS()
 class ORION_API UOrionDiamondSquare : public UObject
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UOrionDiamondSquare(const FObjectInitializer& ObejctInitializer);
 
 	static void GenerateHeightValues(int32 x, int32 y, int32 Resolution);
 	static void Init();

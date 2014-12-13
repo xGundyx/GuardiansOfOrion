@@ -4,8 +4,8 @@
 #include "OrionPRI.h"
 
 
-AOrionPRI::AOrionPRI(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+AOrionPRI::AOrionPRI(const FObjectInitializer& ObejctInitializer)
+	: Super(ObejctInitializer)
 {
 
 }

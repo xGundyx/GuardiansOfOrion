@@ -11,7 +11,9 @@
 UCLASS()
 class ORION_API UOrionNotifyWeaponFire : public UAnimNotify
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UOrionNotifyWeaponFire(const FObjectInitializer& ObejctInitializer);
 
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) override;
 	

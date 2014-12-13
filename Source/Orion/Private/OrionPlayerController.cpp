@@ -7,27 +7,42 @@
 #include "OrionArmor.h"
 #include "OrionInventoryArmor.h"
 #include "OrionLocalPlayer.h"
-#include "OrionTCPLink.h"
+#include "ClientConnector.h"
 
-AOrionPlayerController::AOrionPlayerController(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObejctInitializer)
+: Super(ObejctInitializer)
 {
 	PlayerCameraManagerClass = AOrionPlayerCameraManager::StaticClass();
+
+	//RainPSC = ObejctInitializer.CreateOptionalDefaultSubobject<UParticleSystemComponent>(this, TEXT("Rain"));
 }
 
 void AOrionPlayerController::AttemptLogin(FString UserName, FString Password)
 {
+#if !IS_SERVER
 	UOrionTCPLink::Login(UserName, Password);
+#endif
 }
 
 void AOrionPlayerController::CreateNewAccount(FString UserName, FString Password, FString Email)
 {
+#if !IS_SERVER
 	UOrionTCPLink::CreateAccount(UserName, Password, Email);
+#endif
 }
 
 void AOrionPlayerController::CreateNewCharacter(FString UserName, FString Gender, FString BaseColor)
 {
+#if !IS_SERVER
 	UOrionTCPLink::CreateCharacter(UserName, Gender, BaseColor);
+#endif
+}
+
+void AOrionPlayerController::SelectCharacterAtIndex(int32 Index)
+{
+#if !IS_SERVER
+	UOrionTCPLink::SelectCharacter(Index);
+#endif
 }
 
 void AOrionPlayerController::SetupInputComponent()
@@ -74,6 +89,21 @@ void AOrionPlayerController::ClearUMG()
 	}
 }
 
+void AOrionPlayerController::GetPlayerViewPoint(FVector& OutCamLoc, FRotator& OutCamRot) const
+{
+	AOrionCharacter* MyPawn = Cast<AOrionCharacter>(GetPawn());
+
+	if(MyPawn && !MyPawn->IsFirstPerson())
+	{
+		Super::GetPlayerViewPoint(OutCamLoc, OutCamRot);
+		OutCamLoc = MyPawn->CameraLocation;
+	}
+	else
+	{
+		Super::GetPlayerViewPoint(OutCamLoc, OutCamRot);
+	}
+}
+
 void AOrionPlayerController::Destroyed()
 {
 	//cleanup our menus so we don't get a garbage collection crash
@@ -86,7 +116,9 @@ void AOrionPlayerController::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
+#if !IS_SERVER
 	UOrionTCPLink::Init(this);
+#endif
 
 	//setup our inventory manager
 	CreateInventory();
@@ -126,7 +158,10 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 	if (TheSun)
 		TheSun->UpdateWeather(DeltaTime);
 
+#if !IS_SERVER
 	UOrionTCPLink::Update();
+	UClientConnector::Update();
+#endif
 }
 
 void AOrionPlayerController::PerfectDay()
@@ -237,7 +272,7 @@ void AOrionPlayerController::SaveStats()
 
 void AOrionPlayerController::IncreaseStatValue(FStatID id, int32 iAmount, int32 fAmount)
 {
-	if (!Stats)
+	if (!Stats || Role != ROLE_Authority)
 		return;
 
 	int32 i = int32(id) - 1;
@@ -250,7 +285,7 @@ void AOrionPlayerController::IncreaseStatValue(FStatID id, int32 iAmount, int32 
 
 void AOrionPlayerController::SetStatValue(FStatID id, int32 iAmount, int32 fAmount)
 {
-	if (!Stats)
+	if (!Stats || Role != ROLE_Authority)
 		return;
 
 	int32 i = int32(id) - 1;
@@ -259,6 +294,18 @@ void AOrionPlayerController::SetStatValue(FStatID id, int32 iAmount, int32 fAmou
 		Stats->aStats[i].StatValueInt = iAmount;
 	else if (Stats->aStats[i].StatType == STATTYPE_FLOAT)
 		Stats->aStats[i].StatValueFloat = iAmount;
+}
+
+void AOrionPlayerController::TestConnection()
+{
+	UClientConnector *connector = ConstructObject<UClientConnector>(UClientConnector::StaticClass());
+
+	if (connector)
+	{
+		FString Info = UOrionTCPLink::PlayFabID + FString("\r\n\r\n");
+
+		connector->SendInfo(Info);
+	}
 }
 
 void AOrionPlayerController::InitQuestManager()

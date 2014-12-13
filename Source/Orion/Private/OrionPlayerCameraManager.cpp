@@ -5,8 +5,8 @@
 #include "OrionWeapon.h"
 #include "OrionPlayerCameraManager.h"
 
-AOrionPlayerCameraManager::AOrionPlayerCameraManager(const class FPostConstructInitializeProperties& PCIP)
-: Super(PCIP)
+AOrionPlayerCameraManager::AOrionPlayerCameraManager(const FObjectInitializer& ObejctInitializer)
+: Super(ObejctInitializer)
 {
 	NormalFOV = 90.0f;
 	TargetingFOV = 60.0f;
@@ -40,11 +40,11 @@ void AOrionPlayerCameraManager::UpdateCamera(float DeltaTime)
 
 void AOrionPlayerCameraManager::ProcessViewRotation(float DeltaTime, FRotator& OutViewRotation, FRotator& OutDeltaRot)\
 {
-	//OutViewRotation = OldRotation;
+	OutViewRotation = OldRotation;
 
 	Super::ProcessViewRotation(DeltaTime, OutViewRotation, OutDeltaRot);
 
-	//OldRotation = OutViewRotation;
+	OldRotation = OutViewRotation;
 
 	AOrionCharacter* MyPawn = PCOwner ? Cast<AOrionCharacter>(PCOwner->GetPawn()) : NULL;
 	if (MyPawn)

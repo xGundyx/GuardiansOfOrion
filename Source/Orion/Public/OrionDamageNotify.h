@@ -11,7 +11,9 @@
 UCLASS()
 class ORION_API UOrionDamageNotify : public UAnimNotify
 {
-	GENERATED_UCLASS_BODY()
+	GENERATED_BODY()
+public:
+	UOrionDamageNotify(const FObjectInitializer& ObejctInitializer);
 
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) override;
 };
