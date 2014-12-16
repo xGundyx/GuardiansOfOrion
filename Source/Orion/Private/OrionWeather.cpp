@@ -261,7 +261,7 @@ void AOrionWeather::UpdateFog(float DeltaSeconds)
 void AOrionWeather::UpdateRain(float DeltaSeconds)
 {
 	///this is a hack to get the rain to keep falling, for some reason it keeps shutting off:/
-	if (bIsRaining && Cast<AOrionPlayerController>(PlayerOwner)->RainPSC && Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->bWasCompleted)
+	/*if (bIsRaining && Cast<AOrionPlayerController>(PlayerOwner)->RainPSC && Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->bWasCompleted)
 	{
 		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC = UGameplayStatics::SpawnEmitterAtLocation(PlayerOwner, Rain, GetActorLocation(), FRotator::ZeroRotator, false);
 
@@ -274,7 +274,7 @@ void AOrionWeather::UpdateRain(float DeltaSeconds)
 		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->SetHiddenInGame(false);
 
 		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->ActivateSystem();
-	}
+	}*/
 
 	if (Cast<AOrionPlayerController>(PlayerOwner)->RainPSC && Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->Template == Rain && Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->IsActive())
 		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->SetWorldLocation(GetWeatherLocation());

@@ -296,18 +296,6 @@ void AOrionPlayerController::SetStatValue(FStatID id, int32 iAmount, int32 fAmou
 		Stats->aStats[i].StatValueFloat = iAmount;
 }
 
-void AOrionPlayerController::TestConnection()
-{
-	UClientConnector *connector = ConstructObject<UClientConnector>(UClientConnector::StaticClass());
-
-	if (connector)
-	{
-		FString Info = UOrionTCPLink::PlayFabID + FString("\r\n\r\n");
-
-		connector->SendInfo(Info);
-	}
-}
-
 void AOrionPlayerController::InitQuestManager()
 {
 	QuestManager = ConstructObject<UOrionQuestManager>(UOrionQuestManager::StaticClass());

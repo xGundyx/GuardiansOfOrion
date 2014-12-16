@@ -17,7 +17,9 @@ public class Orion : ModuleRules
 
 	public Orion(TargetInfo Target)
 	{
-        PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "InputCore", "RHI", "RenderCore", "ShaderCore", "Slate", "SlateCore", "UMG", "Sockets", "Networking" });
+        Definitions.Add("ORIONONLINESUBSYSTEMPLAYFAB_PACKAGE=1");
+
+        PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "InputCore", "RHI", "RenderCore", "OnlineSubsystem", "ShaderCore", "Slate", "SlateCore", "UMG", "Sockets", "Networking" });
 
         LoadPlayFab(Target);
 	}

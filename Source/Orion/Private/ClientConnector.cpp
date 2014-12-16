@@ -4,14 +4,18 @@
 #include "OrionTCPLink.h"
 #include "ClientConnector.h"
 
+#ifndef IS_SERVER
 FSocket * UClientConnector::LoginSenderSocket;
 FSocket *UClientConnector::LoginReceiverSocket;
 FIPv4Endpoint UClientConnector::LoginServerAddress;
+#endif
 
 UClientConnector::UClientConnector(const FObjectInitializer& ObejctInitializer)
 	: Super(ObejctInitializer)
 {
 }
+
+#ifndef IS_SERVER
 
 bool UClientConnector::IsSuccess(FString Message, FString &ClientMessage)
 {
@@ -136,5 +140,7 @@ void UClientConnector::CloseSockets()
 		LoginSenderSocket = nullptr;
 	}
 }
+
+#endif
 
 

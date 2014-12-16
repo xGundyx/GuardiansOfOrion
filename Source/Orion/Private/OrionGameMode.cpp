@@ -10,7 +10,7 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObejctInitializer)
 	: Super(ObejctInitializer)
 {
 	// set default pawn class to our Blueprinted character
-	static ConstructorHelpers::FObjectFinder<UBlueprint> PlayerPawnObject(TEXT("/Game/Character/Blueprints/BaseCharacterBP"));
+	static ConstructorHelpers::FObjectFinder<UBlueprint> PlayerPawnObject(TEXT("/Game/Character/Blueprints/BasePawn"));
 	if (PlayerPawnObject.Object != NULL)
 	{
 		DefaultPawnClass = (UClass*)PlayerPawnObject.Object->GeneratedClass;

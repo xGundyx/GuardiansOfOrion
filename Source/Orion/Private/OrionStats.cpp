@@ -13,5 +13,3 @@ UOrionStats::UOrionStats(const FObjectInitializer& ObejctInitializer)
 	aStats.Add(FPlayerStats(STAT_RAPTORKILL, STATTYPE_INT, TEXT("RAPTOR KILLS")));
 	aStats.Add(FPlayerStats(STAT_TREXKILL, STATTYPE_INT, TEXT("T-REX KILLS")));
 }
-
-
