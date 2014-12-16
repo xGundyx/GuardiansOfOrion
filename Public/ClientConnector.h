@@ -16,6 +16,7 @@ class ORION_API UClientConnector : public UObject
 public:
 	UClientConnector(const FObjectInitializer& ObejctInitializer);
 
+#ifndef IS_SERVER
 	static bool CreateSenderSocket();
 	static void SendInfo(FString Info);
 	static void Update();
@@ -27,4 +28,6 @@ private:
 	static FSocket *LoginSenderSocket;
 	static FSocket *LoginReceiverSocket;
 	static FIPv4Endpoint LoginServerAddress;
+#endif
 };
+

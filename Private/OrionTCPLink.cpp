@@ -27,9 +27,11 @@ FString UOrionTCPLink::SessionTicket = FString("");
 FString UOrionTCPLink::PlayFabID = FString("");
 bool UOrionTCPLink::NewlyCreated = false;
 FCharacterData UOrionTCPLink::CharacterDatas[4];
-#endif
 
 UClientConnector *UOrionTCPLink::connector;
+
+#endif
+
 UOrionTCPLink::UOrionTCPLink(const FObjectInitializer& ObejctInitializer)
 	: Super(ObejctInitializer)
 {
@@ -146,7 +148,7 @@ void UOrionTCPLink::LoginComplete(bool bSucceded, FString msg)
 		pPlayer->EventLoginComplete(false, msg);
 }
 
-void UOrionTCPLink::RetrieveCharacterData()
+void UOrionTCPLink::RetrieveCharacterData(bool bLoggingIn)
 {
 	std::list<std::string> Keys;
 
@@ -157,7 +159,30 @@ void UOrionTCPLink::RetrieveCharacterData()
 	request.PlayFabId = TCHAR_TO_UTF8(*PlayFabID);
 	request.Keys = Keys;
 
-	client.GetUserReadOnlyData(request, OnCharacterData, OnCharacterDataFailed);
+	if(bLoggingIn)
+		client.GetUserReadOnlyData(request, OnCharacterData, OnCharacterDataFailed);
+	else
+		client.GetUserReadOnlyData(request, OnCharacterFinalized, OnCharacterFinalizedFailed);
+}
+
+void UOrionTCPLink::OnCharacterFinalized(ClientModels::GetUserDataResult& result, void* userData)
+{
+	AOrionPlayerController *pPlayer = PlayerOwner;
+
+	for(int32 i = 0; i < 4; i++)
+		CharacterDatas[i].Reset();
+
+	for(std::map<std::string, ClientModels::UserDataRecord>::iterator it = result.Data.begin(); it!=result.Data.end(); ++it)
+	{
+		AddToCharacterData(it->first, it->second);
+	}
+
+	//tell the player to redraw the character stuff
+	if(pPlayer)
+	{
+		pPlayer->EventDrawCharacterDatas(CharacterDatas[0], CharacterDatas[1], CharacterDatas[2] ,CharacterDatas[3]);
+		pPlayer->EventCharacterFinalized(true, FString("Login Successful!"));
+	}
 }
 
 void UOrionTCPLink::OnCharacterData(ClientModels::GetUserDataResult& result, void* userData)
@@ -208,12 +233,28 @@ void UOrionTCPLink::AddToCharacterData(const std::string first, const ClientMode
 
 void UOrionTCPLink::OnCharacterDataFailed(PlayFabError& error, void* userData)
 {
+	AOrionPlayerController *pPlayer = PlayerOwner;
+
+	if(pPlayer)
+		pPlayer->EventLoginComplete(false, FString("Login Failed!"));
+}
+
+void UOrionTCPLink::OnCharacterFinalizedFailed(PlayFabError& error, void* userData)
+{
+	AOrionPlayerController *pPlayer = PlayerOwner;
+
+	if(pPlayer)
+		pPlayer->EventCharacterFinalized(true, FString("Character Creation Failed!"));
 }
 
 void UOrionTCPLink::CharacterCreationComplete(bool bSucceded, FString Message)
 {
 	if (!PlayerOwner)
 		return;
+
+	//refresh our character loadout
+	if(bSucceded)
+		RetrieveCharacterData(false);
 
 	PlayerOwner->EventCharacterCreationComplete(bSucceded, Message);
 }
@@ -224,7 +265,7 @@ void UOrionTCPLink::AccountCreationComplete(bool bSucceded, FString Message)
 		return;
 
 	if(bSucceded)
-		RetrieveCharacterData();
+		RetrieveCharacterData(true);
 	
 	//if succeded, change status message in umg
 	PlayerOwner->EventAccountCreationComplete(bSucceded, Message);
@@ -246,9 +287,9 @@ void UOrionTCPLink::AddUserComplete(bool bSucceded, FString msg)
 	AOrionPlayerController *pPlayer = PlayerOwner;
 
 	if (bSucceded)
-		pPlayer->EventAccountCreationComplete(true, msg);
+		pPlayer->EventAccountCreated(true, msg);
 	if (!bSucceded)
-		pPlayer->EventAccountCreationComplete(false, msg);
+		pPlayer->EventAccountCreated(false, msg);
 }
 
 void GlobalErrorHandler(PlayFabError& error, void* userData)
@@ -319,6 +360,9 @@ void OnAddUserError(PlayFabError& error, void* userData)
 		break;
 	case 1008:
 		UOrionTCPLink::AddUserComplete(false, "Invalid Password!");
+		break;
+	case 1000:
+		UOrionTCPLink::AddUserComplete(false, "Invalid Characters Used!");
 		break;
 	default:
 		UOrionTCPLink::AddUserComplete(false, "An Error Has Occured!");

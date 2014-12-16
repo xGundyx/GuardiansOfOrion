@@ -151,6 +151,12 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "AccountCreateComplete"))
 		void EventAccountCreationComplete(const bool bResult, const FString &Error);
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "AccountCreated"))
+		void EventAccountCreated(const bool bResult, const FString &Error);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "CharacterFinalized"))
+		void EventCharacterFinalized(const bool bResult, const FString &Error);
+
 	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "ReceiveErrorMessage"))
 		void ReceiveErrorMessage(const FString &Message);
 
@@ -178,16 +184,13 @@ public:
 	void SeamlessTravelTo(class APlayerController* NewPC) override;
 	void SeamlessTravelFrom(class APlayerController* OldPC) override;
 
-	UFUNCTION(exec)
-		void TestConnection();
-
 	//UFUNCTION(exec)
 		virtual void ClearUMG();
 
 	virtual void Destroyed() override;
 
 public:
-	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Rain)
+	UPROPERTY()//VisibleAnywhere, BlueprintReadOnly, Category = Rain)
 		UParticleSystemComponent *RainPSC;
 
 private:

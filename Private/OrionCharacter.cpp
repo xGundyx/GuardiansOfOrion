@@ -197,19 +197,25 @@ void AOrionCharacter::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 
 		X = OutResult.Rotation.Vector();
 		Z = FVector(0.0f, 0.0f, 1.0f);
-		Y = FVector::CrossProduct(Z, X);
+		Y = FVector::CrossProduct(Z, GetActorRotation().Vector());
+		Y.Normalize();
+		Z = FVector::CrossProduct(X, Y);
+		Z.Normalize();
 
 		X *= CameraDist;
 
 		if (Health > 0)
 		{
-			CamStart = GetMesh()->GetBoneLocation(FName("Trek_Spine02"));
+			CamStart = GetMesh()->GetBoneLocation(FName("Chr01_Spine02"));
 			CamStart.Z += GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() - 18.0;
 			if (bDuck)
 				CamStart.Z += 25.0;
 		}
 
-		OutResult.Location = CamStart - X*CameraOffset.X + CameraOffset.Y*Y;
+		OutResult.Location = CamStart - X*CameraOffset.X + CameraOffset.Y*Y + CameraOffset.Z*Z;
+
+		//FRotator rot;
+		//GetMesh()->GetSocketWorldLocationAndRotation(FName("Camera"), OutResult.Location, rot);
 
 		CameraLocation = OutResult.Location;
 	}

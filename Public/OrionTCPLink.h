@@ -43,7 +43,7 @@ public:
 	static void Update();
 
 	//grab our character read only data from playfab
-	static void RetrieveCharacterData();
+	static void RetrieveCharacterData(bool bLogginIn);
 	static void AddToCharacterData(const std::string first, const ClientModels::UserDataRecord second);
 
 	static AOrionPlayerController *PlayerOwner;
@@ -56,6 +56,8 @@ public:
 
 	static void OnCharacterData(ClientModels::GetUserDataResult& result, void* userData);
 	static void OnCharacterDataFailed(PlayFabError& error, void* userData);
+	static void OnCharacterFinalized(ClientModels::GetUserDataResult& result, void* userData);
+	static void OnCharacterFinalizedFailed(PlayFabError& error, void* userData);
 
 	static UClientConnector *connector;
 
