@@ -261,11 +261,11 @@ public:
 
 	/** server notified of hit from client to verify */
 	UFUNCTION(reliable, server, WithValidation)
-		void ServerNotifyHit(const FHitResult Impact, FVector_NetQuantizeNormal ShootDir, int32 RandomSeed, float ReticleSpread);
+		void ServerNotifyHit(const FHitResult Impact, FVector ShootDir, int32 RandomSeed, float ReticleSpread);
 
 	/** server notified of miss to show trail FX */
 	UFUNCTION(unreliable, server, WithValidation)
-		void ServerNotifyMiss(FVector_NetQuantizeNormal ShootDir, int32 RandomSeed, float ReticleSpread);
+		void ServerNotifyMiss(FVector ShootDir, int32 RandomSeed, float ReticleSpread);
 
 	/** process the instant hit and notify the server if necessary */
 	void ProcessInstantHit(const FHitResult& Impact, const FVector& Origin, const FVector& ShootDir, int32 RandomSeed, float ReticleSpread);
@@ -299,14 +299,15 @@ public:
 	UPROPERTY()
 		float CurrentFiringSpread;
 
-	WeaponStates WeaponState;
+	UPROPERTY()//(Replicated)
+		TEnumAsByte<WeaponStates> WeaponState;
 
 	void CancelReload();
 
-	UPROPERTY()
+	UPROPERTY(Replicated)
 		int32 AmmoInClip;
 
-	UPROPERTY()
+	UPROPERTY(Replicated)
 		int32 Ammo;
 
 	UPROPERTY()

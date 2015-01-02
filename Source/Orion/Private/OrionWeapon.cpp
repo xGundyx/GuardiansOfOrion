@@ -126,7 +126,7 @@ void AOrionWeapon::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (MyPawn->IsLocallyControlled())
+	if (MyPawn && MyPawn->IsLocallyControlled())
 	{
 		//HandleZooms(DeltaSeconds);
 		HandleViewOffsets(DeltaSeconds);
@@ -586,6 +586,8 @@ void AOrionWeapon::StartReload(bool bFromReplication)
 			AnimDuration = 1.0;// WeaponConfig.NoAnimReloadDuration;
 		}
 
+		StopAiming();
+
 		GetWorldTimerManager().SetTimer(this, &AOrionWeapon::StopReload, AnimDuration, false);
 		if (Role == ROLE_Authority)
 		{
@@ -605,7 +607,13 @@ void AOrionWeapon::StopReload()
 	//{
 	//bPendingReload = false;
 	//DetermineWeaponState();
-	////StopWeaponAnimation(ReloadAnim);
+		/*if (MyPawn)
+		{
+			if (!MyPawn->IsFirstPerson() && Mesh3P && ReloadAnim.Weapon3P)
+			{
+				Mesh3P->AnimScriptInstance->Montage_Stop(0.05, ReloadAnim.Weapon3P);
+			}
+		}*/
 	//}
 }
 
@@ -667,7 +675,7 @@ void AOrionWeapon::HandleFiring()
 			SimulateWeaponFire();
 		}
 
-		if (MyPawn && MyPawn->IsLocallyControlled())
+		if (MyPawn)// && MyPawn->IsLocallyControlled())
 		{
 			FireWeapon();
 
@@ -747,14 +755,17 @@ void AOrionWeapon::ServerHandleFiring_Implementation()
 
 void AOrionWeapon::ProcessInstantHit_Confirmed(const FHitResult& Impact, const FVector& Origin, const FVector& ShootDir, int32 RandomSeed, float ReticleSpread)
 {
-	// handle damage
-	if (Impact.GetActor() != NULL)
-		DealDamage(Impact, ShootDir);
-
 	// play FX on remote clients
 	if (Role == ROLE_Authority)
 	{
-		HitNotify.Origin = Origin;
+		// handle damage
+		if (Impact.GetActor() != NULL)
+			DealDamage(Impact, ShootDir);
+
+		const FVector EndTrace = Origin + ShootDir * InstantConfig.WeaponRange;
+		const FVector EndPoint = Impact.GetActor() ? Impact.ImpactPoint : EndTrace;
+
+		HitNotify.Origin = EndPoint;// Origin;
 		HitNotify.RandomSeed = RandomSeed;
 		HitNotify.ReticleSpread = ReticleSpread;
 	}
@@ -770,12 +781,12 @@ void AOrionWeapon::ProcessInstantHit_Confirmed(const FHitResult& Impact, const F
 	}
 }
 
-bool AOrionWeapon::ServerNotifyHit_Validate(const FHitResult Impact, FVector_NetQuantizeNormal ShootDir, int32 RandomSeed, float ReticleSpread)
+bool AOrionWeapon::ServerNotifyHit_Validate(const FHitResult Impact, FVector ShootDir, int32 RandomSeed, float ReticleSpread)
 {
 	return true;
 }
 
-void AOrionWeapon::ServerNotifyHit_Implementation(const FHitResult Impact, FVector_NetQuantizeNormal ShootDir, int32 RandomSeed, float ReticleSpread)
+void AOrionWeapon::ServerNotifyHit_Implementation(const FHitResult Impact, FVector ShootDir, int32 RandomSeed, float ReticleSpread)
 {
 	const float WeaponAngleDot = FMath::Abs(FMath::Sin(ReticleSpread * PI / 180.f));
 
@@ -848,14 +859,26 @@ void AOrionWeapon::ServerNotifyHit_Implementation(const FHitResult Impact, FVect
 
 FVector AOrionWeapon::GetMuzzleLocation() const
 {
-	USkeletalMeshComponent* UseMesh = GetWeaponMesh(MyPawn->IsFirstPerson());
-	return UseMesh->GetSocketLocation(MuzzleAttachPoint[0]);
+	if (MyPawn)
+	{
+		USkeletalMeshComponent* UseMesh = GetWeaponMesh(MyPawn->IsFirstPerson());
+		if (UseMesh)
+			return UseMesh->GetSocketLocation(MuzzleAttachPoint[0]);
+	}
+
+	return FVector(0.0f, 0.0f, 0.0f);
 }
 
 FVector AOrionWeapon::GetMuzzleDirection() const
 {
-	USkeletalMeshComponent* UseMesh = GetWeaponMesh(MyPawn->IsFirstPerson());
-	return UseMesh->GetSocketRotation(MuzzleAttachPoint[0]).Vector();
+	if (MyPawn)
+	{
+		USkeletalMeshComponent* UseMesh = GetWeaponMesh(MyPawn->IsFirstPerson());
+		if (UseMesh)
+			return UseMesh->GetSocketRotation(MuzzleAttachPoint[0]).Vector();
+	}
+
+	return FVector(0.0f, 0.0f, 0.0f);
 }
 
 void AOrionWeapon::OnRep_HitNotify()
@@ -868,10 +891,10 @@ void AOrionWeapon::SimulateInstantHit(const FVector& ShotOrigin, int32 RandomSee
 	FRandomStream WeaponRandomStream(RandomSeed);
 	const float ConeHalfAngle = FMath::DegreesToRadians(ReticleSpread * 0.5f);
 
-	const FVector StartTrace = ShotOrigin;
-	const FVector AimDir = GetAdjustedAim();
-	const FVector ShootDir = WeaponRandomStream.VRandCone(AimDir, ConeHalfAngle, ConeHalfAngle);
-	const FVector EndTrace = StartTrace + ShootDir * InstantConfig.WeaponRange;
+	const FVector StartTrace = GetMuzzleLocation();// ShotOrigin;
+	//const FVector AimDir = GetAdjustedAim();
+	//const FVector ShootDir = WeaponRandomStream.VRandCone(AimDir, ConeHalfAngle, ConeHalfAngle);
+	const FVector EndTrace = ShotOrigin;// StartTrace + ShootDir * InstantConfig.WeaponRange;
 
 	FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
 	if (Impact.bBlockingHit)
@@ -896,19 +919,19 @@ void AOrionWeapon::DealDamage(const FHitResult& Impact, const FVector& ShootDir)
 	Impact.GetActor()->TakeDamage(PointDmg.Damage, PointDmg, MyPawn->Controller, this);
 }
 
-bool AOrionWeapon::ServerNotifyMiss_Validate(FVector_NetQuantizeNormal ShootDir, int32 RandomSeed, float ReticleSpread)
+bool AOrionWeapon::ServerNotifyMiss_Validate(FVector ShootDir, int32 RandomSeed, float ReticleSpread)
 {
 	return true;
 }
 
-void AOrionWeapon::ServerNotifyMiss_Implementation(FVector_NetQuantizeNormal ShootDir, int32 RandomSeed, float ReticleSpread)
+void AOrionWeapon::ServerNotifyMiss_Implementation(FVector ShootDir, int32 RandomSeed, float ReticleSpread)
 {
 	const FVector Origin = GetMuzzleLocation();
 
 	// play FX on remote clients
-	HitNotify.Origin = Origin;
-	HitNotify.RandomSeed = RandomSeed;
-	HitNotify.ReticleSpread = ReticleSpread;
+	////HitNotify.Origin = Origin + ShootDir * InstantConfig.WeaponRange; //Origin;
+	////HitNotify.RandomSeed = RandomSeed;
+	////HitNotify.ReticleSpread = ReticleSpread;
 
 	// play FX locally
 	if (GetNetMode() != NM_DedicatedServer)
@@ -1144,11 +1167,6 @@ float AOrionWeapon::PlayWeaponAnimation(const FWeaponAnim& Animation)
 		if (UseAnim)
 		{
 			Duration = MyPawn->IsFirstPerson() ? Mesh1P->AnimScriptInstance->Montage_Play(UseAnim, 1.0) : MyPawn->PlayAnimMontage(UseAnim);
-		}
-
-		if (!MyPawn->IsFirstPerson() && Mesh3P && Animation.Weapon3P)
-		{
-			Mesh3P->AnimScriptInstance->Montage_Play(Animation.Weapon3P, 1.0);
 		}
 	}
 

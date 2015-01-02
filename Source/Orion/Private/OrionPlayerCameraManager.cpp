@@ -19,6 +19,7 @@ AOrionPlayerCameraManager::AOrionPlayerCameraManager(const FObjectInitializer& O
 void AOrionPlayerCameraManager::UpdateCamera(float DeltaTime)
 {
 	AOrionCharacter* MyPawn = PCOwner ? Cast<AOrionCharacter>(PCOwner->GetPawn()) : NULL;
+	AActor* MyDropPod = PCOwner ? Cast<AOrionPlayerController>(PCOwner)->DropPod : NULL;
 	if (MyPawn)// && MyPawn->IsFirstPerson())
 	{
 		if (MyPawn->GetWeapon())
@@ -27,6 +28,11 @@ void AOrionPlayerCameraManager::UpdateCamera(float DeltaTime)
 			TargetingFOV = 60.0f;
 
 		const float TargetFOV = MyPawn->IsAiming() ? TargetingFOV : (MyPawn->IsSprinting() ? RunningFOV : NormalFOV);
+		DefaultFOV = FMath::FInterpTo(DefaultFOV, TargetFOV, DeltaTime, 7.5f);
+	}
+	else if (MyDropPod)
+	{
+		const float TargetFOV = NormalFOV;
 		DefaultFOV = FMath::FInterpTo(DefaultFOV, TargetFOV, DeltaTime, 7.5f);
 	}
 
@@ -40,6 +46,11 @@ void AOrionPlayerCameraManager::UpdateCamera(float DeltaTime)
 
 void AOrionPlayerCameraManager::ProcessViewRotation(float DeltaTime, FRotator& OutViewRotation, FRotator& OutDeltaRot)\
 {
+	if (GetNetMode() == NM_DedicatedServer)
+	{
+		Super::ProcessViewRotation(DeltaTime, OutViewRotation, OutDeltaRot);
+		return;
+	}
 	OutViewRotation = OldRotation;
 
 	Super::ProcessViewRotation(DeltaTime, OutViewRotation, OutDeltaRot);

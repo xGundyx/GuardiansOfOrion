@@ -17,9 +17,21 @@ public:
 
 	/** force feedback effect to play on a player hit by this damage type */
 	UPROPERTY(EditDefaultsOnly, Category = Effects)
-	UForceFeedbackEffect *HitForceFeedback;
+		UForceFeedbackEffect *HitForceFeedback;
 
 	/** force feedback effect to play on a player killed by this damage type */
 	UPROPERTY(EditDefaultsOnly, Category = Effects)
-	UForceFeedbackEffect *KilledForceFeedback;
+		UForceFeedbackEffect *KilledForceFeedback;
+
+	UPROPERTY(EditDefaultsOnly, Category = Orion)
+		bool bKnockBack;
+
+	UPROPERTY(EditDefaultsOnly, Category = Orion)
+		float KnockbackForce;
+
+	UPROPERTY(EditDefaultsOnly, Category = Orion)
+		FName KnockbackSocket;
+
+	UPROPERTY(EditDefaultsOnly, Category = Orion)
+		float KnockbackUpForce;
 };

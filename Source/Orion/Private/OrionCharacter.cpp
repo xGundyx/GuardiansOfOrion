@@ -158,20 +158,39 @@ FVector2D AOrionCharacter::GetAim(float DeltaTime)
 	if (IsSprinting())
 		return FVector2D(0.0f, 0.0f);
 
-	if (!Controller)
-		return FVector2D(0.0f, 0.0f);
+	////if (!Controller || !IsLocallyControlled())
+	////	return FVector2D(AimYaw, AimPitch);
 
 	GetPawnMesh()->GetSocketWorldLocationAndRotation(FName("Aim"), pos, rot);
 
 	//GetWeapon()->GetWeaponMesh(false)->GetSocketWorldLocationAndRotation(FName("MuzzleFlashSocket"), pos, rot);
-	FVector AimDirWS = (CameraLocation + Controller->GetControlRotation().Vector()/*ThirdPersonCameraComponent->GetComponentRotation().Vector()*/*5000.0) - pos;// GetBaseAimRotation().Vector();
+	FVector AimDirWS = /*(CameraLocation + Controller->GetControlRotation().Vector()*5000.0) - pos;*/ GetBaseAimRotation().Vector();
 	//DrawDebugBox(GWorld, CameraLocation + Controller->GetControlRotation().Vector()*5000.0, FVector(10, 10, 10), FColor(255, 0, 0, 255), false);
 	AimDirWS.Normalize();
 	const FVector AimDirLS = ActorToWorld().InverseTransformVectorNoScale(AimDirWS);
 	const FRotator AimRotLS = AimDirLS.Rotation();
 
 	//we need to offset the aim a bit based on player third person camera offsets
-	return FVector2D((2.5 + AimRotLS.Yaw) / 90.0, AimRotLS.Pitch / 90.0);
+	/////AimYaw = (2.5f + AimRotLS.Yaw) / 90.0f;
+	////AimPitch = AimRotLS.Pitch / 90.0;
+
+	////if (Role < ROLE_Authority)
+	////	ServerSetAimYaw(AimYaw, AimPitch);
+
+	////return FVector2D(AimYaw, AimPitch);
+
+	return FVector2D((2.5f + AimRotLS.Yaw) / 90.0f, AimRotLS.Pitch / 90.0);
+}
+
+bool AOrionCharacter::ServerSetAimYaw_Validate(float yaw, float pitch)
+{
+	return true;
+}
+
+void AOrionCharacter::ServerSetAimYaw_Implementation(float yaw, float pitch)
+{
+	AimYaw = yaw;
+	AimPitch = pitch;
 }
 
 void AOrionCharacter::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
@@ -469,6 +488,11 @@ USkeletalMeshComponent* AOrionCharacter::GetSpecifcPawnMesh(bool WantFirstPerson
 	return WantFirstPerson && CurrentWeapon ? CurrentWeapon->ArmsMesh : GetMesh();
 }
 
+void AOrionCharacter::OnRep_ArmorIndex()
+{
+	SetArmor(ArmorIndex);
+}
+
 void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -478,6 +502,21 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, Health);
 
 	DOREPLIFETIME_CONDITION(AOrionCharacter, LastTakeHitInfo, COND_Custom);
+
+	DOREPLIFETIME(AOrionCharacter, CurrentWeapon);
+
+	DOREPLIFETIME(AOrionCharacter, ReplicatedAnimation);
+
+	DOREPLIFETIME(AOrionCharacter, TargetYaw);
+
+	DOREPLIFETIME(AOrionCharacter, ArmorIndex);
+
+	//skip owner
+	DOREPLIFETIME_CONDITION(AOrionCharacter, AimYaw, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, AimPitch, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, bRun, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, bAim, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, bDuck, COND_SkipOwner);
 }
 
 void AOrionCharacter::Destroyed()
@@ -518,6 +557,36 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	// Modify based on game rules.
 	AOrionGameMode* const Game = GetWorld()->GetAuthGameMode<AOrionGameMode>();
 	////Damage = Game ? Game->ModifyDamage(Damage, this, DamageEvent, EventInstigator, DamageCauser) : 0.f;
+
+	UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject());
+
+	if (DamageType && DamageType->bKnockBack)
+	{
+		//ignore damage to self
+		if (EventInstigator != Controller && GetMovementComponent())
+		{
+			AOrionCharacter *Damager = Cast<AOrionCharacter>(DamageCauser);
+			if (Damager && Damager->GetMesh())
+			{
+				FVector pos;
+				pos = Damager->GetMesh()->GetSocketLocation(DamageType->KnockbackSocket);
+
+				FRotator dir;
+				dir = Damager->GetMesh()->GetSocketRotation(DamageType->KnockbackSocket);
+
+				UOrionMovementComponent *Comp = Cast<UOrionMovementComponent>(GetMovementComponent());
+				if (Comp)
+				{
+					FVector force = dir.Vector();// GetActorLocation() - pos;
+					//force.Z = DamageType->KnockbackUpForce;
+					force.Z = 0.0f;
+					force.Normalize();
+					Comp->AddImpulse(force * DamageType->KnockbackForce + FVector(0.0f, 0.0f, DamageType->KnockbackUpForce), true);
+				}
+				//GetMovementComponent()->AddRadialImpulse(pos, 500.0, DamageType->KnockbackForce, ERadialImpulseFalloff::RIF_Constant, true);
+			}
+		}
+	}
 
 	const float ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
 	if (ActualDamage > 0.f)
@@ -642,6 +711,18 @@ void AOrionCharacter::ReplicateHit(float Damage, struct FDamageEvent const& Dama
 	LastTakeHitTimeTimeout = TimeoutTime;
 }
 
+void AOrionCharacter::SetArmor(int32 index)
+{
+	ArmorIndex = index;
+
+	EventUpdateHelmet(index);
+	EventUpdateBody(index);
+	EventUpdateArms(index);
+	EventUpdateLegs(index);
+	EventUpdateFlight1(index);
+	EventUpdateFlight2(index);
+}
+
 void AOrionCharacter::StopAllAnimMontages()
 {
 	USkeletalMeshComponent* UseMesh = GetPawnMesh();
@@ -725,6 +806,76 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	else
 	{
 		SetRagdollPhysics();
+	}
+}
+
+void AOrionCharacter::OnRep_ReplicatedAnimation()
+{
+	//skip if this animation is only played locally
+	if (IsLocallyControlled() && ReplicatedAnimation.bReplicatedToOwner == false)
+		return;
+
+	PlayAnimMontage(ReplicatedAnimation.Montage, ReplicatedAnimation.Rate, ReplicatedAnimation.SectionName);
+}
+
+//override this so we can add some replication to it
+float AOrionCharacter::PlayAnimMontage(class UAnimMontage* AnimMontage, float InPlayRate, FName StartSectionName)
+{
+	if (Role == ROLE_Authority)
+	{
+		if (ReplicatedAnimation.Montage == AnimMontage)
+			ReplicatedAnimation.bToggle = !ReplicatedAnimation.bToggle;
+
+		ReplicatedAnimation.Montage = AnimMontage;
+		ReplicatedAnimation.Rate = InPlayRate;
+		ReplicatedAnimation.SectionName = StartSectionName;
+		ReplicatedAnimation.bReplicatedToOwner = false;
+	}
+
+	UAnimInstance * AnimInstance = (GetMesh()) ? GetMesh()->GetAnimInstance() : NULL;
+	if (AnimMontage && AnimInstance)
+	{
+		float const Duration = AnimInstance->Montage_Play(AnimMontage, InPlayRate);
+
+		if (Duration > 0.f)
+		{
+			// Start at a given Section.
+			if (StartSectionName != NAME_None)
+			{
+				AnimInstance->Montage_JumpToSection(StartSectionName);
+			}
+
+			if (CurrentWeapon && !IsFirstPerson() && CurrentWeapon->ReloadAnim.Weapon3P && CurrentWeapon->GetWeaponMesh(false) && AnimMontage == CurrentWeapon->ReloadAnim.Pawn3P)
+			{
+				CurrentWeapon->GetWeaponMesh(false)->AnimScriptInstance->Montage_Play(CurrentWeapon->ReloadAnim.Weapon3P, 1.0);
+			}
+			else if (CurrentWeapon && CurrentWeapon->ReloadAnim.Weapon3P && !IsFirstPerson() && CurrentWeapon->GetWeaponMesh(false))
+			{
+				CurrentWeapon->GetWeaponMesh(false)->AnimScriptInstance->Montage_Stop(0.05, CurrentWeapon->ReloadAnim.Weapon3P);
+			}
+
+
+			return Duration;
+		}
+	}
+
+	return 0.f;
+}
+
+void AOrionCharacter::StopAnimMontage(class UAnimMontage* AnimMontage)
+{
+	UAnimInstance * AnimInstance = (GetMesh()) ? GetMesh()->GetAnimInstance() : NULL;
+	UAnimMontage * MontageToStop = (AnimMontage) ? AnimMontage : GetCurrentMontage();
+	bool bShouldStopMontage = AnimInstance && MontageToStop && !AnimInstance->Montage_GetIsStopped(MontageToStop);
+
+	if (bShouldStopMontage)
+	{
+		AnimInstance->Montage_Stop(MontageToStop->BlendOutTime);
+
+		if (!IsFirstPerson() && CurrentWeapon && CurrentWeapon->GetWeaponMesh(false) && AnimMontage == CurrentWeapon->ReloadAnim.Pawn3P)
+		{
+			CurrentWeapon->GetWeaponMesh(false)->AnimScriptInstance->Montage_Stop(0.05, CurrentWeapon->ReloadAnim.Weapon3P);
+		}
 	}
 }
 
@@ -945,6 +1096,7 @@ void AOrionCharacter::Duck()
 void AOrionCharacter::StopDucking()
 {
 	bDuck = false;
+	ServerDuck(bDuck);
 }
 
 void AOrionCharacter::UnDuck()
@@ -953,7 +1105,44 @@ void AOrionCharacter::UnDuck()
 	{
 		GetWorldTimerManager().ClearTimer(this, &AOrionCharacter::DoRoll);
 		bDuck = !bDuck;
+		ServerDuck(bDuck);
 	}
+}
+
+bool AOrionCharacter::ServerDuck_Validate(bool bNewDuck)
+{
+	return true;
+}
+
+void AOrionCharacter::ServerDuck_Implementation(bool bNewDuck)
+{
+	bDuck = bNewDuck;
+}
+
+bool AOrionCharacter::ServerRun_Validate(bool bNewRun)
+{
+	return true;
+}
+
+void AOrionCharacter::ServerRun_Implementation(bool bNewRun)
+{
+	if (bNewRun)
+		Sprint();
+	else
+		StopSprint();
+}
+
+bool AOrionCharacter::ServerAim_Validate(bool bNewAim)
+{
+	return true;
+}
+
+void AOrionCharacter::ServerAim_Implementation(bool bNewAim)
+{
+	if (bNewAim)
+		StartAiming();
+	else
+		StopAiming();
 }
 
 FRotator AOrionCharacter::GetRootRotation() const
@@ -996,13 +1185,13 @@ void AOrionCharacter::DoRoll()
 				TargetYaw = 0.0f;
 				Length = AnimInstance->Montage_Play(RollAnimation.Right, 1.f);
 			}
-
-			bRolling = true;
-
-			GetWorldTimerManager().SetTimer(this, &AOrionCharacter::EndRoll, Length, false);
-			GetWorldTimerManager().SetTimer(this, &AOrionCharacter::ResetRootRotation, Length*0.8f, false);
 		}
 	}
+
+	bRolling = true;
+
+	GetWorldTimerManager().SetTimer(this, &AOrionCharacter::EndRoll, Length, false);
+	GetWorldTimerManager().SetTimer(this, &AOrionCharacter::ResetRootRotation, Length*0.8f, false);
 }
 
 APlayerController *AOrionCharacter::GetPlayerController()
@@ -1012,10 +1201,12 @@ APlayerController *AOrionCharacter::GetPlayerController()
 
 void AOrionCharacter::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 {
+	FRotator ncRot = NewControlRotation;
+
 	if (IsRolling())
 		return;
 
-	if (IsLocallyControlled() && Cast<AOrionPlayerController>(Controller) != NULL)
+	/*if (IsLocallyControlled() && Cast<AOrionPlayerController>(Controller) != NULL)
 	{
 		Super::FaceRotation(NewControlRotation, DeltaTime);
 		return;
@@ -1023,8 +1214,28 @@ void AOrionCharacter::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 
 	FRotator CurrentRotation = FMath::RInterpTo(GetActorRotation(), NewControlRotation, DeltaTime, 2.5f);
 
-	Super::FaceRotation(CurrentRotation, DeltaTime);
+	Super::FaceRotation(CurrentRotation, DeltaTime);*/
+
+	const FRotator CurrentRotation = GetActorRotation();
+
+	if (!bUseControllerRotationPitch)
+	{
+		NewControlRotation.Pitch = CurrentRotation.Pitch;
+	}
+
+	if (!bUseControllerRotationYaw)
+	{
+		NewControlRotation.Yaw = CurrentRotation.Yaw;
+	}
+
+	if (!bUseControllerRotationRoll)
+	{
+		NewControlRotation.Roll = CurrentRotation.Roll;
+	}
+
+	SetActorRotation(NewControlRotation);
 }
+
 
 void AOrionCharacter::ResetRootRotation()
 {
@@ -1040,6 +1251,9 @@ void AOrionCharacter::EndRoll()
 
 void AOrionCharacter::Sprint()
 {
+	if (Role < ROLE_Authority)
+		ServerRun(true);
+
 	if (bDuck)
 	{
 		StopDucking();
@@ -1073,6 +1287,9 @@ bool AOrionCharacter::IsAiming() const
 
 void AOrionCharacter::StopSprint()
 {
+	if (Role < ROLE_Authority)
+		ServerRun(false);
+
 	bRun = false;
 }
 
@@ -1094,6 +1311,9 @@ void AOrionCharacter::Reload()
 
 void AOrionCharacter::StopAiming()
 {
+	if (Role < ROLE_Authority)
+		ServerAim(false);
+
 	if (CurrentWeapon)
 	{
 		bAim = false;
@@ -1131,6 +1351,9 @@ void AOrionCharacter::AddAimKick(FRotator Kick)
 
 void AOrionCharacter::StartAiming()
 {
+	if (Role < ROLE_Authority)
+		ServerAim(true);
+
 	StopSprint();
 
 	if (CurrentWeapon)

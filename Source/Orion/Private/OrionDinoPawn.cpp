@@ -19,18 +19,26 @@ FVector2D AOrionDinoPawn::GetAim(float DeltaTime)
 	APawn *Target;
 
 	if (!Controller)
-		return FVector2D(0.0f, 0.0f);
+		return FVector2D(AimYaw, AimPitch);
 
 	Target = Cast<AOrionAIController>(Controller)->GetEnemy();
 
-	if (Target == NULL)
-		return FVector2D(0.0f, 0.0f);
+	if (Target == NULL || !Target->IsValidLowLevel())
+	{
+		AimYaw = 0.0f;
+		AimPitch = 0.0f;
+		return FVector2D(AimYaw, AimPitch);
+	}
 
 	GetPawnMesh()->GetSocketWorldLocationAndRotation(FName("Aim"), pos, rot);
 
 	//make sure the target isn't too far away
 	if ((Target->GetActorLocation() - pos).Size2D() > 5000.0)
-		return FVector2D(0.0f, 0.0f);
+	{
+		AimYaw = 0.0f;
+		AimPitch = 0.0f;
+		return FVector2D(AimYaw, AimPitch);
+	}
 
 	FVector Right = FVector::CrossProduct(FVector(0.0f, 0.0f, 1.0f), GetActorRotation().Vector());
 	FVector Forward = FVector::CrossProduct(Right, GroundNormal);
@@ -39,12 +47,22 @@ FVector2D AOrionDinoPawn::GetAim(float DeltaTime)
 	FVector AimDirWS = Cast<AOrionAIController>(Controller)->GetEnemy()->GetActorLocation() + AimAjustment - pos + FVector(0.0f,0.0f,75.0f);
 	AimDirWS.Normalize();
 	const FVector AimDirLS = ActorToWorld().InverseTransformVectorNoScale(AimDirWS);
-	const FRotator AimRotLS = AimDirWS.Rotation() - rTarget;// AimDirLS.Rotation();
+	const FRotator AimRotLS = /*AimDirWS.Rotation() - rTarget;*/AimDirLS.Rotation();
 
 	//we need to offset the aim a bit based on player third person camera offsets
-	const FVector2D start = CurrentAim2D;
+	FVector2D start = CurrentAim2D;
 	const FVector2D end = FVector2D((0.0 + AimRotLS.Yaw) / 90.0, AimRotLS.Pitch / 90.0);
+
+	if (start.X > 1.0 && end.X < -1.0)
+		start.X = -2.0 - (2.0 - start.X);
+	else if (start.X < -1.0 && end.X > 1.0)
+		start.X = 2.0 + (start.X + 2.0);
+
 	CurrentAim2D = FMath::Vector2DInterpTo(start, end, DeltaTime, 3.0);
+
+	AimYaw = CurrentAim2D.X;
+	AimPitch = CurrentAim2D.Y;
+
 	return CurrentAim2D;
 }
 

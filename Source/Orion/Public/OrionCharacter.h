@@ -5,6 +5,23 @@
 #include "OrionCharacter.generated.h"
 
 USTRUCT()
+struct FAnimInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		class UAnimMontage *Montage;
+	UPROPERTY()
+		float Rate;
+	UPROPERTY()
+		FName SectionName;
+	UPROPERTY()
+		bool bToggle;
+	UPROPERTY()
+		bool bReplicatedToOwner;
+};
+
+USTRUCT()
 struct FTakeHitInfo
 {
 	GENERATED_USTRUCT_BODY()
@@ -224,14 +241,32 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		bool bFirstPerson;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		bool bDuck;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		bool bRun;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		bool bAim;
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerDuck(bool bNewDuck);
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerRun(bool bNewRun);
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerAim(bool bNewAim);
+
+	UFUNCTION()
+		void OnRep_ArmorIndex();
+
+	UFUNCTION()
+		void SetArmor(int32 index);
+
+	UPROPERTY(ReplicatedUsing = OnRep_ArmorIndex)
+		int32 ArmorIndex;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Aim)
 		FVector2D CurrentAim2D;
@@ -437,6 +472,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Controller)
 		APlayerController *GetPlayerController();
 
+	float PlayAnimMontage(class UAnimMontage* AnimMontage, float InPlayRate = 1.0f, FName StartSectionName = FName("")) override;
+	void StopAnimMontage(class UAnimMontage* AnimMontage) override;
+
+	UFUNCTION()
+		void OnRep_ReplicatedAnimation();
+
+	UPROPERTY(ReplicatedUsing = OnRep_ReplicatedAnimation)
+		FAnimInfo ReplicatedAnimation;
+
+	UPROPERTY(Replicated)
+		float AimYaw;
+
+	UPROPERTY(Replicated)
+		float AimPitch;
+
 protected:
 	FRotator AimKick;
 	FRotator TargetAimKick;
@@ -541,7 +591,13 @@ protected:
 	float BobTime;
 	FVector WalkBob;
 	FRotator RootRotation;
-	float TargetYaw;
+
+	UPROPERTY(Replicated)
+		float TargetYaw;
+
+	UFUNCTION(reliable, server, WithValidation)
+		void ServerSetAimYaw(float yaw, float pitch);
+
 	bool bRolling;
 public:
 	FVector CameraLocation;

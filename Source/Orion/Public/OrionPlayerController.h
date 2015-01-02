@@ -10,6 +10,7 @@
 #include "OrionStats.h"
 #include "OrionAchievements.h"
 #include "OrionDroidPawn.h"
+#include "OrionDropPod.h"
 #include "OrionPlayerController.generated.h"
 
 /**
@@ -177,8 +178,20 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "CleanupUMG"))
 		void EventCleanupUMG();
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Respawn"))
+		void EventRespawn();
+
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		AOrionInventoryManager *GetInventoryManager();
+
+	UFUNCTION(BlueprintCallable, Category = Respawn)
+		void SetDropPod(AOrionDropPod *Pod);
+
+	UPROPERTY()
+		AOrionDropPod *DropPod;
+
+	void PawnPendingDestroy(APawn* P) override;
+	virtual void CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult) override;
 
 	void CleanupGameViewport() override;
 	void SeamlessTravelTo(class APlayerController* NewPC) override;
@@ -188,6 +201,11 @@ public:
 		virtual void ClearUMG();
 
 	virtual void Destroyed() override;
+
+	void UpdateRotation(float DeltaTime) override;
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerAllArmor(int32 index);
 
 public:
 	UPROPERTY()//VisibleAnywhere, BlueprintReadOnly, Category = Rain)

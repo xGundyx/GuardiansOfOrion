@@ -127,6 +127,34 @@ void AOrionPlayerController::PostInitializeComponents()
 	InitQuestManager();
 }
 
+void AOrionPlayerController::SetDropPod(AOrionDropPod *Pod)
+{
+	DropPod = Pod;
+}
+
+void AOrionPlayerController::CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult)
+{
+	if (DropPod)
+		DropPod->SpawnCameraComponent->GetCameraView(DeltaTime, OutResult);
+	else
+		Super::CalcCamera(DeltaTime, OutResult);
+}
+
+void AOrionPlayerController::PawnPendingDestroy(APawn* P)
+{
+	//LastDeathLocation = P->GetActorLocation();
+	//FVector CameraLocation = LastDeathLocation + FVector(0, 0, 300.0f);
+	//FRotator CameraRotation(-90.0f, 0.0f, 0.0f);
+	//FindDeathCameraSpot(CameraLocation, CameraRotation);
+
+	Super::PawnPendingDestroy(P);
+
+	//tell our blueprint to respawn us
+	EventRespawn();
+
+	//ClientSetSpectatorCamera(CameraLocation, CameraRotation);
+}
+
 void AOrionPlayerController::Possess(APawn* aPawn)
 {
 	Super::Possess(aPawn);
@@ -141,7 +169,7 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 
-	if (TheSun == NULL && IsLocalPlayerController())
+	if (TheSun == NULL)// && IsLocalPlayerController())
 	{
 		for (FActorIterator It(GetWorld()); It; ++It)
 		{
@@ -179,19 +207,28 @@ void AOrionPlayerController::ClearNight()
 	TheSun->ClearNight();
 }
 
+bool AOrionPlayerController::ServerAllArmor_Validate(int32 index)
+{
+	return true;
+}
+
+void AOrionPlayerController::ServerAllArmor_Implementation(int32 index)
+{
+	AllArmor(index);
+}
+
 void AOrionPlayerController::AllArmor(int32 index)
 {
+	if (Role < ROLE_Authority)
+	{
+		ServerAllArmor(index);
+		return;
+	}
+
 	AOrionCharacter* myPawn = Cast<AOrionCharacter>(GetPawn());
 
 	if (myPawn)
-	{
-		myPawn->EventUpdateHelmet(index);
-		myPawn->EventUpdateBody(index);
-		myPawn->EventUpdateArms(index);
-		myPawn->EventUpdateLegs(index);
-		myPawn->EventUpdateFlight1(index);
-		myPawn->EventUpdateFlight2(index);
-	}
+		myPawn->SetArmor(index);
 }
 
 void AOrionPlayerController::ArmorColor(int32 index)
@@ -215,6 +252,36 @@ AOrionInventoryManager *AOrionPlayerController::GetInventoryManager()
 		return myPlayer->InventoryManager;
 
 	return nullptr;
+}
+
+void AOrionPlayerController::UpdateRotation(float DeltaTime)
+{
+	// Calculate Delta to be applied on ViewRotation
+	FRotator DeltaRot(RotationInput);
+
+	FRotator ViewRotation = GetControlRotation();
+
+	if (PlayerCameraManager)
+	{
+		PlayerCameraManager->ProcessViewRotation(DeltaTime, ViewRotation, DeltaRot);
+	}
+
+	/*if (!PlayerCameraManager || !PlayerCameraManager->bFollowHmdOrientation)
+	{
+		if (IsLocalPlayerController() && GEngine->HMDDevice.IsValid() && GEngine->HMDDevice->IsHeadTrackingAllowed())
+		{
+			GEngine->HMDDevice->ApplyHmdRotation(this, ViewRotation);
+		}
+	}*/
+
+	//if (IsLocalPlayerController())
+		SetControlRotation(ViewRotation);
+
+	APawn* const P = GetPawnOrSpectator();
+	if (P)
+	{
+		P->FaceRotation(ViewRotation, DeltaTime);
+	}
 }
 
 void AOrionPlayerController::CreateInventory()
