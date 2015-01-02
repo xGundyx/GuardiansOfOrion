@@ -25,7 +25,7 @@ float AOrionDroidPawn::GetFinRotation(float DeltaTime)
 //fire weapon from weapon socket
 void AOrionDroidPawn::HandleSpecialWeaponFire(FName SocketName)
 {
-	if (GetMesh())
+	if (GetMesh() && CurrentWeapon)
 	{
 		FVector pos;
 		FRotator rot;

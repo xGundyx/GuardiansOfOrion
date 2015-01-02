@@ -16,7 +16,7 @@ class ORION_API UClientConnector : public UObject
 public:
 	UClientConnector(const FObjectInitializer& ObejctInitializer);
 
-#ifndef IS_SERVER
+#if !IS_SERVER
 	static bool CreateSenderSocket();
 	static void SendInfo(FString Info);
 	static void Update();

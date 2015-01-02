@@ -163,13 +163,13 @@ public:
 	UPROPERTY(EditAnywhere, Category = Weather)
 		float MaxFogDensity;
 
-	UPROPERTY(EditAnywhere, Category = Weather)
+	UPROPERTY(BlueprintReadWrite, Category = Weather)
 		float MinFogDensity;
 
 	UPROPERTY(EditAnywhere, Category = Weather)
 		float MinFogDistance;
 
-	UPROPERTY(EditAnywhere, Category = Weather)
+	UPROPERTY(BlueprintReadWrite, Category = Weather)
 		float MaxFogDistance;
 
 	UPROPERTY(EditAnywhere, Category = Weather)
