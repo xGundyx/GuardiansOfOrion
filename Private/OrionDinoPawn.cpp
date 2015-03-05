@@ -6,8 +6,8 @@
 #include "OrionAIController.h"
 
 //dinos have special movement code since some of them can be rather large
-AOrionDinoPawn::AOrionDinoPawn(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer.SetDefaultSubobjectClass<UOrionDinoMovementComponent>(ACharacter::CharacterMovementComponentName))
+AOrionDinoPawn::AOrionDinoPawn(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UOrionDinoMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 
 }

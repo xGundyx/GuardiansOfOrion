@@ -3,24 +3,26 @@
 #include "Orion.h"
 #include "OrionHoverVehicle.h"
 
-AOrionHoverVehicle::AOrionHoverVehicle(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+AOrionHoverVehicle::AOrionHoverVehicle(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// set our turn rates for input
 	BaseTurnRate = 45.f;
 	BaseLookUpRate = 45.f;
 
-	CollisionMesh = ObejctInitializer.CreateOptionalDefaultSubobject<UStaticMeshComponent>(this, TEXT("CollisionMesh"));
+	//this is just a dummy for us to use
+	////BaseSphere = ObjectInitializer.CreateOptionalDefaultSubobject<USphereComponent>(this, TEXT("BaseSphere"));
+
+	CollisionMesh = ObjectInitializer.CreateOptionalDefaultSubobject<UStaticMeshComponent>(this, TEXT("CollisionMesh"));
 	CollisionMesh->SetVisibility(false);
 	CollisionMesh->SetEnableGravity(false);
 	CollisionMesh->bGenerateOverlapEvents = true;
 	CollisionMesh->SetCollisionProfileName(FName("PhysicsActor"));
 	CollisionMesh->SetAngularDamping(1.0f);
 	CollisionMesh->SetLinearDamping(1.0f);
+	////CollisionMesh->AttachTo(BaseSphere);
 
-	RootComponent = CollisionMesh;
-
-	VehicleMesh = ObejctInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("VehicleMesh"));
+	VehicleMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("VehicleMesh"));
 	VehicleMesh->AlwaysLoadOnClient = true;
 	VehicleMesh->AlwaysLoadOnServer = true;
 	VehicleMesh->bOwnerNoSee = false;
@@ -31,13 +33,43 @@ AOrionHoverVehicle::AOrionHoverVehicle(const FObjectInitializer& ObejctInitializ
 	VehicleMesh->AttachTo(CollisionMesh);
 
 	// Create a CameraComponent	
-	VehicleCameraComponent = ObejctInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("VehicleCamera"));
+	VehicleCameraComponent = ObjectInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("VehicleCamera"));
 	VehicleCameraComponent->AttachParent = CollisionMesh;
 	VehicleCameraComponent->RelativeLocation = FVector(0, 0, 250.f);
 
 	PrimaryActorTick.bStartWithTickEnabled = true;
 	PrimaryActorTick.bAllowTickOnDedicatedServer = true;
 	PrimaryActorTick.bCanEverTick = true;
+
+	RootComponent = CollisionMesh;
+}
+
+void AOrionHoverVehicle::TryToGetIn(AOrionCharacter *newDriver)
+{
+	//if we already have a driver, then not allowed!
+	if (Driver)
+		return;
+
+	//can't enter a vehicle that is upside down, dead, or locked
+	if (Health <= 0)
+		return;
+
+	Driver = newDriver;
+	Driver->SetDrivenVehicle(this);
+}
+
+void AOrionHoverVehicle::DriverLeave()
+{
+	if (Driver)
+	{
+		Driver->ExitVehicle();
+		Driver = nullptr;
+	}
+}
+
+AOrionCharacter *AOrionHoverVehicle::GetDriver()
+{
+	return Driver;
 }
 
 void AOrionHoverVehicle::CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult)
@@ -65,6 +97,23 @@ void AOrionHoverVehicle::SetupPlayerInputComponent(class UInputComponent* InputC
 	InputComponent->BindAxis("TurnRate", this, &AOrionHoverVehicle::TurnAtRate);
 	InputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 	InputComponent->BindAxis("LookUpRate", this, &AOrionHoverVehicle::LookUpAtRate);
+
+	InputComponent->BindAction("Use", IE_Pressed, this, &AOrionHoverVehicle::Use);
+}
+
+bool AOrionHoverVehicle::ServerUse_Validate()
+{
+	return true;
+}
+
+void AOrionHoverVehicle::ServerUse_Implementation()
+{
+	DriverLeave();
+}
+
+void AOrionHoverVehicle::Use()
+{
+	ServerUse();
 }
 
 void AOrionHoverVehicle::MoveRight(float Value)
@@ -116,107 +165,20 @@ void AOrionHoverVehicle::MoveForward(float Value)
 		//AccelForwards = FVector::ZeroVector;
 }
 
+void AOrionHoverVehicle::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	// everyone
+	DOREPLIFETIME(AOrionHoverVehicle, HealthMax);
+	DOREPLIFETIME(AOrionHoverVehicle, Health);
+
+	DOREPLIFETIME(AOrionHoverVehicle, Driver);
+}
+
 void AOrionHoverVehicle::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
-
-	//all movement is processed by the server ::todo
-	/*FVector TotalAccel = AccelForwards + AccelRight;
-
-	if (TotalAccel.Size() <= 0.01)
-	{
-		//apply a brake force
-		FVector dir = AccumulatedVelocity;
-		dir.Normalize();
-
-		AccumulatedVelocity -= dir * FMath::Min(AccumulatedVelocity.Size(), 2500.0f * DeltaSeconds);
-	}
-	else
-	{
-		TotalAccel.Normalize();
-		AccumulatedVelocity += TotalAccel * 4500.0f * DeltaSeconds;
-	}
-
-	//clamp to our max speed?
-
-	//add in some gravity/hover force
-	AccumulatedVelocity += AccelUp * 1500.0f * DeltaSeconds;
-
-	//clamp velocity
-	AccumulatedVelocity.Z = FMath::Clamp(AccumulatedVelocity.Z, -500.0f, 500.0f);
-
-	AccumulatedVelocity.ClampMaxSize(1200.0f);
-
-	VehicleMesh->SetAllPhysicsLinearVelocity(AccumulatedVelocity, false);*/
-
-	//try to keep us oriented to the ground
-	//try to keep us upright
-	////HandleRotationAndHeight(DeltaSeconds);
-}
-
-void AOrionHoverVehicle::HandleRotationAndHeight(float DeltaSeconds)
-{
-	FVector frontpos, backpos;
-	FVector fronthit, backhit;
-	FVector frontnorm, backnorm;
-	FRotator rot;
-
-	VehicleMesh->GetSocketWorldLocationAndRotation(FName("FrontThruster"), frontpos, rot);
-	VehicleMesh->GetSocketWorldLocationAndRotation(FName("BackThruster"), backpos, rot);
-
-	FHitResult Hit;
-
-	FCollisionQueryParams TraceParams(FName(TEXT("GroundTrace")), true, this);
-
-	TraceParams.AddIgnoredActor(this);
-	TraceParams.bTraceAsyncScene = true;
-	TraceParams.bReturnPhysicalMaterial = true;
-
-	FVector vStart = frontpos;
-	FVector vEnd = vStart - FVector(0, 0, 250.0f);
-
-	if (GWorld->SweepSingle(Hit, vStart, vEnd, FQuat::Identity, ECollisionChannel::ECC_Pawn, FCollisionShape::MakeSphere(5), TraceParams))
-	{
-		fronthit = Hit.Location;
-		frontnorm = Hit.Normal;
-	}
-	else
-	{
-		fronthit = vEnd;// frontpos;
-		frontnorm = FVector(0.0f, 0.0f, 1.0f);
-	}
-
-	vStart = backpos;
-	vEnd = vStart - FVector(0, 0, 250.0f);
-
-	if (GWorld->SweepSingle(Hit, vStart, vEnd, FQuat::Identity, ECollisionChannel::ECC_Pawn, FCollisionShape::MakeSphere(5), TraceParams))
-	{
-		backhit = Hit.Location;
-		backnorm = Hit.Normal;
-	}
-	else
-	{
-		backhit = vEnd;// backpos;
-		backnorm = FVector(0.0f, 0.0f, 1.0f);
-	}
-
-	//try to hover at a height between the two hitpos
-	FVector TargetHeight = GetActorLocation();
-	TargetHeight.Z = ((backhit + fronthit) / 2.0f).Z + 50.0f;
-	
-	AccelUp = FVector(0.0f, 0.0f, (TargetHeight.Z - GetActorLocation().Z)/100.0f);
-	AccelUp.Z = FMath::Clamp(AccelUp.Z, -1.0f, 1.0f);
-
-	//try to rotate us to the right orientation
-	FVector up = (frontnorm + backnorm) / 2.0f;
-	up.Normalize();
-
-	//grab our camera's yaw
-	float yaw = GetControlRotation().Yaw;
-
-	FRotator newRot = FRotator(0.0f/*90.0f - up.Rotation().Pitch*/, yaw, 0.0f);
-
-	SetActorRotation(FMath::Lerp(GetActorRotation(), newRot, DeltaSeconds*5.0f));
 }
 
 void AOrionHoverVehicle::Boost()

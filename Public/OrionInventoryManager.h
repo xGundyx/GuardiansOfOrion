@@ -70,7 +70,7 @@ class ORION_API AOrionInventoryManager : public AActor
 	GENERATED_BODY()
 
 public:
-	AOrionInventoryManager(const FObjectInitializer& ObejctInitializer);
+	AOrionInventoryManager(const FObjectInitializer& ObjectInitializer);
 
 	//2 dimensional inventory grid representation
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory)

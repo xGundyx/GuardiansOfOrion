@@ -6,7 +6,7 @@
 #include "TextureResource.h"
 #include "CanvasItem.h"
 
-AOrionHUD::AOrionHUD(const FObjectInitializer& ObejctInitializer) : Super(ObejctInitializer)
+AOrionHUD::AOrionHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	// Set the crosshair texture
 	static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshiarTexObj(TEXT("/Game/Textures/Crosshair"));

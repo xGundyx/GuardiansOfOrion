@@ -25,7 +25,7 @@ class UOrionOcTree : public UObject
 {
 	GENERATED_BODY()
 public:
-	UOrionOcTree(const FObjectInitializer& ObejctInitializer);
+	UOrionOcTree(const FObjectInitializer& ObjectInitializer);
 
 	//add a density to the tree
 	void InsertPoint(FVector pos, float den, FVector center, float width);

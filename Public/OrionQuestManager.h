@@ -14,7 +14,7 @@ class ORION_API UOrionQuestManager : public UObject
 {
 	GENERATED_BODY()
 public:
-	UOrionQuestManager(const FObjectInitializer& ObejctInitializer);
+	UOrionQuestManager(const FObjectInitializer& ObjectInitializer);
 
 	UPROPERTY(BlueprintReadWrite, Category = Inventory)
 		TArray<AOrionQuest*> CompletedQuests;

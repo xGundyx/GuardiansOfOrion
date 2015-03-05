@@ -4,11 +4,11 @@
 #include "OrionWeather.h"
 #include "OrionPlayerController.h"
 
-AOrionWeather::AOrionWeather(const FObjectInitializer& ObejctInitializer)
-: Super(ObejctInitializer)
+AOrionWeather::AOrionWeather(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
-	//RainPSC = ObejctInitializer.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("Rain"));
-	//SnowPSC = ObejctInitializer.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("Snow"));
+	//RainPSC = ObjectInitializer.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("Rain"));
+	//SnowPSC = ObjectInitializer.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("Snow"));
 }
 
 #if WITH_EDITOR

@@ -105,7 +105,7 @@ class UOrionGeneratedMeshComponent : public UMeshComponent, public IInterface_Co
 {
 	GENERATED_BODY()
 public:
-	UOrionGeneratedMeshComponent(const FObjectInitializer& ObejctInitializer);
+	UOrionGeneratedMeshComponent(const FObjectInitializer& ObjectInitializer);
 
 	/** Set the geometry to use on this triangle mesh */
 	UFUNCTION(BlueprintCallable, Category = "Components|GeneratedMesh")

@@ -3,8 +3,8 @@
 #include "Orion.h"
 #include "OrionDroidController.h"
 
-AOrionDroidController::AOrionDroidController(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+AOrionDroidController::AOrionDroidController(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

@@ -68,7 +68,7 @@ class AOrionPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 public:
-	AOrionPlayerController(const FObjectInitializer& ObejctInitializer);
+	AOrionPlayerController(const FObjectInitializer& ObjectInitializer);
 
 	virtual void PlayerTick(float DeltaTime) override;
 
@@ -190,6 +190,12 @@ public:
 	UPROPERTY()
 		AOrionDropPod *DropPod;
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "ResizeHUD"))
+		void EventResizeHUD();
+
+	int32 OldViewportSizeX;
+	int32 OldViewportSizeY;
+
 	void PawnPendingDestroy(APawn* P) override;
 	virtual void CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult) override;
 
@@ -199,6 +205,9 @@ public:
 
 	//UFUNCTION(exec)
 		virtual void ClearUMG();
+
+	UFUNCTION(exec)
+		void TestSettings();
 
 	virtual void Destroyed() override;
 

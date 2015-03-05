@@ -37,24 +37,6 @@ static inline bool NEQ(const FInstantHitInfo& A, const FInstantHitInfo& B, UPack
 }
 
 USTRUCT()
-struct FWeaponAnim
-{
-	GENERATED_USTRUCT_BODY()
-
-	/** animation played on pawn (1st person view) */
-	UPROPERTY(EditDefaultsOnly, Category = Animation)
-	UAnimMontage* Pawn1P;
-
-	/** animation played on pawn (3rd person view) */
-	UPROPERTY(EditDefaultsOnly, Category = Animation)
-		UAnimMontage* Pawn3P;
-
-	/** animation played on the actual weapon model (mainly just reloads) */
-	UPROPERTY(EditDefaultsOnly, Category = Animation)
-		UAnimMontage* Weapon3P;
-};
-
-USTRUCT()
 struct FInstantWeaponData
 {
 	GENERATED_USTRUCT_BODY()
@@ -121,6 +103,12 @@ struct FInstantWeaponData
 
 	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
 		float RecoilScale;
+
+	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+		FVector WeaponOffset;
+
+	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+		FName AttachPoint;
 };
 
 /**
@@ -131,7 +119,7 @@ class AOrionWeapon : public AOrionInventory
 {
 	GENERATED_BODY()
 public:
-	AOrionWeapon(const FObjectInitializer& ObejctInitializer);
+	AOrionWeapon(const FObjectInitializer& ObjectInitializer);
 
 	UPROPERTY(EditDefaultsOnly, Category = Config)
 	FInstantWeaponData InstantConfig;
@@ -144,8 +132,6 @@ public:
 	virtual void DoMelee();
 	virtual void ResetMelee();
 	virtual void CancelMelee();
-
-	int32 GetWeaponIndex();
 
 	/** [local + server] start weapon fire */
 	virtual void StartFire();
@@ -165,6 +151,8 @@ public:
 	/** trigger reload from server */
 	UFUNCTION(reliable, client)
 		void ClientStartReload();
+		bool ClientStartReload_Validate();
+		void ClientStartReload_Implementation();
 
 	/** play weapon animations */
 	virtual float PlayWeaponAnimation(const FWeaponAnim& Animation);
@@ -215,10 +203,6 @@ public:
 	UFUNCTION()
 		void OnRep_Reload();
 
-	/** Pawn mesh: 1st person view (arms; seen only by self) */
-	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		class USkeletalMeshComponent* ArmsMesh;
-
 	/** set the weapon's owning pawn */
 	void SetOwningPawn(AOrionCharacter* AOrionCharacter);
 
@@ -242,18 +226,28 @@ public:
 
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerMelee();
+		bool ServerMelee_Validate();
+		void ServerMelee_Implementation();
 
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerStartFire();
+		bool ServerStartFire_Validate();
+		void ServerStartFire_Implementation();
 
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerStopFire();
+		bool ServerStopFire_Validate();
+		void ServerStopFire_Implementation();
 
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerStartReload();
+		bool ServerStartReload_Validate();
+		void ServerStartReload_Implementation();
 
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerStopReload();
+		bool ServerStopReload_Validate();
+		void ServerStopReload_Implementation();
 
 	/** instant hit notify for replication */
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_HitNotify)
@@ -262,10 +256,14 @@ public:
 	/** server notified of hit from client to verify */
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerNotifyHit(const FHitResult Impact, FVector ShootDir, int32 RandomSeed, float ReticleSpread);
+		bool ServerNotifyHit_Validate(const FHitResult Impact, FVector ShootDir, int32 RandomSeed, float ReticleSpread);
+		void ServerNotifyHit_Implementation(const FHitResult Impact, FVector ShootDir, int32 RandomSeed, float ReticleSpread);
 
 	/** server notified of miss to show trail FX */
 	UFUNCTION(unreliable, server, WithValidation)
 		void ServerNotifyMiss(FVector ShootDir, int32 RandomSeed, float ReticleSpread);
+		bool ServerNotifyMiss_Validate(FVector ShootDir, int32 RandomSeed, float ReticleSpread);
+		void ServerNotifyMiss_Implementation(FVector ShootDir, int32 RandomSeed, float ReticleSpread);
 
 	/** process the instant hit and notify the server if necessary */
 	void ProcessInstantHit(const FHitResult& Impact, const FVector& Origin, const FVector& ShootDir, int32 RandomSeed, float ReticleSpread);
@@ -289,6 +287,8 @@ public:
 	/** [server] fire & update ammo */
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerHandleFiring();
+		bool ServerHandleFiring_Validate();
+		void ServerHandleFiring_Implementation();
 
 	/** [local + server] handle weapon fire */
 	void HandleFiring();
@@ -352,6 +352,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = Aiming)
 		bool bAiming;
+
+	UFUNCTION(BlueprintCallable, Category = Weapon)
+		virtual int32 GetWeaponIndex();
 
 	UFUNCTION(BlueprintCallable, Category = Aiming)
 		virtual bool IsAiming();

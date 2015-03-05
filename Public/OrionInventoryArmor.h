@@ -14,7 +14,7 @@ class ORION_API AOrionInventoryArmor : public AOrionInventory
 {
 	GENERATED_BODY()
 public:
-	AOrionInventoryArmor(const FObjectInitializer& ObejctInitializer);
+	AOrionInventoryArmor(const FObjectInitializer& ObjectInitializer);
 
 	UPROPERTY(EditAnywhere, Category = Inventory)
 		AOrionArmor *Armor;

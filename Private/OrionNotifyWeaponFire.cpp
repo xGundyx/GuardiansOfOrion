@@ -4,8 +4,8 @@
 #include "OrionNotifyWeaponFire.h"
 
 
-UOrionNotifyWeaponFire::UOrionNotifyWeaponFire(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+UOrionNotifyWeaponFire::UOrionNotifyWeaponFire(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

@@ -84,8 +84,8 @@ public:
 
 //////////////////////////////////////////////////////////////////////////
 
-UOrionGeneratedMeshComponent::UOrionGeneratedMeshComponent(const FObjectInitializer& ObejctInitializer)
-: Super(ObejctInitializer)
+UOrionGeneratedMeshComponent::UOrionGeneratedMeshComponent(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	PrimaryComponentTick.bCanEverTick = false;
 

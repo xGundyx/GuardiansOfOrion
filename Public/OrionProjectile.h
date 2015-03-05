@@ -8,7 +8,7 @@ class AOrionProjectile : public AActor
 {
 	GENERATED_BODY()
 public:
-	AOrionProjectile(const FObjectInitializer& ObejctInitializer);
+	AOrionProjectile(const FObjectInitializer& ObjectInitializer);
 
 	/** Sphere collision component */
 	UPROPERTY(VisibleDefaultsOnly, Category=Projectile)

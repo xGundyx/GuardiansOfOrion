@@ -8,7 +8,7 @@ class AOrionHUD : public AHUD
 {
 	GENERATED_BODY()
 public:
-	AOrionHUD(const FObjectInitializer& ObejctInitializer);
+	AOrionHUD(const FObjectInitializer& ObjectInitializer);
 
 	/** Primary draw call for the HUD */
 	virtual void DrawHUD() override;

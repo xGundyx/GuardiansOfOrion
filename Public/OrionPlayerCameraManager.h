@@ -13,7 +13,7 @@ class ORION_API AOrionPlayerCameraManager : public APlayerCameraManager
 {
 	GENERATED_BODY()
 public:
-	AOrionPlayerCameraManager(const FObjectInitializer& ObejctInitializer);
+	AOrionPlayerCameraManager(const FObjectInitializer& ObjectInitializer);
 
 	/** normal FOV */
 	float NormalFOV;

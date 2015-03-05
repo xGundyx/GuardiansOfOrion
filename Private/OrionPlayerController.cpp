@@ -9,12 +9,12 @@
 #include "OrionLocalPlayer.h"
 #include "ClientConnector.h"
 
-AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObejctInitializer)
-: Super(ObejctInitializer)
+AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	PlayerCameraManagerClass = AOrionPlayerCameraManager::StaticClass();
 
-	//RainPSC = ObejctInitializer.CreateOptionalDefaultSubobject<UParticleSystemComponent>(this, TEXT("Rain"));
+	//RainPSC = ObjectInitializer.CreateOptionalDefaultSubobject<UParticleSystemComponent>(this, TEXT("Rain"));
 }
 
 void AOrionPlayerController::AttemptLogin(FString UserName, FString Password)
@@ -159,9 +159,10 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 {
 	Super::Possess(aPawn);
 
-	if (GetInventoryManager())
+	AOrionCharacter *newPawn = Cast<AOrionCharacter>(aPawn);
+	if (newPawn && GetInventoryManager())
 	{
-		GetInventoryManager()->EquipItems(Cast<AOrionCharacter>(aPawn));
+		GetInventoryManager()->EquipItems(newPawn);
 	}
 }
 
@@ -189,7 +190,42 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 #if !IS_SERVER
 	UOrionTCPLink::Update();
 	UClientConnector::Update();
+
+	int32 x, y;
+	//check if we need to update our hud scaling
+	GetViewportSize(x,y);
+	if (x != OldViewportSizeX || y != OldViewportSizeY)
+	{
+		OldViewportSizeX = x;
+		OldViewportSizeY = y;
+		EventResizeHUD();
+	}
 #endif
+}
+
+void AOrionPlayerController::TestSettings()
+{
+	/*FString RenderSection = "/Script/Engine.RendererSettings";
+
+	GConfig->SetBool(
+		*RenderSection,
+		TEXT("r.DefaultFeature.Bloom"),
+		false,
+		GEngineIni
+		);
+
+	GConfig->SetInt(
+		*RenderSection,
+		TEXT("r.Streaming.Poolsize"),
+		1000,
+		GEngineIni);
+
+	GConfig->Flush(true, GEngineIni);*/
+
+	if (GEngine && GEngine->GameUserSettings)
+	{
+		GEngine->GameUserSettings->ApplySettings(true);
+	}
 }
 
 void AOrionPlayerController::PerfectDay()

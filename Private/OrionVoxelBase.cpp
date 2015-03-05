@@ -144,8 +144,8 @@ double CoherentNoise(double x, double y, double z)
 	return Lerp(w9, w10, 0.5);
 }
 
-AOrionVoxelBase::AOrionVoxelBase(const FObjectInitializer& ObejctInitializer)
-: Super(ObejctInitializer)
+AOrionVoxelBase::AOrionVoxelBase(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	for (int32 i = 0; i < CHUNK_SIZE_XY; i++)
 	{
@@ -154,7 +154,7 @@ AOrionVoxelBase::AOrionVoxelBase(const FObjectInitializer& ObejctInitializer)
 			for (int32 k = 0; k < CHUNK_SIZE_XY; k++)
 			{
 				FString chunkName = FString::Printf(TEXT("GeneratedMesh%02d"), i*CHUNK_SIZE_XY*CHUNK_SIZE_XY + j*CHUNK_SIZE_XY + k);
-				mesh[i*CHUNK_SIZE_XY*CHUNK_SIZE_XY + j*CHUNK_SIZE_XY + k] = ObejctInitializer.CreateDefaultSubobject<UOrionGeneratedMeshComponent>(this, FName(*chunkName));
+				mesh[i*CHUNK_SIZE_XY*CHUNK_SIZE_XY + j*CHUNK_SIZE_XY + k] = ObjectInitializer.CreateDefaultSubobject<UOrionGeneratedMeshComponent>(this, FName(*chunkName));
 
 				//FVector Offset = FVector((i - CHUNK_SIZE_XY / 2) * VOXEL_WIDTH * VOXEL_X, (j - CHUNK_SIZE_XY / 2) * VOXEL_WIDTH * VOXEL_Y, (k - CHUNK_SIZE_Z / 2) * VOXEL_WIDTH * VOXEL_Z);
 				//mesh[i*CHUNK_SIZE_XY*CHUNK_SIZE_XY + j*CHUNK_SIZE_XY + k]->SetBoundsData(Offset + FVector(VOXEL_X*VOXEL_WIDTH, VOXEL_Y*VOXEL_WIDTH, VOXEL_Z*VOXEL_WIDTH)*0.5);
@@ -247,7 +247,7 @@ void AOrionVoxelBase::RebuildTerrain()
 				//Chunks[i][j][k].bDirty = true;
 				//Chunks[i][j][k].bEmpty = true;
 
-				//mesh[i][j][k] = ObejctInitializer.CreateDefaultSubobject<UOrionGeneratedMeshComponent>(this, TEXT("GeneratedMesh"));
+				//mesh[i][j][k] = ObjectInitializer.CreateDefaultSubobject<UOrionGeneratedMeshComponent>(this, TEXT("GeneratedMesh"));
 
 				for (int32 x = 0; x < VOXEL_X; x += CHUNK_DETAIL)
 				{

@@ -8,12 +8,13 @@
 #include "OrionMovementComponent.h"
 //#include "OrionAIController.h"
 #include "OrionProjectile.h"
+#include "OrionHoverVehicle.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AOrionCharacter
 
-AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObejctInitializer)
-: Super(ObejctInitializer.SetDefaultSubobjectClass<UOrionMovementComponent>(ACharacter::CharacterMovementComponentName))
+AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer.SetDefaultSubobjectClass<UOrionMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
@@ -25,11 +26,11 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObejctInitializer)
 	//AIControllerClass = AOrionAIController::StaticClass();
 
 	// Create a CameraComponent	
-	FirstPersonCameraComponent = ObejctInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("FirstPersonCamera"));
+	FirstPersonCameraComponent = ObjectInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("FirstPersonCamera"));
 	FirstPersonCameraComponent->AttachParent = GetCapsuleComponent();
 	FirstPersonCameraComponent->RelativeLocation = FVector(0, 0, 64.f); // Position the camera
 
-	ThirdPersonCameraComponent = ObejctInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("ThirdPersonCamera"));
+	ThirdPersonCameraComponent = ObjectInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("ThirdPersonCamera"));
 	ThirdPersonCameraComponent->AttachParent = GetCapsuleComponent();
 	ThirdPersonCameraComponent->RelativeLocation = FVector(0, 0, 0); // Position the camera
 
@@ -37,7 +38,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObejctInitializer)
 	GunOffset = FVector(100.0f, 30.0f, 10.0f);
 
 	// Create a mesh component that will be used when being viewed from a '1st person' view (when controlling this pawn)
-	/*Mesh1P = ObejctInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("CharacterMesh1P"));
+	/*Mesh1P = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("CharacterMesh1P"));
 	Mesh1P->SetOnlyOwnerSee(true);			// only the owning player will see this mesh
 	Mesh1P->AttachParent = FirstPersonCameraComponent;
 	Mesh1P->RelativeLocation = FVector(0.f, 0.f, -150.f);
@@ -53,7 +54,22 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObejctInitializer)
 	GetMesh()->SetCollisionResponseToChannel(COLLISION_PROJECTILE, ECR_Block);
 	GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 
-	BodyMesh = ObejctInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Body"));
+	Arms1PMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Arms1PMesh1P"));
+	Arms1PMesh->AlwaysLoadOnClient = true;
+	Arms1PMesh->AlwaysLoadOnServer = true;
+	Arms1PMesh->bOwnerNoSee = false;
+	Arms1PMesh->bOnlyOwnerSee = true;
+	Arms1PMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
+	Arms1PMesh->bCastDynamicShadow = true;
+	Arms1PMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
+	Arms1PMesh->bChartDistanceFactor = true;
+	Arms1PMesh->bGenerateOverlapEvents = false;
+	Arms1PMesh->AttachParent = FirstPersonCameraComponent;
+	Arms1PMesh->CastShadow = false;
+	Arms1PMesh->bPerBoneMotionBlur = false;
+	//Arms1PMesh->SetMasterPoseComponent(GetMesh());
+
+	BodyMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Body"));
 	BodyMesh->AlwaysLoadOnClient = true;
 	BodyMesh->AlwaysLoadOnServer = true;
 	BodyMesh->bOwnerNoSee = true;
@@ -67,7 +83,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObejctInitializer)
 	BodyMesh->AttachParent = GetMesh();
 	BodyMesh->SetMasterPoseComponent(GetMesh());
 
-	HelmetMesh = ObejctInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Helmet"));
+	HelmetMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Helmet"));
 	HelmetMesh->AlwaysLoadOnClient = true;
 	HelmetMesh->AlwaysLoadOnServer = true;
 	HelmetMesh->bOwnerNoSee = true;
@@ -81,7 +97,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObejctInitializer)
 	HelmetMesh->AttachParent = GetMesh();
 	HelmetMesh->SetMasterPoseComponent(GetMesh());
 
-	ArmsMesh = ObejctInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Arms"));
+	ArmsMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Arms"));
 	ArmsMesh->AlwaysLoadOnClient = true;
 	ArmsMesh->AlwaysLoadOnServer = true;
 	ArmsMesh->bOwnerNoSee = true;
@@ -95,7 +111,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObejctInitializer)
 	ArmsMesh->AttachParent = GetMesh();
 	ArmsMesh->SetMasterPoseComponent(GetMesh());
 
-	LegsMesh = ObejctInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Legs"));
+	LegsMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Legs"));
 	LegsMesh->AlwaysLoadOnClient = true;
 	LegsMesh->AlwaysLoadOnServer = true;
 	LegsMesh->bOwnerNoSee = true;
@@ -109,7 +125,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObejctInitializer)
 	LegsMesh->AttachParent = GetMesh();
 	LegsMesh->SetMasterPoseComponent(GetMesh());
 
-	Flight1Mesh = ObejctInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Flight1"));
+	Flight1Mesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Flight1"));
 	Flight1Mesh->AlwaysLoadOnClient = true;
 	Flight1Mesh->AlwaysLoadOnServer = true;
 	Flight1Mesh->bOwnerNoSee = true;
@@ -123,7 +139,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObejctInitializer)
 	Flight1Mesh->AttachParent = GetMesh();
 	Flight1Mesh->SetMasterPoseComponent(GetMesh());
 
-	Flight2Mesh = ObejctInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Flight2"));
+	Flight2Mesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Flight2"));
 	Flight2Mesh->AlwaysLoadOnClient = true;
 	Flight2Mesh->AlwaysLoadOnServer = true;
 	Flight2Mesh->bOwnerNoSee = true;
@@ -145,6 +161,49 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObejctInitializer)
 
 	// Note: The ProjectileClass and the skeletal mesh/anim blueprints for Mesh1P are set in the
 	// derived blueprint asset named MyCharacter (to avoid direct content references in C++)
+}
+
+void AOrionCharacter::SetDrivenVehicle(AOrionHoverVehicle *newVehicle)
+{
+	DrivenVehicle = newVehicle;
+
+	AttachDriver();
+}
+
+void AOrionCharacter::AttachDriver()
+{
+	//tell our controller to possess the vehicle and unpossess us
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetController());
+	if (PC)
+	{
+		//set us to hidden
+		GetMesh()->SetHiddenInGame(true);
+		GetMesh()->AttachTo(DrivenVehicle->VehicleMesh);
+
+		PC->UnPossess();
+		PC->Possess(DrivenVehicle);
+
+		SetActorEnableCollision(false);
+	}
+}
+
+void AOrionCharacter::DetachDriver()
+{
+	//tell our controller to possess the vehicle and unpossess us
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(DrivenVehicle->GetController());
+	if (PC)
+	{
+		//set us to not hidden
+		GetMesh()->SetHiddenInGame(false);
+		GetMesh()->DetachFromParent(true);
+		GetMesh()->AttachTo(GetCapsuleComponent());
+		GetMesh()->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+
+		PC->UnPossess();
+		PC->Possess(this);
+
+		SetActorEnableCollision(true);
+	}
 }
 
 FVector2D AOrionCharacter::GetAim(float DeltaTime)
@@ -248,6 +307,9 @@ void AOrionCharacter::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 	FVector Y = FVector::CrossProduct(Z, X);
 
 	float Speed2D = GetVelocity().Size2D();
+	if (GetMovementComponent() && GetMovementComponent()->IsFalling())
+		Speed2D = 0.0f;
+
 	if (Speed2D < 10)
 		BobTime += 0.2 * FMath::Min(0.1f,DeltaTime);
 	else
@@ -475,7 +537,7 @@ void AOrionCharacter::RemoveWeapon(AOrionWeapon* Weapon)
 
 USkeletalMeshComponent* AOrionCharacter::GetPawnMesh() const
 {
-	return IsFirstPerson() && CurrentWeapon ? CurrentWeapon->ArmsMesh : GetMesh();
+	return IsFirstPerson() && CurrentWeapon ? Arms1PMesh : GetMesh();
 }
 
 bool AOrionCharacter::IsAlive() const
@@ -485,7 +547,7 @@ bool AOrionCharacter::IsAlive() const
 
 USkeletalMeshComponent* AOrionCharacter::GetSpecifcPawnMesh(bool WantFirstPerson) const
 {
-	return WantFirstPerson && CurrentWeapon ? CurrentWeapon->ArmsMesh : GetMesh();
+	return WantFirstPerson && CurrentWeapon ? Arms1PMesh : GetMesh();
 }
 
 void AOrionCharacter::OnRep_ArmorIndex()
@@ -517,6 +579,8 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME_CONDITION(AOrionCharacter, bRun, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(AOrionCharacter, bAim, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(AOrionCharacter, bDuck, COND_SkipOwner);
+
+	DOREPLIFETIME(AOrionCharacter, DrivenVehicle);
 }
 
 void AOrionCharacter::Destroyed()
@@ -796,7 +860,9 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	SetActorEnableCollision(true);
 
 	// Death anim
-	float DeathAnimDuration = PlayAnimMontage(DeathAnim);
+	FWeaponAnim Info;
+	Info.Pawn3P = DeathAnim;
+	float DeathAnimDuration = OrionPlayAnimMontage(Info);
 
 	// Ragdoll
 	if (DeathAnimDuration > 0.f)
@@ -815,27 +881,52 @@ void AOrionCharacter::OnRep_ReplicatedAnimation()
 	if (IsLocallyControlled() && ReplicatedAnimation.bReplicatedToOwner == false)
 		return;
 
-	PlayAnimMontage(ReplicatedAnimation.Montage, ReplicatedAnimation.Rate, ReplicatedAnimation.SectionName);
+	FWeaponAnim Info;
+	Info.Pawn1P = ReplicatedAnimation.Mesh1PMontage;
+	Info.Pawn3P = ReplicatedAnimation.Mesh3PMontage;
+	Info.Weapon1P = ReplicatedAnimation.Weapon1PMontage;
+	Info.Weapon3P = ReplicatedAnimation.Weapon3PMontage;
+
+	OrionPlayAnimMontage(Info, ReplicatedAnimation.Rate, ReplicatedAnimation.SectionName);
 }
 
 //override this so we can add some replication to it
-float AOrionCharacter::PlayAnimMontage(class UAnimMontage* AnimMontage, float InPlayRate, FName StartSectionName)
+float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float InPlayRate, FName StartSectionName)
 {
+	float Duration = 0.0f;
+
 	if (Role == ROLE_Authority)
 	{
-		if (ReplicatedAnimation.Montage == AnimMontage)
+		//if (ReplicatedAnimation.Montage == AnimMontage)
 			ReplicatedAnimation.bToggle = !ReplicatedAnimation.bToggle;
 
-		ReplicatedAnimation.Montage = AnimMontage;
+		ReplicatedAnimation.Weapon1PMontage = Animation.Weapon1P;
+		ReplicatedAnimation.Weapon3PMontage = Animation.Weapon3P;
+		ReplicatedAnimation.Mesh1PMontage = Animation.Pawn1P;
+		ReplicatedAnimation.Mesh3PMontage = Animation.Pawn3P;
 		ReplicatedAnimation.Rate = InPlayRate;
 		ReplicatedAnimation.SectionName = StartSectionName;
 		ReplicatedAnimation.bReplicatedToOwner = false;
 	}
 
 	UAnimInstance * AnimInstance = (GetMesh()) ? GetMesh()->GetAnimInstance() : NULL;
-	if (AnimMontage && AnimInstance)
+	if (AnimInstance)
 	{
-		float const Duration = AnimInstance->Montage_Play(AnimMontage, InPlayRate);
+		//float const Duration = AnimInstance->Montage_Play(AnimMontage, InPlayRate);
+		//play weapon animations if needed
+		if (CurrentWeapon)
+		{
+			if (CurrentWeapon->GetWeaponMesh(true) && Animation.Weapon1P)
+				CurrentWeapon->GetWeaponMesh(true)->AnimScriptInstance->Montage_Play(Animation.Weapon1P, 1.0);
+			if (CurrentWeapon->GetWeaponMesh(false) && Animation.Weapon3P)
+				CurrentWeapon->GetWeaponMesh(false)->AnimScriptInstance->Montage_Play(Animation.Weapon3P, 1.0);
+		}
+		//play 1p arms animation
+		if (Arms1PMesh && Arms1PMesh->AnimScriptInstance && Animation.Pawn1P)
+			Duration = Arms1PMesh->AnimScriptInstance->Montage_Play(Animation.Pawn1P, 1.0);
+		//play 3p char animation
+			if (Animation.Pawn3P)
+		Duration = FMath::Max(Duration, AnimInstance->Montage_Play(Animation.Pawn3P, InPlayRate));
 
 		if (Duration > 0.f)
 		{
@@ -845,14 +936,14 @@ float AOrionCharacter::PlayAnimMontage(class UAnimMontage* AnimMontage, float In
 				AnimInstance->Montage_JumpToSection(StartSectionName);
 			}
 
-			if (CurrentWeapon && !IsFirstPerson() && CurrentWeapon->ReloadAnim.Weapon3P && CurrentWeapon->GetWeaponMesh(false) && AnimMontage == CurrentWeapon->ReloadAnim.Pawn3P)
+			/*if (CurrentWeapon && !IsFirstPerson() && CurrentWeapon->ReloadAnim.Weapon3P && CurrentWeapon->GetWeaponMesh(false) && AnimMontage == CurrentWeapon->ReloadAnim.Pawn3P)
 			{
 				CurrentWeapon->GetWeaponMesh(false)->AnimScriptInstance->Montage_Play(CurrentWeapon->ReloadAnim.Weapon3P, 1.0);
 			}
 			else if (CurrentWeapon && CurrentWeapon->ReloadAnim.Weapon3P && !IsFirstPerson() && CurrentWeapon->GetWeaponMesh(false))
 			{
 				CurrentWeapon->GetWeaponMesh(false)->AnimScriptInstance->Montage_Stop(0.05, CurrentWeapon->ReloadAnim.Weapon3P);
-			}
+			}*/
 
 
 			return Duration;
@@ -1070,6 +1161,8 @@ void AOrionCharacter::SetupPlayerInputComponent(class UInputComponent* InputComp
 	InputComponent->BindAxis("MoveForward", this, &AOrionCharacter::MoveForward);
 	InputComponent->BindAxis("MoveRight", this, &AOrionCharacter::MoveRight);
 
+	InputComponent->BindAction("Use", IE_Pressed, this, &AOrionCharacter::Use);
+
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
 	// "turnrate" is for devices that we choose to treat as a rate of change, such as an analog joystick
@@ -1079,6 +1172,44 @@ void AOrionCharacter::SetupPlayerInputComponent(class UInputComponent* InputComp
 	InputComponent->BindAxis("LookUpRate", this, &AOrionCharacter::LookUpAtRate);
 
 	InputComponent->BindAction("BehindView", IE_Pressed, this, &AOrionCharacter::BehindView);
+}
+
+bool AOrionCharacter::ServerUse_Validate()
+{
+	return true;
+}
+
+void AOrionCharacter::ServerUse_Implementation()
+{
+	EnterVehicle();
+}
+
+void AOrionCharacter::EnterVehicle()
+{
+	//check to see if there's any vehicle for us to try to get into
+	for (FConstPawnIterator it = GetWorld()->GetPawnIterator(); it; ++it)
+	{
+		AOrionHoverVehicle *V = Cast<AOrionHoverVehicle>(*it);
+		if (V)
+		{
+			//is it close to us?
+			if ((V->GetActorLocation() - GetActorLocation()).Size() < 350.0f)
+			{
+				V->TryToGetIn(this);
+			}
+		}
+	}
+}
+
+void AOrionCharacter::ExitVehicle()
+{
+	DetachDriver();
+	DrivenVehicle = nullptr;
+}
+
+void AOrionCharacter::Use()
+{
+	ServerUse();
 }
 
 void AOrionCharacter::BehindView()
@@ -1267,7 +1398,9 @@ void AOrionCharacter::Sprint()
 
 float AOrionCharacter::PlayOneShotAnimation(UAnimMontage *Anim)
 {
-	return PlayAnimMontage(Anim);
+	FWeaponAnim Info;
+	Info.Pawn3P = Anim;
+	return OrionPlayAnimMontage(Info);
 }
 
 bool AOrionCharacter::IsSprinting() const

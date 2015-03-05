@@ -4,8 +4,8 @@
 #include "OrionQuest.h"
 
 
-AOrionQuest::AOrionQuest(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+AOrionQuest::AOrionQuest(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

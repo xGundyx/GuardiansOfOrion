@@ -10,8 +10,8 @@ FSocket *UClientConnector::LoginReceiverSocket;
 FIPv4Endpoint UClientConnector::LoginServerAddress;
 #endif
 
-UClientConnector::UClientConnector(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+UClientConnector::UClientConnector(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

@@ -5,8 +5,8 @@
 #include "OrionInventoryArmor.h"
 
 
-AOrionInventoryManager::AOrionInventoryManager(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+AOrionInventoryManager::AOrionInventoryManager(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 }
 

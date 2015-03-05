@@ -22,7 +22,7 @@ class ORION_API UOrionTCPLink : public UObject
 {
 	GENERATED_BODY()
 public:
-	UOrionTCPLink(const FObjectInitializer& ObejctInitializer);
+	UOrionTCPLink(const FObjectInitializer& ObjectInitializer);
 
 #if IS_SERVER
 #else

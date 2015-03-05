@@ -14,7 +14,7 @@ class ORION_API UClientConnector : public UObject
 {
 	GENERATED_BODY()
 public:
-	UClientConnector(const FObjectInitializer& ObejctInitializer);
+	UClientConnector(const FObjectInitializer& ObjectInitializer);
 
 #if !IS_SERVER
 	static bool CreateSenderSocket();

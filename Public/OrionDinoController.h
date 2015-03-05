@@ -13,5 +13,5 @@ class ORION_API AOrionDinoController : public AOrionAIController
 {
 	GENERATED_BODY()
 public:
-	AOrionDinoController(const FObjectInitializer& ObejctInitializer);
+	AOrionDinoController(const FObjectInitializer& ObjectInitializer);
 };

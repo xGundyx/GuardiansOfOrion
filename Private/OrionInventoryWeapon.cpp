@@ -4,8 +4,8 @@
 #include "OrionInventoryWeapon.h"
 
 
-AOrionInventoryWeapon::AOrionInventoryWeapon(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+AOrionInventoryWeapon::AOrionInventoryWeapon(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

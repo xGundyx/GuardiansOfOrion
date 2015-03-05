@@ -13,7 +13,7 @@ class ORION_API AOrionDroidPawn : public AOrionCharacter
 {
 	GENERATED_BODY()
 public:
-	AOrionDroidPawn(const FObjectInitializer& ObejctInitializer);
+	AOrionDroidPawn(const FObjectInitializer& ObjectInitializer);
 
 	UFUNCTION(BlueprintCallable, Category = Hover)
 		virtual float GetFinRotation(float DeltaTime);

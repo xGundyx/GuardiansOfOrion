@@ -5,8 +5,8 @@
 #include "OrionAIController.h"
 
 
-AOrionAIController::AOrionAIController(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+AOrionAIController::AOrionAIController(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }
@@ -16,7 +16,7 @@ void AOrionAIController::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
 	if (GetPawn() && GetPawn()->GetVelocity().Size2D()>10.0f)
-		SetFocalPoint(GetPawn()->GetActorLocation() + GetPawn()->GetVelocity().SafeNormal() * 500.0f);
+		SetFocalPoint(GetPawn()->GetActorLocation() + GetPawn()->GetVelocity().GetSafeNormal() * 500.0f);
 }
 
 void AOrionAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn)

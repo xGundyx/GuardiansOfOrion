@@ -32,8 +32,8 @@ UClientConnector *UOrionTCPLink::connector;
 
 #endif
 
-UOrionTCPLink::UOrionTCPLink(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+UOrionTCPLink::UOrionTCPLink(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

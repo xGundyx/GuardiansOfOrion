@@ -116,7 +116,7 @@ class AOrionVoxelBase : public AActor
 {
 	GENERATED_BODY()
 public:
-	AOrionVoxelBase(const FObjectInitializer& ObejctInitializer);
+	AOrionVoxelBase(const FObjectInitializer& ObjectInitializer);
 
 	UFUNCTION(BlueprintCallable, Category = Weather)
 	void RebuildTerrain();

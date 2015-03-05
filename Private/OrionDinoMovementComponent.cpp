@@ -5,8 +5,8 @@
 #include "GameFramework/CharacterMovementComponent.h"
 
 
-UOrionDinoMovementComponent::UOrionDinoMovementComponent(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+UOrionDinoMovementComponent::UOrionDinoMovementComponent(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

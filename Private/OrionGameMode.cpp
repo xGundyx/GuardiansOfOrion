@@ -6,8 +6,8 @@
 #include "OrionCharacter.h"
 #include "OrionGRI.h"
 
-AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	// set default pawn class to our Blueprinted character
 	static ConstructorHelpers::FObjectFinder<UBlueprint> PlayerPawnObject(TEXT("/Game/Character/Blueprints/BasePawn"));

@@ -4,8 +4,8 @@
 #include "OrionQuestManager.h"
 
 
-UOrionQuestManager::UOrionQuestManager(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+UOrionQuestManager::UOrionQuestManager(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

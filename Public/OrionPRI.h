@@ -13,6 +13,6 @@ class ORION_API AOrionPRI : public APlayerState
 {
 	GENERATED_BODY()
 public:
-	AOrionPRI(const FObjectInitializer& ObejctInitializer);
+	AOrionPRI(const FObjectInitializer& ObjectInitializer);
 	
 };

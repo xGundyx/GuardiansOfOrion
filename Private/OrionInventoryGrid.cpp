@@ -3,8 +3,8 @@
 #include "Orion.h"
 #include "OrionInventoryGrid.h"
 
-UOrionInventoryGrid::UOrionInventoryGrid(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+UOrionInventoryGrid::UOrionInventoryGrid(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }
