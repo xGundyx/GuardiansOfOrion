@@ -49,5 +49,5 @@ class ADHArmors : public AActor
 {
 	GENERATED_BODY()
 public:
-	ADHArmors(const FObjectInitializer& ObejctInitializer);
+	ADHArmors(const FObjectInitializer& ObjectInitializer);
 };

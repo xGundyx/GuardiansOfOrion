@@ -13,7 +13,7 @@ class ORION_API AOrionAIController : public AAIController
 {
 	GENERATED_BODY()
 public:
-	AOrionAIController(const FObjectInitializer& ObejctInitializer);
+	AOrionAIController(const FObjectInitializer& ObjectInitializer);
 	
 	virtual void Tick(float DeltaTime) override;
 

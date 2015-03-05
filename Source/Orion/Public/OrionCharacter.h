@@ -2,7 +2,39 @@
 #pragma once
 
 #include "Orion.h"
+#include "BehaviorTree/BehaviorTree.h"
+//#include "OrionHoverVehicle.h"
 #include "OrionCharacter.generated.h"
+
+class AOrionHoverVehicle;
+
+USTRUCT()
+struct FWeaponAnim
+{
+	GENERATED_USTRUCT_BODY()
+
+		UPROPERTY(EditDefaultsOnly, Category = Animation)
+		UAnimMontage* Weapon1P;
+
+	/** animation played on pawn (1st person view) */
+	UPROPERTY(EditDefaultsOnly, Category = Animation)
+		UAnimMontage* Pawn1P;
+
+	/** animation played on pawn (3rd person view) */
+	UPROPERTY(EditDefaultsOnly, Category = Animation)
+		UAnimMontage* Pawn3P;
+
+	/** animation played on the actual weapon model (mainly just reloads) */
+	UPROPERTY(EditDefaultsOnly, Category = Animation)
+		UAnimMontage* Weapon3P;
+
+	FWeaponAnim()
+		: Weapon1P(NULL)
+		, Weapon3P(NULL)
+		, Pawn1P(NULL)
+		, Pawn3P(NULL)
+	{}
+};
 
 USTRUCT()
 struct FAnimInfo
@@ -10,7 +42,13 @@ struct FAnimInfo
 	GENERATED_USTRUCT_BODY()
 
 	UPROPERTY()
-		class UAnimMontage *Montage;
+		class UAnimMontage *Weapon1PMontage;
+	UPROPERTY()
+		class UAnimMontage *Weapon3PMontage;
+	UPROPERTY()
+		class UAnimMontage *Mesh1PMontage;
+	UPROPERTY()
+		class UAnimMontage *Mesh3PMontage;
 	UPROPERTY()
 		float Rate;
 	UPROPERTY()
@@ -157,7 +195,11 @@ class AOrionCharacter : public ACharacter
 {
 	GENERATED_BODY()
 public:
-	AOrionCharacter(const FObjectInitializer& ObejctInitializer);
+	AOrionCharacter(const FObjectInitializer& ObjectInitializer);
+
+	/** Pawn mesh: 1st person view (arms; seen only by self) */
+	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+		class USkeletalMeshComponent* Arms1PMesh;
 
 	/** spawn inventory, setup initial variables */
 	virtual void PostInitializeComponents() override;
@@ -179,7 +221,7 @@ public:
 		uint32 bIsDying : 1;
 
 	UFUNCTION(BlueprintCallable, Category = "Game|Weapon")
-	class AOrionWeapon* GetWeapon() const;
+		class AOrionWeapon* GetWeapon() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Pawn")
 		void SetHelmetMesh(USkeletalMesh* newMesh) const;
@@ -316,6 +358,8 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		FDirectionalAnim RollAnimation;
+
+	void SetDrivenVehicle(AOrionHoverVehicle *newVehicle);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Health)
 		float Health;
@@ -467,12 +511,15 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Pawn)
 		USoundCue* DeathSound;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = AI)
+		UBehaviorTree *AITree;
+
 	virtual void PreReplication(IRepChangedPropertyTracker & ChangedPropertyTracker) override;
 
 	UFUNCTION(BlueprintCallable, Category = Controller)
 		APlayerController *GetPlayerController();
 
-	float PlayAnimMontage(class UAnimMontage* AnimMontage, float InPlayRate = 1.0f, FName StartSectionName = FName("")) override;
+	float OrionPlayAnimMontage(const FWeaponAnim Animation, float InPlayRate = 1.0f, FName StartSectionName = FName(""));// override;
 	void StopAnimMontage(class UAnimMontage* AnimMontage) override;
 
 	UFUNCTION()
@@ -486,6 +533,16 @@ public:
 
 	UPROPERTY(Replicated)
 		float AimPitch;
+
+	void EnterVehicle();
+	void ExitVehicle();
+
+private:
+	UPROPERTY(Replicated)
+		AOrionHoverVehicle *DrivenVehicle;
+
+	void AttachDriver();
+	void DetachDriver();
 
 protected:
 	FRotator AimKick;
@@ -546,6 +603,9 @@ protected:
 
 	void BehindView();
 
+	// generic use keybind
+	void Use();
+
 	/** Handles moving forward/backward */
 	void MoveForward(float Val);
 
@@ -587,6 +647,9 @@ protected:
 	/** equip weapon */
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerEquipWeapon(class AOrionWeapon* NewWeapon);
+
+	UFUNCTION(reliable, server, WithValidation)
+		void ServerUse();
 
 	float BobTime;
 	FVector WalkBob;

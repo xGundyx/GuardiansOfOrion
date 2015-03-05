@@ -22,7 +22,7 @@ class ORION_API AOrionDinoPawn : public AOrionCharacter
 {
 	GENERATED_BODY()
 public:
-	AOrionDinoPawn(const FObjectInitializer& ObejctInitializer);
+	AOrionDinoPawn(const FObjectInitializer& ObjectInitializer);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		UAnimMontage *Bite1Animation;

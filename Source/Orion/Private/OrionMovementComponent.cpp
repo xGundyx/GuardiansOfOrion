@@ -3,16 +3,17 @@
 
 #include "Orion.h"
 #include "OrionCharacter.h"
+#include "OrionDinoPawn.h"
 #include "OrionMovementComponent.h"
 
 
-UOrionMovementComponent::UOrionMovementComponent(const FObjectInitializer& ObejctInitializer)
-: Super(ObejctInitializer)
+UOrionMovementComponent::UOrionMovementComponent(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
-
+	
 }
 
-void UOrionMovementComponent::ServerMove_Implementation(
+/*void UOrionMovementComponent::ServerMove_Implementation(
 	float TimeStamp,
 	FVector_NetQuantize100 InAccel,
 	FVector_NetQuantize100 ClientLoc,
@@ -87,7 +88,7 @@ void UOrionMovementComponent::ServerMove_Implementation(
 		TimeStamp, *Accel.ToString(), *CharacterOwner->GetActorLocation().ToString(), DeltaTime);
 
 	ServerMoveHandleClientError(TimeStamp, DeltaTime, Accel, ClientLoc, ClientMovementBase, ClientBaseBoneName, ClientMovementMode);
-}
+}*/
 
 float UOrionMovementComponent::GetMaxSpeed() const
 {
@@ -96,18 +97,28 @@ float UOrionMovementComponent::GetMaxSpeed() const
 	const AOrionCharacter* OrionCharacterOwner = Cast<AOrionCharacter>(PawnOwner);
 	if (OrionCharacterOwner)
 	{
-		if (OrionCharacterOwner->bDuck)
+		if (Cast<AOrionDinoPawn>(PawnOwner))
 		{
-			SpeedMod *= 0.4f;
-			if (OrionCharacterOwner->bAim)
-				SpeedMod *= 0.625;
+			if (OrionCharacterOwner->bRun && IsMovingOnGround())
+				SpeedMod *= 4.0f;
+			else
+				SpeedMod *= 1.0f;
 		}
-		else if (OrionCharacterOwner->bRun && IsMovingOnGround())
-			SpeedMod *= 1.15f;
-		else if (OrionCharacterOwner->bAim)
-			SpeedMod *= 0.4;
 		else
-			SpeedMod *= 0.75f;// 0.55f;
+		{
+			if (OrionCharacterOwner->bDuck)
+			{
+				SpeedMod *= 0.4f;
+				if (OrionCharacterOwner->bAim)
+					SpeedMod *= 0.625;
+			}
+			else if (OrionCharacterOwner->bRun && IsMovingOnGround())
+				SpeedMod *= 1.15f;
+			else if (OrionCharacterOwner->bAim)
+				SpeedMod *= 0.4;
+			else
+				SpeedMod *= 0.75f;// 0.55f;
+		}
 	}
 
 	return SpeedMod;

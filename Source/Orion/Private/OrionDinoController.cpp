@@ -4,8 +4,8 @@
 #include "OrionDinoController.h"
 
 
-AOrionDinoController::AOrionDinoController(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+AOrionDinoController::AOrionDinoController(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

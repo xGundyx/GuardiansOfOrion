@@ -4,8 +4,8 @@
 #include "OrionGameInstance.h"
 
 
-UOrionGameInstance::UOrionGameInstance(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+UOrionGameInstance::UOrionGameInstance(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

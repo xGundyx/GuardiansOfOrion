@@ -4,8 +4,8 @@
 #include "OrionDragDrop.h"
 
 
-UOrionDragDrop::UOrionDragDrop(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+UOrionDragDrop::UOrionDragDrop(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

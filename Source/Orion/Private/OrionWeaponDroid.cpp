@@ -4,10 +4,10 @@
 #include "OrionWeaponDroid.h"
 
 
-AOrionWeaponDroid::AOrionWeaponDroid(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+AOrionWeaponDroid::AOrionWeaponDroid(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	DroidGunMesh = ObejctInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("DroidGun"));
+	DroidGunMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("DroidGun"));
 	DroidGunMesh->AlwaysLoadOnClient = true;
 	DroidGunMesh->AlwaysLoadOnServer = true;
 	DroidGunMesh->bOwnerNoSee = false;

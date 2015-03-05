@@ -13,7 +13,7 @@ class ORION_API AOrionDropPod : public AActor
 {
 	GENERATED_BODY()
 public:
-	AOrionDropPod(const FObjectInitializer& ObejctInitializer);
+	AOrionDropPod(const FObjectInitializer& ObjectInitializer);
 
 	//view when spawning
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)

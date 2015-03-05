@@ -4,8 +4,8 @@
 #include "OrionArmor.h"
 
 
-AOrionArmor::AOrionArmor(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+AOrionArmor::AOrionArmor(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

@@ -4,10 +4,9 @@
 #include "OrionLocalPlayer.h"
 
 
-UOrionLocalPlayer::UOrionLocalPlayer(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+UOrionLocalPlayer::UOrionLocalPlayer(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-
 }
 
 

@@ -49,7 +49,7 @@ class ORION_API UOrionAchievements : public UObject
 {
 	GENERATED_BODY()
 public:
-	UOrionAchievements(const FObjectInitializer& ObejctInitializer);
+	UOrionAchievements(const FObjectInitializer& ObjectInitializer);
 	
 private:
 	TArray<FAchievement> Achievements;

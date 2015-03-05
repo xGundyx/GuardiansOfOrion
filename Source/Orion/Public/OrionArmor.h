@@ -23,7 +23,7 @@ class ORION_API AOrionArmor : public AOrionInventory
 {
 	GENERATED_BODY()
 public:
-	AOrionArmor(const FObjectInitializer& ObejctInitializer);
+	AOrionArmor(const FObjectInitializer& ObjectInitializer);
 
 	UPROPERTY(EditAnywhere, Category = Inventory)
 		USkeletalMesh *Mesh;

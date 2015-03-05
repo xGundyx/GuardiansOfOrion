@@ -59,7 +59,7 @@ class ORION_API UOrionStats : public UObject
 {
 	GENERATED_BODY()
 public:
-	UOrionStats(const FObjectInitializer& ObejctInitializer);
+	UOrionStats(const FObjectInitializer& ObjectInitializer);
 	
 	TArray<FPlayerStats> aStats;
 };

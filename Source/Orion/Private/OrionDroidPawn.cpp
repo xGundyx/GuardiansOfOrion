@@ -4,8 +4,8 @@
 #include "OrionDroidPawn.h"
 
 
-AOrionDroidPawn::AOrionDroidPawn(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+AOrionDroidPawn::AOrionDroidPawn(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

@@ -4,8 +4,8 @@
 #include "OrionPRI.h"
 
 
-AOrionPRI::AOrionPRI(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+AOrionPRI::AOrionPRI(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

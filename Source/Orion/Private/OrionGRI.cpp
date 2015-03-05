@@ -4,8 +4,8 @@
 #include "OrionGRI.h"
 
 
-AOrionGRI::AOrionGRI(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+AOrionGRI::AOrionGRI(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
 }

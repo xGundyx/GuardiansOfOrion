@@ -13,6 +13,6 @@ class ORION_API UOrionGameInstance : public UGameInstance
 {
 	GENERATED_BODY()
 public:
-	UOrionGameInstance(const FObjectInitializer& ObejctInitializer);
+	UOrionGameInstance(const FObjectInitializer& ObjectInitializer);
 	
 };

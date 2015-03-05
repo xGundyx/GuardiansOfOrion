@@ -25,7 +25,7 @@ class ORION_API UOrionInventoryGrid : public UObject
 {
 	GENERATED_BODY()
 public:
-	UOrionInventoryGrid(const FObjectInitializer& ObejctInitializer);
+	UOrionInventoryGrid(const FObjectInitializer& ObjectInitializer);
 
 	UPROPERTY()
 		TArray<FInventoryRow> Column;

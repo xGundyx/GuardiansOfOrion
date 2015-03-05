@@ -4,8 +4,8 @@
 #include "DHArmors.h"
 
 
-ADHArmors::ADHArmors(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+ADHArmors::ADHArmors(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

@@ -4,8 +4,8 @@
 #include "OrionStats.h"
 
 
-UOrionStats::UOrionStats(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+UOrionStats::UOrionStats(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 	//initialize our stats arrray
 	aStats.Empty();

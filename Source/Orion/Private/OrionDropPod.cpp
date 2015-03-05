@@ -3,10 +3,10 @@
 #include "Orion.h"
 #include "OrionDropPod.h"
 
-AOrionDropPod::AOrionDropPod(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+AOrionDropPod::AOrionDropPod(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
-	DropPodMesh = ObejctInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Pod"));
+	DropPodMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Pod"));
 	DropPodMesh->AlwaysLoadOnClient = true;
 	DropPodMesh->AlwaysLoadOnServer = true;
 	DropPodMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
@@ -18,7 +18,7 @@ AOrionDropPod::AOrionDropPod(const FObjectInitializer& ObejctInitializer)
 
 	RootComponent = DropPodMesh;
 
-	SpawnCameraComponent = ObejctInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("SpawnCamera"));
+	SpawnCameraComponent = ObjectInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("SpawnCamera"));
 	SpawnCameraComponent->AttachParent = DropPodMesh;
 
 	PrimaryActorTick.bStartWithTickEnabled = true;

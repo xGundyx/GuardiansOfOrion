@@ -4,8 +4,8 @@
 #include "OrionDamageNotify.h"
 
 
-UOrionDamageNotify::UOrionDamageNotify(const FObjectInitializer& ObejctInitializer)
-	: Super(ObejctInitializer)
+UOrionDamageNotify::UOrionDamageNotify(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer)
 {
 
 }

@@ -4,9 +4,12 @@
 #include "OrionWeapon.h"
 
 
-AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObejctInitializer) : Super(ObejctInitializer)
+AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
-	Mesh1P = ObejctInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponMesh1P"));
+	USceneComponent *SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("WeaponComponent"));
+	RootComponent = SceneComponent;
+
+	Mesh1P = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponMesh1P"));
 	Mesh1P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 	Mesh1P->bChartDistanceFactor = false;
 	Mesh1P->bReceivesDecals = false;
@@ -15,23 +18,10 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObejctInitializer) : Super(
 	Mesh1P->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Mesh1P->SetCollisionResponseToAllChannels(ECR_Ignore);
 	Mesh1P->bPerBoneMotionBlur = false;
-	RootComponent = Mesh1P;
+	Mesh1P->AttachParent = SceneComponent;
+	//RootComponent = Mesh1P;
 
-	ArmsMesh = ObejctInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("ArmsMesh1P"));
-	ArmsMesh->AlwaysLoadOnClient = true;
-	ArmsMesh->AlwaysLoadOnServer = true;
-	ArmsMesh->bOwnerNoSee = false;
-	ArmsMesh->bOnlyOwnerSee = true;
-	ArmsMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
-	ArmsMesh->bCastDynamicShadow = true;
-	ArmsMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	ArmsMesh->bChartDistanceFactor = true;
-	ArmsMesh->bGenerateOverlapEvents = false;
-	ArmsMesh->AttachParent = Mesh1P;
-	ArmsMesh->CastShadow = false;
-	ArmsMesh->SetMasterPoseComponent(Mesh1P);
-
-	Mesh3P = ObejctInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponMesh3P"));
+	Mesh3P = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponMesh3P"));
 	Mesh3P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 	Mesh3P->bChartDistanceFactor = true;
 	Mesh3P->bReceivesDecals = false;
@@ -42,7 +32,7 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObejctInitializer) : Super(
 	//Mesh3P->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Block);
 	Mesh3P->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 	Mesh3P->SetCollisionResponseToChannel(COLLISION_PROJECTILE, ECR_Block);
-	Mesh3P->AttachParent = Mesh1P;
+	Mesh3P->AttachParent = SceneComponent; 
 
 	//bLoopedMuzzleFX = false;
 	//bLoopedFireAnim = false;
@@ -62,7 +52,7 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObejctInitializer) : Super(
 	PrimaryActorTick.TickGroup = TG_PrePhysics;
 	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
 	bReplicates = true;
-	bReplicateInstigator = true;
+	//bReplicateInstigator = true;
 	bNetUseOwnerRelevancy = true;
 }
 
@@ -77,9 +67,6 @@ void AOrionWeapon::PostInitializeComponents()
 
 	Mesh1P->SetWorldScale3D(FVector(InstantConfig.WeaponScale));
 	Mesh1P->UpdateBounds();
-
-	ArmsMesh->SetWorldScale3D(FVector(InstantConfig.WeaponScale));
-	ArmsMesh->UpdateBounds();
 
 	PlayWeaponAnimation(IdleAnim);
 
@@ -96,16 +83,22 @@ void AOrionWeapon::AttachMeshToPawn()
 		PlayWeaponAnimation(IdleAnim);
 
 		// For locally controller players we attach both weapons and let the bOnlyOwnerSee, bOwnerNoSee flags deal with visibility.
-		FName AttachPoint = TEXT("WeaponPoint");// MyPawn->GetWeaponAttachPoint();
+		FName AttachPoint = InstantConfig.AttachPoint;// TEXT("WeaponPoint");// MyPawn->GetWeaponAttachPoint();
 		if (MyPawn->IsLocallyControlled() == true)
 		{
 			USkeletalMeshComponent* PawnMesh1p = MyPawn->GetSpecifcPawnMesh(true);
 			USkeletalMeshComponent* PawnMesh3p = MyPawn->GetSpecifcPawnMesh(false);
 			Mesh1P->SetHiddenInGame(!MyPawn->IsFirstPerson());
-			ArmsMesh->SetHiddenInGame(!MyPawn->IsFirstPerson());
+			PawnMesh1p->SetHiddenInGame(!MyPawn->IsFirstPerson());
 			Mesh3P->SetHiddenInGame(MyPawn->IsFirstPerson());
-			Mesh1P->AttachTo(MyPawn->FirstPersonCameraComponent);
+			//Mesh1P->AttachTo(PawnMesh1p, AttachPoint);
+			AttachRootComponentTo(PawnMesh1p, AttachPoint);// , EAttachLocation::KeepWorldPosition);
 			Mesh3P->AttachTo(PawnMesh3p, AttachPoint);
+
+			//Mesh1P->SetRelativeLocation(InstantConfig.WeaponOffset);
+
+			PawnMesh1p->SetWorldScale3D(FVector(InstantConfig.WeaponScale));
+			PawnMesh1p->UpdateBounds();
 
 			//Mesh3P->SetRelativeLocation(FVector(0, 49.9, 1.0));
 			//Mesh3P->SetRelativeRotation(FRotator(0, 0, -5));
@@ -129,7 +122,7 @@ void AOrionWeapon::Tick(float DeltaSeconds)
 	if (MyPawn && MyPawn->IsLocallyControlled())
 	{
 		//HandleZooms(DeltaSeconds);
-		HandleViewOffsets(DeltaSeconds);
+		//HandleViewOffsets(DeltaSeconds);
 
 		if (CurrentFiringSpread > 0.0f && GetWorld()->TimeSeconds - LastFireTime > 0.5f)
 			CurrentFiringSpread = FMath::Max(0.0f, CurrentFiringSpread - DeltaSeconds*2.0f);
@@ -489,8 +482,10 @@ FVector AOrionWeapon::GetBarrelLocation(FName SocketName)
 	//third person stuff
 	FVector pos;
 	FRotator rot;
-	if (Mesh3P)
+	if (MyPawn && !MyPawn->IsFirstPerson()  && Mesh3P)
 		Mesh3P->GetSocketWorldLocationAndRotation(SocketName, pos, rot);
+	else if (MyPawn && MyPawn->IsFirstPerson() && Mesh1P)
+		Mesh1P->GetSocketWorldLocationAndRotation(SocketName, pos, rot);
 
 	return pos;
 }
@@ -1161,15 +1156,9 @@ void AOrionWeapon::ServerStopFire_Implementation()
 float AOrionWeapon::PlayWeaponAnimation(const FWeaponAnim& Animation)
 {
 	float Duration = 0.0f;
-	if (MyPawn)
-	{
-		UAnimMontage* UseAnim = MyPawn->IsFirstPerson() ? Animation.Pawn1P : Animation.Pawn3P;
-		if (UseAnim)
-		{
-			Duration = MyPawn->IsFirstPerson() ? Mesh1P->AnimScriptInstance->Montage_Play(UseAnim, 1.0) : MyPawn->PlayAnimMontage(UseAnim);
-		}
-	}
 
+	if (MyPawn)
+		Duration = MyPawn->OrionPlayAnimMontage(Animation);
 	return Duration;
 }
 

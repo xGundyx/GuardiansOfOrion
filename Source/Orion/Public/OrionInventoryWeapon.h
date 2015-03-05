@@ -13,7 +13,7 @@ class ORION_API AOrionInventoryWeapon : public AOrionInventory
 {
 	GENERATED_BODY()
 public:
-	AOrionInventoryWeapon(const FObjectInitializer& ObejctInitializer);
+	AOrionInventoryWeapon(const FObjectInitializer& ObjectInitializer);
 	
 	
 };

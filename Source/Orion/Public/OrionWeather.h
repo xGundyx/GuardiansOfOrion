@@ -103,7 +103,7 @@ class AOrionWeather : public ADirectionalLight
 {
 	GENERATED_BODY()
 public:
-	AOrionWeather(const FObjectInitializer& ObejctInitializer);
+	AOrionWeather(const FObjectInitializer& ObjectInitializer);
 	//virtual void PostInitializeComponents() override;
 
 	APlayerController* PlayerOwner;

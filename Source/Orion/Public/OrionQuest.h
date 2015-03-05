@@ -36,7 +36,7 @@ class ORION_API AOrionQuest : public AActor
 {
 	GENERATED_BODY()
 public:
-	AOrionQuest(const FObjectInitializer& ObejctInitializer);
+	AOrionQuest(const FObjectInitializer& ObjectInitializer);
 
 	//next quest to start as part of a chain (if any)
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Quest)

@@ -13,7 +13,7 @@ class ORION_API AOrionWeaponDroid : public AOrionWeapon
 {
 	GENERATED_BODY()
 public:
-	AOrionWeaponDroid(const FObjectInitializer& ObejctInitializer);
+	AOrionWeaponDroid(const FObjectInitializer& ObjectInitializer);
 
 	void AttachMeshToPawn() override;
 	float PlayWeaponAnimation(const FWeaponAnim& Animation) override;

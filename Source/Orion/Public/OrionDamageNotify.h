@@ -13,7 +13,7 @@ class ORION_API UOrionDamageNotify : public UAnimNotify
 {
 	GENERATED_BODY()
 public:
-	UOrionDamageNotify(const FObjectInitializer& ObejctInitializer);
+	UOrionDamageNotify(const FObjectInitializer& ObjectInitializer);
 
 	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation) override;
 };

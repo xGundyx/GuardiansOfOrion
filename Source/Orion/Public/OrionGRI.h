@@ -14,7 +14,7 @@ class ORION_API AOrionGRI : public AGameState
 {
 	GENERATED_BODY()
 public:
-	AOrionGRI(const FObjectInitializer& ObejctInitializer);
+	AOrionGRI(const FObjectInitializer& ObjectInitializer);
 
 	UPROPERTY(Transient, Replicated)
 		AOrionWeather *Weather;

@@ -4,18 +4,18 @@
 #include "OrionProjectile.h"
 #include "GameFramework/ProjectileMovementComponent.h"
 
-AOrionProjectile::AOrionProjectile(const FObjectInitializer& ObejctInitializer) 
-	: Super(ObejctInitializer)
+AOrionProjectile::AOrionProjectile(const FObjectInitializer& ObjectInitializer) 
+	: Super(ObjectInitializer)
 {
 	// Use a sphere as a simple collision representation
-	CollisionComp = ObejctInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("SphereComp"));
+	CollisionComp = ObjectInitializer.CreateDefaultSubobject<USphereComponent>(this, TEXT("SphereComp"));
 	CollisionComp->InitSphereRadius(5.0f);
 	CollisionComp->BodyInstance.SetCollisionProfileName("Projectile");			// Collision profiles are defined in DefaultEngine.ini
 	CollisionComp->OnComponentHit.AddDynamic(this, &AOrionProjectile::OnHit);		// set up a notification for when this component overlaps something
 	RootComponent = CollisionComp;
 
 	// Use a ProjectileMovementComponent to govern this projectile's movement
-	ProjectileMovement = ObejctInitializer.CreateDefaultSubobject<UProjectileMovementComponent>(this, TEXT("ProjectileComp"));
+	ProjectileMovement = ObjectInitializer.CreateDefaultSubobject<UProjectileMovementComponent>(this, TEXT("ProjectileComp"));
 	ProjectileMovement->UpdatedComponent = CollisionComp;
 	ProjectileMovement->InitialSpeed = 3000.f;
 	ProjectileMovement->MaxSpeed = 3000.f;

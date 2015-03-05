@@ -33,7 +33,7 @@ class ORION_API AOrionInventory : public AActor
 {
 	GENERATED_BODY()
 public:
-	AOrionInventory(const FObjectInitializer& ObejctInitializer);
+	AOrionInventory(const FObjectInitializer& ObjectInitializer);
 
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = Inventory)
 		TEnumAsByte<ItemTypes> ItemType;

@@ -5,8 +5,8 @@
 #include "OrionWeapon.h"
 #include "OrionPlayerCameraManager.h"
 
-AOrionPlayerCameraManager::AOrionPlayerCameraManager(const FObjectInitializer& ObejctInitializer)
-: Super(ObejctInitializer)
+AOrionPlayerCameraManager::AOrionPlayerCameraManager(const FObjectInitializer& ObjectInitializer)
+: Super(ObjectInitializer)
 {
 	NormalFOV = 90.0f;
 	TargetingFOV = 60.0f;
