@@ -201,6 +201,9 @@ public:
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 		class USkeletalMeshComponent* Arms1PMesh;
 
+	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+		class USkeletalMeshComponent* Arms1PArmorMesh;
+
 	/** spawn inventory, setup initial variables */
 	virtual void PostInitializeComponents() override;
 
@@ -222,6 +225,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Game|Weapon")
 		class AOrionWeapon* GetWeapon() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Pawn")
+		void Set1PArmorMesh(USkeletalMesh* newMesh) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Pawn")
 		void SetHelmetMesh(USkeletalMesh* newMesh) const;
@@ -484,6 +490,9 @@ public:
 	//UPROPERTY(EditAnywhere, Category = Behavior)
 	//class UBehaviorTree* BotBehavior;
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Change 1P Armor"))
+		void EventUpdate1PArmor(int32 index);
+
 	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Change Helmet"))
 		void EventUpdateHelmet(int32 index);
 
@@ -587,6 +596,9 @@ protected:
 	void OnFire();
 	void OnStopFire();
 
+	void OnNextWeapon();
+	void OnPrevWeapon();
+
 	void StartAiming();
 	void StopAiming();
 
@@ -662,6 +674,9 @@ protected:
 		void ServerSetAimYaw(float yaw, float pitch);
 
 	bool bRolling;
+
+	void ReallyDoEquip();
+	AOrionWeapon *NextWeapon;
 public:
 	FVector CameraLocation;
 

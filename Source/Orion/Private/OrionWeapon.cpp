@@ -3,6 +3,8 @@
 #include "Orion.h"
 #include "OrionWeapon.h"
 
+//auto rifle -3.0 30.0 -13.5
+//auto pistol -4.7, 12.65, -8.04
 
 AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
@@ -19,6 +21,7 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 	Mesh1P->SetCollisionResponseToAllChannels(ECR_Ignore);
 	Mesh1P->bPerBoneMotionBlur = false;
 	Mesh1P->AttachParent = SceneComponent;
+	Mesh1P->PrimaryComponentTick.TickGroup = TG_PrePhysics;
 	//RootComponent = Mesh1P;
 
 	Mesh3P = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponMesh3P"));
@@ -54,6 +57,29 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 	bReplicates = true;
 	//bReplicateInstigator = true;
 	bNetUseOwnerRelevancy = true;
+
+	InstantConfig.AimFOV = 70.0f;
+	InstantConfig.AimSpread = 0.0f;
+	InstantConfig.AllowedViewDotHitDir = 0.0f;
+	InstantConfig.AttachPoint = FName("");
+	InstantConfig.bAutomatic = false;
+	InstantConfig.bSingleShellReload = false;
+	InstantConfig.ClientSideHitLeeway = 0.0;
+	InstantConfig.ClipSize = 12;
+	InstantConfig.CrouchSpread = 0.0f;
+	InstantConfig.FiringSpreadIncrement = 0;
+	InstantConfig.FiringSpreadMax = 0;
+	InstantConfig.FOVTransitionTime = 0.2f;
+	InstantConfig.HitDamage = 50;
+	InstantConfig.MaxAmmo = 500;
+	InstantConfig.MuzzleScale = 1.0f;
+	InstantConfig.NormalSpread = 0.0f;
+	InstantConfig.NumPellets = 1;
+	InstantConfig.RecoilScale = 1.0f;
+	InstantConfig.TimeBetweenShots = 0.1;
+	InstantConfig.WeaponIndex = 0;
+	InstantConfig.WeaponRange = 20000.0f;
+	InstantConfig.WeaponScale = 1.0f;
 }
 
 void AOrionWeapon::PostInitializeComponents()
@@ -68,9 +94,14 @@ void AOrionWeapon::PostInitializeComponents()
 	Mesh1P->SetWorldScale3D(FVector(InstantConfig.WeaponScale));
 	Mesh1P->UpdateBounds();
 
-	PlayWeaponAnimation(IdleAnim);
+	//PlayWeaponAnimation(IdleAnim);
 
 	DetachMeshFromPawn();
+}
+
+FVector AOrionWeapon::GetLeftHandOffset() const
+{
+	return InstantConfig.LeftHandOffset;
 }
 
 void AOrionWeapon::AttachMeshToPawn()
@@ -80,7 +111,7 @@ void AOrionWeapon::AttachMeshToPawn()
 		// Remove and hide both first and third person meshes
 		DetachMeshFromPawn();
 
-		PlayWeaponAnimation(IdleAnim);
+		//PlayWeaponAnimation(IdleAnim);
 
 		// For locally controller players we attach both weapons and let the bOnlyOwnerSee, bOwnerNoSee flags deal with visibility.
 		FName AttachPoint = InstantConfig.AttachPoint;// TEXT("WeaponPoint");// MyPawn->GetWeaponAttachPoint();
@@ -94,8 +125,6 @@ void AOrionWeapon::AttachMeshToPawn()
 			//Mesh1P->AttachTo(PawnMesh1p, AttachPoint);
 			AttachRootComponentTo(PawnMesh1p, AttachPoint);// , EAttachLocation::KeepWorldPosition);
 			Mesh3P->AttachTo(PawnMesh3p, AttachPoint);
-
-			//Mesh1P->SetRelativeLocation(InstantConfig.WeaponOffset);
 
 			PawnMesh1p->SetWorldScale3D(FVector(InstantConfig.WeaponScale));
 			PawnMesh1p->UpdateBounds();
@@ -183,7 +212,7 @@ void AOrionWeapon::StartAiming()
 	//MyPawn->FirstPersonCameraComponent->FieldOfView = InstantConfig.AimFOV;
 	TargetFOV = InstantConfig.AimFOV;
 
-	PlayWeaponAnimation(AimAnim);
+	//PlayWeaponAnimation(AimAnim);
 }
 
 void AOrionWeapon::StopAiming()
@@ -195,7 +224,7 @@ void AOrionWeapon::StopAiming()
 	//MyPawn->FirstPersonCameraComponent->FieldOfView = 90;
 	TargetFOV = 90.0f;
 
-	StopWeaponAnimation(AimAnim);
+	//StopWeaponAnimation(AimAnim);
 }
 
 USkeletalMeshComponent* AOrionWeapon::GetWeaponMesh(bool bFirstPerson) const
@@ -389,7 +418,7 @@ float AOrionWeapon::GetSpreadModifier()
 
 UAnimMontage* AOrionWeapon::GetIdleMontage()
 {
-	return IdleAnim.Pawn3P;
+	return nullptr;// IdleAnim.Pawn3P;
 }
 
 UAnimMontage* AOrionWeapon::GetMeleeMontage()
@@ -409,7 +438,7 @@ UAnimMontage* AOrionWeapon::GetEquipMontage()
 
 UAnimMontage* AOrionWeapon::GetAimMontage()
 {
-	return AimAnim.Pawn3P;
+	return nullptr;// AimAnim.Pawn3P;
 }
 
 UAnimMontage* AOrionWeapon::GetFireMontage()
@@ -419,7 +448,7 @@ UAnimMontage* AOrionWeapon::GetFireMontage()
 
 UAnimMontage* AOrionWeapon::GetSprintMontage()
 {
-	return SprintAnim.Pawn3P;
+	return nullptr;// SprintAnim.Pawn3P;
 }
 
 AOrionCharacter* AOrionWeapon::GetOrionPawn()
@@ -544,7 +573,7 @@ void AOrionWeapon::ProcessInstantHit(const FHitResult& Impact, const FVector& Or
 
 bool AOrionWeapon::CanFire() const
 {
-	return AmmoInClip>0;
+	return AmmoInClip > 0 && WeaponState != WEAP_EQUIPPING && WeaponState != WEAP_PUTTINGDOWN && WeaponState != WEAP_MELEE;
 }
 
 void AOrionWeapon::UseAmmo()
@@ -556,7 +585,7 @@ void AOrionWeapon::UseAmmo()
 
 bool AOrionWeapon::CanReload()
 {
-	return AmmoInClip<InstantConfig.ClipSize && Ammo > 0;
+	return AmmoInClip<InstantConfig.ClipSize && Ammo > 0 && WeaponState != WEAP_EQUIPPING && WeaponState != WEAP_PUTTINGDOWN && WeaponState != WEAP_MELEE;
 }
 
 void AOrionWeapon::StartReload(bool bFromReplication)
@@ -583,21 +612,53 @@ void AOrionWeapon::StartReload(bool bFromReplication)
 
 		StopAiming();
 
-		GetWorldTimerManager().SetTimer(this, &AOrionWeapon::StopReload, AnimDuration, false);
-		if (Role == ROLE_Authority)
+		if (InstantConfig.bSingleShellReload == true)
 		{
-			GetWorldTimerManager().SetTimer(this, &AOrionWeapon::ReloadWeapon, FMath::Max(0.1f, AnimDuration - 0.1f), false);
+			GetWorldTimerManager().SetTimer(this, &AOrionWeapon::StartShellReload, FMath::Max(0.1f, AnimDuration - 0.1f), false);
 		}
-
-		if (MyPawn && MyPawn->IsLocallyControlled())
+		else
 		{
-			PlayWeaponSound(ReloadSound);
+			GetWorldTimerManager().SetTimer(this, &AOrionWeapon::StopReload, AnimDuration, false);
+			if (Role == ROLE_Authority)
+			{
+				GetWorldTimerManager().SetTimer(this, &AOrionWeapon::ReloadWeapon, FMath::Max(0.1f, AnimDuration - 0.1f), false);
+			}
+
+			/*if (MyPawn && MyPawn->IsLocallyControlled())
+			{
+				PlayWeaponSound(ReloadSound);
+			}*/
 		}
 	}
 }
 
+void AOrionWeapon::StartShellReload()
+{
+	float AnimDuration = PlayWeaponAnimation(ReloadLoopAnim);
+	if (AnimDuration <= 0.0f)
+	{
+		AnimDuration = 1.0;// WeaponConfig.NoAnimReloadDuration;
+	}
+
+	if (AmmoInClip < InstantConfig.ClipSize && Ammo > AmmoInClip)
+		GetWorldTimerManager().SetTimer(this, &AOrionWeapon::ReloadNextShell, AnimDuration, false);
+	else
+		StopReload();
+}
+
+void AOrionWeapon::ReloadNextShell()
+{
+	AmmoInClip++;
+	StartShellReload();
+}
+
 void AOrionWeapon::StopReload()
 {
+	WeaponState = WEAP_IDLE;
+
+	if (InstantConfig.bSingleShellReload)
+		PlayWeaponAnimation(ReloadEndAnim);
+
 	//if (CurrentState == EWeaponState::Reloading)
 	//{
 	//bPendingReload = false;
@@ -633,7 +694,7 @@ void AOrionWeapon::StopWeaponAnimation(const FWeaponAnim& Animation)
 		}
 	}
 
-	PlayWeaponAnimation(IdleAnim);
+	//PlayWeaponAnimation(IdleAnim);
 }
 
 bool AOrionWeapon::ServerStartReload_Validate()
@@ -1045,15 +1106,17 @@ void AOrionWeapon::OnEquip()
 {
 	AttachMeshToPawn();
 
-	/*bPendingEquip = true;
-	DetermineWeaponState();
+	bPendingEquip = true;
+	WeaponState = WEAP_EQUIPPING;
 
 	float Duration = PlayWeaponAnimation(EquipAnim);
+
 	if (Duration <= 0.0f)
 	{
-	// failsafe
-	Duration = 0.5f;
+		// failsafe
+		Duration = 0.5f;
 	}
+
 	EquipStartedTime = GetWorld()->GetTimeSeconds();
 	EquipDuration = Duration;
 
@@ -1061,55 +1124,75 @@ void AOrionWeapon::OnEquip()
 
 	if (MyPawn && MyPawn->IsLocallyControlled())
 	{
-	PlayWeaponSound(EquipSound);
-	}*/
+		//PlayWeaponSound(EquipSound);
+	}
 }
 
 void AOrionWeapon::OnEquipFinished()
 {
 	AttachMeshToPawn();
 
-	/*bIsEquipped = true;
+	bIsEquipped = true;
 	bPendingEquip = false;
 
 	if (MyPawn)
 	{
-	// try to reload empty clip
-	if (MyPawn->IsLocallyControlled() &&
-	CurrentAmmoInClip <= 0 &&
-	CanReload())
-	{
-	StartReload();
-	}
+		// try to reload empty clip
+		if (MyPawn->IsLocallyControlled() && AmmoInClip <= 0 && CanReload())
+		{
+			StartReload();
+		}
 	}
 
-	DetermineWeaponState();*/
+	WeaponState = WEAP_IDLE;
 }
 
-void AOrionWeapon::OnUnEquip()
+void AOrionWeapon::OnUnEquipFinished()
 {
 	DetachMeshFromPawn();
+	bIsEquipped = false;
+	WeaponState = WEAP_IDLE;
+}
+
+float AOrionWeapon::OnUnEquip()
+{
+	//DetachMeshFromPawn();
 	StopFire();
-	/*bIsEquipped = false;
+	//bIsEquipped = false;
 
 	if (bPendingReload)
 	{
-	StopWeaponAnimation(ReloadAnim);
-	bPendingReload = false;
+		StopWeaponAnimation(ReloadAnim);
+		bPendingReload = false;
 
-	GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::StopReload);
-	GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::ReloadWeapon);
+		GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::StopReload);
+		GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::ReloadWeapon);
 	}
 
-	if (bPendingEquip)
+	/*if (bPendingEquip)
 	{
-	StopWeaponAnimation(EquipAnim);
-	bPendingEquip = false;
+		StopWeaponAnimation(EquipAnim);
+		bPendingEquip = false;
 
-	GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::OnEquipFinished);
+		GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::OnEquipFinished);
+	}*/
+
+	float Duration = PlayWeaponAnimation(HolsterAnim);
+
+	if (Duration <= 0.0f)
+	{
+		// failsafe
+		Duration = 0.5f;
 	}
 
-	DetermineWeaponState();*/
+	//EquipStartedTime = GetWorld()->GetTimeSeconds();
+	//EquipDuration = Duration;
+
+	GetWorldTimerManager().SetTimer(this, &AOrionWeapon::OnUnEquipFinished, Duration, false);
+
+	WeaponState = WEAP_PUTTINGDOWN;
+
+	return Duration;
 }
 
 void AOrionWeapon::SetOwningPawn(AOrionCharacter* NewOwner)
