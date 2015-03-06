@@ -39,6 +39,9 @@ struct FArmorInfo
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Mesh)
 		USkeletalMesh* Flight2Mesh;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Mesh)
+		USkeletalMesh* Arms1PMesh;
 };
 
 /**

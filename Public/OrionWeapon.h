@@ -28,7 +28,8 @@ enum WeaponStates
 	WEAP_IDLE,
 	WEAP_RELOADING,
 	WEAP_MELEE,
-	WEAP_EQUIPPING
+	WEAP_EQUIPPING,
+	WEAP_PUTTINGDOWN
 };
 
 static inline bool NEQ(const FInstantHitInfo& A, const FInstantHitInfo& B, UPackageMap* Map, UActorChannel* Channel)
@@ -105,10 +106,17 @@ struct FInstantWeaponData
 		float RecoilScale;
 
 	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
-		FVector WeaponOffset;
+		FName AttachPoint;
 
 	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
-		FName AttachPoint;
+		bool bSingleShellReload;
+
+	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+		int32 NumPellets;
+
+	//this is needed to make the left hand match up for third person animations
+	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+		FVector LeftHandOffset;
 };
 
 /**
@@ -142,6 +150,10 @@ public:
 	/** [all] start weapon reload */
 	virtual void StartReload(bool bFromReplication = false);
 
+	//mainly for shotties
+	void ReloadNextShell();
+	void StartShellReload();
+
 	/** [local + server] interrupt weapon reload */
 	virtual void StopReload();
 
@@ -168,6 +180,12 @@ public:
 		FWeaponAnim ReloadAnim;
 
 	UPROPERTY(EditDefaultsOnly, Category = Animation)
+		FWeaponAnim ReloadEndAnim;
+
+	UPROPERTY(EditDefaultsOnly, Category = Animation)
+		FWeaponAnim ReloadLoopAnim;
+
+	UPROPERTY(EditDefaultsOnly, Category = Animation)
 		FWeaponAnim FireAnim;
 
 	UPROPERTY(EditDefaultsOnly, Category = Animation)
@@ -176,17 +194,20 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Animation)
 		FWeaponAnim MeleeAnim;
 
-	UPROPERTY(EditDefaultsOnly, Category = Animation)
-		FWeaponAnim SprintAnim;
+	//UPROPERTY(EditDefaultsOnly, Category = Animation)
+	//	FWeaponAnim SprintAnim;
 
-	UPROPERTY(EditDefaultsOnly, Category = Animation)
-		FWeaponAnim IdleAnim;
+	//UPROPERTY(EditDefaultsOnly, Category = Animation)
+	//	FWeaponAnim IdleAnim;
 
 	UPROPERTY(EditDefaultsOnly, Category = Animation)
 		FWeaponAnim EquipAnim;
 
 	UPROPERTY(EditDefaultsOnly, Category = Animation)
-		FWeaponAnim AimAnim;
+		FWeaponAnim HolsterAnim;
+
+	//UPROPERTY(EditDefaultsOnly, Category = Animation)
+	//	FWeaponAnim AimAnim;
 
 	/** weapon is being equipped by owner pawn */
 	virtual void OnEquip();
@@ -195,7 +216,9 @@ public:
 	virtual void OnEquipFinished();
 
 	/** weapon is holstered by owner pawn */
-	virtual void OnUnEquip();
+	virtual float OnUnEquip();
+
+	virtual void OnUnEquipFinished();
 
 	UFUNCTION()
 		void OnRep_MyPawn();
@@ -223,6 +246,9 @@ public:
 	/** get weapon mesh (needs pawn owner to determine variant) */
 	UFUNCTION(BlueprintCallable, Category = Mesh)
 		virtual USkeletalMeshComponent* GetWeaponMesh(bool bFirstPerson) const;
+
+	UFUNCTION(BlueprintCallable, Category = Mesh)
+		virtual FVector GetLeftHandOffset() const;
 
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerMelee();
@@ -385,6 +411,14 @@ public:
 
 	void StartAiming();
 	void StopAiming();
+
+	bool IsEquipped() const;
+
+	uint32 bIsEquipped : 1;
+	uint32 bPendingEquip : 1;
+	uint32 bPendingReload : 1;
+	float EquipStartedTime;
+	float EquipDuration;
 
 	UPROPERTY(EditDefaultsOnly, Category = Aiming)
 		FVector ViewOffset;

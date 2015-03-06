@@ -69,6 +69,21 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Arms1PMesh->bPerBoneMotionBlur = false;
 	//Arms1PMesh->SetMasterPoseComponent(GetMesh());
 
+	Arms1PArmorMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Arms1PArmorMesh1P"));
+	Arms1PArmorMesh->AlwaysLoadOnClient = true;
+	Arms1PArmorMesh->AlwaysLoadOnServer = true;
+	Arms1PArmorMesh->bOwnerNoSee = false;
+	Arms1PArmorMesh->bOnlyOwnerSee = true;
+	Arms1PArmorMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
+	Arms1PArmorMesh->bCastDynamicShadow = true;
+	Arms1PArmorMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
+	Arms1PArmorMesh->bChartDistanceFactor = true;
+	Arms1PArmorMesh->bGenerateOverlapEvents = false;
+	Arms1PArmorMesh->AttachParent = Arms1PMesh;
+	Arms1PArmorMesh->CastShadow = false;
+	Arms1PArmorMesh->bPerBoneMotionBlur = false;
+	Arms1PArmorMesh->SetMasterPoseComponent(Arms1PMesh);
+
 	BodyMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Body"));
 	BodyMesh->AlwaysLoadOnClient = true;
 	BodyMesh->AlwaysLoadOnServer = true;
@@ -472,6 +487,7 @@ void AOrionCharacter::HandleSpecialWeaponFire(FName SocketName)
 void AOrionCharacter::SetCurrentWeapon(class AOrionWeapon* NewWeapon, class AOrionWeapon* LastWeapon)
 {
 	AOrionWeapon* LocalLastWeapon = NULL;
+	float Duration = 0.01f;
 
 	if (LastWeapon != NULL)
 	{
@@ -485,17 +501,25 @@ void AOrionCharacter::SetCurrentWeapon(class AOrionWeapon* NewWeapon, class AOri
 	// unequip previous
 	if (LocalLastWeapon)
 	{
-		LocalLastWeapon->OnUnEquip();
+		Duration = LocalLastWeapon->OnUnEquip();
 	}
 
-	CurrentWeapon = NewWeapon;
+	NextWeapon = NewWeapon;
+	GetWorldTimerManager().SetTimer(this, &AOrionCharacter::ReallyDoEquip, 0.9*Duration, false);
+}
+
+void AOrionCharacter::ReallyDoEquip()
+{
+	CurrentWeapon = NextWeapon;
 
 	// equip new one
-	if (NewWeapon)
+	if (NextWeapon)
 	{
-		NewWeapon->SetOwningPawn(this);	// Make sure weapon's MyPawn is pointing back to us. During replication, we can't guarantee APawn::CurrentWeapon will rep after AWeapon::MyPawn!
-		NewWeapon->OnEquip();
+		NextWeapon->SetOwningPawn(this);	// Make sure weapon's MyPawn is pointing back to us. During replication, we can't guarantee APawn::CurrentWeapon will rep after AWeapon::MyPawn!
+		NextWeapon->OnEquip();
 	}
+
+	NextWeapon = nullptr;
 }
 
 void AOrionCharacter::DestroyInventory()
@@ -785,6 +809,7 @@ void AOrionCharacter::SetArmor(int32 index)
 	EventUpdateLegs(index);
 	EventUpdateFlight1(index);
 	EventUpdateFlight2(index);
+	EventUpdate1PArmor(index);
 }
 
 void AOrionCharacter::StopAllAnimMontages()
@@ -917,16 +942,16 @@ float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float I
 		if (CurrentWeapon)
 		{
 			if (CurrentWeapon->GetWeaponMesh(true) && Animation.Weapon1P)
-				CurrentWeapon->GetWeaponMesh(true)->AnimScriptInstance->Montage_Play(Animation.Weapon1P, 1.0);
+				CurrentWeapon->GetWeaponMesh(true)->AnimScriptInstance->Montage_Play(Animation.Weapon1P, 1.0f);// / Animation.Weapon1P->RateScale;
 			if (CurrentWeapon->GetWeaponMesh(false) && Animation.Weapon3P)
-				CurrentWeapon->GetWeaponMesh(false)->AnimScriptInstance->Montage_Play(Animation.Weapon3P, 1.0);
+				CurrentWeapon->GetWeaponMesh(false)->AnimScriptInstance->Montage_Play(Animation.Weapon3P, 1.0f);// / Animation.Weapon3P->RateScale;
 		}
 		//play 1p arms animation
 		if (Arms1PMesh && Arms1PMesh->AnimScriptInstance && Animation.Pawn1P)
-			Duration = Arms1PMesh->AnimScriptInstance->Montage_Play(Animation.Pawn1P, 1.0);
+			Duration = Arms1PMesh->AnimScriptInstance->Montage_Play(Animation.Pawn1P, 1.0f) / Animation.Pawn1P->RateScale;// , 1.0);
 		//play 3p char animation
 			if (Animation.Pawn3P)
-		Duration = FMath::Max(Duration, AnimInstance->Montage_Play(Animation.Pawn3P, InPlayRate));
+				Duration = FMath::Max(Duration, AnimInstance->Montage_Play(Animation.Pawn3P, 1.0f) / Animation.Pawn3P->RateScale);
 
 		if (Duration > 0.f)
 		{
@@ -1042,6 +1067,9 @@ USkeletalMeshComponent* AOrionCharacter::GetMeshFromIndex(int32 index) const
 	case 5:
 		return Flight2Mesh;
 		break;
+	case 6:
+		return Arms1PArmorMesh;
+		break;
 	}
 
 	return NULL;
@@ -1071,6 +1099,9 @@ void AOrionCharacter::UpdatePawnMeshes()
 
 	Flight2Mesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	Flight2Mesh->SetOwnerNoSee(bFirst);
+
+	Arms1PArmorMesh->MeshComponentUpdateFlag = !bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
+	Arms1PArmorMesh->SetOwnerNoSee(!bFirst);
 
 	if (CurrentWeapon)
 		CurrentWeapon->OnEquip();
@@ -1172,6 +1203,37 @@ void AOrionCharacter::SetupPlayerInputComponent(class UInputComponent* InputComp
 	InputComponent->BindAxis("LookUpRate", this, &AOrionCharacter::LookUpAtRate);
 
 	InputComponent->BindAction("BehindView", IE_Pressed, this, &AOrionCharacter::BehindView);
+
+	InputComponent->BindAction("NextWeapon", IE_Pressed, this, &AOrionCharacter::OnNextWeapon);
+	InputComponent->BindAction("PrevWeapon", IE_Pressed, this, &AOrionCharacter::OnPrevWeapon);
+}
+
+void AOrionCharacter::OnNextWeapon()
+{
+	AOrionPlayerController* MyPC = Cast<AOrionPlayerController>(Controller);
+	if (MyPC)// && MyPC->IsGameInputAllowed())
+	{
+		if (Inventory.Num() >= 2 && (CurrentWeapon == NULL || true))//CurrentWeapon->GetCurrentState() != EWeaponState::Equipping))
+		{
+			const int32 CurrentWeaponIdx = Inventory.IndexOfByKey(CurrentWeapon);
+			AOrionWeapon* NextWeapon = Inventory[(CurrentWeaponIdx + 1) % Inventory.Num()];
+			EquipWeapon(NextWeapon);
+		}
+	}
+}
+
+void AOrionCharacter::OnPrevWeapon()
+{
+	AOrionPlayerController* MyPC = Cast<AOrionPlayerController>(Controller);
+	if (MyPC)// && MyPC->IsGameInputAllowed())
+	{
+		if (Inventory.Num() >= 2 && (CurrentWeapon == NULL || true))//CurrentWeapon->GetCurrentState() != EWeaponState::Equipping))
+		{
+			const int32 CurrentWeaponIdx = Inventory.IndexOfByKey(CurrentWeapon);
+			AOrionWeapon* PrevWeapon = Inventory[(CurrentWeaponIdx - 1 + Inventory.Num()) % Inventory.Num()];
+			EquipWeapon(PrevWeapon);
+		}
+	}
 }
 
 bool AOrionCharacter::ServerUse_Validate()
@@ -1610,6 +1672,11 @@ void AOrionCharacter::LookUpAtRate(float Rate)
 {
 	// calculate delta for this frame from the rate information
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+}
+
+void AOrionCharacter::Set1PArmorMesh(USkeletalMesh* newMesh) const
+{
+	Arms1PArmorMesh->SetSkeletalMesh(newMesh);
 }
 
 void AOrionCharacter::SetHelmetMesh(USkeletalMesh* newMesh) const
