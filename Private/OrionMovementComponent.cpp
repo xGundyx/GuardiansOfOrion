@@ -99,10 +99,7 @@ float UOrionMovementComponent::GetMaxSpeed() const
 	{
 		if (Cast<AOrionDinoPawn>(PawnOwner))
 		{
-			if (OrionCharacterOwner->bRun && IsMovingOnGround())
-				SpeedMod *= 4.0f;
-			else
-				SpeedMod *= 1.0f;
+			SpeedMod *= 1.0f;
 		}
 		else
 		{

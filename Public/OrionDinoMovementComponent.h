@@ -16,6 +16,7 @@ class ORION_API UOrionDinoMovementComponent : public UOrionMovementComponent
 public:
 	UOrionDinoMovementComponent(const FObjectInitializer& ObjectInitializer);
 
+	virtual float GetMaxSpeed() const override;
 	virtual void InitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;

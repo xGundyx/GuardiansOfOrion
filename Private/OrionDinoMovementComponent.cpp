@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Orion.h"
+#include "OrionDinoPawn.h"
 #include "OrionDinoMovementComponent.h"
 #include "GameFramework/CharacterMovementComponent.h"
 
@@ -103,4 +104,20 @@ void UOrionDinoMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 	{
 		CalcAvoidanceVelocity(DeltaTime);
 	}
+}
+
+float UOrionDinoMovementComponent::GetMaxSpeed() const
+{
+	float SpeedMod = Super::GetMaxSpeed();
+
+	const AOrionDinoPawn* OrionCharacterOwner = Cast<AOrionDinoPawn>(PawnOwner);
+	if (OrionCharacterOwner)
+	{
+		if (OrionCharacterOwner->bRun && IsMovingOnGround())
+			SpeedMod *= OrionCharacterOwner->RunningModifier;
+		else
+			SpeedMod *= 1.0f;
+	}
+
+	return SpeedMod;
 }

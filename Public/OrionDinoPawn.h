@@ -86,6 +86,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Eco)
 		FName DinoName;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GamePlay)
+		float RunningModifier;
+
 private:
 	FVector GroundNormal;
 };

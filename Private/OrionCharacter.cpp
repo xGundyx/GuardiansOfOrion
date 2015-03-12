@@ -950,8 +950,8 @@ float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float I
 		if (Arms1PMesh && Arms1PMesh->AnimScriptInstance && Animation.Pawn1P)
 			Duration = Arms1PMesh->AnimScriptInstance->Montage_Play(Animation.Pawn1P, 1.0f) / Animation.Pawn1P->RateScale;// , 1.0);
 		//play 3p char animation
-			if (Animation.Pawn3P)
-				Duration = FMath::Max(Duration, AnimInstance->Montage_Play(Animation.Pawn3P, 1.0f) / Animation.Pawn3P->RateScale);
+		if (Animation.Pawn3P)
+			Duration = FMath::Max(Duration, AnimInstance->Montage_Play(Animation.Pawn3P, 1.0f) / Animation.Pawn3P->RateScale);
 
 		if (Duration > 0.f)
 		{
