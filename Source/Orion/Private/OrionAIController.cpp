@@ -43,6 +43,10 @@ void AOrionAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn
 
 void AOrionAIController::SetEnemy(APawn *pEnemy)
 {
+	//for now we'll force the ai to enter a run state when we have an enemy
+	if (Cast<AOrionCharacter>(GetPawn()))
+		Cast<AOrionCharacter>(GetPawn())->bRun = true;
+
 	myEnemy = pEnemy;
 }
 
@@ -64,6 +68,9 @@ void AOrionAIController::CheckEnemyStatus()
 
 void AOrionAIController::RemoveEnemy()
 {
+	if (Cast<AOrionCharacter>(GetPawn()))
+		Cast<AOrionCharacter>(GetPawn())->bRun = false;
+
 	myEnemy = nullptr;
 }
 

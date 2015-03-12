@@ -9,7 +9,7 @@
 AOrionDinoPawn::AOrionDinoPawn(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UOrionDinoMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
-
+	RunningModifier = 1.0f;
 }
 
 FVector2D AOrionDinoPawn::GetAim(float DeltaTime)
