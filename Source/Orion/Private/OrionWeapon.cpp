@@ -999,26 +999,26 @@ void AOrionWeapon::ServerNotifyMiss_Implementation(FVector ShootDir, int32 Rando
 
 void AOrionWeapon::SpawnImpactEffects(const FHitResult& Impact)
 {
-	/*if (ImpactTemplate && Impact.bBlockingHit)
+	if (ImpactTemplate && Impact.bBlockingHit)
 	{
-	FHitResult UseImpact = Impact;
+		FHitResult UseImpact = Impact;
 
-	// trace again to find component lost during replication
-	if (!Impact.Component.IsValid())
-	{
-	const FVector StartTrace = Impact.ImpactPoint + Impact.ImpactNormal * 10.0f;
-	const FVector EndTrace = Impact.ImpactPoint - Impact.ImpactNormal * 10.0f;
-	FHitResult Hit = WeaponTrace(StartTrace, EndTrace);
-	UseImpact = Hit;
-	}
+		// trace again to find component lost during replication
+		if (!Impact.Component.IsValid())
+		{
+			const FVector StartTrace = Impact.ImpactPoint + Impact.ImpactNormal * 10.0f;
+			const FVector EndTrace = Impact.ImpactPoint - Impact.ImpactNormal * 10.0f;
+			FHitResult Hit = WeaponTrace(StartTrace, EndTrace);
+			UseImpact = Hit;
+		}
 
-	ADHImpactEffect* EffectActor = GetWorld()->SpawnActorDeferred<ADHImpactEffect>(ImpactTemplate, Impact.ImpactPoint, Impact.ImpactNormal.Rotation());
-	if (EffectActor)
-	{
-	EffectActor->SurfaceHit = UseImpact;
-	UGameplayStatics::FinishSpawningActor(EffectActor, FTransform(Impact.ImpactNormal.Rotation(), Impact.ImpactPoint));
+		AOrionImpactEffect* EffectActor = GetWorld()->SpawnActorDeferred<AOrionImpactEffect>(ImpactTemplate, Impact.ImpactPoint, Impact.ImpactNormal.Rotation());
+		if (EffectActor)
+		{
+			EffectActor->SurfaceHit = UseImpact;
+			UGameplayStatics::FinishSpawningActor(EffectActor, FTransform(Impact.ImpactNormal.Rotation(), Impact.ImpactPoint));
+		}
 	}
-	}*/
 }
 
 void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
@@ -1051,7 +1051,8 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 		UParticleSystemComponent* MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX[0], GetWeaponMesh(MyPawn->IsFirstPerson()), MuzzleAttachPoint[0]);
 		if (MuzzlePSC > 0)
 		{
-			MuzzlePSC->SetVectorParameter(FName("FlashScale"), FVector(InstantConfig.MuzzleScale));
+			//MuzzlePSC->SetVectorParameter(FName("FlashScale"), FVector(InstantConfig.MuzzleScale));
+			MuzzlePSC->SetWorldScale3D(FVector(InstantConfig.MuzzleScale));
 		}
 	}
 
@@ -1122,10 +1123,10 @@ void AOrionWeapon::OnEquip()
 
 	GetWorldTimerManager().SetTimer(this, &AOrionWeapon::OnEquipFinished, Duration, false);
 
-	if (MyPawn && MyPawn->IsLocallyControlled())
-	{
-		//PlayWeaponSound(EquipSound);
-	}
+	//if (MyPawn && MyPawn->IsLocallyControlled())
+	//{
+		PlayWeaponSound(DrawSound);
+	//}
 }
 
 void AOrionWeapon::OnEquipFinished()
@@ -1191,6 +1192,8 @@ float AOrionWeapon::OnUnEquip()
 	GetWorldTimerManager().SetTimer(this, &AOrionWeapon::OnUnEquipFinished, Duration, false);
 
 	WeaponState = WEAP_PUTTINGDOWN;
+
+	PlayWeaponSound(HolsterSound);
 
 	return Duration;
 }
