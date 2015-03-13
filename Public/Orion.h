@@ -25,6 +25,7 @@
 #include "OrionGeneratedMeshComponent.h"
 #include "OrionVoxelBase.h"
 #include "OrionDiamondSquare.h"
+#include "OrionImpactEffect.h"
 
 #define COLLISION_PROJECTILE	ECC_GameTraceChannel1
 #define COLLISION_WEAPON		ECC_GameTraceChannel2

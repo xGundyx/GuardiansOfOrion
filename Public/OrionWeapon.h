@@ -432,6 +432,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 		USoundCue* ReloadSound;
 
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+		USoundCue* DrawSound;
+
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+		USoundCue* HolsterSound;
+
 	/** play weapon sounds */
 	UAudioComponent* PlayWeaponSound(USoundCue* Sound);
 
@@ -444,6 +450,9 @@ public:
 	/** smoke trail */
 	UPROPERTY(EditDefaultsOnly, Category = Effects)
 		UParticleSystem* TrailFX;
+
+	UPROPERTY(EditDefaultsOnly, Category = Effects)
+		TSubclassOf<class AOrionImpactEffect> ImpactTemplate;
 
 	/** tracer */
 	UPROPERTY(EditDefaultsOnly, Category = Effects)

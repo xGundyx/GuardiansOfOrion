@@ -137,13 +137,13 @@ void UOrionMovementComponent::CalcVelocity(float DeltaTime, float Friction, bool
 	const AOrionCharacter* OrionCharacterOwner = Cast<AOrionCharacter>(PawnOwner);
 	if (OrionCharacterOwner)
 	{
-		/*if (OrionCharacterOwner->IsRolling())
+		if (OrionCharacterOwner->IsRolling())
 		{
 			Velocity.Normalize();
-			Velocity = Velocity*800.0f;
+			Velocity = Velocity*900.0f;
 			return;
 		}
-		else */if (OrionCharacterOwner->IsSprinting() && IsMovingOnGround())
+		else if (OrionCharacterOwner->IsSprinting() && IsMovingOnGround())
 		{
 			Velocity = OrionCharacterOwner->GetActorRotation().Vector()*GetMaxSpeed();
 			return;
