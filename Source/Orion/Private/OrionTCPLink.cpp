@@ -8,12 +8,15 @@
 #include "StringConv.h"
 #include "ClientConnector.h"
 #include "BackendMappings.h"
+#include "OrionStats.h"
 
 using namespace Backend;
 
-#if IS_SERVER
-#else
 void GlobalErrorHandler(PlayFabError& error, void* userData);
+
+#if IS_SERVER
+PlayFabServerAPI UOrionTCPLink::server;
+#else
 
 void OnAddUser(ClientModels::RegisterPlayFabUserResult& result, void* userData);
 void OnAddUserError(PlayFabError& error, void* userData);
@@ -40,6 +43,90 @@ UOrionTCPLink::UOrionTCPLink(const FObjectInitializer& ObjectInitializer)
 
 //server side calls go here
 #if IS_SERVER
+bool UOrionTCPLink::Init()
+{
+	PlayFabSettings::useDevelopmentEnvironment = true;
+	PlayFabSettings::serverURL = "https://93F0.playfabapi.com";
+	PlayFabSettings::titleId = "93F0";
+	PlayFabSettings::globalErrorHandler = GlobalErrorHandler;
+	PlayFabSettings::developerSecretKey = "TYGNKQGRFUHWNJ3EQ38F759ANUIAP8JY9R1G4BAEMTKUBNW5GG";
+
+	return true;
+}
+
+void UOrionTCPLink::SavePlayerStatistics(FString PlayerID, UOrionStats *Stats)
+{
+	ServerModels::UpdateUserStatisticsRequest request;
+
+	request.PlayFabId = TCHAR_TO_UTF8(*PlayerID);
+	if (Stats)
+		request.UserStatistics = Stats->GetStatsMap();
+
+	server.UpdateUserStatistics(request, OnSaveStats, OnSaveStatsError);
+}
+
+void UOrionTCPLink::OnSaveStats(ServerModels::UpdateUserStatisticsResult& result, void* userData)
+{
+
+}
+
+void UOrionTCPLink::OnSaveStatsError(PlayFabError& error, void* userData)
+{
+
+}
+
+void UOrionTCPLink::GetPlayerStats(void *Stats, FString PlayerID)
+{
+	ServerModels::GetUserStatisticsRequest request;
+
+	request.PlayFabId = TCHAR_TO_UTF8(*PlayerID);
+
+	server.GetUserStatistics(request, OnGetStats, OnGetStatsFailed, Stats);
+}
+
+void UOrionTCPLink::OnGetStats(ServerModels::GetUserStatisticsResult& result, void* userData)
+{
+	UOrionStats *Stats = static_cast<UOrionStats*>(userData);
+
+	if(Stats)
+	{
+		TArray<FPlayerStats> aStats;
+
+		for (std::map<std::string, PlayFab::Int32>::iterator it = result.UserStatistics.begin(); it != result.UserStatistics.end(); ++it)
+		{
+			FPlayerStats newStat;
+
+			newStat.StatID = FStatID(atoi(it->first.c_str()));
+			int32 index = int32(newStat.StatID) - 1;
+			newStat.StatType = Stats->aStats[index].StatType;
+			newStat.StatName = Stats->aStats[index].StatName;
+			newStat.StatType = Stats->aStats[index].StatType;
+			if (newStat.StatType == STATTYPE_INT)
+				newStat.StateValueInt = int32(it->Second);
+			else
+				newStat.StateValueFloat = float(it->Second);
+
+			aStats.Add(newStat);
+		}
+
+		Stats->aStats = aStats;
+		Stats->bInitialized = true;
+	}
+}
+
+void UOrionTCPLink::OnGetStatsFailed(PlayFabError& error, void* userData)
+{
+	UOrionStats *Stats = static_cast<UOrionStats*>(userData);
+
+	if(Stats)
+	{
+		TArray<FPlayerStats> aStats;
+
+		Stats->aStats = aStats;
+		Stats->bInitialized = true;
+	}
+}
+
 //client side calls go here
 #else
 bool UOrionTCPLink::Init(AOrionPlayerController *Owner)
@@ -63,6 +150,7 @@ void UOrionTCPLink::Update()
 void UOrionTCPLink::CreateAccount(FString UserName, FString Password, FString EMail)
 {
 	ClientModels::RegisterPlayFabUserRequest request;
+
 	request.TitleId = "93F0";
 	request.Username = TCHAR_TO_UTF8(*UserName);
 	request.Password = TCHAR_TO_UTF8(*Password);
@@ -108,6 +196,39 @@ void UOrionTCPLink::SelectCharacter(int32 Index)
 	{
 		FString Info = FString("SelectCharacter") + Delim + PlayFabID + Delim + Index + FString("\r\n\r\n");
 		connector->SendInfo(Info);
+	}
+}
+
+void UOrionTCPLink::GetPlayerStats(void *Stats)
+{
+	//ClientModels::GetUserStatisticsRequest request;
+	//request.PlayFabID = TCHAR_TO_UTF8(*PlayFabID);
+	client.GetUserStatistics(OnGetStats, OnGetStatsFailed, Stats);
+}
+
+void UOrionTCPLink::OnGetStats(ClientModels::GetUserStatisticsResult& result, void* userData)
+{
+	UOrionStats *Stats = static_cast<UOrionStats*>(userData);
+
+	if(Stats)
+	{
+		TArray<FPlayerStats> aStats;
+
+		Stats->aStats = aStats;
+		Stats->bInitialized = true;
+	}
+}
+
+void UOrionTCPLink::OnGetStatsFailed(PlayFabError& error, void* userData)
+{
+	UOrionStats *Stats = static_cast<UOrionStats*>(userData);
+
+	if(Stats)
+	{
+		TArray<FPlayerStats> aStats;
+
+		Stats->aStats = aStats;
+		Stats->bInitialized = true;
 	}
 }
 
@@ -292,11 +413,6 @@ void UOrionTCPLink::AddUserComplete(bool bSucceded, FString msg)
 		pPlayer->EventAccountCreated(false, msg);
 }
 
-void GlobalErrorHandler(PlayFabError& error, void* userData)
-{
-	printf("Got a global error\n");
-}
-
 void OnLogin(ClientModels::LoginResult& result, void* userData)
 {
 	UOrionTCPLink::SessionTicket = UTF8_TO_TCHAR(result.SessionTicket.c_str());
@@ -371,4 +487,7 @@ void OnAddUserError(PlayFabError& error, void* userData)
 }
 #endif
 
-
+void GlobalErrorHandler(PlayFabError& error, void* userData)
+{
+	printf("Got a global error\n");
+}

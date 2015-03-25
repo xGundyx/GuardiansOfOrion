@@ -35,3 +35,13 @@ struct FDecalData
 	{
 	}
 };
+
+UENUM()
+enum EFoodType
+{
+	FOOD_GRASS,
+	FOOD_FRUIT,
+	FOOD_VEGETABLE,
+	FOOD_DEADMEATSMALL,
+	FOOD_DEADMEATLARGE
+};

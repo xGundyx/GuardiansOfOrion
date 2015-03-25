@@ -339,6 +339,9 @@ public:
 	UPROPERTY()
 		float LastFireTime;
 
+	UPROPERTY()
+		float LastFireSoundTime;
+
 	UPROPERTY(EditDefaultsOnly, Category = Effects)
 		TArray<FName> MuzzleAttachPoint;
 
@@ -483,4 +486,11 @@ protected:
 	float TargetFOV;
 	float TargetViewOffset;
 	float LastAimTime;
+
+private:
+	FTimerHandle ReloadTimer;
+	FTimerHandle MeleeTimer;
+	FTimerHandle ReloadStopTimer;
+	FTimerHandle FireTimer;
+	FTimerHandle EquipTimer;
 };

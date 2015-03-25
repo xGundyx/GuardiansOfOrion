@@ -7,6 +7,8 @@
 #include "OrionCharacter.generated.h"
 
 class AOrionHoverVehicle;
+class AOrionFood;
+class AOrionWeaponDroid;
 
 USTRUCT()
 struct FWeaponAnim
@@ -247,6 +249,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Pawn")
 		void SetFlight2Mesh(USkeletalMesh* newMesh) const;
 
+	void EatFood(AOrionFood *Food);
+
 	/** [server] perform PlayerState related setup */
 	virtual void PossessedBy(class AController* C) override;
 
@@ -300,12 +304,18 @@ public:
 
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerDuck(bool bNewDuck);
+		bool ServerDuck_Validate(bool bNewDuck);
+		void ServerDuck_Implementation(bool bNewDuck);
 
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerRun(bool bNewRun);
+		bool ServerRun_Validate(bool bNewRun);
+		void ServerRun_Implementation(bool bNewRun);
 
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerAim(bool bNewAim);
+		bool ServerAim_Validate(bool bNewAim);
+		void ServerAim_Implementation(bool bNewAim);
 
 	UFUNCTION()
 		void OnRep_ArmorIndex();
@@ -659,9 +669,13 @@ protected:
 	/** equip weapon */
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerEquipWeapon(class AOrionWeapon* NewWeapon);
+		bool ServerEquipWeapon_Validate(class AOrionWeapon* NewWeapon);
+		void ServerEquipWeapon_Implementation(class AOrionWeapon* NewWeapon);
 
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerUse();
+		bool ServerUse_Validate();
+		void ServerUse_Implementation();
 
 	float BobTime;
 	FVector WalkBob;
@@ -672,6 +686,9 @@ protected:
 
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerSetAimYaw(float yaw, float pitch);
+		bool ServerSetAimYaw_Validate(float yaw, float pitch);
+		void ServerSetAimYaw_Implementation(float yaw, float pitch);
+
 
 	bool bRolling;
 
@@ -684,5 +701,10 @@ protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 	// End of APawn interface
+
+private:
+	FTimerHandle EquipTimer;
+	FTimerHandle UnEquipTimer;
+	FTimerHandle RollTimer;
 };
 

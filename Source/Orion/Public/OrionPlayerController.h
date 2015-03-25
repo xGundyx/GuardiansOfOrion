@@ -124,7 +124,8 @@ public:
 	void InitQuestManager();
 	
 	//stats and achievements
-	void InitStatsAndAchievements();
+	UFUNCTION(BlueprintCallable, Category = PlayFab)
+		void InitStatsAndAchievements();
 
 	//read in the stats from playfab
 	void ReadStats();
@@ -215,10 +216,14 @@ public:
 
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerAllArmor(int32 index);
+		bool ServerAllArmor_Validate(int32 index);
+		void ServerAllArmor_Implementation(int32 index);
 
 public:
 	UPROPERTY()//VisibleAnywhere, BlueprintReadOnly, Category = Rain)
 		UParticleSystemComponent *RainPSC;
+
+	FString PlayFabID;
 
 private:
 	UOrionQuestManager *QuestManager;

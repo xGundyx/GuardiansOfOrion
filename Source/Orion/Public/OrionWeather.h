@@ -311,4 +311,9 @@ public:
 #if WITH_EDITOR
 	virtual void LoadedFromAnotherClass(const FName& OldClassName) override;
 #endif
+
+private:
+	FTimerHandle CloudTimer;
+	FTimerHandle RainTimer;
+	FTimerHandle WeatherTimer;
 };

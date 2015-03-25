@@ -2,7 +2,7 @@
 
 #include "Orion.h"
 
-AOrionImpactEffect::AOrionImpactEffect(const class FPostConstructInitializeProperties& PCIP) : Super(PCIP)
+AOrionImpactEffect::AOrionImpactEffect(const class FObjectInitializer& PCIP) : Super(PCIP)
 {
 	bAutoDestroyWhenFinished = true;
 }

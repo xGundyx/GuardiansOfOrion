@@ -88,7 +88,7 @@ bool UClientConnector::CreateSenderSocket()
 	if (LoginSenderSocket)
 	{
 		//connect us
-		FString address = TEXT("192.168.1.66");
+		FString address = TEXT("192.168.1.64");
 		int32 port = 7890;
 		FIPv4Address ip;
 		FIPv4Address::Parse(address, ip);

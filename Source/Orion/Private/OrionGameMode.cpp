@@ -30,10 +30,21 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 
 	//this will keep players connected and keep their data persistent across map changes
 	bUseSeamlessTravel = true; 
+
+#if IS_SERVER
+	UOrionTCPLink::Init();
+#endif
 }
 
 void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APawn* KilledPawn, const UDamageType* DamageType)
 {
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Killer);
+
+	if (PC)
+	{
+		//make sure to update this player's stats
+		PC->IncreaseStatValue(STAT_RAPTORKILL, 1, 0.0f);
+	}
 	/*AShooterPlayerState* KillerPlayerState = Killer ? Cast<AShooterPlayerState>(Killer->PlayerState) : NULL;
 	AShooterPlayerState* VictimPlayerState = KilledPlayer ? Cast<AShooterPlayerState>(KilledPlayer->PlayerState) : NULL;
 
@@ -48,4 +59,22 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 	VictimPlayerState->ScoreDeath(KillerPlayerState, DeathScore);
 	VictimPlayerState->BroadcastDeath(KillerPlayerState, DamageType);
 	}*/
+}
+
+APlayerController* AOrionGameMode::Login(class UPlayer* NewPlayer, const FString& Portal, const FString& Options, const TSharedPtr<class FUniqueNetId>& UniqueId, FString& ErrorMessage)
+{
+	APlayerController *rPC = Super::Login(NewPlayer, Portal, Options, UniqueId, ErrorMessage);
+
+#if IS_SERVER
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(NewPlayer);
+
+	//setup a stats object for this player
+	if (PC)
+	{
+		PC->InitStatsAndAchievements();
+		PC->ReadStats();
+	}
+#endif
+
+	return rPC;
 }
