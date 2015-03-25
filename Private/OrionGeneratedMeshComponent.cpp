@@ -127,7 +127,7 @@ FPrimitiveSceneProxy* UOrionGeneratedMeshComponent::CreateSceneProxy()
 				const FVector Edge01 = (Tri.Vertex1.Position - Tri.Vertex0.Position);
 				const FVector Edge02 = (Tri.Vertex2.Position - Tri.Vertex0.Position);
 
-				FVector FlatZ = ((Edge02 ^ Edge01).SafeNormal() + 1.0) / 2.0 * 255;
+				FVector FlatZ = ((Edge02 ^ Edge01).GetSafeNormal() + 1.0) / 2.0 * 255;
 				FColor VertexColor(FlatZ.X, FlatZ.Y, FlatZ.Z);
 
 				FVector TangentX = Tri.Vertex0.NormalX;

@@ -75,7 +75,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Arms1PArmorMesh->AlwaysLoadOnServer = true;
 	Arms1PArmorMesh->bOwnerNoSee = false;
 	Arms1PArmorMesh->bOnlyOwnerSee = true;
-	Arms1PArmorMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
+	Arms1PArmorMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	Arms1PArmorMesh->bCastDynamicShadow = true;
 	Arms1PArmorMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
 	Arms1PArmorMesh->bChartDistanceFactor = true;
@@ -89,7 +89,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	BodyMesh->AlwaysLoadOnClient = true;
 	BodyMesh->AlwaysLoadOnServer = true;
 	BodyMesh->bOwnerNoSee = true;
-	BodyMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
+	BodyMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	BodyMesh->bCastDynamicShadow = true;
 	BodyMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
 	BodyMesh->bChartDistanceFactor = true;
@@ -103,7 +103,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	HelmetMesh->AlwaysLoadOnClient = true;
 	HelmetMesh->AlwaysLoadOnServer = true;
 	HelmetMesh->bOwnerNoSee = true;
-	HelmetMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
+	HelmetMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	HelmetMesh->bCastDynamicShadow = true;
 	HelmetMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
 	HelmetMesh->bChartDistanceFactor = true;
@@ -117,7 +117,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	ArmsMesh->AlwaysLoadOnClient = true;
 	ArmsMesh->AlwaysLoadOnServer = true;
 	ArmsMesh->bOwnerNoSee = true;
-	ArmsMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
+	ArmsMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	ArmsMesh->bCastDynamicShadow = true;
 	ArmsMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
 	ArmsMesh->bChartDistanceFactor = true;
@@ -131,7 +131,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	LegsMesh->AlwaysLoadOnClient = true;
 	LegsMesh->AlwaysLoadOnServer = true;
 	LegsMesh->bOwnerNoSee = true;
-	LegsMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
+	LegsMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	LegsMesh->bCastDynamicShadow = true;
 	LegsMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
 	LegsMesh->bChartDistanceFactor = true;
@@ -145,7 +145,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Flight1Mesh->AlwaysLoadOnClient = true;
 	Flight1Mesh->AlwaysLoadOnServer = true;
 	Flight1Mesh->bOwnerNoSee = true;
-	Flight1Mesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
+	Flight1Mesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	Flight1Mesh->bCastDynamicShadow = true;
 	Flight1Mesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
 	Flight1Mesh->bChartDistanceFactor = true;
@@ -159,7 +159,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Flight2Mesh->AlwaysLoadOnClient = true;
 	Flight2Mesh->AlwaysLoadOnServer = true;
 	Flight2Mesh->bOwnerNoSee = true;
-	Flight2Mesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
+	Flight2Mesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	Flight2Mesh->bCastDynamicShadow = true;
 	Flight2Mesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
 	Flight2Mesh->bChartDistanceFactor = true;
@@ -487,6 +487,13 @@ void AOrionCharacter::HandleSpecialWeaponFire(FName SocketName)
 
 void AOrionCharacter::SetCurrentWeapon(class AOrionWeapon* NewWeapon, class AOrionWeapon* LastWeapon)
 {
+	//if we're already putting our weapon down, just set the next weapon and don't trigger any anims
+	if (GetWorldTimerManager().IsTimerActive(UnEquipTimer))
+	{
+		NextWeapon = NewWeapon;
+		return;
+	}
+
 	AOrionWeapon* LocalLastWeapon = NULL;
 	float Duration = 0.01f;
 
@@ -506,7 +513,7 @@ void AOrionCharacter::SetCurrentWeapon(class AOrionWeapon* NewWeapon, class AOri
 	}
 
 	NextWeapon = NewWeapon;
-	GetWorldTimerManager().SetTimer(this, &AOrionCharacter::ReallyDoEquip, 0.9*Duration, false);
+	GetWorldTimerManager().SetTimer(UnEquipTimer, this, &AOrionCharacter::ReallyDoEquip, 0.9*Duration, false);
 }
 
 void AOrionCharacter::ReallyDoEquip()
@@ -893,7 +900,8 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	// Ragdoll
 	if (DeathAnimDuration > 0.f)
 	{
-		GetWorldTimerManager().SetTimer(this, &AOrionCharacter::SetRagdollPhysics, FMath::Min(0.1f, DeathAnimDuration), false);
+		FTimerHandle THandle;
+		GetWorldTimerManager().SetTimer(THandle, this, &AOrionCharacter::SetRagdollPhysics, FMath::Min(0.1f, DeathAnimDuration), false);
 	}
 	else
 	{
@@ -940,8 +948,14 @@ float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float I
 	{
 		//float const Duration = AnimInstance->Montage_Play(AnimMontage, InPlayRate);
 		//play weapon animations if needed
-		if (CurrentWeapon)
+		if (CurrentWeapon && Cast<AOrionWeaponDroid>(CurrentWeapon) == nullptr)
 		{
+			//stop old animations if needed
+			if (CurrentWeapon->GetWeaponMesh(true) && !Animation.Weapon1P)
+				CurrentWeapon->GetWeaponMesh(true)->AnimScriptInstance->Montage_Stop(0.05);
+			if (CurrentWeapon->GetWeaponMesh(false) && !Animation.Weapon3P)
+				CurrentWeapon->GetWeaponMesh(false)->AnimScriptInstance->Montage_Stop(0.05);
+
 			if (CurrentWeapon->GetWeaponMesh(true) && Animation.Weapon1P)
 				CurrentWeapon->GetWeaponMesh(true)->AnimScriptInstance->Montage_Play(Animation.Weapon1P, 1.0f);// / Animation.Weapon1P->RateScale;
 			if (CurrentWeapon->GetWeaponMesh(false) && Animation.Weapon3P)
@@ -977,6 +991,11 @@ float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float I
 	}
 
 	return 0.f;
+}
+
+void AOrionCharacter::EatFood(AOrionFood *Food)
+{
+
 }
 
 void AOrionCharacter::StopAnimMontage(class UAnimMontage* AnimMontage)
@@ -1105,7 +1124,8 @@ void AOrionCharacter::UpdatePawnMeshes()
 	Arms1PArmorMesh->SetOwnerNoSee(!bFirst);
 
 	if (CurrentWeapon)
-		CurrentWeapon->OnEquip();
+		CurrentWeapon->AttachMeshToPawn();
+	//	CurrentWeapon->OnEquip();
 }
 
 class UPawnMovementComponent* AOrionCharacter::GetMovementComponent() const
@@ -1217,8 +1237,8 @@ void AOrionCharacter::OnNextWeapon()
 		if (Inventory.Num() >= 2 && (CurrentWeapon == NULL || true))//CurrentWeapon->GetCurrentState() != EWeaponState::Equipping))
 		{
 			const int32 CurrentWeaponIdx = Inventory.IndexOfByKey(CurrentWeapon);
-			AOrionWeapon* NextWeapon = Inventory[(CurrentWeaponIdx + 1) % Inventory.Num()];
-			EquipWeapon(NextWeapon);
+			AOrionWeapon* NWeapon = Inventory[(CurrentWeaponIdx + 1) % Inventory.Num()];
+			EquipWeapon(NWeapon);
 		}
 	}
 }
@@ -1284,7 +1304,7 @@ void AOrionCharacter::BehindView()
 
 void AOrionCharacter::Duck()
 {
-	GetWorldTimerManager().SetTimer(this, &AOrionCharacter::DoRoll, 0.35, false);
+	GetWorldTimerManager().SetTimer(RollTimer, this, &AOrionCharacter::DoRoll, 0.35, false);
 }
 
 void AOrionCharacter::StopDucking()
@@ -1295,9 +1315,9 @@ void AOrionCharacter::StopDucking()
 
 void AOrionCharacter::UnDuck()
 {
-	if (GetWorldTimerManager().IsTimerActive(this, &AOrionCharacter::DoRoll))
+	if (GetWorldTimerManager().IsTimerActive(RollTimer))
 	{
-		GetWorldTimerManager().ClearTimer(this, &AOrionCharacter::DoRoll);
+		GetWorldTimerManager().ClearTimer(RollTimer);
 		bDuck = !bDuck;
 		ServerDuck(bDuck);
 	}
@@ -1395,7 +1415,7 @@ void AOrionCharacter::DoRoll()
 		PC->SetIgnoreLookInput(true);
 	}
 
-	GetWorldTimerManager().SetTimer(this, &AOrionCharacter::EndRoll, 0.9f*Length, false);
+	GetWorldTimerManager().SetTimer(RollTimer, this, &AOrionCharacter::EndRoll, 0.9f*Length, false);
 	//GetWorldTimerManager().SetTimer(this, &AOrionCharacter::ResetRootRotation, Length*0.8f, false);
 }
 

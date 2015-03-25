@@ -588,18 +588,18 @@ void AOrionVoxelBase::DrawPatch(UOrionOcTree *theTree, UOrionOcTree *parentTree,
 				if (edgeTable[cubeIndex] & 2048) { EdgeVerts[11].pos = FindEdgeIntersection(points[3], points[7], enabled[3] / (enabled[3] - enabled[7])); EdgeVerts[11].type = enabled[3] < enabled[7] ? types[3] : types[7]; }
 
 				FVector EdgeNormals[12];
-				if (edgeTable[cubeIndex] & 1) EdgeNormals[0] = FindEdgeIntersection(gradients[0], gradients[1], enabled[0] / (enabled[0] - enabled[1])).SafeNormal();
-				if (edgeTable[cubeIndex] & 2) EdgeNormals[1] = FindEdgeIntersection(gradients[1], gradients[2], enabled[1] / (enabled[1] - enabled[2])).SafeNormal();
-				if (edgeTable[cubeIndex] & 4) EdgeNormals[2] = FindEdgeIntersection(gradients[2], gradients[3], enabled[2] / (enabled[2] - enabled[3])).SafeNormal();
-				if (edgeTable[cubeIndex] & 8) EdgeNormals[3] = FindEdgeIntersection(gradients[3], gradients[0], enabled[3] / (enabled[3] - enabled[0])).SafeNormal();
-				if (edgeTable[cubeIndex] & 16) EdgeNormals[4] = FindEdgeIntersection(gradients[4], gradients[5], enabled[4] / (enabled[4] - enabled[5])).SafeNormal();
-				if (edgeTable[cubeIndex] & 32) EdgeNormals[5] = FindEdgeIntersection(gradients[5], gradients[6], enabled[5] / (enabled[5] - enabled[6])).SafeNormal();
-				if (edgeTable[cubeIndex] & 64) EdgeNormals[6] = FindEdgeIntersection(gradients[6], gradients[7], enabled[6] / (enabled[6] - enabled[7])).SafeNormal();
-				if (edgeTable[cubeIndex] & 128) EdgeNormals[7] = FindEdgeIntersection(gradients[7], gradients[4], enabled[7] / (enabled[7] - enabled[4])).SafeNormal();
-				if (edgeTable[cubeIndex] & 256) EdgeNormals[8] = FindEdgeIntersection(gradients[0], gradients[4], enabled[0] / (enabled[0] - enabled[4])).SafeNormal();
-				if (edgeTable[cubeIndex] & 512) EdgeNormals[9] = FindEdgeIntersection(gradients[1], gradients[5], enabled[1] / (enabled[1] - enabled[5])).SafeNormal();
-				if (edgeTable[cubeIndex] & 1024) EdgeNormals[10] = FindEdgeIntersection(gradients[2], gradients[6], enabled[2] / (enabled[2] - enabled[6])).SafeNormal();
-				if (edgeTable[cubeIndex] & 2048) EdgeNormals[11] = FindEdgeIntersection(gradients[3], gradients[7], enabled[3] / (enabled[3] - enabled[7])).SafeNormal();
+				if (edgeTable[cubeIndex] & 1) EdgeNormals[0] = FindEdgeIntersection(gradients[0], gradients[1], enabled[0] / (enabled[0] - enabled[1])).GetSafeNormal();
+				if (edgeTable[cubeIndex] & 2) EdgeNormals[1] = FindEdgeIntersection(gradients[1], gradients[2], enabled[1] / (enabled[1] - enabled[2])).GetSafeNormal();
+				if (edgeTable[cubeIndex] & 4) EdgeNormals[2] = FindEdgeIntersection(gradients[2], gradients[3], enabled[2] / (enabled[2] - enabled[3])).GetSafeNormal();
+				if (edgeTable[cubeIndex] & 8) EdgeNormals[3] = FindEdgeIntersection(gradients[3], gradients[0], enabled[3] / (enabled[3] - enabled[0])).GetSafeNormal();
+				if (edgeTable[cubeIndex] & 16) EdgeNormals[4] = FindEdgeIntersection(gradients[4], gradients[5], enabled[4] / (enabled[4] - enabled[5])).GetSafeNormal();
+				if (edgeTable[cubeIndex] & 32) EdgeNormals[5] = FindEdgeIntersection(gradients[5], gradients[6], enabled[5] / (enabled[5] - enabled[6])).GetSafeNormal();
+				if (edgeTable[cubeIndex] & 64) EdgeNormals[6] = FindEdgeIntersection(gradients[6], gradients[7], enabled[6] / (enabled[6] - enabled[7])).GetSafeNormal();
+				if (edgeTable[cubeIndex] & 128) EdgeNormals[7] = FindEdgeIntersection(gradients[7], gradients[4], enabled[7] / (enabled[7] - enabled[4])).GetSafeNormal();
+				if (edgeTable[cubeIndex] & 256) EdgeNormals[8] = FindEdgeIntersection(gradients[0], gradients[4], enabled[0] / (enabled[0] - enabled[4])).GetSafeNormal();
+				if (edgeTable[cubeIndex] & 512) EdgeNormals[9] = FindEdgeIntersection(gradients[1], gradients[5], enabled[1] / (enabled[1] - enabled[5])).GetSafeNormal();
+				if (edgeTable[cubeIndex] & 1024) EdgeNormals[10] = FindEdgeIntersection(gradients[2], gradients[6], enabled[2] / (enabled[2] - enabled[6])).GetSafeNormal();
+				if (edgeTable[cubeIndex] & 2048) EdgeNormals[11] = FindEdgeIntersection(gradients[3], gradients[7], enabled[3] / (enabled[3] - enabled[7])).GetSafeNormal();
 
 				//find our QEF points
 				static int32 intersections[12][2] = {
@@ -906,18 +906,18 @@ void AOrionVoxelBase::GenerateMeshFromChunksDualContour()
 							if (edgeTable[cubeIndex] & 2048) { EdgeVerts[11].pos = FindEdgeIntersection(points[3], points[7], enabled[3] / (enabled[3] - enabled[7])); EdgeVerts[11].type = enabled[3] < enabled[7] ? types[3] : types[7]; }
 
 							FVector EdgeNormals[12];
-							if (edgeTable[cubeIndex] & 1) EdgeNormals[0] = FindEdgeIntersection(gradients[0], gradients[1], enabled[0] / (enabled[0] - enabled[1])).SafeNormal();
-							if (edgeTable[cubeIndex] & 2) EdgeNormals[1] = FindEdgeIntersection(gradients[1], gradients[2], enabled[1] / (enabled[1] - enabled[2])).SafeNormal();
-							if (edgeTable[cubeIndex] & 4) EdgeNormals[2] = FindEdgeIntersection(gradients[2], gradients[3], enabled[2] / (enabled[2] - enabled[3])).SafeNormal();
-							if (edgeTable[cubeIndex] & 8) EdgeNormals[3] = FindEdgeIntersection(gradients[3], gradients[0], enabled[3] / (enabled[3] - enabled[0])).SafeNormal();
-							if (edgeTable[cubeIndex] & 16) EdgeNormals[4] = FindEdgeIntersection(gradients[4], gradients[5], enabled[4] / (enabled[4] - enabled[5])).SafeNormal();
-							if (edgeTable[cubeIndex] & 32) EdgeNormals[5] = FindEdgeIntersection(gradients[5], gradients[6], enabled[5] / (enabled[5] - enabled[6])).SafeNormal();
-							if (edgeTable[cubeIndex] & 64) EdgeNormals[6] = FindEdgeIntersection(gradients[6], gradients[7], enabled[6] / (enabled[6] - enabled[7])).SafeNormal();
-							if (edgeTable[cubeIndex] & 128) EdgeNormals[7] = FindEdgeIntersection(gradients[7], gradients[4], enabled[7] / (enabled[7] - enabled[4])).SafeNormal();
-							if (edgeTable[cubeIndex] & 256) EdgeNormals[8] = FindEdgeIntersection(gradients[0], gradients[4], enabled[0] / (enabled[0] - enabled[4])).SafeNormal();
-							if (edgeTable[cubeIndex] & 512) EdgeNormals[9] = FindEdgeIntersection(gradients[1], gradients[5], enabled[1] / (enabled[1] - enabled[5])).SafeNormal();
-							if (edgeTable[cubeIndex] & 1024) EdgeNormals[10] = FindEdgeIntersection(gradients[2], gradients[6], enabled[2] / (enabled[2] - enabled[6])).SafeNormal();
-							if (edgeTable[cubeIndex] & 2048) EdgeNormals[11] = FindEdgeIntersection(gradients[3], gradients[7], enabled[3] / (enabled[3] - enabled[7])).SafeNormal();
+							if (edgeTable[cubeIndex] & 1) EdgeNormals[0] = FindEdgeIntersection(gradients[0], gradients[1], enabled[0] / (enabled[0] - enabled[1])).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 2) EdgeNormals[1] = FindEdgeIntersection(gradients[1], gradients[2], enabled[1] / (enabled[1] - enabled[2])).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 4) EdgeNormals[2] = FindEdgeIntersection(gradients[2], gradients[3], enabled[2] / (enabled[2] - enabled[3])).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 8) EdgeNormals[3] = FindEdgeIntersection(gradients[3], gradients[0], enabled[3] / (enabled[3] - enabled[0])).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 16) EdgeNormals[4] = FindEdgeIntersection(gradients[4], gradients[5], enabled[4] / (enabled[4] - enabled[5])).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 32) EdgeNormals[5] = FindEdgeIntersection(gradients[5], gradients[6], enabled[5] / (enabled[5] - enabled[6])).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 64) EdgeNormals[6] = FindEdgeIntersection(gradients[6], gradients[7], enabled[6] / (enabled[6] - enabled[7])).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 128) EdgeNormals[7] = FindEdgeIntersection(gradients[7], gradients[4], enabled[7] / (enabled[7] - enabled[4])).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 256) EdgeNormals[8] = FindEdgeIntersection(gradients[0], gradients[4], enabled[0] / (enabled[0] - enabled[4])).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 512) EdgeNormals[9] = FindEdgeIntersection(gradients[1], gradients[5], enabled[1] / (enabled[1] - enabled[5])).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 1024) EdgeNormals[10] = FindEdgeIntersection(gradients[2], gradients[6], enabled[2] / (enabled[2] - enabled[6])).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 2048) EdgeNormals[11] = FindEdgeIntersection(gradients[3], gradients[7], enabled[3] / (enabled[3] - enabled[7])).GetSafeNormal();
 
 							//find our QEF points
 							static int32 intersections[12][2] = {
@@ -1073,25 +1073,25 @@ void AOrionVoxelBase::AddTris(int32 x, int32 y, int32 z, DualContourCube cubes[V
 		//const FVector Edge02 = (tri.Vertex2.Position - tri.Vertex0.Position);
 
 		tri.Vertex0.NormalX = FVector(tri.Vertex0.NormalZ.Z, tri.Vertex0.NormalZ.X, -tri.Vertex0.NormalZ.Y);
-		tri.Vertex0.NormalY = (tri.Vertex0.NormalZ ^ tri.Vertex0.NormalX).SafeNormal();
+		tri.Vertex0.NormalY = (tri.Vertex0.NormalZ ^ tri.Vertex0.NormalX).GetSafeNormal();
 
 		tri.Vertex1.NormalX = FVector(tri.Vertex1.NormalZ.Z, tri.Vertex1.NormalZ.X, -tri.Vertex1.NormalZ.Y);
-		tri.Vertex1.NormalY = (tri.Vertex1.NormalZ ^ tri.Vertex1.NormalX).SafeNormal();
+		tri.Vertex1.NormalY = (tri.Vertex1.NormalZ ^ tri.Vertex1.NormalX).GetSafeNormal();
 
 		tri.Vertex2.NormalX = FVector(tri.Vertex2.NormalZ.Z, tri.Vertex2.NormalZ.X, -tri.Vertex2.NormalZ.Y);
-		tri.Vertex2.NormalY = (tri.Vertex2.NormalZ ^ tri.Vertex2.NormalX).SafeNormal();
+		tri.Vertex2.NormalY = (tri.Vertex2.NormalZ ^ tri.Vertex2.NormalX).GetSafeNormal();
 
-		/*tri.Vertex0.NormalZ = (Edge02 ^ Edge01).SafeNormal();
-		tri.Vertex0.NormalX = Edge01.SafeNormal();
-		tri.Vertex0.NormalY = (tri.Vertex0.NormalZ ^ tri.Vertex0.NormalX).SafeNormal();
+		/*tri.Vertex0.NormalZ = (Edge02 ^ Edge01).GetSafeNormal();
+		tri.Vertex0.NormalX = Edge01.GetSafeNormal();
+		tri.Vertex0.NormalY = (tri.Vertex0.NormalZ ^ tri.Vertex0.NormalX).GetSafeNormal();
 
-		tri.Vertex1.NormalZ = (Edge02 ^ Edge01).SafeNormal();
-		tri.Vertex1.NormalX = Edge01.SafeNormal();
-		tri.Vertex1.NormalY = (tri.Vertex1.NormalZ ^ tri.Vertex1.NormalX).SafeNormal();
+		tri.Vertex1.NormalZ = (Edge02 ^ Edge01).GetSafeNormal();
+		tri.Vertex1.NormalX = Edge01.GetSafeNormal();
+		tri.Vertex1.NormalY = (tri.Vertex1.NormalZ ^ tri.Vertex1.NormalX).GetSafeNormal();
 
-		tri.Vertex2.NormalZ = (Edge02 ^ Edge01).SafeNormal();
-		tri.Vertex2.NormalX = Edge01.SafeNormal();
-		tri.Vertex2.NormalY = (tri.Vertex2.NormalZ ^ tri.Vertex2.NormalX).SafeNormal();*/
+		tri.Vertex2.NormalZ = (Edge02 ^ Edge01).GetSafeNormal();
+		tri.Vertex2.NormalX = Edge01.GetSafeNormal();
+		tri.Vertex2.NormalY = (tri.Vertex2.NormalZ ^ tri.Vertex2.NormalX).GetSafeNormal();*/
 
 		tri.Vertex0.TextureCoordinate1 = FVector2D(0, 1.0);
 		tri.Vertex0.TextureCoordinate2 = FVector2D(0, 0.0);
@@ -1363,18 +1363,18 @@ void AOrionVoxelBase::GenerateMeshFromChunks()
 							if (edgeTable[cubeIndex] & 2048) { EdgeVerts[11].pos = FindEdgeIntersection(points[3], points[7], enabled[3] / (enabled[3] - enabled[7])); EdgeVerts[11].type = enabled[3] < enabled[7] ? types[3] : types[7]; }
 
 							FVector EdgeNormals[12];
-							if (edgeTable[cubeIndex] & 1) EdgeNormals[0] = FindEdgeIntersection(gradients[0], gradients[1], 0.5).SafeNormal();
-							if (edgeTable[cubeIndex] & 2) EdgeNormals[1] = FindEdgeIntersection(gradients[1], gradients[2], 0.5).SafeNormal();
-							if (edgeTable[cubeIndex] & 4) EdgeNormals[2] = FindEdgeIntersection(gradients[2], gradients[3], 0.5).SafeNormal();
-							if (edgeTable[cubeIndex] & 8) EdgeNormals[3] = FindEdgeIntersection(gradients[3], gradients[0], 0.5).SafeNormal();
-							if (edgeTable[cubeIndex] & 16) EdgeNormals[4] = FindEdgeIntersection(gradients[4], gradients[5], 0.5).SafeNormal();
-							if (edgeTable[cubeIndex] & 32) EdgeNormals[5] = FindEdgeIntersection(gradients[5], gradients[6], 0.5).SafeNormal();
-							if (edgeTable[cubeIndex] & 64) EdgeNormals[6] = FindEdgeIntersection(gradients[6], gradients[7], 0.5).SafeNormal();
-							if (edgeTable[cubeIndex] & 128) EdgeNormals[7] = FindEdgeIntersection(gradients[7], gradients[4], 0.5).SafeNormal();
-							if (edgeTable[cubeIndex] & 256) EdgeNormals[8] = FindEdgeIntersection(gradients[0], gradients[4], 0.5).SafeNormal();
-							if (edgeTable[cubeIndex] & 512) EdgeNormals[9] = FindEdgeIntersection(gradients[1], gradients[5], 0.5).SafeNormal();
-							if (edgeTable[cubeIndex] & 1024) EdgeNormals[10] = FindEdgeIntersection(gradients[2], gradients[6], 0.5).SafeNormal();
-							if (edgeTable[cubeIndex] & 2048) EdgeNormals[11] = FindEdgeIntersection(gradients[3], gradients[7], 0.5).SafeNormal();
+							if (edgeTable[cubeIndex] & 1) EdgeNormals[0] = FindEdgeIntersection(gradients[0], gradients[1], 0.5).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 2) EdgeNormals[1] = FindEdgeIntersection(gradients[1], gradients[2], 0.5).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 4) EdgeNormals[2] = FindEdgeIntersection(gradients[2], gradients[3], 0.5).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 8) EdgeNormals[3] = FindEdgeIntersection(gradients[3], gradients[0], 0.5).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 16) EdgeNormals[4] = FindEdgeIntersection(gradients[4], gradients[5], 0.5).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 32) EdgeNormals[5] = FindEdgeIntersection(gradients[5], gradients[6], 0.5).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 64) EdgeNormals[6] = FindEdgeIntersection(gradients[6], gradients[7], 0.5).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 128) EdgeNormals[7] = FindEdgeIntersection(gradients[7], gradients[4], 0.5).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 256) EdgeNormals[8] = FindEdgeIntersection(gradients[0], gradients[4], 0.5).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 512) EdgeNormals[9] = FindEdgeIntersection(gradients[1], gradients[5], 0.5).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 1024) EdgeNormals[10] = FindEdgeIntersection(gradients[2], gradients[6], 0.5).GetSafeNormal();
+							if (edgeTable[cubeIndex] & 2048) EdgeNormals[11] = FindEdgeIntersection(gradients[3], gradients[7], 0.5).GetSafeNormal();
 
 							//fill out our triangles
 							for (int32 n = 0; triTable[cubeIndex][n] != -1; n += 3)
@@ -1386,29 +1386,29 @@ void AOrionVoxelBase::GenerateMeshFromChunks()
 								/*const FVector Edge01 = (tri.Vertex1.Position - tri.Vertex0.Position);
 								const FVector Edge02 = (tri.Vertex2.Position - tri.Vertex0.Position);
 
-								tri.Vertex0.NormalZ = (Edge02 ^ Edge01).SafeNormal();
-								tri.Vertex0.NormalX = Edge01.SafeNormal();
-								tri.Vertex0.NormalY = (tri.Vertex0.NormalZ ^ tri.Vertex0.NormalX).SafeNormal();
+								tri.Vertex0.NormalZ = (Edge02 ^ Edge01).GetSafeNormal();
+								tri.Vertex0.NormalX = Edge01.GetSafeNormal();
+								tri.Vertex0.NormalY = (tri.Vertex0.NormalZ ^ tri.Vertex0.NormalX).GetSafeNormal();
 
-								tri.Vertex1.NormalZ = (Edge02 ^ Edge01).SafeNormal();
-								tri.Vertex1.NormalX = Edge01.SafeNormal();
-								tri.Vertex1.NormalY = (tri.Vertex1.NormalZ ^ tri.Vertex1.NormalX).SafeNormal();
+								tri.Vertex1.NormalZ = (Edge02 ^ Edge01).GetSafeNormal();
+								tri.Vertex1.NormalX = Edge01.GetSafeNormal();
+								tri.Vertex1.NormalY = (tri.Vertex1.NormalZ ^ tri.Vertex1.NormalX).GetSafeNormal();
 
-								tri.Vertex2.NormalZ = (Edge02 ^ Edge01).SafeNormal();
-								tri.Vertex2.NormalX = Edge01.SafeNormal();
-								tri.Vertex2.NormalY = (tri.Vertex2.NormalZ ^ tri.Vertex2.NormalX).SafeNormal();*/
+								tri.Vertex2.NormalZ = (Edge02 ^ Edge01).GetSafeNormal();
+								tri.Vertex2.NormalX = Edge01.GetSafeNormal();
+								tri.Vertex2.NormalY = (tri.Vertex2.NormalZ ^ tri.Vertex2.NormalX).GetSafeNormal();*/
 
 								tri.Vertex0.NormalZ = -EdgeNormals[triTable[cubeIndex][n + 2]];
 								tri.Vertex0.NormalX = FVector(tri.Vertex0.NormalZ.Z, tri.Vertex0.NormalZ.X, -tri.Vertex0.NormalZ.Y);
-								tri.Vertex0.NormalY = (tri.Vertex0.NormalZ ^ tri.Vertex0.NormalX).SafeNormal();// FVector(tri.Vertex0.NormalZ.Y, -tri.Vertex0.NormalZ.X, tri.Vertex0.NormalZ.Z);
+								tri.Vertex0.NormalY = (tri.Vertex0.NormalZ ^ tri.Vertex0.NormalX).GetSafeNormal();// FVector(tri.Vertex0.NormalZ.Y, -tri.Vertex0.NormalZ.X, tri.Vertex0.NormalZ.Z);
 
 								tri.Vertex1.NormalZ = -EdgeNormals[triTable[cubeIndex][n + 1]];
 								tri.Vertex1.NormalX = FVector(tri.Vertex1.NormalZ.Z, tri.Vertex1.NormalZ.X, -tri.Vertex1.NormalZ.Y);
-								tri.Vertex1.NormalY = (tri.Vertex1.NormalZ ^ tri.Vertex1.NormalX).SafeNormal();// FVector(tri.Vertex0.NormalZ.Y, -tri.Vertex1.NormalZ.X, tri.Vertex1.NormalZ.Z);
+								tri.Vertex1.NormalY = (tri.Vertex1.NormalZ ^ tri.Vertex1.NormalX).GetSafeNormal();// FVector(tri.Vertex0.NormalZ.Y, -tri.Vertex1.NormalZ.X, tri.Vertex1.NormalZ.Z);
 
 								tri.Vertex2.NormalZ = -EdgeNormals[triTable[cubeIndex][n + 0]];
 								tri.Vertex2.NormalX = FVector(tri.Vertex2.NormalZ.Z, tri.Vertex2.NormalZ.X, -tri.Vertex2.NormalZ.Y);
-								tri.Vertex2.NormalY = (tri.Vertex2.NormalZ ^ tri.Vertex2.NormalX).SafeNormal();//  FVector(tri.Vertex0.NormalZ.Y, -tri.Vertex2.NormalZ.X, tri.Vertex2.NormalZ.Z);
+								tri.Vertex2.NormalY = (tri.Vertex2.NormalZ ^ tri.Vertex2.NormalX).GetSafeNormal();//  FVector(tri.Vertex0.NormalZ.Y, -tri.Vertex2.NormalZ.X, tri.Vertex2.NormalZ.Z);
 
 								tri.Vertex0.TextureCoordinate1 = FVector2D(float(EdgeVerts[triTable[cubeIndex][n + 2]].type) - 1.0, 1.0);
 								tri.Vertex0.TextureCoordinate2 = FVector2D(float(EdgeVerts[triTable[cubeIndex][n + 1]].type) - 1.0, 0.0);

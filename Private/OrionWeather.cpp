@@ -54,8 +54,8 @@ void AOrionWeather::ChooseWeather()
 	if (!bIsRaining)
 	{
 		float Len = 120.0f + FMath::FRand()*120.0f;
-		GetWorldTimerManager().SetTimer(this, &AOrionWeather::StartClouds, Len, false);
-		GetWorldTimerManager().SetTimer(this, &AOrionWeather::StartRaining, Len + 30.0f, false);
+		GetWorldTimerManager().SetTimer(CloudTimer, this, &AOrionWeather::StartClouds, Len, false);
+		GetWorldTimerManager().SetTimer(RainTimer, this, &AOrionWeather::StartRaining, Len + 30.0f, false);
 	}
 	else
 		StopRaining();
@@ -63,8 +63,8 @@ void AOrionWeather::ChooseWeather()
 
 void AOrionWeather::ClearWeatherTimers()
 {
-	GetWorldTimerManager().ClearTimer(this, &AOrionWeather::StartClouds);
-	GetWorldTimerManager().ClearTimer(this, &AOrionWeather::StartRaining);
+	GetWorldTimerManager().ClearTimer(CloudTimer);// , this, &AOrionWeather::StartClouds);
+	GetWorldTimerManager().ClearTimer(RainTimer);// , this, &AOrionWeather::StartRaining);
 }
 
 void AOrionWeather::ClearNight()
@@ -73,7 +73,7 @@ void AOrionWeather::ClearNight()
 
 	TheTime = SunSet + 120.0f;
 
-	GetWorldTimerManager().SetTimer(this, &AOrionWeather::ChooseWeather, 120.0f + FMath::FRand()*120.0f, false);
+	GetWorldTimerManager().SetTimer(WeatherTimer, this, &AOrionWeather::ChooseWeather, 120.0f + FMath::FRand()*120.0f, false);
 }
 
 void AOrionWeather::StartRaining()
@@ -106,7 +106,7 @@ void AOrionWeather::StartRaining()
 		RainTarget = 1.0f;
 	}
 
-	GetWorldTimerManager().SetTimer(this, &AOrionWeather::ChooseWeather, 120.0f + FMath::FRand()*120.0f, false);
+	GetWorldTimerManager().SetTimer(WeatherTimer, this, &AOrionWeather::ChooseWeather, 120.0f + FMath::FRand()*120.0f, false);
 }
 
 void AOrionWeather::StopRaining()
@@ -123,7 +123,7 @@ void AOrionWeather::StopRaining()
 
 	StopClouds();
 
-	GetWorldTimerManager().SetTimer(this, &AOrionWeather::ChooseWeather, 60.0f, false);
+	GetWorldTimerManager().SetTimer(WeatherTimer, this, &AOrionWeather::ChooseWeather, 60.0f, false);
 }
 
 void AOrionWeather::StartSnowing()

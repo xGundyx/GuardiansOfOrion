@@ -330,7 +330,8 @@ void AOrionPlayerController::CreateInventory()
 
 	if (!myPlayer)
 	{
-		GetWorldTimerManager().SetTimer(this, &AOrionPlayerController::CreateInventory, 0.01, false);
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, this, &AOrionPlayerController::CreateInventory, 0.01, false);
 		return;
 	}
 
@@ -365,12 +366,17 @@ void AOrionPlayerController::InitStatsAndAchievements()
 
 void AOrionPlayerController::ReadStats()
 {
-
+#if IS_SERVER
+	//Stats->GetPlayerStats(this);
+#endif
 }
 
 void AOrionPlayerController::SaveStats()
 {
-
+	//can only be called from the server!
+#if IS_SERVER
+	Stats->FlushPlayerStats(this);
+#endif
 }
 
 void AOrionPlayerController::IncreaseStatValue(FStatID id, int32 iAmount, int32 fAmount)
@@ -384,6 +390,9 @@ void AOrionPlayerController::IncreaseStatValue(FStatID id, int32 iAmount, int32 
 		Stats->aStats[i].StatValueInt += iAmount;
 	else if (Stats->aStats[i].StatType == STATTYPE_FLOAT)
 		Stats->aStats[i].StatValueFloat += iAmount;
+
+	//for testing purposes only, save here
+	SaveStats();
 }
 
 void AOrionPlayerController::SetStatValue(FStatID id, int32 iAmount, int32 fAmount)

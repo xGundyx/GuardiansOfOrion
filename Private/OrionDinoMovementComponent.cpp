@@ -40,7 +40,7 @@ void UOrionDinoMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 	float RequestedSpeed = 0.0f;
 	if (ApplyRequestedMove(DeltaTime, MaxAccel, MaxSpeed, Friction, BrakingDeceleration, RequestedAcceleration, RequestedSpeed))
 	{
-		RequestedAcceleration.ClampMaxSize(MaxAccel);
+		RequestedAcceleration.GetClampedToMaxSize(MaxAccel);
 		bZeroRequestedAcceleration = false;
 	}
 
@@ -50,11 +50,11 @@ void UOrionDinoMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 		// In consideration order for direction: Acceleration, then Velocity, then Pawn's rotation.
 		if (Acceleration.SizeSquared() > SMALL_NUMBER)
 		{
-			Acceleration = (Acceleration.SafeNormal()) * MaxAccel;
+			Acceleration = (Acceleration.GetSafeNormal()) * MaxAccel;
 		}
 		else
 		{
-			Acceleration = MaxAccel * (Velocity.SizeSquared() < SMALL_NUMBER ? CharacterOwner->GetActorRotation().Vector() : (Velocity.SafeNormal()));
+			Acceleration = MaxAccel * (Velocity.SizeSquared() < SMALL_NUMBER ? CharacterOwner->GetActorRotation().Vector() : (Velocity.GetSafeNormal()));
 		}
 
 		AnalogInputModifier = 1.f;
@@ -77,13 +77,13 @@ void UOrionDinoMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 		// Don't allow braking to lower us below max speed if we started above it.
 		if (bVelocityOverMax && Velocity.SizeSquared() < FMath::Square(MaxSpeed) && FVector::DotProduct(Acceleration, OldVelocity) > 0.0f)
 		{
-			Velocity = (OldVelocity.SafeNormal()) * MaxSpeed;
+			Velocity = (OldVelocity.GetSafeNormal()) * MaxSpeed;
 		}
 	}
 	else if (!bZeroAcceleration)
 	{
 		// Friction affects our ability to change direction. This is only done for input acceleration, not path following.
-		const FVector AccelDir = (Acceleration.SafeNormal());
+		const FVector AccelDir = (Acceleration.GetSafeNormal());
 		const float VelSize = Velocity.Size();
 		Velocity = Velocity - (Velocity - AccelDir * VelSize) * FMath::Min(DeltaTime * Friction, 1.f);
 	}
@@ -98,7 +98,7 @@ void UOrionDinoMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 	const float NewMaxSpeed = (IsExceedingMaxSpeed(MaxSpeed)) ? Velocity.Size() : MaxSpeed;
 	Velocity += Acceleration * DeltaTime;
 	Velocity += RequestedAcceleration * DeltaTime;
-	Velocity = Velocity.ClampMaxSize(NewMaxSpeed);
+	Velocity = Velocity.GetClampedToMaxSize(NewMaxSpeed);
 
 	if (bUseRVOAvoidance)
 	{

@@ -229,6 +229,14 @@ void AOrionWeapon::StopAiming()
 
 USkeletalMeshComponent* AOrionWeapon::GetWeaponMesh(bool bFirstPerson) const
 {
+	if (bFirstPerson && Mesh1P)
+		if (Mesh1P->SkeletalMesh == nullptr)
+			return nullptr;
+
+	if (!bFirstPerson && Mesh3P)
+		if (Mesh3P->SkeletalMesh == nullptr)
+			return nullptr;
+
 	return bFirstPerson ? Mesh1P : Mesh3P;
 }
 
@@ -270,7 +278,7 @@ void AOrionWeapon::DoMelee()
 	WeaponState = WEAP_MELEE;
 	float Len = PlayWeaponAnimation(MeleeAnim);
 
-	GetWorldTimerManager().SetTimer(this, &AOrionWeapon::ResetMelee, Len, false);
+	GetWorldTimerManager().SetTimer(MeleeTimer, this, &AOrionWeapon::ResetMelee, Len, false);
 }
 
 void AOrionWeapon::ResetMelee()
@@ -305,22 +313,22 @@ void AOrionWeapon::StartFire()
 		CancelMelee();
 
 	if (InstantConfig.TimeBetweenShots > 0 && LastFireTime + InstantConfig.TimeBetweenShots > GetWorld()->GetTimeSeconds())
-		GetWorldTimerManager().SetTimer(this, &AOrionWeapon::FireWeapon, LastFireTime + InstantConfig.TimeBetweenShots - GetWorld()->GetTimeSeconds(), false);
+		GetWorldTimerManager().SetTimer(FireTimer, this, &AOrionWeapon::FireWeapon, LastFireTime + InstantConfig.TimeBetweenShots - GetWorld()->GetTimeSeconds(), false);
 	else
 		FireWeapon();
 }
 
 void AOrionWeapon::CancelReload()
 {
-	GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::StopReload);
-	GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::ReloadWeapon);
+	GetWorldTimerManager().ClearTimer(ReloadTimer);// this, &AOrionWeapon::StopReload);
+	//GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::ReloadWeapon);
 
 	WeaponState = WEAP_IDLE;
 }
 
 void AOrionWeapon::CancelMelee()
 {
-	GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::ResetMelee);
+	GetWorldTimerManager().ClearTimer(MeleeTimer);// this, &AOrionWeapon::ResetMelee);
 
 	WeaponState = WEAP_IDLE;
 }
@@ -351,24 +359,27 @@ void AOrionWeapon::FireWeapon()
 		return;
 
 	if (InstantConfig.bAutomatic)
-		GetWorldTimerManager().SetTimer(this, &AOrionWeapon::FireWeapon, InstantConfig.TimeBetweenShots, false);
+		GetWorldTimerManager().SetTimer(FireTimer, this, &AOrionWeapon::FireWeapon, InstantConfig.TimeBetweenShots, false);
 
 	LastFireTime = GetWorld()->GetTimeSeconds();
 
 	UseAmmo();
 
-	const int32 RandomSeed = FMath::Rand();
-	FRandomStream WeaponRandomStream(RandomSeed);
-	const float CurrentSpread = GetCurrentSpread();
-	const float ConeHalfAngle = FMath::DegreesToRadians(CurrentSpread * 0.5f);
+	for (int32 i = 0; i < InstantConfig.NumPellets; i++)
+	{
+		const int32 RandomSeed = FMath::Rand();
+		FRandomStream WeaponRandomStream(RandomSeed);
+		const float CurrentSpread = GetCurrentSpread();
+		const float ConeHalfAngle = FMath::DegreesToRadians(CurrentSpread * 0.5f);
 
-	const FVector AimDir = GetAdjustedAim();
-	const FVector StartTrace = GetCameraDamageStartLocation(AimDir);
-	const FVector ShootDir = WeaponRandomStream.VRandCone(AimDir, ConeHalfAngle, ConeHalfAngle);
-	const FVector EndTrace = StartTrace + ShootDir * InstantConfig.WeaponRange;
+		const FVector AimDir = GetAdjustedAim();
+		const FVector StartTrace = GetCameraDamageStartLocation(AimDir);
+		const FVector ShootDir = WeaponRandomStream.VRandCone(AimDir, ConeHalfAngle, ConeHalfAngle);
+		const FVector EndTrace = StartTrace + ShootDir * InstantConfig.WeaponRange;
 
-	const FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
-	ProcessInstantHit(Impact, StartTrace, ShootDir, RandomSeed, CurrentSpread);
+		const FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
+		ProcessInstantHit(Impact, StartTrace, ShootDir, RandomSeed, CurrentSpread);
+	}
 
 	CurrentFiringSpread = FMath::Min(InstantConfig.FiringSpreadMax, CurrentFiringSpread + InstantConfig.FiringSpreadIncrement) * GetSpreadModifier();
 
@@ -600,7 +611,7 @@ void AOrionWeapon::StartReload(bool bFromReplication)
 		//bPendingReload = true;
 		//DetermineWeaponState();
 
-		GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::ResetMelee);
+		GetWorldTimerManager().ClearTimer(MeleeTimer);// this, &AOrionWeapon::ResetMelee);
 
 		WeaponState = WEAP_RELOADING;
 
@@ -614,14 +625,14 @@ void AOrionWeapon::StartReload(bool bFromReplication)
 
 		if (InstantConfig.bSingleShellReload == true)
 		{
-			GetWorldTimerManager().SetTimer(this, &AOrionWeapon::StartShellReload, FMath::Max(0.1f, AnimDuration - 0.1f), false);
+			GetWorldTimerManager().SetTimer(ReloadTimer, this, &AOrionWeapon::StartShellReload, FMath::Max(0.1f, AnimDuration - 0.1f), false);
 		}
 		else
 		{
-			GetWorldTimerManager().SetTimer(this, &AOrionWeapon::StopReload, AnimDuration, false);
+			GetWorldTimerManager().SetTimer(ReloadStopTimer, this, &AOrionWeapon::StopReload, AnimDuration, false);
 			if (Role == ROLE_Authority)
 			{
-				GetWorldTimerManager().SetTimer(this, &AOrionWeapon::ReloadWeapon, FMath::Max(0.1f, AnimDuration - 0.1f), false);
+				GetWorldTimerManager().SetTimer(ReloadTimer, this, &AOrionWeapon::ReloadWeapon, FMath::Max(0.1f, AnimDuration - 0.1f), false);
 			}
 
 			/*if (MyPawn && MyPawn->IsLocallyControlled())
@@ -641,7 +652,7 @@ void AOrionWeapon::StartShellReload()
 	}
 
 	if (AmmoInClip < InstantConfig.ClipSize && Ammo > AmmoInClip)
-		GetWorldTimerManager().SetTimer(this, &AOrionWeapon::ReloadNextShell, AnimDuration, false);
+		GetWorldTimerManager().SetTimer(ReloadTimer, this, &AOrionWeapon::ReloadNextShell, AnimDuration, false);
 	else
 		StopReload();
 }
@@ -850,7 +861,7 @@ void AOrionWeapon::ServerNotifyHit_Implementation(const FHitResult Impact, FVect
 	if (Instigator && (Impact.GetActor() || Impact.bBlockingHit))
 	{
 		const FVector Origin = GetMuzzleLocation();
-		const FVector ViewDir = (Impact.Location - Origin).SafeNormal();
+		const FVector ViewDir = (Impact.Location - Origin).GetSafeNormal();
 
 		// is the angle between the hit and the view within allowed limits (limit + weapon max angle)
 		const float ViewDotHitDir = FVector::DotProduct(Instigator->GetViewRotation().Vector(), ViewDir);
@@ -1056,9 +1067,13 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 		}
 	}
 
-	PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim);
+	if (GetWorld()->GetTimeSeconds() - LastFireSoundTime > 0.01f)
+	{
+		LastFireSoundTime = GetWorld()->GetTimeSeconds();
 
-	PlayWeaponSound(FireSound);
+		PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim);
+		PlayWeaponSound(FireSound);
+	}
 }
 
 UAudioComponent* AOrionWeapon::PlayWeaponSound(USoundCue* Sound)
@@ -1079,8 +1094,8 @@ void AOrionWeapon::StopFire()
 		ServerStopFire();
 	}
 
-	if (GetWorldTimerManager().IsTimerActive(this, &AOrionWeapon::FireWeapon))
-		GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::FireWeapon);
+	if (GetWorldTimerManager().IsTimerActive(FireTimer))// this, &AOrionWeapon::FireWeapon))
+		GetWorldTimerManager().ClearTimer(FireTimer);// this, &AOrionWeapon::FireWeapon);
 
 	/*if (bWantsToFire)
 	{
@@ -1121,7 +1136,7 @@ void AOrionWeapon::OnEquip()
 	EquipStartedTime = GetWorld()->GetTimeSeconds();
 	EquipDuration = Duration;
 
-	GetWorldTimerManager().SetTimer(this, &AOrionWeapon::OnEquipFinished, Duration, false);
+	GetWorldTimerManager().SetTimer(EquipTimer, this, &AOrionWeapon::OnEquipFinished, Duration, false);
 
 	//if (MyPawn && MyPawn->IsLocallyControlled())
 	//{
@@ -1131,7 +1146,7 @@ void AOrionWeapon::OnEquip()
 
 void AOrionWeapon::OnEquipFinished()
 {
-	AttachMeshToPawn();
+	//AttachMeshToPawn();
 
 	bIsEquipped = true;
 	bPendingEquip = false;
@@ -1166,8 +1181,8 @@ float AOrionWeapon::OnUnEquip()
 		StopWeaponAnimation(ReloadAnim);
 		bPendingReload = false;
 
-		GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::StopReload);
-		GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::ReloadWeapon);
+		GetWorldTimerManager().ClearTimer(ReloadStopTimer);// this, &AOrionWeapon::StopReload);
+		GetWorldTimerManager().ClearTimer(ReloadTimer);// this, &AOrionWeapon::ReloadWeapon);
 	}
 
 	/*if (bPendingEquip)
@@ -1186,10 +1201,17 @@ float AOrionWeapon::OnUnEquip()
 		Duration = 0.5f;
 	}
 
+	if (WeaponState == WEAP_EQUIPPING && GetWorldTimerManager().IsTimerActive(EquipTimer))
+	{
+		GetWorldTimerManager().ClearTimer(EquipTimer);
+		bIsEquipped = true;
+		bPendingEquip = false;
+	}
+
 	//EquipStartedTime = GetWorld()->GetTimeSeconds();
 	//EquipDuration = Duration;
 
-	GetWorldTimerManager().SetTimer(this, &AOrionWeapon::OnUnEquipFinished, Duration, false);
+	GetWorldTimerManager().SetTimer(EquipTimer, this, &AOrionWeapon::OnUnEquipFinished, Duration, false);
 
 	WeaponState = WEAP_PUTTINGDOWN;
 

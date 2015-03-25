@@ -36,7 +36,7 @@ void AOrionDroidPawn::HandleSpecialWeaponFire(FName SocketName)
 
 float AOrionDroidPawn::GetFrontRotation(float DeltaTime)
 {
-	float v = FVector::DotProduct(GetVelocity().SafeNormal(), GetActorRotation().Vector());
+	float v = FVector::DotProduct(GetVelocity().GetSafeNormal(), GetActorRotation().Vector());
 
 	FrontRotation += DeltaTime * 180.0f * v;
 
@@ -50,7 +50,7 @@ float AOrionDroidPawn::GetFrontRotation(float DeltaTime)
 
 float AOrionDroidPawn::GetBackRotation(float DeltaTime)
 {
-	float v = FVector::DotProduct(GetVelocity().SafeNormal(), GetActorRotation().Vector());
+	float v = FVector::DotProduct(GetVelocity().GetSafeNormal(), GetActorRotation().Vector());
 
 	BackRotation -= DeltaTime * 180.0f * v;
 

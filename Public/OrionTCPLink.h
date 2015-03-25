@@ -25,6 +25,17 @@ public:
 	UOrionTCPLink(const FObjectInitializer& ObjectInitializer);
 
 #if IS_SERVER
+	static bool Init();
+
+	static void SavePlayerStatistics(FString PlayerID, UOrionStats *Stats);
+	static void OnSaveStats(ServerModels::UpdateUserStatisticsResult& result, void* userData);
+	static void OnSaveStatsError(PlayFabError& error, void* userData);
+
+	static void GetPlayerStats(void* Stats, FString PlayerID);
+	static void OnGetStats(ServerModels::GetUserStatisticsResult& result, void* userData);
+	static void OnGetStatsFailed(PlayFabError& error, void* userData);
+private:
+	static PlayFabServerAPI server;
 #else
 	static bool Init(AOrionPlayerController *Owner);
 	static void Login(FString UserName, FString Password);
@@ -45,6 +56,11 @@ public:
 	//grab our character read only data from playfab
 	static void RetrieveCharacterData(bool bLogginIn);
 	static void AddToCharacterData(const std::string first, const ClientModels::UserDataRecord second);
+
+	static void GetPlayerStats(void* Stats);
+	//static void GetPlayerAchievements(FString Player);
+	static void OnGetStats(ClientModels::GetUserStatisticsResult& result, void* userData);
+	static void OnGetStatsFailed(PlayFabError& error, void* userData);
 
 	static AOrionPlayerController *PlayerOwner;
 

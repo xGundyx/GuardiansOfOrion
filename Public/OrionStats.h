@@ -3,8 +3,13 @@
 #pragma once
 
 #include "Object.h"
+#include <iostream>
+#include <string>
+#include <map>
+#include "playfab/PlayFabBaseModel.h"
 #include "OrionStats.generated.h"
 
+class AOrionPlayerController;
 /**
  * 
  */
@@ -60,6 +65,19 @@ class ORION_API UOrionStats : public UObject
 	GENERATED_BODY()
 public:
 	UOrionStats(const FObjectInitializer& ObjectInitializer);
+
+	//read in a player's stats (can be done from client or server)
+	void ReadPlayerStats();
+
+
+
+	void FlushPlayerStats(AOrionPlayerController* PC);
 	
 	TArray<FPlayerStats> aStats;
+
+	std::map<std::string, PlayFab::Int32> GetStatsMap();
+
+	bool bInitialized;
+
+private:
 };

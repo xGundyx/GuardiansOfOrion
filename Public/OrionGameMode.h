@@ -11,6 +11,8 @@ public:
 	AOrionGameMode(const FObjectInitializer& ObjectInitializer);
 
 	virtual void Killed(AController* Killer, AController* KilledPlayer, APawn* KilledPawn, const UDamageType* DamageType);
+
+	virtual APlayerController* Login(class UPlayer* NewPlayer, const FString& Portal, const FString& Options, const TSharedPtr<class FUniqueNetId>& UniqueId, FString& ErrorMessage);
 };
 
 
