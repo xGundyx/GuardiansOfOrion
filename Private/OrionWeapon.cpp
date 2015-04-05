@@ -12,7 +12,7 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 	RootComponent = SceneComponent;
 
 	Mesh1P = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponMesh1P"));
-	Mesh1P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
+	//Mesh1P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 	Mesh1P->bChartDistanceFactor = false;
 	Mesh1P->bReceivesDecals = false;
 	Mesh1P->CastShadow = false;
@@ -22,20 +22,22 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 	Mesh1P->bPerBoneMotionBlur = false;
 	Mesh1P->AttachParent = SceneComponent;
 	Mesh1P->PrimaryComponentTick.TickGroup = TG_PrePhysics;
+	Mesh1P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	//RootComponent = Mesh1P;
 
 	Mesh3P = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponMesh3P"));
-	Mesh3P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
+	//Mesh3P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 	Mesh3P->bChartDistanceFactor = true;
 	Mesh3P->bReceivesDecals = false;
 	Mesh3P->CastShadow = true;
 	Mesh3P->SetCollisionObjectType(ECC_WorldDynamic);
 	Mesh3P->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 	Mesh3P->SetCollisionResponseToAllChannels(ECR_Ignore);
-	//Mesh3P->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Block);
+	Mesh3P->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Block);
 	Mesh3P->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 	Mesh3P->SetCollisionResponseToChannel(COLLISION_PROJECTILE, ECR_Block);
 	Mesh3P->AttachParent = SceneComponent; 
+	Mesh3P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 
 	//bLoopedMuzzleFX = false;
 	//bLoopedFireAnim = false;
@@ -64,7 +66,7 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 	InstantConfig.AttachPoint = FName("");
 	InstantConfig.bAutomatic = false;
 	InstantConfig.bSingleShellReload = false;
-	InstantConfig.ClientSideHitLeeway = 0.0;
+	InstantConfig.ClientSideHitLeeway = 1.0;
 	InstantConfig.ClipSize = 12;
 	InstantConfig.CrouchSpread = 0.0f;
 	InstantConfig.FiringSpreadIncrement = 0;
@@ -155,6 +157,10 @@ void AOrionWeapon::Tick(float DeltaSeconds)
 
 		if (CurrentFiringSpread > 0.0f && GetWorld()->TimeSeconds - LastFireTime > 0.5f)
 			CurrentFiringSpread = FMath::Max(0.0f, CurrentFiringSpread - DeltaSeconds*2.0f);
+
+		//if we need to reload, try to start it automatically
+		if (AmmoInClip == 0 && WeaponState != WEAP_RELOADING&&Ammo > 0)
+			StartReload();
 	}
 }
 
@@ -276,7 +282,7 @@ void AOrionWeapon::Melee()
 void AOrionWeapon::DoMelee()
 {
 	WeaponState = WEAP_MELEE;
-	float Len = PlayWeaponAnimation(MeleeAnim);
+	float Len = PlayWeaponAnimation(MeleeAnim, Role == ROLE_Authority);
 
 	GetWorldTimerManager().SetTimer(MeleeTimer, this, &AOrionWeapon::ResetMelee, Len, false);
 }
@@ -615,7 +621,7 @@ void AOrionWeapon::StartReload(bool bFromReplication)
 
 		WeaponState = WEAP_RELOADING;
 
-		float AnimDuration = PlayWeaponAnimation(ReloadAnim);
+		float AnimDuration = PlayWeaponAnimation(ReloadAnim, Role == ROLE_Authority);
 		if (AnimDuration <= 0.0f)
 		{
 			AnimDuration = 1.0;// WeaponConfig.NoAnimReloadDuration;
@@ -645,7 +651,7 @@ void AOrionWeapon::StartReload(bool bFromReplication)
 
 void AOrionWeapon::StartShellReload()
 {
-	float AnimDuration = PlayWeaponAnimation(ReloadLoopAnim);
+	float AnimDuration = PlayWeaponAnimation(ReloadLoopAnim, Role == ROLE_Authority);
 	if (AnimDuration <= 0.0f)
 	{
 		AnimDuration = 1.0;// WeaponConfig.NoAnimReloadDuration;
@@ -668,7 +674,7 @@ void AOrionWeapon::StopReload()
 	WeaponState = WEAP_IDLE;
 
 	if (InstantConfig.bSingleShellReload)
-		PlayWeaponAnimation(ReloadEndAnim);
+		PlayWeaponAnimation(ReloadEndAnim, Role == ROLE_Authority);
 
 	//if (CurrentState == EWeaponState::Reloading)
 	//{
@@ -1039,14 +1045,14 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 	FVector vDir = (EndPoint - Origin);
 	vDir.Normalize();
 
-	if (TrailFX)
+	/*if (TrailFX)
 	{
 		UParticleSystemComponent* TrailPSC = UGameplayStatics::SpawnEmitterAtLocation(this, TrailFX, Origin, Dir);
 		if (TrailPSC)
 		{
 			TrailPSC->SetVectorParameter(TrailTargetParam, EndPoint);
 		}
-	}
+	}*/
 
 	if (TracerFX)
 	{
@@ -1071,7 +1077,7 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 	{
 		LastFireSoundTime = GetWorld()->GetTimeSeconds();
 
-		PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim);
+		PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim, Role == ROLE_Authority);
 		PlayWeaponSound(FireSound);
 	}
 }
@@ -1125,7 +1131,7 @@ void AOrionWeapon::OnEquip()
 	bPendingEquip = true;
 	WeaponState = WEAP_EQUIPPING;
 
-	float Duration = PlayWeaponAnimation(EquipAnim);
+	float Duration = PlayWeaponAnimation(EquipAnim, Role == ROLE_Authority);
 
 	if (Duration <= 0.0f)
 	{
@@ -1193,7 +1199,7 @@ float AOrionWeapon::OnUnEquip()
 		GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::OnEquipFinished);
 	}*/
 
-	float Duration = PlayWeaponAnimation(HolsterAnim);
+	float Duration = PlayWeaponAnimation(HolsterAnim, Role == ROLE_Authority);
 
 	if (Duration <= 0.0f)
 	{
@@ -1261,7 +1267,7 @@ void AOrionWeapon::ServerStopFire_Implementation()
 	StopFire();
 }
 
-float AOrionWeapon::PlayWeaponAnimation(const FWeaponAnim& Animation)
+float AOrionWeapon::PlayWeaponAnimation(const FWeaponAnim& Animation, bool bReplicate)
 {
 	float Duration = 0.0f;
 
@@ -1332,7 +1338,7 @@ void AOrionWeapon::SimulateWeaponFire()
 
 	//if (!bLoopedFireAnim || !bPlayingFireAnim)
 	//{
-	PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim);
+	PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim, Role == ROLE_Authority);
 	//	bPlayingFireAnim = true;
 	//}
 

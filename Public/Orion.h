@@ -27,7 +27,7 @@
 #include "OrionDiamondSquare.h"
 #include "OrionImpactEffect.h"
 
+#define COLLISION_WEAPON		ECC_GameTraceChannel6
 #define COLLISION_PROJECTILE	ECC_GameTraceChannel1
-#define COLLISION_WEAPON		ECC_GameTraceChannel2
 
 #endif

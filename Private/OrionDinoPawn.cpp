@@ -75,6 +75,21 @@ void AOrionDinoPawn::Tick(float DeltaTime)
 		OrientToGround(DeltaTime);
 		HandleFootPlacement(DeltaTime);
 	}
+
+	if (IsPlayingRootMotion())
+	{
+		//FRotator rot = GetActorRotation();
+		//rot.Roll = rot.Pitch;
+		//rot.Pitch = GetActorRotation().Roll;
+		//SetActorRotation(rot);// FMath::RInterpTo(GetActorRotation(), rot, DeltaTime, 5.0f));
+	}
+	else
+	{
+		FRotator rot = GetActorRotation();
+		rot.Roll = 0.0f;
+		rot.Pitch = 0.0f;
+		SetActorRotation(FMath::RInterpTo(GetActorRotation(), rot, DeltaTime, 5.0f));
+	}
 }
 
 //rotate our mesh so the feet are on the ground, this also adjusts the height offset of the mesh
@@ -94,7 +109,7 @@ void AOrionDinoPawn::OrientToGround(float DeltaTime)
 	FHitResult Hit(ForceInit);
 	if (GetWorld())
 	{
-		 GetWorld()->LineTraceSingle(Hit, vStart, vEnd, COLLISION_WEAPON, TraceParams);
+		GetWorld()->LineTraceSingle(Hit, vStart, vEnd, ECC_Pawn, TraceParams);
 		if (Hit.bBlockingHit)
 		{
 			GroundNormal = Hit.ImpactNormal;

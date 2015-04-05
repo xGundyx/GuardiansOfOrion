@@ -100,11 +100,11 @@ void UOrionTCPLink::OnGetStats(ServerModels::GetUserStatisticsResult& result, vo
 			int32 index = int32(newStat.StatID) - 1;
 			newStat.StatType = Stats->aStats[index].StatType;
 			newStat.StatName = Stats->aStats[index].StatName;
-			newStat.StatType = Stats->aStats[index].StatType;
+		
 			if (newStat.StatType == STATTYPE_INT)
-				newStat.StateValueInt = int32(it->Second);
+				newStat.StatValueInt = int32(it->second);
 			else
-				newStat.StateValueFloat = float(it->Second);
+				newStat.StatValueFloat = float(it->second);
 
 			aStats.Add(newStat);
 		}

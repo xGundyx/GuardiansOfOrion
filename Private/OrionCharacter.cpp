@@ -46,11 +46,11 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Mesh1P->CastShadow = false;*/
 
 	GetMesh()->bOnlyOwnerSee = false;
-	GetMesh()->bOwnerNoSee = true;
+	GetMesh()->bOwnerNoSee = false;// true;
 	GetMesh()->bReceivesDecals = false;
 	GetMesh()->SetCollisionObjectType(ECC_Pawn);
 	GetMesh()->SetCollisionEnabled(ECollisionEnabled::QueryAndPhysics);
-	//GetMesh()->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Block);
+	GetMesh()->SetCollisionResponseToChannel(COLLISION_WEAPON, ECR_Block);
 	GetMesh()->SetCollisionResponseToChannel(COLLISION_PROJECTILE, ECR_Block);
 	GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 	GetMesh()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
@@ -88,7 +88,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	BodyMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Body"));
 	BodyMesh->AlwaysLoadOnClient = true;
 	BodyMesh->AlwaysLoadOnServer = true;
-	BodyMesh->bOwnerNoSee = true;
+	BodyMesh->bOwnerNoSee = false;// true;
 	BodyMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	BodyMesh->bCastDynamicShadow = true;
 	BodyMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
@@ -102,7 +102,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	HelmetMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Helmet"));
 	HelmetMesh->AlwaysLoadOnClient = true;
 	HelmetMesh->AlwaysLoadOnServer = true;
-	HelmetMesh->bOwnerNoSee = true;
+	HelmetMesh->bOwnerNoSee = false;// true;
 	HelmetMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	HelmetMesh->bCastDynamicShadow = true;
 	HelmetMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
@@ -116,7 +116,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	ArmsMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Arms"));
 	ArmsMesh->AlwaysLoadOnClient = true;
 	ArmsMesh->AlwaysLoadOnServer = true;
-	ArmsMesh->bOwnerNoSee = true;
+	ArmsMesh->bOwnerNoSee = false;// true;
 	ArmsMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	ArmsMesh->bCastDynamicShadow = true;
 	ArmsMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
@@ -130,7 +130,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	LegsMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Legs"));
 	LegsMesh->AlwaysLoadOnClient = true;
 	LegsMesh->AlwaysLoadOnServer = true;
-	LegsMesh->bOwnerNoSee = true;
+	LegsMesh->bOwnerNoSee = false;// true;
 	LegsMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	LegsMesh->bCastDynamicShadow = true;
 	LegsMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
@@ -144,7 +144,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Flight1Mesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Flight1"));
 	Flight1Mesh->AlwaysLoadOnClient = true;
 	Flight1Mesh->AlwaysLoadOnServer = true;
-	Flight1Mesh->bOwnerNoSee = true;
+	Flight1Mesh->bOwnerNoSee = false;// true;
 	Flight1Mesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	Flight1Mesh->bCastDynamicShadow = true;
 	Flight1Mesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
@@ -158,7 +158,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Flight2Mesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Flight2"));
 	Flight2Mesh->AlwaysLoadOnClient = true;
 	Flight2Mesh->AlwaysLoadOnServer = true;
-	Flight2Mesh->bOwnerNoSee = true;
+	Flight2Mesh->bOwnerNoSee = false;// true;
 	Flight2Mesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	Flight2Mesh->bCastDynamicShadow = true;
 	Flight2Mesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
@@ -461,6 +461,7 @@ void AOrionCharacter::EquipWeapon(AOrionWeapon* Weapon)
 		else
 		{
 			ServerEquipWeapon(Weapon);
+			SetCurrentWeapon(Weapon);
 		}
 	}
 }
@@ -477,7 +478,17 @@ void AOrionCharacter::ServerEquipWeapon_Implementation(AOrionWeapon* Weapon)
 
 void AOrionCharacter::OnRep_CurrentWeapon(AOrionWeapon* LastWeapon)
 {
-	SetCurrentWeapon(CurrentWeapon, LastWeapon);
+	//SetCurrentWeapon(CurrentWeapon, LastWeapon);
+}
+
+void AOrionCharacter::OnRep_Inventory()
+{
+	UpdatePawnMeshes();
+}
+
+void AOrionCharacter::OnRep_NextWeapon()
+{
+	SetCurrentWeapon(CurrentWeapon);
 }
 
 void AOrionCharacter::HandleSpecialWeaponFire(FName SocketName)
@@ -511,6 +522,9 @@ void AOrionCharacter::SetCurrentWeapon(class AOrionWeapon* NewWeapon, class AOri
 	{
 		Duration = LocalLastWeapon->OnUnEquip();
 	}
+
+	if (Duration < 0.1f)
+		Duration = 0.1f;
 
 	NextWeapon = NewWeapon;
 	GetWorldTimerManager().SetTimer(UnEquipTimer, this, &AOrionCharacter::ReallyDoEquip, 0.9*Duration, false);
@@ -598,6 +612,9 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME_CONDITION(AOrionCharacter, LastTakeHitInfo, COND_Custom);
 
 	DOREPLIFETIME(AOrionCharacter, CurrentWeapon);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, NextWeapon, COND_SkipOwner);
+
+	DOREPLIFETIME(AOrionCharacter, Inventory);
 
 	DOREPLIFETIME(AOrionCharacter, ReplicatedAnimation);
 
@@ -709,6 +726,9 @@ bool AOrionCharacter::Die(float KillingDamage, FDamageEvent const& DamageEvent, 
 	{
 	return false;
 	}*/
+
+	//if (Squad && Cast<AOrionAIController>(Controller))
+	//	Squad->RemoveSquadMember(Cast<AOrionAIController>(Controller));
 
 	Health = FMath::Min(0.0f, Health);
 
@@ -925,11 +945,11 @@ void AOrionCharacter::OnRep_ReplicatedAnimation()
 }
 
 //override this so we can add some replication to it
-float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float InPlayRate, FName StartSectionName)
+float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float InPlayRate, FName StartSectionName, bool bShouldReplicate)
 {
 	float Duration = 0.0f;
 
-	if (Role == ROLE_Authority)
+	if (Role == ROLE_Authority && bShouldReplicate)
 	{
 		//if (ReplicatedAnimation.Montage == AnimMontage)
 			ReplicatedAnimation.bToggle = !ReplicatedAnimation.bToggle;
@@ -1100,28 +1120,28 @@ void AOrionCharacter::UpdatePawnMeshes()
 	bool const bFirst = IsFirstPerson();
 
 	//GetMesh()->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	GetMesh()->SetOwnerNoSee(bFirst);
+	GetMesh()->SetHiddenInGame(bFirst); //SetOwnerNoSee(bFirst);
 
 	//BodyMesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	BodyMesh->SetOwnerNoSee(bFirst);
+	BodyMesh->SetHiddenInGame(bFirst); //SetOwnerNoSee(bFirst);
 
 	//HelmetMesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	HelmetMesh->SetOwnerNoSee(bFirst);
+	HelmetMesh->SetHiddenInGame(bFirst); //SetOwnerNoSee(bFirst);
 
 	//ArmsMesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	ArmsMesh->SetOwnerNoSee(bFirst);
+	ArmsMesh->SetHiddenInGame(bFirst); //SetOwnerNoSee(bFirst);
 
 	//LegsMesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	LegsMesh->SetOwnerNoSee(bFirst);
+	LegsMesh->SetHiddenInGame(bFirst); //>SetOwnerNoSee(bFirst);
 
 	//Flight1Mesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	Flight1Mesh->SetOwnerNoSee(bFirst);
+	Flight1Mesh->SetHiddenInGame(bFirst); //SetOwnerNoSee(bFirst);
 
 	//Flight2Mesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	Flight2Mesh->SetOwnerNoSee(bFirst);
+	Flight2Mesh->SetHiddenInGame(bFirst); //SetOwnerNoSee(bFirst);
 
 	//Arms1PArmorMesh->MeshComponentUpdateFlag = !bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	Arms1PArmorMesh->SetOwnerNoSee(!bFirst);
+	Arms1PArmorMesh->SetHiddenInGame(!bFirst); //SetOwnerNoSee(!bFirst);
 
 	if (CurrentWeapon)
 		CurrentWeapon->AttachMeshToPawn();
@@ -1366,6 +1386,9 @@ FRotator AOrionCharacter::GetRootRotation() const
 
 void AOrionCharacter::DoRoll()
 {
+	//remove roll for now
+	return;
+
 	float Length = 1.0f;
 
 	//don't roll if we're not moving

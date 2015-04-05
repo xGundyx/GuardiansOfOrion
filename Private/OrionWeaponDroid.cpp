@@ -59,7 +59,7 @@ void AOrionWeaponDroid::AttachMeshToPawn()
 	MyPawn->SetBodyMesh(DroidGunMesh->SkeletalMesh);
 }
 
-float AOrionWeaponDroid::PlayWeaponAnimation(const FWeaponAnim& Animation)
+float AOrionWeaponDroid::PlayWeaponAnimation(const FWeaponAnim& Animation, bool bReplicate)
 {
 	/*if (!MyPawn || !MyPawn->Mesh)
 		return 0.0;

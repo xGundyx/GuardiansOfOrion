@@ -9,25 +9,27 @@
 class AOrionHoverVehicle;
 class AOrionFood;
 class AOrionWeaponDroid;
+class UOrionSquad;
+class AOrionAIController;
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FWeaponAnim
 {
 	GENERATED_USTRUCT_BODY()
 
-		UPROPERTY(EditDefaultsOnly, Category = Animation)
+	UPROPERTY(BlueprintReadWrite, Category = Animation)
 		UAnimMontage* Weapon1P;
 
 	/** animation played on pawn (1st person view) */
-	UPROPERTY(EditDefaultsOnly, Category = Animation)
+	UPROPERTY(BlueprintReadWrite, Category = Animation)
 		UAnimMontage* Pawn1P;
 
 	/** animation played on pawn (3rd person view) */
-	UPROPERTY(EditDefaultsOnly, Category = Animation)
+	UPROPERTY(BlueprintReadWrite, Category = Animation)
 		UAnimMontage* Pawn3P;
 
 	/** animation played on the actual weapon model (mainly just reloads) */
-	UPROPERTY(EditDefaultsOnly, Category = Animation)
+	UPROPERTY(BlueprintReadWrite, Category = Animation)
 		UAnimMontage* Weapon3P;
 
 	FWeaponAnim()
@@ -538,7 +540,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Controller)
 		APlayerController *GetPlayerController();
 
-	float OrionPlayAnimMontage(const FWeaponAnim Animation, float InPlayRate = 1.0f, FName StartSectionName = FName(""));// override;
+	UFUNCTION(BlueprintCallable, Category = Animation)
+		float OrionPlayAnimMontage(const FWeaponAnim Animation, float InPlayRate = 1.0f, FName StartSectionName = FName(""), bool bShouldReplicate = true);// override;
+
 	void StopAnimMontage(class UAnimMontage* AnimMontage) override;
 
 	UFUNCTION()
@@ -596,8 +600,11 @@ protected:
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_CurrentWeapon)
 	class AOrionWeapon* CurrentWeapon;
 
+	UFUNCTION()
+		void OnRep_Inventory();
+
 	/** weapons in inventory */
-	UPROPERTY(Transient, Replicated)
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_Inventory)
 		TArray<class AOrionWeapon*> Inventory;
 
 	/** Handler for a touch input beginning. */
@@ -693,9 +700,18 @@ protected:
 	bool bRolling;
 
 	void ReallyDoEquip();
-	AOrionWeapon *NextWeapon;
+	
+	/** current weapon rep handler */
+	UFUNCTION()
+		void OnRep_NextWeapon();
+
+	/** currently equipped weapon */
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_NextWeapon)
+	class AOrionWeapon* NextWeapon;
 public:
 	FVector CameraLocation;
+
+	UOrionSquad *Squad;
 
 protected:
 	// APawn interface

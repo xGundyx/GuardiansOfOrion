@@ -5,6 +5,8 @@
 #include "AIController.h"
 #include "OrionAIController.generated.h"
 
+class UOrionSquad;
+
 /**
  * 
  */
@@ -14,6 +16,10 @@ class ORION_API AOrionAIController : public AAIController
 	GENERATED_BODY()
 public:
 	AOrionAIController(const FObjectInitializer& ObjectInitializer);
+
+	virtual void PawnPendingDestroy(APawn* inPawn);
+
+	virtual void Possess(APawn* aPawn) override;
 	
 	virtual void Tick(float DeltaTime) override;
 
@@ -22,6 +28,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Target)
 		void SetEnemy(APawn *pEnemy);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Set Blackboard Enemy"))
+		void EventSetBlackboardEnemy(APawn *pEnemy);
 
 	UFUNCTION(BlueprintCallable, Category = Target)
 		APawn *GetEnemy();
@@ -37,6 +46,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Target)
 		void StopFiringWeapon();
+
+	UPROPERTY(BlueprintReadWrite, Category = Squad)
+		UOrionSquad *Squad;
 
 private:
 	APawn *myEnemy;
