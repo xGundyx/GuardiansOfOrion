@@ -167,7 +167,7 @@ public:
 		void ClientStartReload_Implementation();
 
 	/** play weapon animations */
-	virtual float PlayWeaponAnimation(const FWeaponAnim& Animation);
+	virtual float PlayWeaponAnimation(const FWeaponAnim& Animation, bool bReplicate);
 
 	/** stop playing weapon animations */
 	virtual void StopWeaponAnimation(const FWeaponAnim& Animation);

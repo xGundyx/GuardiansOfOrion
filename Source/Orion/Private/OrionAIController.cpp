@@ -2,13 +2,49 @@
 
 #include "Orion.h"
 #include "OrionWeapon.h"
+#include "OrionSquad.h"
 #include "OrionAIController.h"
+#include "OrionPathFollowingComponent.h"
 
 
 AOrionAIController::AOrionAIController(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer)
-{
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UOrionPathFollowingComponent>(TEXT("PathFollowingComponent")))
 
+{
+	
+}
+
+void AOrionAIController::Possess(APawn* aPawn)
+{
+	Super::Possess(aPawn);
+
+	if (Cast<UOrionPathFollowingComponent>(GetPathFollowingComponent()))
+		Cast<UOrionPathFollowingComponent>(GetPathFollowingComponent())->Controller = this;
+}
+
+void AOrionAIController::PawnPendingDestroy(APawn* inPawn)
+{
+	if (IsInState(NAME_Inactive))
+	{
+		UE_LOG(LogPath, Log, TEXT("PawnPendingDestroy while inactive %s"), *GetName());
+	}
+
+	if (inPawn != GetPawn())
+	{
+		return;
+	}
+
+	UnPossess();
+	ChangeState(NAME_Inactive);
+
+	if (Squad)
+		Squad->RemoveSquadMember(this);
+
+	//always destroy a controller after its pawn dies
+	//if (PlayerState == NULL)
+	//{
+		Destroy();
+	//}
 }
 
 void AOrionAIController::Tick(float DeltaSeconds)
@@ -48,6 +84,13 @@ void AOrionAIController::SetEnemy(APawn *pEnemy)
 		Cast<AOrionCharacter>(GetPawn())->bRun = true;
 
 	myEnemy = pEnemy;
+	EventSetBlackboardEnemy(pEnemy);
+
+	//if we're in a squad, and we're the leader, tell our followers what to do about it
+	if (Squad && Squad->Leader == this)
+	{
+		Squad->SetEnemy(pEnemy);
+	}
 }
 
 APawn *AOrionAIController::GetEnemy()
