@@ -20,6 +20,4 @@ public:
 	virtual void InitializeComponent() override;
 	virtual void TickComponent(float DeltaTime, enum ELevelTick TickType, FActorComponentTickFunction *ThisTickFunction) override;
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration) override;
-	void SimulateRootMotion(float DeltaSeconds, const FTransform& LocalRootMotionTransform);
-	virtual void PerformMovement(float DeltaSeconds) override;
 };
