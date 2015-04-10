@@ -113,7 +113,9 @@ float UOrionDinoMovementComponent::GetMaxSpeed() const
 	const AOrionDinoPawn* OrionCharacterOwner = Cast<AOrionDinoPawn>(PawnOwner);
 	if (OrionCharacterOwner)
 	{
-		if (OrionCharacterOwner->bRun && IsMovingOnGround())
+		if (OrionCharacterOwner->bFly)
+			SpeedMod *= 12.0;
+		else if (OrionCharacterOwner->bRun && IsMovingOnGround())
 			SpeedMod *= OrionCharacterOwner->RunningModifier;
 		else
 			SpeedMod *= 1.0f;

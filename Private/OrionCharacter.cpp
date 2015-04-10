@@ -626,6 +626,7 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME_CONDITION(AOrionCharacter, AimYaw, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(AOrionCharacter, AimPitch, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(AOrionCharacter, bRun, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, bFly, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(AOrionCharacter, bAim, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(AOrionCharacter, bDuck, COND_SkipOwner);
 
@@ -1466,7 +1467,7 @@ void AOrionCharacter::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 
 	const FRotator CurrentRotation = GetActorRotation();
 
-	if (!bUseControllerRotationPitch)
+	if (!bUseControllerRotationPitch && !bFly)
 	{
 		NewControlRotation.Pitch = CurrentRotation.Pitch;
 	}
@@ -1530,6 +1531,21 @@ float AOrionCharacter::PlayOneShotAnimation(UAnimMontage *Anim)
 bool AOrionCharacter::IsSprinting() const
 {
 	return bRun;
+}
+
+bool AOrionCharacter::IsFlying() const
+{
+	return bFly;
+}
+
+void AOrionCharacter::TakeOff()
+{
+	bFly = true;
+}
+
+void AOrionCharacter::LandFromFlying()
+{
+	bFly = false;
 }
 
 bool AOrionCharacter::IsDucking() const

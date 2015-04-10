@@ -251,6 +251,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Pawn")
 		void SetFlight2Mesh(USkeletalMesh* newMesh) const;
 
+	UFUNCTION(BlueprintCallable, Category = "Pawn")
+		void TakeOff();
+	
+	UFUNCTION(BlueprintCallable, Category = "Pawn")
+		void LandFromFlying();
+
 	void EatFood(AOrionFood *Food);
 
 	/** [server] perform PlayerState related setup */
@@ -300,6 +306,9 @@ public:
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		bool bRun;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = Camera)
+		bool bFly;
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		bool bAim;
@@ -431,6 +440,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Mesh)
 		virtual bool IsSprinting() const;
+
+	UFUNCTION(BlueprintCallable, Category = Mesh)
+		virtual bool IsFlying() const;
 
 	UFUNCTION(BlueprintCallable, Category = Mesh)
 		virtual bool IsAiming() const;

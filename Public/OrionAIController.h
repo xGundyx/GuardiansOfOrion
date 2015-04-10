@@ -3,6 +3,7 @@
 #pragma once
 
 #include "AIController.h"
+#include "OrionFlyableArea.h"
 #include "OrionAIController.generated.h"
 
 class UOrionSquad;
@@ -50,6 +51,26 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = Squad)
 		UOrionSquad *Squad;
 
+	AOrionFlyableArea *GetFlyableNavMesh();
+
+	UFUNCTION(BlueprintCallable, Category = Navigation)
+		void FindFlightPath(FVector Destination);
+
+	UFUNCTION(BlueprintCallable, Category = Navigation)
+		FVector GetRandomFlightPoint();
+
+	EPathFollowingRequestResult::Type MoveFlyToLocation(const FVector& Dest, float AcceptanceRadius, bool bStopOnOverlap, bool bUsePathfinding, bool bProjectDestinationToNavigation, bool bCanStrafe, TSubclassOf<UNavigationQueryFilter> FilterClass);
+
 private:
 	APawn *myEnemy;
+
+	//flying path variables
+	AOrionFlyableArea *FlyArea;
+
+public:
+	TArray<FVector> FlightPath;
+	int32 FlightIndex;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Navigation)
+		bool bFinishedPath;
 };

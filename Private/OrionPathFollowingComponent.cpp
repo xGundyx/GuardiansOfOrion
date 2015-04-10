@@ -7,6 +7,24 @@
 
 void UOrionPathFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 {
+	//custom flying pathing
+	if (Controller && Controller->GetPawn())
+	{
+		AOrionCharacter *Pawn = Cast<AOrionCharacter>(Controller->GetPawn());
+		if (Pawn && Pawn->IsFlying())
+		{
+			//if we are close to our next target, advance us!
+			if ((Pawn->GetActorLocation() - GetCurrentTargetFlyingLocation()).Size() < 200.0f)
+			{
+				Controller->FlightIndex++;
+				if (Controller->FlightIndex >= Controller->FlightPath.Num())
+					OnPathFinished(EPathFollowingResult::Success);
+			}
+
+			return;
+		}
+	}
+
 	Super::SetMoveSegment(SegmentStartIndex);
 
 	if (CharacterMoveComp != NULL)
@@ -34,6 +52,11 @@ void UOrionPathFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 	}
 }
 
+void UOrionPathFollowingComponent::SetStatus(EPathFollowingStatus::Type newStatus)
+{
+	Status = newStatus;
+}
+
 void UOrionPathFollowingComponent::SetMovementComponent(UNavMovementComponent* MoveComp)
 {
 	Super::SetMovementComponent(MoveComp);
@@ -41,8 +64,57 @@ void UOrionPathFollowingComponent::SetMovementComponent(UNavMovementComponent* M
 	CharacterMoveComp = Cast<UCharacterMovementComponent>(MoveComp);
 }
 
+FVector UOrionPathFollowingComponent::GetCurrentTargetFlyingLocation()
+{
+	if (Controller && Controller->FlightPath.Num() > Controller->FlightIndex)
+	{
+		return Controller->FlightPath[Controller->FlightIndex];
+	}
+
+	if (MovementComp)
+		return MovementComp->GetActorFeetLocation();
+
+	return FVector(0.0f);
+}
+
 void UOrionPathFollowingComponent::FollowPathSegment(float DeltaTime)
 {
+	if (Controller && Controller->GetPawn())
+	{
+		AOrionCharacter *Pawn = Cast<AOrionCharacter>(Controller->GetPawn());
+		if (Pawn && Pawn->IsFlying())
+		{
+			if (MovementComp == NULL)//|| !Path.IsValid())
+			{
+				return;
+			}
+
+			if ((Pawn->GetActorLocation() - GetCurrentTargetFlyingLocation()).Size() < 500.0f)
+			{
+				Controller->FlightIndex++;
+				if (Controller->FlightIndex >= Controller->FlightPath.Num())
+				{
+					Controller->bFinishedPath = true;
+					OnPathFinished(EPathFollowingResult::Success);
+				}
+			}
+
+			CharacterMoveComp->SetMovementMode(MOVE_Flying);
+
+			//const FVector CurrentLocation = MovementComp->IsMovingOnGround() ? MovementComp->GetActorFeetLocation() : MovementComp->GetActorLocation();
+			const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
+			const FVector CurrentTarget = GetCurrentTargetFlyingLocation();
+			FVector MoveVelocity = (CurrentTarget - CurrentLocation) / DeltaTime;
+
+			////const int32 LastSegmentStartIndex = Path->GetPathPoints().Num() - 2;
+			////const bool bNotFollowingLastSegment = (MoveSegmentStartIndex < LastSegmentStartIndex);
+
+			PostProcessMove.ExecuteIfBound(this, MoveVelocity);
+			MovementComp->RequestDirectMove(MoveVelocity, true);// bNotFollowingLastSegment);
+			return;
+		}
+	}
+
 	if (MovementComp == NULL || !Path.IsValid())
 		return;
 
@@ -63,6 +135,8 @@ void UOrionPathFollowingComponent::FollowPathSegment(float DeltaTime)
 
 		return;
 	}*/
+
+	CharacterMoveComp->SetMovementMode(MOVE_Walking);
 
 	Super::FollowPathSegment(DeltaTime);
 }
