@@ -406,5 +406,8 @@ private:
 	void Optimize(FFlyableOctree *pData);
 
 	void FillInParents(FFlyableOctree *pData);
-	void FindPath(FVector Start, FVector End);
+
+public:
+	TArray<FVector> FindPath(FVector Start, FVector End);
+	FVector GetRandomPoint();
 };

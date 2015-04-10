@@ -28,6 +28,14 @@ void AOrionFlyableArea::PostEditChangeProperty(FPropertyChangedEvent& PropertyCh
 }
 #endif
 
+FVector AOrionFlyableArea::GetRandomPoint()
+{
+	if (Data)
+		return Data->GetRandomPoint();
+
+	return FVector(0.0f);
+}
+
 //this is the heavy lifter
 void AOrionFlyableArea::BuildFlightPaths()
 {
@@ -92,7 +100,7 @@ void AOrionFlyableArea::BuildFlightPaths()
 	if (ShowBoxes)
 		DrawDebugBoxes(Data);
 
-	FindPath(Data->GetRandomPoint(), Data->GetRandomPoint());
+	////FindPath(Data->GetRandomPoint(), Data->GetRandomPoint());
 }
 
 void AOrionFlyableArea::DoTrace(FVector Center, float Width)
@@ -271,20 +279,31 @@ void AOrionFlyableArea::FillInParents(FFlyableOctree *pData)
 	}
 }
 
-void AOrionFlyableArea::FindPath(FVector Start, FVector End)
+TArray<FVector> AOrionFlyableArea::FindPath(FVector Start, FVector End)
 {
-	//if start is not inside a flyable volume, find the closest point
+	FlushPersistentDebugLines(GetWorld());
 
+	TArray<FVector> FullPath;
 
 	//find a quick and dirty path with A*
 	FFlyableOctree *StartNode = Data->GetNodeForPoint(Start);
 	FFlyableOctree *EndNode = Data->GetNodeForPoint(End);
 
-	if (StartNode == nullptr || EndNode == nullptr)
-		return;
+	if (StartNode == nullptr)
+	{
+		int32 x = 1;
+		while (!StartNode && Start.Z + 250.0f * x < Data->TreeCenter.Z + Data->TreeExtent.Z)
+		{
+			StartNode = Data->GetNodeForPoint(Start + FVector(0, 0, 250.0f * x));
+			x++;
+		}
+	}
 
-	DrawDebugSphere(GetWorld(), StartNode->TreeCenter, 500.0, 12, FColor::MakeRandomColor(), true);
-	DrawDebugSphere(GetWorld(), EndNode->TreeCenter, 500.0, 12, FColor::MakeRandomColor(), true);
+	if (StartNode == nullptr || EndNode == nullptr)
+		return FullPath;
+
+	//DrawDebugSphere(GetWorld(), StartNode->TreeCenter, 500.0, 12, FColor::MakeRandomColor(), true);
+	//DrawDebugSphere(GetWorld(), EndNode->TreeCenter, 500.0, 12, FColor::MakeRandomColor(), true);
 
 	TArray<FNavNode> OpenList;
 	FNavNode MyNode;
@@ -366,10 +385,12 @@ void AOrionFlyableArea::FindPath(FVector Start, FVector End)
 	{
 		int32 ParentIndex = ClosedList.Num() - 1;// ClosedList[ClosedList.Num() - 1].Parent;
 		FVector pos = End;
+		FullPath.Insert(pos, 0);
 		while (ParentIndex > -1)
 		{
-			DrawDebugLine(GetWorld(), pos, ClosedList[ParentIndex].Node->TreeCenter, FColor::MakeRandomColor(), true);
+			////DrawDebugLine(GetWorld(), pos, ClosedList[ParentIndex].Node->TreeCenter, FColor::MakeRandomColor(), true);
 			pos = ClosedList[ParentIndex].Node->TreeCenter;
+			FullPath.Insert(pos, 0);
 			ParentIndex = ClosedList[ParentIndex].Parent;
 		}
 	}
@@ -377,63 +398,7 @@ void AOrionFlyableArea::FindPath(FVector Start, FVector End)
 	//if (ClosedList.Num() > 0)
 	//	DrawDebugLine(GetWorld(), ClosedList[ClosedList.Num() - 1].Node->TreeCenter, EndNode->TreeCenter, FColor::MakeRandomColor(), true);
 
-	return; 
-
-	FFlyableOctree *sNode = Data;
-	FFlyableOctree *eNode = Data;
-	FFlyableOctree *pParent = nullptr;
-
-	//trace up the parents until a match is found
-	while (sNode == eNode)
-	{
-		//if we reach a flyable node, it means start and end are in the same box
-		if (sNode->bFlyable)
-		{
-			pParent = sNode;
-			break;
-		}
-
-		sNode = sNode->Children[sNode->GetChild(Start)];
-		eNode = eNode->Children[eNode->GetChild(End)];
-
-		if (sNode != eNode)
-		{
-			pParent = sNode->Parent;
-			break;
-		}
-	}
-
-	TArray<FFlyableOctree*> PathNodes;
-	FFlyableOctree *pNode;
-
-	if (pParent)
-	{
-		PathNodes.Add(StartNode);
-		pNode = StartNode;
-
-		while (pNode != pParent)
-		{
-			pNode = pNode->Parent;
-			if (!pNode)
-				return;
-
-			PathNodes.Add(pNode);
-		}
-
-		while (pNode != EndNode)
-		{
-			pNode = pNode->Children[pNode->GetChild(End)];
-			if (!pNode)
-				return;
-
-			PathNodes.Add(pNode);
-		}
-
-		for (int32 i = 1; i < PathNodes.Num(); i++)
-		{
-			DrawDebugLine(GetWorld(), PathNodes[i]->TreeCenter, PathNodes[i - 1]->TreeCenter, FColor::MakeRandomColor(), true);
-		}
-	}
+	return FullPath;
 }
 
 

@@ -18,8 +18,132 @@ void AOrionAIController::Possess(APawn* aPawn)
 {
 	Super::Possess(aPawn);
 
+	bFinishedPath = true;
+
 	if (Cast<UOrionPathFollowingComponent>(GetPathFollowingComponent()))
 		Cast<UOrionPathFollowingComponent>(GetPathFollowingComponent())->Controller = this;
+}
+
+void AOrionAIController::FindFlightPath(FVector Destination)
+{
+	if (!FlyArea)
+		GetFlyableNavMesh();
+
+	if (FlyArea && GetPawn())
+	{
+		FlightPath = FlyArea->FindPath(GetPawn()->GetActorLocation(), Destination);
+		FlightIndex = 0;
+
+		if (FlightPath.Num() > 0)
+		{
+			bFinishedPath = false;
+			MoveFlyToLocation(FlightPath[FlightPath.Num() - 1], 100.0f, true, false, false, true, UNavigationQueryFilter::StaticClass());
+		}
+	}
+}
+
+FVector AOrionAIController::GetRandomFlightPoint()
+{
+	if (!FlyArea)
+		GetFlyableNavMesh();
+
+	if (FlyArea)
+		return FlyArea->GetRandomPoint();
+
+	return FVector(0.0f);
+}
+
+AOrionFlyableArea *AOrionAIController::GetFlyableNavMesh()
+{
+	if (FlyArea)
+		return FlyArea;
+
+	TArray<AActor*> FlyableVolumes;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionFlyableArea::StaticClass(), FlyableVolumes);
+
+	if (FlyableVolumes.Num() > 0)
+		FlyArea = Cast<AOrionFlyableArea>(FlyableVolumes[0]);
+	else
+		FlyArea = nullptr;
+
+	if (FlyArea)
+		FlyArea->BuildFlightPaths();
+
+	return FlyArea;
+}
+
+EPathFollowingRequestResult::Type AOrionAIController::MoveFlyToLocation(const FVector& Dest, float AcceptanceRadius, bool bStopOnOverlap, bool bUsePathfinding, bool bProjectDestinationToNavigation, bool bCanStrafe, TSubclassOf<UNavigationQueryFilter> FilterClass)
+{
+	//SCOPE_CYCLE_COUNTER(STAT_MoveToLocation);
+
+	EPathFollowingRequestResult::Type Result = EPathFollowingRequestResult::Failed;
+	bool bCanRequestMove = true;
+
+	//UE_VLOG(this, LogAINavigation, Log, TEXT("MoveToLocation: Goal(%s) AcceptRadius(%.1f%s) bUsePathfinding(%d) bCanStrafe(%d) Filter(%s)")
+	//	, TEXT_AI_LOCATION(Dest), AcceptanceRadius, bStopOnOverlap ? TEXT(" + agent") : TEXT(""), bUsePathfinding, bCanStrafe, *GetNameSafe(FilterClass));
+
+	// Check input is valid
+	if (Dest.ContainsNaN())
+	{
+		//UE_VLOG(this, LogAINavigation, Error, TEXT("AAIController::MoveToLocation: Destination is not valid! Goal(%s) AcceptRadius(%.1f%s) bUsePathfinding(%d) bCanStrafe(%d)")
+		//	, TEXT_AI_LOCATION(Dest), AcceptanceRadius, bStopOnOverlap ? TEXT(" + agent") : TEXT(""), bUsePathfinding, bCanStrafe);
+
+		ensure(!Dest.ContainsNaN());
+		bCanRequestMove = false;
+	}
+
+	FVector GoalLocation = Dest;
+
+	// fail if projection to navigation is required but it failed
+	/*if (bCanRequestMove && bProjectDestinationToNavigation)
+	{
+	UNavigationSystem* NavSys = UNavigationSystem::GetCurrent(GetWorld());
+	const FNavAgentProperties& AgentProps = GetNavAgentPropertiesRef();
+	FNavLocation ProjectedLocation;
+
+	if (NavSys && !NavSys->ProjectPointToNavigation(Dest, ProjectedLocation, AgentProps.GetExtent(), &AgentProps))
+	{
+	UE_VLOG_LOCATION(this, LogAINavigation, Error, Dest, 30.f, FLinearColor::Red, TEXT("AAIController::MoveToLocation failed to project destination location to navmesh"));
+	bCanRequestMove = false;
+	}
+
+	GoalLocation = ProjectedLocation.Location;
+	}*/
+
+	if (bCanRequestMove && GetPathFollowingComponent() && GetPathFollowingComponent()->HasReached(GoalLocation, AcceptanceRadius, !bStopOnOverlap))
+	{
+		//UE_VLOG(this, LogAINavigation, Log, TEXT("MoveToLocation: already at goal!"));
+
+		// make sure previous move request gets aborted
+		GetPathFollowingComponent()->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest);
+
+		GetPathFollowingComponent()->SetLastMoveAtGoal(true);
+
+		OnMoveCompleted(FAIRequestID::CurrentRequest, EPathFollowingResult::Success);
+		Result = EPathFollowingRequestResult::AlreadyAtGoal;
+		bCanRequestMove = false;
+	}
+
+	if (bCanRequestMove)
+	{
+		if (Cast<UOrionPathFollowingComponent>(GetPathFollowingComponent()))
+		{
+			Result = EPathFollowingRequestResult::RequestSuccessful;
+			Cast<UOrionPathFollowingComponent>(GetPathFollowingComponent())->SetStatus(EPathFollowingStatus::Moving);
+		}
+	}
+
+	if (Result == EPathFollowingRequestResult::Failed)
+	{
+		if (GetPathFollowingComponent())
+		{
+			GetPathFollowingComponent()->SetLastMoveAtGoal(false);
+		}
+
+		OnMoveCompleted(FAIRequestID::InvalidRequest, EPathFollowingResult::Invalid);
+	}
+
+	return Result;
 }
 
 void AOrionAIController::PawnPendingDestroy(APawn* inPawn)
@@ -43,7 +167,8 @@ void AOrionAIController::PawnPendingDestroy(APawn* inPawn)
 	//always destroy a controller after its pawn dies
 	//if (PlayerState == NULL)
 	//{
-		Destroy();
+		bAutoDestroyWhenFinished = true;
+		//Destroy();
 	//}
 }
 
@@ -66,6 +191,11 @@ void AOrionAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn
 		FRotator NewControlRotation = Direction.Rotation();
 
 		NewControlRotation.Yaw = FRotator::ClampAxis(NewControlRotation.Yaw);
+		if (Cast<AOrionCharacter>(GetPawn())->IsFlying())
+		{
+			NewControlRotation.Pitch = FRotator::ClampAxis(NewControlRotation.Pitch);
+
+		}
 
 		SetControlRotation(NewControlRotation);
 

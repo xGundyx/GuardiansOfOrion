@@ -4,6 +4,7 @@
 
 #include "Navigation/PathFollowingComponent.h"
 #include "OrionAIController.h"
+//#include "PathFindindingComponent.h"
 #include "OrionPathFollowingComponent.generated.h"
 
 /**
@@ -29,11 +30,17 @@ public:
 	// used to cache UCharacterMovementComponent we're using in SetMoveSegment implementation
 	virtual void SetMovementComponent(UNavMovementComponent* MoveComp) override;
 
+	FVector GetCurrentTargetFlyingLocation();
+
 	AOrionAIController *Controller;
+
+	void SetStatus(EPathFollowingStatus::Type newStatus);
 
 	void DoRotation();
 
 	bool HandleRotation();
 
 	FTimerHandle RotationTimer;
+
+	FVector PathNextTarget;
 };
