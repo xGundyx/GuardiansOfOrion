@@ -59,6 +59,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Navigation)
 		FVector GetRandomFlightPoint();
 
+	UFUNCTION(BlueprintCallable, Category = Navigation)
+		void SetLanding(bool IsLanding);
+
+	UPROPERTY(BlueprintReadWrite, Category = Navigation)
+		bool bLanding;
+
+	UPROPERTY(BlueprintReadWrite, Category = Navigation)
+		FVector LandingLocation;
+
 	EPathFollowingRequestResult::Type MoveFlyToLocation(const FVector& Dest, float AcceptanceRadius, bool bStopOnOverlap, bool bUsePathfinding, bool bProjectDestinationToNavigation, bool bCanStrafe, TSubclassOf<UNavigationQueryFilter> FilterClass);
 
 private:
@@ -73,4 +82,7 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Navigation)
 		bool bFinishedPath;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Navigation)
+		bool bFinishedLanding;
 };

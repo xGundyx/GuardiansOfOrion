@@ -114,7 +114,7 @@ float UOrionDinoMovementComponent::GetMaxSpeed() const
 	if (OrionCharacterOwner)
 	{
 		if (OrionCharacterOwner->bFly)
-			SpeedMod *= 12.0;
+			SpeedMod *= OrionCharacterOwner->bLanding ? 5.0 : 12.0;
 		else if (OrionCharacterOwner->bRun && IsMovingOnGround())
 			SpeedMod *= OrionCharacterOwner->RunningModifier;
 		else

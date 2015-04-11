@@ -6,7 +6,7 @@
 #include "OrionShipPawn.generated.h"
 
 UCLASS()
-class ORION_API AOrionShipPawn : public ACharacter
+class ORION_API AOrionShipPawn : public AOrionCharacter
 {
 	GENERATED_BODY()
 

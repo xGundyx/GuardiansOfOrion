@@ -11,7 +11,7 @@ void UOrionPathFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 	if (Controller && Controller->GetPawn())
 	{
 		AOrionCharacter *Pawn = Cast<AOrionCharacter>(Controller->GetPawn());
-		if (Pawn && Pawn->IsFlying())
+		if (Pawn && Pawn->IsFlying() && !Controller->bFinishedPath)
 		{
 			//if we are close to our next target, advance us!
 			if ((Pawn->GetActorLocation() - GetCurrentTargetFlyingLocation()).Size() < 200.0f)
@@ -66,6 +66,13 @@ void UOrionPathFollowingComponent::SetMovementComponent(UNavMovementComponent* M
 
 FVector UOrionPathFollowingComponent::GetCurrentTargetFlyingLocation()
 {
+	//special landing code
+	if (Controller && Controller->bLanding)
+	{
+		return Controller->LandingLocation;
+	}
+
+
 	if (Controller && Controller->FlightPath.Num() > Controller->FlightIndex)
 	{
 		return Controller->FlightPath[Controller->FlightIndex];
@@ -89,13 +96,21 @@ void UOrionPathFollowingComponent::FollowPathSegment(float DeltaTime)
 				return;
 			}
 
-			if ((Pawn->GetActorLocation() - GetCurrentTargetFlyingLocation()).Size() < 500.0f)
+			if ((Pawn->GetActorLocation() - GetCurrentTargetFlyingLocation()).Size() < (Pawn->bLanding ? Pawn->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 10.0f : 1000.0f))
 			{
-				Controller->FlightIndex++;
-				if (Controller->FlightIndex >= Controller->FlightPath.Num())
+				if (Pawn->bLanding)
 				{
-					Controller->bFinishedPath = true;
+					Controller->bFinishedLanding = true;
 					OnPathFinished(EPathFollowingResult::Success);
+				}
+				else
+				{
+					Controller->FlightIndex++;
+					if (Controller->FlightIndex >= Controller->FlightPath.Num())
+					{
+						Controller->bFinishedPath = true;
+						OnPathFinished(EPathFollowingResult::Success);
+					}
 				}
 			}
 
@@ -110,7 +125,7 @@ void UOrionPathFollowingComponent::FollowPathSegment(float DeltaTime)
 			////const bool bNotFollowingLastSegment = (MoveSegmentStartIndex < LastSegmentStartIndex);
 
 			PostProcessMove.ExecuteIfBound(this, MoveVelocity);
-			MovementComp->RequestDirectMove(MoveVelocity, true);// bNotFollowingLastSegment);
+			MovementComp->RequestDirectMove(MoveVelocity, false);// true);// bNotFollowingLastSegment);
 			return;
 		}
 	}

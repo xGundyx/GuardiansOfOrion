@@ -265,7 +265,7 @@ public:
 	virtual void CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult) override;
 
 	/** handle mesh visibility and updates */
-	void UpdatePawnMeshes();
+	virtual void UpdatePawnMeshes();
 
 	//modular pieces
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
@@ -309,6 +309,9 @@ public:
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		bool bFly;
+
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = Camera)
+		bool bLanding;
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		bool bAim;
