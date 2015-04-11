@@ -498,8 +498,13 @@ FVector AOrionWeapon::GetAdjustedAim() const
 {
 	AController* const PlayerController = Instigator ? Instigator->Controller : NULL;
 	FVector FinalAim = FVector::ZeroVector;
+	//top down aims in the general direction the pawn is facing
+	if (Cast<AOrionTopDownPawn>(Instigator))
+	{
+		FinalAim = Instigator->GetActorRotation().Vector();
+	}
 	// If we have a player controller use it for the aim
-	if (PlayerController)
+	else if (PlayerController)
 	{
 		FVector CamLoc;
 		FRotator CamRot;
@@ -542,7 +547,11 @@ FVector AOrionWeapon::GetCameraDamageStartLocation(const FVector& AimDir) const
 	//ADHAIController* AIPC = MyPawn ? Cast<ADHAIController>(MyPawn->Controller) : NULL;
 	FVector OutStartTrace = FVector::ZeroVector;
 
-	if (PC)
+	if (Cast<AOrionTopDownPawn>(Instigator))
+	{
+		OutStartTrace = Instigator->GetActorLocation() + FVector(0, 0, 25.0f);
+	}
+	else if (PC)
 	{
 		// use player's camera
 		FRotator UnusedRot;

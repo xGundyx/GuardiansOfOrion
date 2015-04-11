@@ -34,6 +34,8 @@ void AOrionAIController::FindFlightPath(FVector Destination)
 		FlightPath = FlyArea->FindPath(GetPawn()->GetActorLocation(), Destination);
 		FlightIndex = 0;
 
+		bFinishedLanding = false;
+
 		if (FlightPath.Num() > 0)
 		{
 			bFinishedPath = false;
@@ -66,7 +68,7 @@ AOrionFlyableArea *AOrionAIController::GetFlyableNavMesh()
 	else
 		FlyArea = nullptr;
 
-	if (FlyArea)
+	if (FlyArea && !FlyArea->IsInit())
 		FlyArea->BuildFlightPaths();
 
 	return FlyArea;
@@ -146,6 +148,15 @@ EPathFollowingRequestResult::Type AOrionAIController::MoveFlyToLocation(const FV
 	return Result;
 }
 
+void AOrionAIController::SetLanding(bool IsLanding)
+{
+	bLanding = IsLanding;
+
+	AOrionCharacter *pPawn = Cast<AOrionCharacter>(GetPawn());
+	if (pPawn)
+		pPawn->bLanding = IsLanding;
+}
+
 void AOrionAIController::PawnPendingDestroy(APawn* inPawn)
 {
 	if (IsInState(NAME_Inactive))
@@ -191,10 +202,14 @@ void AOrionAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn
 		FRotator NewControlRotation = Direction.Rotation();
 
 		NewControlRotation.Yaw = FRotator::ClampAxis(NewControlRotation.Yaw);
-		if (Cast<AOrionCharacter>(GetPawn())->IsFlying())
+		AOrionCharacter *pPawn = Cast<AOrionCharacter>(GetPawn());
+		if (pPawn->IsFlying() && !pPawn->bLanding)
 		{
 			NewControlRotation.Pitch = FRotator::ClampAxis(NewControlRotation.Pitch);
-
+		}
+		else if (pPawn->bLanding)
+		{
+			NewControlRotation.Pitch = 0.0f;
 		}
 
 		SetControlRotation(NewControlRotation);

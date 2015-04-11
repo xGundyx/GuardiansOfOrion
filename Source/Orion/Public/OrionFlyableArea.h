@@ -156,7 +156,7 @@ struct FFlyableOctree
 
 			while (true)
 			{
-				bool bIncrease;
+				bool bIncrease = true;
 				if(i == 0)
 					bIncrease = aa % 4 < 2;
 				else if (i == 1)
@@ -407,7 +407,10 @@ private:
 
 	void FillInParents(FFlyableOctree *pData);
 
+	void SmoothPath(TArray<FVector> &FullPath);
+
 public:
 	TArray<FVector> FindPath(FVector Start, FVector End);
 	FVector GetRandomPoint();
+	bool IsInit();
 };

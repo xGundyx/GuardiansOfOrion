@@ -103,7 +103,9 @@ float UOrionMovementComponent::GetMaxSpeed() const
 		}
 		else
 		{
-			if (OrionCharacterOwner->bDuck)
+			if (OrionCharacterOwner->bFly)
+				SpeedMod *= OrionCharacterOwner->bLanding ? 5.0 :12.0;
+			else if (OrionCharacterOwner->bDuck)
 			{
 				SpeedMod *= 0.4f;
 				if (OrionCharacterOwner->bAim)

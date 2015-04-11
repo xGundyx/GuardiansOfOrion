@@ -103,10 +103,15 @@ void AOrionFlyableArea::BuildFlightPaths()
 	////FindPath(Data->GetRandomPoint(), Data->GetRandomPoint());
 }
 
+bool AOrionFlyableArea::IsInit()
+{
+	return Data != nullptr;
+}
+
 void AOrionFlyableArea::DoTrace(FVector Center, float Width)
 {
 	//if the width is small enough, just add it 
-	if (Width <= 256.0f)
+	if (Width <= 512.0f)
 	{
 		//AddCube(Center, Width);
 		return;
@@ -121,7 +126,7 @@ void AOrionFlyableArea::DoTrace(FVector Center, float Width)
 
 	FCollisionObjectQueryParams QueryParams;
 
-	if (GetWorld()->SweepSingle(Hit, start, end, rot, FCollisionShape::MakeSphere(Width / 2.0f), Params, QueryParams))
+	if (GetWorld()->SweepSingle(Hit, start, end, rot, FCollisionShape::MakeBox(FVector(Width)/2.0f)/*FCollisionShape::MakeSphere(Width / 2.0f)*/, Params, QueryParams))
 	{
 		for (int32 i = 0; i < 8; i++)
 		{
@@ -299,6 +304,16 @@ TArray<FVector> AOrionFlyableArea::FindPath(FVector Start, FVector End)
 		}
 	}
 
+	if (EndNode == nullptr)
+	{
+		int32 x = 1;
+		while (!EndNode && End.Z + 250.0f * x < Data->TreeCenter.Z + Data->TreeExtent.Z)
+		{
+			EndNode = Data->GetNodeForPoint(End + FVector(0, 0, 250.0f * x));
+			x++;
+		}
+	}
+
 	if (StartNode == nullptr || EndNode == nullptr)
 		return FullPath;
 
@@ -357,7 +372,7 @@ TArray<FVector> AOrionFlyableArea::FindPath(FVector Start, FVector End)
 				if (NewNode.G < OpenList[index].G)
 				{
 					OpenList[index].G = NewNode.G;
-					OpenList[index].F = NewNode.G + (OpenList[index].Node->TreeCenter - End).Size();
+					OpenList[index].F = NewNode.G + (OpenList[index].Node->TreeCenter - EndNode->TreeCenter).Size();
 					OpenList[index].Parent = ClosedList.Num() - 1;
 				}
 			}
@@ -370,7 +385,7 @@ TArray<FVector> AOrionFlyableArea::FindPath(FVector Start, FVector End)
 				//the distance to get from the start to this node
 				NewNode.G = Current.G + (NewNode.Node->TreeCenter - Current.Node->TreeCenter).Size();
 				//the distance to get to this node plus the estimated distance still to go
-				NewNode.F = NewNode.G + (NewNode.Node->TreeCenter - End).Size();
+				NewNode.F = NewNode.G + (NewNode.Node->TreeCenter - EndNode->TreeCenter).Size();
 
 				NewNode.Parent = ClosedList.Num() - 1;
 
@@ -384,7 +399,7 @@ TArray<FVector> AOrionFlyableArea::FindPath(FVector Start, FVector End)
 	if (ClosedList.Num() > 0)
 	{
 		int32 ParentIndex = ClosedList.Num() - 1;// ClosedList[ClosedList.Num() - 1].Parent;
-		FVector pos = End;
+		FVector pos = EndNode->TreeCenter;
 		FullPath.Insert(pos, 0);
 		while (ParentIndex > -1)
 		{
@@ -395,10 +410,66 @@ TArray<FVector> AOrionFlyableArea::FindPath(FVector Start, FVector End)
 		}
 	}
 
+	//the path we have now is pretty jagged and jerky, smooth it out!
+	SmoothPath(FullPath);
+
+	/*if (FullPath.Num() > 0)
+	{
+		DrawDebugLine(GetWorld(), Start, FullPath[0], FColor::MakeRandomColor(), true);
+		for (int32 i = 1; i < FullPath.Num(); i++)
+		{
+			DrawDebugLine(GetWorld(), FullPath[i-1], FullPath[i], FColor::MakeRandomColor(), true);
+		}
+	}*/
+
 	//if (ClosedList.Num() > 0)
 	//	DrawDebugLine(GetWorld(), ClosedList[ClosedList.Num() - 1].Node->TreeCenter, EndNode->TreeCenter, FColor::MakeRandomColor(), true);
 
 	return FullPath;
 }
 
+void AOrionFlyableArea::SmoothPath(TArray<FVector> &FullPath)
+{
+	if (FullPath.Num() <= 0)
+		return;
+
+	TArray<FVector> RealPath;
+
+	RealPath.Add(FullPath[0]);
+
+	int32 i = 0;
+	int32 j = 0;
+	while (i < FullPath.Num() - 2)
+	{
+		for (j = i + 2; j < FullPath.Num() && j - i < 5; j++)
+		{
+			FHitResult Hit;
+			FVector start = FullPath[i];
+			FVector end = FullPath[j];
+			FQuat rot;
+
+			FCollisionQueryParams Params;
+
+			FCollisionObjectQueryParams QueryParams;
+
+			if (GetWorld()->SweepSingle(Hit, start, end, rot, FCollisionShape::MakeSphere(25.0f), Params, QueryParams))
+			{
+				RealPath.Add(FullPath[j - 1]);
+				break;
+			}
+			else if (j - 1 >= 5)
+				RealPath.Add(FullPath[j - 1]);
+		}
+		i = j - 1;
+	}
+
+	//make sure the end is the real end
+	if (RealPath.Num() > 0)
+	{
+		if (RealPath.Last() != FullPath.Last())
+			RealPath.Add(FullPath.Last());
+	}
+
+	FullPath = RealPath;
+}
 
