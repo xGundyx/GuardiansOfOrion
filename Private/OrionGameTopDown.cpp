@@ -13,7 +13,7 @@ AOrionGameTopDown::AOrionGameTopDown(const FObjectInitializer& ObjectInitializer
 		DefaultPawnClass = (UClass*)PlayerPawnObject.Object->GeneratedClass;
 	}
 
-	static ConstructorHelpers::FObjectFinder<UBlueprint> PlayerControllerObject(TEXT("/Game/Character/Blueprints/BasePlayerController"));
+	static ConstructorHelpers::FObjectFinder<UBlueprint> PlayerControllerObject(TEXT("/Game/Character/Blueprints/TopDownPlayerController"));
 	if (PlayerControllerObject.Object != NULL)
 	{
 		PlayerControllerClass = (UClass*)PlayerControllerObject.Object->GeneratedClass;
