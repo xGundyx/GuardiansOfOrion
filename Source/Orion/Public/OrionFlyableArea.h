@@ -380,6 +380,8 @@ class ORION_API AOrionFlyableArea : public AVolume
 	GENERATED_BODY()
 	
 public:
+	AOrionFlyableArea(const FObjectInitializer& ObjectInitializer);
+
 	UFUNCTION(BlueprintCallable, Category = Navigation)
 		void BuildFlightPaths();
 

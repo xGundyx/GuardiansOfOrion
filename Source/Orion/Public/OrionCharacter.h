@@ -195,7 +195,7 @@ struct FDirectionalAnim
 };
 
 UCLASS(BlueprintType, Blueprintable, config = Game)
-class AOrionCharacter : public ACharacter
+class ORION_API AOrionCharacter : public ACharacter
 {
 	GENERATED_BODY()
 public:
@@ -266,6 +266,8 @@ public:
 
 	/** handle mesh visibility and updates */
 	virtual void UpdatePawnMeshes();
+
+	virtual bool IsTopDown();
 
 	//modular pieces
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
@@ -498,6 +500,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		UAnimMontage *SprintAnimation;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+		float RotationRate;
 
 	/** check if pawn is still alive */
 	bool IsAlive() const;

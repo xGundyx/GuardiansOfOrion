@@ -8,7 +8,7 @@
 void UOrionPathFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 {
 	//custom flying pathing
-	if (Controller && Controller->GetPawn())
+	/*if (Controller && Controller->GetPawn())
 	{
 		AOrionCharacter *Pawn = Cast<AOrionCharacter>(Controller->GetPawn());
 		if (Pawn && Pawn->IsFlying() && !Controller->bFinishedPath)
@@ -23,7 +23,7 @@ void UOrionPathFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 
 			return;
 		}
-	}
+	}*/
 
 	Super::SetMoveSegment(SegmentStartIndex);
 

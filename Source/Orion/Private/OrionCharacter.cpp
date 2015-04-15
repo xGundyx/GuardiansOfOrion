@@ -22,6 +22,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	// set our turn rates for input
 	BaseTurnRate = 45.f;
 	BaseLookUpRate = 45.f;
+	RotationRate = 0.0f;
 
 	//AIControllerClass = AOrionAIController::StaticClass();
 
@@ -1452,7 +1453,7 @@ void AOrionCharacter::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 {
 	FRotator ncRot = NewControlRotation;
 
-	if (IsRolling())
+	if (IsRolling() || IsPlayingRootMotion())
 		return;
 
 	/*if (IsLocallyControlled() && Cast<AOrionPlayerController>(Controller) != NULL)
@@ -1482,7 +1483,10 @@ void AOrionCharacter::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 		NewControlRotation.Roll = CurrentRotation.Roll;
 	}
 
-	SetActorRotation(NewControlRotation);
+	if (RotationRate > 0.1f)
+		SetActorRotation(FMath::RInterpTo(GetActorRotation(), NewControlRotation, DeltaTime, RotationRate));
+	else
+		SetActorRotation(NewControlRotation);
 }
 
 
@@ -1541,11 +1545,21 @@ bool AOrionCharacter::IsFlying() const
 void AOrionCharacter::TakeOff()
 {
 	bFly = true;
+
+	UCharacterMovementComponent *MoveComp = Cast<UCharacterMovementComponent>(GetMovementComponent());
+
+	if (MoveComp)
+		MoveComp->SetMovementMode(MOVE_Flying);
 }
 
 void AOrionCharacter::LandFromFlying()
 {
 	bFly = false;
+
+	UCharacterMovementComponent *MoveComp = Cast<UCharacterMovementComponent>(GetMovementComponent());
+
+	if (MoveComp)
+		MoveComp->SetMovementMode(MOVE_Walking);
 }
 
 bool AOrionCharacter::IsDucking() const
@@ -1620,6 +1634,11 @@ void AOrionCharacter::AddAimKick(FRotator Kick)
 
 	TargetAimKick.Pitch = FMath::Min(TargetAimKick.Pitch + (TargetAimKick.Pitch>2.0f ? Kick.Pitch - 1.0f : Kick.Pitch), 4.0f);
 	TargetAimKick.Yaw = FMath::Clamp(TargetAimKick.Yaw + Kick.Yaw, -2.0f, 2.0f);
+}
+
+bool AOrionCharacter::IsTopDown()
+{
+	return false;
 }
 
 void AOrionCharacter::StartAiming()

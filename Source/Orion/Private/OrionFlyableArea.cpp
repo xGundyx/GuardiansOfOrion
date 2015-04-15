@@ -5,6 +5,15 @@
 
 FVector FFlyableOctree::TOffsets[8];
 
+AOrionFlyableArea::AOrionFlyableArea(const FObjectInitializer& ObjectInitializer)
+	:Super(ObjectInitializer)
+{
+	//GetBrushComponent()->SetCollisionObjectType(ECC_Pawn);
+	GetBrushComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	static FName CollisionProfileName(TEXT("NoCollision"));
+	GetBrushComponent()->SetCollisionProfileName(CollisionProfileName);
+}
+
 #if WITH_EDITOR
 void AOrionFlyableArea::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
 {
@@ -120,13 +129,19 @@ void AOrionFlyableArea::DoTrace(FVector Center, float Width)
 	FHitResult Hit;
 	FVector start = Center;// +FVector(0, 0, Width);
 	FVector end = Center - FVector(0.0f, 0.0f, 5.0f);
+	//FQuat rot;
+
+	FCollisionQueryParams TraceParams(TEXT("FLYABLETRACE"), false, Instigator);
+	TraceParams.bTraceAsyncScene = false;
+	TraceParams.bReturnPhysicalMaterial = false;
+
 	FQuat rot;
 
-	FCollisionQueryParams Params;
+	//FCollisionQueryParams Params;
 
-	FCollisionObjectQueryParams QueryParams;
+	//FCollisionObjectQueryParams QueryParams;
 
-	if (GetWorld()->SweepSingle(Hit, start, end, rot, FCollisionShape::MakeBox(FVector(Width)/2.0f)/*FCollisionShape::MakeSphere(Width / 2.0f)*/, Params, QueryParams))
+	if (GetWorld()->SweepSingle(Hit, start, end, rot, COLLISION_FLYABLE, FCollisionShape::MakeBox(FVector(Width) / 2.0f), TraceParams))//Params, QueryParams))
 	{
 		for (int32 i = 0; i < 8; i++)
 		{
