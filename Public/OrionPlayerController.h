@@ -64,7 +64,7 @@ struct FCharacterData
 };
 
 UCLASS()
-class AOrionPlayerController : public APlayerController
+class ORION_API AOrionPlayerController : public APlayerController
 {
 	GENERATED_BODY()
 public:

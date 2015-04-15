@@ -11,7 +11,8 @@ AOrionAIController::AOrionAIController(const FObjectInitializer& ObjectInitializ
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UOrionPathFollowingComponent>(TEXT("PathFollowingComponent")))
 
 {
-	
+	MoveType = AIMOVE_WALKING;
+	bFinishedPath = true;
 }
 
 void AOrionAIController::Possess(APawn* aPawn)
@@ -44,8 +45,21 @@ void AOrionAIController::FindFlightPath(FVector Destination)
 	}
 }
 
-FVector AOrionAIController::GetRandomFlightPoint()
+FVector AOrionAIController::GetRandomFlightPoint(bool bIsLanding)
 {
+	if (bIsLanding)
+	{
+		FNavLocation pos;
+
+		if (GetWorld() && GetWorld()->GetNavigationSystem())
+		{
+			GetWorld()->GetNavigationSystem()->GetRandomPoint(pos);
+			return pos.Location;
+		}
+
+		return FVector(0.0f);
+	}
+
 	if (!FlyArea)
 		GetFlyableNavMesh();
 

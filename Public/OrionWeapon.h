@@ -4,7 +4,7 @@
 
 #include "GameFramework/Actor.h"
 #include "OrionCharacter.h"
-#include "OrionTopDownPawn.h"
+//#include "OrionTopDownPawn.h"
 #include "OrionWeapon.generated.h"
 
 //data to send to server/clients about our hits

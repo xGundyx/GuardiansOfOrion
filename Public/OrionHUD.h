@@ -4,7 +4,7 @@
 #include "OrionHUD.generated.h"
 
 UCLASS()
-class AOrionHUD : public AHUD
+class ORION_API AOrionHUD : public AHUD
 {
 	GENERATED_BODY()
 public:

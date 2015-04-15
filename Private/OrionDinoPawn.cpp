@@ -10,6 +10,7 @@ AOrionDinoPawn::AOrionDinoPawn(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UOrionDinoMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
 	RunningModifier = 1.0f;
+	RotationRate = 1.5f;
 }
 
 FVector2D AOrionDinoPawn::GetAim(float DeltaTime)
@@ -87,8 +88,9 @@ void AOrionDinoPawn::Tick(float DeltaTime)
 	{
 		FRotator rot = GetActorRotation();
 		rot.Roll = 0.0f;
-		rot.Pitch = 0.0f;
-		SetActorRotation(FMath::RInterpTo(GetActorRotation(), rot, DeltaTime, 5.0f));
+		if (!IsFlying())
+			rot.Pitch = 0.0f;
+		SetActorRotation(FMath::RInterpTo(GetActorRotation(), rot, DeltaTime, 1.0f));
 	}
 }
 

@@ -3,8 +3,8 @@
 #include "GameFramework/GameMode.h"
 #include "OrionGameMode.generated.h"
 
-UCLASS(minimalapi)
-class AOrionGameMode : public AGameMode
+UCLASS()
+class ORION_API AOrionGameMode : public AGameMode
 {
 	GENERATED_BODY()
 public:
