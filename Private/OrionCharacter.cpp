@@ -1759,6 +1759,11 @@ void AOrionCharacter::MoveRight(float Value)
 	}
 }
 
+FCharacterStats AOrionCharacter::GetCharacterStats()
+{
+	return CharacterStats;
+}
+
 void AOrionCharacter::TurnAtRate(float Rate)
 {
 	// calculate delta for this frame from the rate information

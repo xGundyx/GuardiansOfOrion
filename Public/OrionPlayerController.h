@@ -18,6 +18,18 @@
 */
 
 USTRUCT(BlueprintType)
+struct FOptionsData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = Option)
+		FString Title;
+
+	UPROPERTY(BlueprintReadOnly, Category = Option)
+		TArray<FString> Options;
+};
+
+USTRUCT(BlueprintType)
 struct FCharacterData
 {
 	GENERATED_USTRUCT_BODY()
@@ -187,6 +199,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Respawn)
 		void SetDropPod(AOrionDropPod *Pod);
+
+	UFUNCTION(BlueprintCallable, Category = Respawn)
+		TArray<FOptionsData> GetGameplayOptions();
 
 	UPROPERTY()
 		AOrionDropPod *DropPod;

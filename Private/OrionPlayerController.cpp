@@ -290,6 +290,52 @@ AOrionInventoryManager *AOrionPlayerController::GetInventoryManager()
 	return nullptr;
 }
 
+TArray<FOptionsData> AOrionPlayerController::GetGameplayOptions()
+{
+	TArray<FOptionsData> Options;
+	FOptionsData NewOption;
+
+	NewOption.Options.Empty();
+	NewOption.Title = TEXT("GAMEPLAYOPTION 1");
+	NewOption.Options.Add("DISABLED");
+	NewOption.Options.Add("ENABLED");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("GAMEPLAYOPTION 2");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("GAMEPLAYOPTION 3");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("GAMEPLAYOPTION 4");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("GAMEPLAYOPTION 5");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("GAMEPLAYOPTION 6");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("GAMEPLAYOPTION 7");
+	Options.Add(NewOption);
+
+	NewOption.Options.Empty();
+	NewOption.Title = TEXT("TEXTURE QUALITY");
+	NewOption.Options.Add("LOW");
+	NewOption.Options.Add("MEDIUM");
+	NewOption.Options.Add("HIGH");
+	Options.Add(NewOption);
+
+	NewOption.Options.Empty();
+	NewOption.Title = TEXT("CHARACTER QUALITY");
+	NewOption.Options.Add("LOW");
+	NewOption.Options.Add("MEDIUM");
+	NewOption.Options.Add("HIGH");
+	Options.Add(NewOption);
+
+	return Options;
+}
+
 void AOrionPlayerController::UpdateRotation(float DeltaTime)
 {
 	// Calculate Delta to be applied on ViewRotation

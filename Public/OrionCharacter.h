@@ -2,6 +2,7 @@
 #pragma once
 
 #include "Orion.h"
+#include "OrionTypes.h"
 #include "BehaviorTree/BehaviorTree.h"
 //#include "OrionHoverVehicle.h"
 #include "OrionCharacter.generated.h"
@@ -11,6 +12,25 @@ class AOrionFood;
 class AOrionWeaponDroid;
 class UOrionSquad;
 class AOrionAIController;
+
+//this holds a player's character stats, it gets updated whenever gear changes or level up
+USTRUCT(BlueprintType)
+struct FCharacterStats
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = Stats)
+		FPrimaryStats PrimaryStats;
+
+	UPROPERTY(BlueprintReadWrite, Category = Stats)
+		FSecondaryStats SecondaryStats;
+
+	UPROPERTY(BlueprintReadWrite, Category = Stats)
+		FBonusStats BonusStats;
+
+	UPROPERTY(BlueprintReadOnly, Category = Stats)
+		TArray<FRareStatsInfo> RareStats;
+};
 
 USTRUCT(BlueprintType)
 struct FWeaponAnim
@@ -577,6 +597,9 @@ public:
 	UPROPERTY(Replicated)
 		float AimPitch;
 
+	UFUNCTION(BlueprintCallable, Category = Stats)
+		FCharacterStats GetCharacterStats();
+
 	void EnterVehicle();
 	void ExitVehicle();
 
@@ -742,5 +765,7 @@ private:
 	FTimerHandle EquipTimer;
 	FTimerHandle UnEquipTimer;
 	FTimerHandle RollTimer;
+
+	FCharacterStats CharacterStats;
 };
 
