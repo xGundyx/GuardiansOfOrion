@@ -136,6 +136,8 @@ void AOrionPlayerController::CalcCamera(float DeltaTime, struct FMinimalViewInfo
 {
 	if (DropPod)
 		DropPod->SpawnCameraComponent->GetCameraView(DeltaTime, OutResult);
+	else if (MenuCamera)
+		MenuCamera->GetCameraView(DeltaTime, OutResult);
 	else
 		Super::CalcCamera(DeltaTime, OutResult);
 }

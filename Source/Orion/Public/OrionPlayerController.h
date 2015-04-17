@@ -206,6 +206,9 @@ public:
 	UPROPERTY()
 		AOrionDropPod *DropPod;
 
+	UPROPERTY(BlueprintReadWrite, Category = MainMenu)
+		UCameraComponent *MenuCamera;
+
 	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "ResizeHUD"))
 		void EventResizeHUD();
 
