@@ -3,6 +3,7 @@
 #include "Orion.h"
 #include "OrionGameMode.h"
 #include "OrionHUD.h"
+#include "OrionDinoPawn.h"
 #include "OrionCharacter.h"
 #include "OrionGRI.h"
 
@@ -14,6 +15,12 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 	if (PlayerPawnObject.Object != NULL)
 	{
 		DefaultPawnClass = (UClass*)PlayerPawnObject.Object->GeneratedClass;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UBlueprint> PickupObject(TEXT("/Game/Pickups/Blueprints/BasePickup"));
+	if (PickupObject.Object != NULL)
+	{
+		DefaultPickupClass = (UClass*)PickupObject.Object->GeneratedClass;
 	}
 
 	static ConstructorHelpers::FObjectFinder<UBlueprint> PlayerControllerObject(TEXT("/Game/Character/Blueprints/BasePlayerController"));
@@ -31,6 +38,8 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 	//this will keep players connected and keep their data persistent across map changes
 	bUseSeamlessTravel = true; 
 
+	bAlwaysShowCursor = false;
+
 #if IS_SERVER
 	UOrionTCPLink::Init();
 #endif
@@ -43,22 +52,15 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 	if (PC)
 	{
 		//make sure to update this player's stats
-		PC->IncreaseStatValue(STAT_RAPTORKILL, 1, 0.0f);
+		//PC->IncreaseStatValue(STAT_RAPTORKILL, 1, 0.0f);
 	}
-	/*AShooterPlayerState* KillerPlayerState = Killer ? Cast<AShooterPlayerState>(Killer->PlayerState) : NULL;
-	AShooterPlayerState* VictimPlayerState = KilledPlayer ? Cast<AShooterPlayerState>(KilledPlayer->PlayerState) : NULL;
-
-	if (KillerPlayerState && KillerPlayerState != VictimPlayerState)
+	
+	if (PC)
 	{
-	KillerPlayerState->ScoreKill(VictimPlayerState, KillScore);
-	KillerPlayerState->InformAboutKill();
+		AOrionDinoPawn *Dino = Cast<AOrionDinoPawn>(KilledPawn);
+		if (Dino)
+			SpawnItems(Dino);
 	}
-
-	if (VictimPlayerState)
-	{
-	VictimPlayerState->ScoreDeath(KillerPlayerState, DeathScore);
-	VictimPlayerState->BroadcastDeath(KillerPlayerState, DamageType);
-	}*/
 }
 
 APlayerController* AOrionGameMode::Login(class UPlayer* NewPlayer, const FString& Portal, const FString& Options, const TSharedPtr<class FUniqueNetId>& UniqueId, FString& ErrorMessage)
@@ -77,4 +79,28 @@ APlayerController* AOrionGameMode::Login(class UPlayer* NewPlayer, const FString
 #endif
 
 	return rPC;
+}
+
+//spawned from killing various types of enemies, vehicles, opening things, etc.
+void AOrionGameMode::SpawnItems(AActor *Spawner)
+{
+	bool bSuccess = false;
+	//for testing purposes, just spawn random items
+	if (DefaultPickupClass)
+	{
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.bNoCollisionFail = true;
+
+		AOrionPickup *Pickup = GetWorld()->SpawnActor<AOrionPickup>(DefaultPickupClass, Spawner->GetActorLocation(), Spawner->GetActorRotation(), SpawnInfo);
+		if (Pickup)
+		{
+			AOrionCharacter *Pawn = Cast<AOrionCharacter>(Spawner);
+			if (Pawn)
+				if (Pickup->Init(Pawn->LootTable, Pawn->Level))
+					bSuccess = true;
+
+			if (!bSuccess)
+				Pickup->Destroy();
+		}
+	}
 }

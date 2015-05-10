@@ -1,6 +1,8 @@
 
 
 #include "Orion.h"
+#include "OrionWeapon.h"
+#include "OrionCharacter.h"
 #include "OrionInventoryManager.h"
 #include "OrionInventoryArmor.h"
 
@@ -10,130 +12,270 @@ AOrionInventoryManager::AOrionInventoryManager(const FObjectInitializer& ObjectI
 {
 }
 
-void AOrionInventoryManager::SwapItems(UOrionInventoryGrid *theGrid1, int32 x1, int32 y1, UOrionInventoryGrid *theGrid2, int32 x2, int32 y2)
+bool AOrionInventoryManager::SwapItems(UOrionInventoryGrid *theGrid1, int32 index1, UOrionInventoryGrid *theGrid2, int32 index2)
 {
-	AOrionInventory *tempInv = theGrid1->Column[x1].Row[y1];
-	UObject *tempItem = theGrid1->Icons[x1 * theGrid1->MaxWidth + y1];
+	if (!theGrid1 || !theGrid2 || !OwnerController)
+		return false;
 
-	theGrid1->Column[x1].Row[y1] = theGrid2->Column[x2].Row[y2];
-	theGrid2->Column[x2].Row[y2] = tempInv;
+	if (theGrid2->InventoryType == ITEM_ANY || theGrid1->Inventory[index1] == nullptr || theGrid1->Inventory[index1]->InventoryType == theGrid2->InventoryType)
+	{
+		if (theGrid1->InventoryType == ITEM_ANY || theGrid2->Inventory[index2] == nullptr || theGrid2->Inventory[index2]->InventoryType == theGrid1->InventoryType)
+		{
+			//if (theGrid1->InventoryType != theGrid2->InventoryType)
+			//	return false;
 
-	theGrid1->Icons[x1 * theGrid1->MaxWidth + y1] = theGrid2->Icons[x2 * theGrid2->MaxWidth + y2];
-	theGrid2->Icons[x2 * theGrid2->MaxWidth + y2] = tempItem;
+			AOrionInventory *tempInv = theGrid1->Inventory[index1];
 
-	//check for any equipment changes
-	EquipItems(Cast<AOrionCharacter>(OwnerController->GetPawn()));
+			theGrid1->Inventory[index1] = theGrid2->Inventory[index2];
+			theGrid2->Inventory[index2] = tempInv;
+
+			//check for any equipment changes
+			EItemType Type = theGrid1->InventoryType;
+
+			if (Type == ITEM_ANY)
+				Type = theGrid2->InventoryType;
+
+			if (Type != ITEM_ANY)
+				EquipItems(Cast<AOrionCharacter>(OwnerController->GetPawn()), Type);
+
+			return true;
+		}
+	}
+
+	return false;
 }
 
-AOrionInventory *AOrionInventoryManager::GetItemAt(UOrionInventoryGrid *theGrid, int32 x, int32 y)
+AOrionInventory *AOrionInventoryManager::GetItemAt(UOrionInventoryGrid *theGrid, int32 index)
 {
-	if (x >= theGrid->Column.Num() || y >= theGrid->Column[x].Row.Num())
-		return NULL;
-
-	return theGrid->Column[x].Row[y];
+	return theGrid->Inventory[index];
 }
 
 //this will equip all items based on what's in the inventory
-void AOrionInventoryManager::EquipItems(AOrionCharacter *aPawn)
+void AOrionInventoryManager::EquipItems(AOrionCharacter *aPawn, EItemType SlotType)
 {
-	AOrionArmor *Armor = Cast<AOrionArmor>(HelmetSlot->Column[0].Row[0]);
-	if (Armor)
-		aPawn->SetHelmetMesh(Armor->Mesh);
-	else
-		aPawn->SetHelmetMesh(NULL);
+	AOrionArmor *Armor = nullptr;
+	AOrionWeapon *Weapon = nullptr;
+	AOrionWeapon *OtherWeapon = nullptr;
+	bool bSwitchWeapon = false;
 
-	Armor = Cast<AOrionArmor>(BodySlot->Column[0].Row[0]);
-	if (Armor)
-		aPawn->SetBodyMesh(Armor->Mesh);
-	else
-		aPawn->SetBodyMesh(NULL);
+	if (!aPawn)
+		return;
 
-	Armor = Cast<AOrionArmor>(HandsSlot->Column[0].Row[0]);
-	if (Armor)
-		aPawn->SetArmsMesh(Armor->Mesh);
-	else
-		aPawn->SetArmsMesh(NULL);
+	switch (SlotType)
+	{
+	case ITEM_ANY:
+	case ITEM_HELMET:
+		Armor = Cast<AOrionArmor>(HelmetSlot->Inventory[0]);
+		if (Armor)
+			aPawn->SetHelmetMesh(Armor->Mesh);
+		else
+			aPawn->SetHelmetMesh(NULL);
+		if(SlotType !=ITEM_ANY)
+			break;
 
-	Armor = Cast<AOrionArmor>(LegsSlot->Column[0].Row[0]);
-	if (Armor)
-		aPawn->SetLegsMesh(Armor->Mesh);
-	else
-		aPawn->SetLegsMesh(NULL);
+	case ITEM_CHEST:
+		Armor = Cast<AOrionArmor>(BodySlot->Inventory[0]);
+		if (Armor)
+			aPawn->SetBodyMesh(Armor->Mesh);
+		else
+			aPawn->SetBodyMesh(NULL);
+		if (SlotType != ITEM_ANY)
+			break;
+
+	case ITEM_HANDS:
+		Armor = Cast<AOrionArmor>(HandsSlot->Inventory[0]);
+		if (Armor)
+			aPawn->SetArmsMesh(Armor->Mesh);
+		else
+			aPawn->SetArmsMesh(NULL);
+
+		if (aPawn->IsLocallyControlled())
+		{
+			if (Armor)
+				aPawn->Set1PArmorMesh(Armor->Mesh1P);
+			else
+				aPawn->Set1PArmorMesh(NULL);
+		}
+
+		if (SlotType != ITEM_ANY)
+			break;
+
+	case ITEM_LEGS:
+		Armor = Cast<AOrionArmor>(LegsSlot->Inventory[0]);
+		if (Armor)
+			aPawn->SetLegsMesh(Armor->Mesh);
+		else
+			aPawn->SetLegsMesh(NULL);
+		if (SlotType != ITEM_ANY)
+			break;
+
+	case ITEM_PRIMARYWEAPON:
+		Weapon = Cast<AOrionWeapon>(WeaponSlot1->Inventory[0]);
+		OtherWeapon = aPawn->GetWeaponFromType(ITEM_PRIMARYWEAPON);
+
+		if (OtherWeapon && Weapon && Weapon->InventoryType == OtherWeapon->InventoryType)
+			bSwitchWeapon = true;
+
+		if (OtherWeapon)
+			aPawn->RemoveWeapon(OtherWeapon);
+		aPawn->AddWeapon(Weapon);
+
+		if (bSwitchWeapon)
+			aPawn->EquipWeapon(Weapon);
+
+		aPawn->CheckWeaponEquipped();
+
+		bSwitchWeapon = false;
+
+		if (SlotType != ITEM_ANY)
+			break;
+
+	case ITEM_SECONDARYWEAPON:
+		Weapon = Cast<AOrionWeapon>(WeaponSlot2->Inventory[0]);
+		OtherWeapon = aPawn->GetWeaponFromType(ITEM_SECONDARYWEAPON);
+
+		if (OtherWeapon && Weapon && Weapon->InventoryType == OtherWeapon->InventoryType)
+			bSwitchWeapon = true;
+
+		if (OtherWeapon)
+			aPawn->RemoveWeapon(OtherWeapon);
+		aPawn->AddWeapon(Weapon);
+
+		if (bSwitchWeapon)
+			aPawn->EquipWeapon(Weapon);
+
+		aPawn->CheckWeaponEquipped();
+
+		bSwitchWeapon = false;
+
+		if (SlotType != ITEM_ANY)
+			break;
+	}
+}
+
+void AOrionInventoryManager::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	//skip owner
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, Money, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, PrimaryAmmo, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, SecondaryAmmo, COND_OwnerOnly);
+}
+
+void AOrionInventoryManager::GiveMoney(int32 Amount)
+{
+	if (Role == ROLE_Authority)
+	{
+		Money += Amount;
+	}
 }
 
 void AOrionInventoryManager::Init()
 {
 	Grid = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
 	if (Grid)
-		Grid->CreateInventory(5, 5, 96, 1);
+		Grid->CreateInventory(10, 10, 96, 1, ITEM_ANY);
 
 	HelmetSlot = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
 	if (HelmetSlot)
-		HelmetSlot->CreateInventory(1, 1, 96, 1);
+		HelmetSlot->CreateInventory(1, 1, 96, 1, ITEM_HELMET);
 
 	HandsSlot = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
 	if (HandsSlot)
-		HandsSlot->CreateInventory(1, 1, 96, 1);
+		HandsSlot->CreateInventory(1, 1, 96, 1, ITEM_HANDS);
 
 	BodySlot = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
 	if (BodySlot)
-		BodySlot->CreateInventory(1, 1, 96, 1);
+		BodySlot->CreateInventory(1, 1, 96, 1, ITEM_CHEST);
 
 	LegsSlot = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
 	if (LegsSlot)
-		LegsSlot->CreateInventory(1, 1, 96, 1);
+		LegsSlot->CreateInventory(1, 1, 96, 1, ITEM_LEGS);
+
+	WeaponSlot1 = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	if (WeaponSlot1)
+		WeaponSlot1->CreateInventory(1, 1, 96, 1, ITEM_PRIMARYWEAPON);
+
+	WeaponSlot2 = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	if (WeaponSlot2)
+		WeaponSlot2->CreateInventory(1, 1, 96, 1, ITEM_SECONDARYWEAPON);
+
+	RingSlot1 = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	if (RingSlot1)
+		RingSlot1->CreateInventory(1, 1, 96, 1, ITEM_RING);
+
+	RingSlot2 = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	if (RingSlot2)
+		RingSlot2->CreateInventory(1, 1, 96, 1, ITEM_RING);
+
+	ShieldSlot = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	if (ShieldSlot)
+		ShieldSlot->CreateInventory(1, 1, 96, 1, ITEM_SHIELD);
+
+	NeckSlot = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	if (NeckSlot)
+		NeckSlot->CreateInventory(1, 1, 96, 1, ITEM_NECK);
+
+	BeltSlot = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	if (BeltSlot)
+		BeltSlot->CreateInventory(1, 1, 96, 1, ITEM_BELT);
+
+	GadgetSlot = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	if (GadgetSlot)
+		GadgetSlot->CreateInventory(1, 1, 96, 1, ITEM_GADGET);
 }
 
 void AOrionInventoryManager::DestroyInventory()
 {
-	for (int32 i = 0; i < Grid->MaxHeight; i++)
+	for (int32 i = 0; i < Grid->Height; i++)
 	{
-		for (int32 j = 0; j < Grid->MaxWidth; j++)
+		for (int32 j = 0; j < Grid->Width; j++)
 		{
-			if (Grid->Column[i].Row[j])
+			if (Grid->Inventory[i*Grid->Width + j])
 			{
-				Grid->Column[i].Row[j]->Destroy();
-				Grid->Column[i].Row[j] = NULL;
+				Grid->Inventory[i*Grid->Width + j]->Destroy();
+				Grid->Inventory[i*Grid->Width + j] = NULL;
 			}
 		}
 	}
 
-	if (HelmetSlot->Column[0].Row[0])
+	if (HelmetSlot->Inventory[0])
 	{
-		HelmetSlot->Column[0].Row[0]->Destroy();
-		HelmetSlot->Column[0].Row[0] = NULL;
+		HelmetSlot->Inventory[0]->Destroy();
+		HelmetSlot->Inventory[0] = NULL;
 	}
 
-	if (BodySlot->Column[0].Row[0])
+	if (BodySlot->Inventory[0])
 	{
-		BodySlot->Column[0].Row[0]->Destroy();
-		BodySlot->Column[0].Row[0] = NULL;
+		BodySlot->Inventory[0]->Destroy();
+		BodySlot->Inventory[0] = NULL;
 	}
 
-	if (HandsSlot->Column[0].Row[0])
+	if (HandsSlot->Inventory[0])
 	{
-		HandsSlot->Column[0].Row[0]->Destroy();
-		HandsSlot->Column[0].Row[0] = NULL;
+		HandsSlot->Inventory[0]->Destroy();
+		HandsSlot->Inventory[0] = NULL;
 	}
 
-	if (LegsSlot->Column[0].Row[0])
+	if (LegsSlot->Inventory[0])
 	{
-		LegsSlot->Column[0].Row[0]->Destroy();
-		LegsSlot->Column[0].Row[0] = NULL;
+		LegsSlot->Inventory[0]->Destroy();
+		LegsSlot->Inventory[0] = NULL;
 	}
 }
 
 //returns index we were added at, -1 means failure
 int32 AOrionInventoryManager::AddItemToInventory(UOrionInventoryGrid *theGrid, AOrionInventory* newItem)
 {
-	for (int32 i = 0; i < theGrid->MaxHeight; i++)
+	for (int32 i = 0; i < theGrid->Height; i++)
 	{
-		for (int32 j = 0; j < theGrid->MaxWidth; j++)
+		for (int32 j = 0; j < theGrid->Width; j++)
 		{
-			if (theGrid->Column[i].Row[j] == NULL)
+			if (theGrid->Inventory[i*theGrid->Width + j] == NULL)
 			{
-				theGrid->Column[i].Row[j] = newItem;
-				return i * theGrid->MaxWidth + j;
+				theGrid->Inventory[i*theGrid->Width + j] = newItem;
+				return i * theGrid->Width + j;
 			}
 		}
 	}
@@ -143,13 +285,10 @@ int32 AOrionInventoryManager::AddItemToInventory(UOrionInventoryGrid *theGrid, A
 	return -1;
 }
 
-void AOrionInventoryManager::RemoveItemFromInventory(UOrionInventoryGrid *theGrid, int32 x, int32 y)
+void AOrionInventoryManager::RemoveItemFromInventory(UOrionInventoryGrid *theGrid, int32 index)
 {
-	if (theGrid->Column.Num() > y)
+	if (theGrid->Inventory.Num() > index)
 	{
-		if (theGrid->Column[y].Row.Num() > x)
-		{
-			theGrid->Column[y].Row[x] = NULL;
-		}
+		theGrid->Inventory[index] = NULL;
 	}
 }

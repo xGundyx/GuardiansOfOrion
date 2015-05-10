@@ -89,11 +89,48 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory)
 		UOrionInventoryGrid *HandsSlot;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory)
+		UOrionInventoryGrid *WeaponSlot1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory)
+		UOrionInventoryGrid *WeaponSlot2;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory)
+		UOrionInventoryGrid *RingSlot1;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory)
+		UOrionInventoryGrid *RingSlot2;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory)
+		UOrionInventoryGrid *ShieldSlot;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory)
+		UOrionInventoryGrid *NeckSlot;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory)
+		UOrionInventoryGrid *BeltSlot;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Inventory)
+		UOrionInventoryGrid *GadgetSlot;
+
+	//percentage values of how much ammo we have
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = Inventory)
+		float PrimaryAmmo;
+
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = Inventory)
+		float SecondaryAmmo;
+
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = Inventory)
+		int32 Money;
+
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		void GiveMoney(int32 Amount);
+
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		int32 AddItemToInventory(UOrionInventoryGrid *theGrid, AOrionInventory* newItem);
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
-		void RemoveItemFromInventory(UOrionInventoryGrid *theGrid, int32 x, int32 y);
+		void RemoveItemFromInventory(UOrionInventoryGrid *theGrid, int32 index);
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		void Init();
@@ -102,13 +139,13 @@ public:
 		void DestroyInventory();
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
-		void EquipItems(AOrionCharacter *aPawn);
+		void EquipItems(AOrionCharacter *aPawn, EItemType SlotType);
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
-		AOrionInventory *GetItemAt(UOrionInventoryGrid *theGrid, int32 x, int32 y);
+		AOrionInventory *GetItemAt(UOrionInventoryGrid *theGrid, int32 index);
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
-		void SwapItems(UOrionInventoryGrid *theGrid1, int32 x1, int32 y1, UOrionInventoryGrid *theGrid2, int32 x2, int32 y2);
+		bool SwapItems(UOrionInventoryGrid *theGrid1, int32 index1, UOrionInventoryGrid *theGrid2, int32 index2);
 
 	APlayerController *OwnerController;
 };

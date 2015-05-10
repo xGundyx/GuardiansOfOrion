@@ -31,10 +31,17 @@ void AOrionPlayerController::CreateNewAccount(FString UserName, FString Password
 #endif
 }
 
-void AOrionPlayerController::CreateNewCharacter(FString UserName, FString Gender, FString BaseColor)
+void AOrionPlayerController::CreateNewCharacter(FString UserName, FString Gender, FString BaseColor, FString CharacterClass)
 {
 #if !IS_SERVER
-	UOrionTCPLink::CreateCharacter(UserName, Gender, BaseColor);
+	UOrionTCPLink::CreateCharacter(UserName, Gender, BaseColor, CharacterClass);
+#endif
+}
+
+void AOrionPlayerController::DeleteCharacter(FString CharacterID)
+{
+#if !IS_SERVER
+	UOrionTCPLink::DeleteCharacter(CharacterID);
 #endif
 }
 
@@ -157,6 +164,14 @@ void AOrionPlayerController::PawnPendingDestroy(APawn* P)
 	//ClientSetSpectatorCamera(CameraLocation, CameraRotation);
 }
 
+void AOrionPlayerController::ChangeCamera(int32 TeamIndex)
+{
+	AOrionCharacter *MyPawn = Cast<AOrionCharacter>(GetPawn());
+
+	if (MyPawn)
+		MyPawn->CameraIndex = TeamIndex;
+}
+
 void AOrionPlayerController::Possess(APawn* aPawn)
 {
 	Super::Possess(aPawn);
@@ -164,7 +179,7 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 	AOrionCharacter *newPawn = Cast<AOrionCharacter>(aPawn);
 	if (newPawn && GetInventoryManager())
 	{
-		GetInventoryManager()->EquipItems(newPawn);
+		GetInventoryManager()->EquipItems(newPawn, ITEM_ANY);
 	}
 }
 
@@ -321,21 +336,329 @@ TArray<FOptionsData> AOrionPlayerController::GetGameplayOptions()
 	NewOption.Title = TEXT("GAMEPLAYOPTION 7");
 	Options.Add(NewOption);
 
+	return Options;
+}
+
+TArray<FOptionsData> AOrionPlayerController::GetCreateCharacterOptions()
+{
+	TArray<FOptionsData> Options;
+	FOptionsData NewOption;
+
 	NewOption.Options.Empty();
-	NewOption.Title = TEXT("TEXTURE QUALITY");
-	NewOption.Options.Add("LOW");
-	NewOption.Options.Add("MEDIUM");
-	NewOption.Options.Add("HIGH");
+	NewOption.Title = TEXT("CLASS");
+	NewOption.Options.Add("ASSAULT");
+	NewOption.Options.Add("SUPPORT");
+	NewOption.Options.Add("RECON");
 	Options.Add(NewOption);
 
 	NewOption.Options.Empty();
-	NewOption.Title = TEXT("CHARACTER QUALITY");
-	NewOption.Options.Add("LOW");
-	NewOption.Options.Add("MEDIUM");
-	NewOption.Options.Add("HIGH");
+	NewOption.Title = TEXT("GENDER");
+	NewOption.Options.Add("MALE");
+	NewOption.Options.Add("FEMALE");
+	Options.Add(NewOption);
+
+	NewOption.Options.Empty();
+	NewOption.Title = TEXT("SUIT COLOR");
+	NewOption.Options.Add("AQUA");
+	NewOption.Options.Add("NAVY BLUE");
 	Options.Add(NewOption);
 
 	return Options;
+}
+TArray<FOptionsData> AOrionPlayerController::GetVideoOptions(bool Basic)
+{
+	TArray<FOptionsData> Options;
+	FOptionsData NewOption;
+
+	if (Basic)
+	{
+		NewOption.Options.Empty();
+		NewOption.Title = TEXT("RESOLUTION");
+		NewOption.Options.Add("1920x1080");
+		NewOption.Options.Add("1280x1024");
+		Options.Add(NewOption);
+
+		NewOption.Options.Empty();
+		NewOption.Title = TEXT("ASPECT RATIO");
+		NewOption.Options.Add("16:10");
+		NewOption.Options.Add("16:9");
+		NewOption.Options.Add("4:3");
+		Options.Add(NewOption);
+
+		NewOption.Options.Empty();
+		NewOption.Title = TEXT("WINDOW MODE");
+		NewOption.Options.Add("FULLSCREEN");
+		NewOption.Options.Add("BORDERLESS WINDOW");
+		NewOption.Options.Add("WINDOWED");
+		Options.Add(NewOption);
+	}
+	else
+	{
+		NewOption.Options.Empty();
+		NewOption.Options.Add("ENABLED");
+		NewOption.Options.Add("DISABLED");
+
+		NewOption.Title = TEXT("VSYNC");
+		Options.Add(NewOption);
+
+		NewOption.Title = TEXT("BLOOM");
+		Options.Add(NewOption);
+
+		NewOption.Title = TEXT("DEPTH OF FIELD");
+		Options.Add(NewOption);
+
+		NewOption.Title = TEXT("MOTION BLUR");
+		Options.Add(NewOption);
+
+		NewOption.Title = TEXT("SPEEDTREE LEAVES");
+		Options.Add(NewOption);
+
+		NewOption.Title = TEXT("DYNAMIC LIGHTS");
+		Options.Add(NewOption);
+
+		NewOption.Title = TEXT("DYNAMIC SHADOWS");
+		Options.Add(NewOption);
+
+		NewOption.Options.Empty();
+		NewOption.Title = TEXT("ANTI ALIASING");
+		NewOption.Options.Add("FXAA");
+		NewOption.Options.Add("TEMPORAL");
+		NewOption.Options.Add("OFF");
+		Options.Add(NewOption);
+
+		NewOption.Options.Empty();
+		NewOption.Options.Add("HIGH");
+		NewOption.Options.Add("MEDIUM");
+		NewOption.Options.Add("LOW");
+
+		NewOption.Title = TEXT("SHADOW QUALITY");
+		Options.Add(NewOption);
+
+		NewOption.Title = TEXT("FOLIAGE QUALITY");
+		Options.Add(NewOption);
+
+		NewOption.Title = TEXT("WORLD TEXTURES");
+		Options.Add(NewOption);
+
+		NewOption.Title = TEXT("CHARACTER TEXTURES");
+		Options.Add(NewOption);
+	}
+
+	return Options;
+}
+
+TArray<FOptionsValueData> AOrionPlayerController::GetSoundOptions()
+{
+	TArray<FOptionsValueData> Options;
+	FOptionsValueData NewOption;
+
+	NewOption.Title = TEXT("MASTER");
+	NewOption.Value = 1.0f;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("MUSIC");
+	NewOption.Value = 1.0f;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("WEAPONS");
+	NewOption.Value = 1.0f;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("CREATURES/DINOS");
+	NewOption.Value = 1.0f;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("VOICES");
+	NewOption.Value = 1.0f;
+	Options.Add(NewOption);
+
+	return Options;
+}
+
+TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
+{
+	TArray<FKeyboardOptionsData> Options;
+	FKeyboardOptionsData NewOption;
+
+	NewOption.Title = TEXT("MOVE FORWARDS");
+	NewOption.Key = TEXT("W");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("MOVE BACKWARDS");
+	NewOption.Key = TEXT("S");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("MOVE LEFT");
+	NewOption.Key = TEXT("A");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("MOVE RIGHT");
+	NewOption.Key = TEXT("D");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("JUMP");
+	NewOption.Key = TEXT("SPACEBAR");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("SPRINT");
+	NewOption.Key = TEXT("LEFT SHIFT");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("CROUCH/ROLL");
+	NewOption.Key = TEXT("C");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("GENERIC USE");
+	NewOption.Key = TEXT("E");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("FIRE WEAPON");
+	NewOption.Key = TEXT("MOUSE 1");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("AIM WEAPON");
+	NewOption.Key = TEXT("MOUSE 2");
+	Options.Add(NewOption);
+	
+	NewOption.Title = TEXT("RELOAD");
+	NewOption.Key = TEXT("R");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("MELEE ATTACK");
+	NewOption.Key = TEXT("V");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("USE ABILITY");
+	NewOption.Key = TEXT("LEFT CTRL");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("PRIMARY WEAPON");
+	NewOption.Key = TEXT("1");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("SECONDARY WEAPON");
+	NewOption.Key = TEXT("2");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("GADGET");
+	NewOption.Key = TEXT("3");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("LAST WEAPON");
+	NewOption.Key = TEXT("Q");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("GRENADE");
+	NewOption.Key = TEXT("G");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("GLOBAL SAY");
+	NewOption.Key = TEXT("Y");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("TEAM SAY");
+	NewOption.Key = TEXT("U");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("INVENTORY");
+	NewOption.Key = TEXT("I");
+	Options.Add(NewOption);
+
+	return Options;
+}
+
+TArray<FControllerOptionsData> AOrionPlayerController::GetControllerOptions()
+{
+	TArray<FControllerOptionsData> Options;
+	FControllerOptionsData NewOption;
+
+	NewOption.Title = TEXT("JUMP");
+	NewOption.Button = BUTTON_A;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("SPRINT");
+	NewOption.Button = BUTTON_LEFTSTICK;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("CROUCH/ROLL");
+	NewOption.Button = BUTTON_B;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("GENERIC USE(HOLD)");
+	NewOption.Button = BUTTON_RIGHTSHOULDER;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("FIRE WEAPON");
+	NewOption.Button = BUTTON_RIGHTTRIGGER;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("AIM WEAPON");
+	NewOption.Button = BUTTON_LEFTTRIGGER;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("RELOAD(TAP)");
+	NewOption.Button = BUTTON_RIGHTSHOULDER;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("MELEE ATTACK");
+	NewOption.Button = BUTTON_RIGHTSTICK;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("USE ABILITY");
+	NewOption.Button = BUTTON_LEFTSHOULDER;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("GADGET");
+	NewOption.Button = BUTTON_RIGHT;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("LAST WEAPON");
+	NewOption.Button = BUTTON_Y;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("GRENADE");
+	NewOption.Button = BUTTON_X;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("INVENTORY");
+	NewOption.Button = BUTTON_UP;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("OPEN MENU");
+	NewOption.Button = BUTTON_START;
+	Options.Add(NewOption);
+
+	return Options;
+}
+
+FOptionsValueData AOrionPlayerController::GetMouseSensitivity()
+{
+	FOptionsValueData Data;
+
+	Data.Title = TEXT("MOUSE SENSITIVITY");
+	Data.Value = 1.0f;
+
+	return Data;
+}
+
+FOptionsValueData AOrionPlayerController::GetMouseReverse()
+{
+	FOptionsValueData Data;
+
+	Data.Title = TEXT("REVERSE MOUSE");
+	Data.Value = 0.0f;
+
+	return Data;
+}
+
+FOptionsValueData AOrionPlayerController::GetMouseSmooth()
+{
+	FOptionsValueData Data;
+
+	Data.Title = TEXT("SMOOTH MOUSE");
+	Data.Value = 1.0f;
+
+	return Data;
 }
 
 void AOrionPlayerController::UpdateRotation(float DeltaTime)

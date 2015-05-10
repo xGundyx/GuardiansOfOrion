@@ -21,15 +21,15 @@ PlayFabServerAPI UOrionTCPLink::server;
 void OnAddUser(ClientModels::RegisterPlayFabUserResult& result, void* userData);
 void OnAddUserError(PlayFabError& error, void* userData);
 
-void OnLogin(ClientModels::LoginResult& result, void* userData);
-void OnLoginError(PlayFabError& error, void* userData);
-
 AOrionPlayerController *UOrionTCPLink::PlayerOwner = NULL;
 PlayFabClientAPI UOrionTCPLink::client;
 FString UOrionTCPLink::SessionTicket = FString("");
 FString UOrionTCPLink::PlayFabID = FString("");
+FString UOrionTCPLink::CloudScriptURL = FString("");
 bool UOrionTCPLink::NewlyCreated = false;
-FCharacterData UOrionTCPLink::CharacterDatas[4];
+TArray<FCharacterData> UOrionTCPLink::CharacterDatas;
+EPlayFabState UOrionTCPLink::PFState = PFSTATE_NONE;
+FString UOrionTCPLink::CurrentCharacterID = FString("");
 
 UClientConnector *UOrionTCPLink::connector;
 
@@ -149,6 +149,9 @@ void UOrionTCPLink::Update()
 //create an account, once created, tell the backend to initialize some values for us
 void UOrionTCPLink::CreateAccount(FString UserName, FString Password, FString EMail)
 {
+	if (PFState != PFSTATE_NONE)
+		return;
+
 	ClientModels::RegisterPlayFabUserRequest request;
 
 	request.TitleId = "93F0";
@@ -156,11 +159,28 @@ void UOrionTCPLink::CreateAccount(FString UserName, FString Password, FString EM
 	request.Password = TCHAR_TO_UTF8(*Password);
 	request.Email = TCHAR_TO_UTF8(*EMail);
 
+	PFState = PFSTATE_CREATINGACCOUNT;
+
 	client.RegisterPlayFabUser(request, OnAddUser, OnAddUserError);
 }
 
-void UOrionTCPLink::CreateCharacter(FString UserName, FString Gender, FString BaseColor)
+void UOrionTCPLink::CreateCharacter(FString UserName, FString Gender, FString BaseColor, FString CharacterClass)
 {
+	if (PFState != PFSTATE_NONE)
+		return;
+
+	ClientModels::RunCloudScriptRequest request;
+	request.ActionId = std::string("CreateCharacter");
+	request.ParamsEncoded = std::string("{\"CharacterName\":\"") + TCHAR_TO_UTF8(*UserName) + 
+		std::string("\",\"CharacterType\":\"") + TCHAR_TO_UTF8(*CharacterClass) + 
+		std::string("\",\"Gender\":\"") + TCHAR_TO_UTF8(*Gender) +
+		std::string("\",\"SuitColor\":\"") + TCHAR_TO_UTF8(*BaseColor) +
+		std::string("\"}");
+
+	client.RunCloudScript(request, UOrionTCPLink::OnCreateCharacter, UOrionTCPLink::OnCreateCharacterError);
+
+	PFState = PFSTATE_CREATINGCHARACTER;
+
 	/*ClientModels::UpdateUserDataRequest request;
 
 	request.Permission = ClientModels::UserDataPermission::UserDataPermissionPublic;
@@ -174,7 +194,7 @@ void UOrionTCPLink::CreateCharacter(FString UserName, FString Gender, FString Ba
 
 	client.UpdateUserData(request, OnCreateCharacter, OnAddUserError);*/
 
-	FString Delim = FString(",");
+	/*FString Delim = FString(",");
 	if(connector == nullptr)
 		connector = ConstructObject<UClientConnector>(UClientConnector::StaticClass());
 
@@ -182,13 +202,95 @@ void UOrionTCPLink::CreateCharacter(FString UserName, FString Gender, FString Ba
 	{
 		FString Info = FString("CreateCharacter") + Delim + PlayFabID + Delim + UserName + Delim + Gender + Delim + BaseColor + FString("\r\n\r\n");
 		connector->SendInfo(Info);
+	}*/
+}
+
+void UOrionTCPLink::OnCreateCharacter(ClientModels::RunCloudScriptResult& result, void* userData)
+{
+	if (!PlayerOwner)
+		return;
+
+	std::string theResults = result.ResultsEncoded;
+	FString JsonRaw = UTF8_TO_TCHAR(theResults.c_str());
+
+	TSharedPtr<FJsonObject> JsonParsed;
+	TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(JsonRaw);
+	if (FJsonSerializer::Deserialize(JsonReader, JsonParsed))
+	{
+		if (JsonParsed->GetStringField(TEXT("SUCCESS")) == TEXT("0"))
+		{
+			PlayerOwner->EventCharacterCreationComplete(false, "Error: Character Limit Has Been Reached!");
+			return;
+		}
 	}
+
+	//just read in our characters again
+	ClientModels::RunCloudScriptRequest request;
+	request.ActionId = std::string("GetCharacters");
+
+	client.RunCloudScript(request, UOrionTCPLink::OnGetCharacterList, UOrionTCPLink::OnGetCharacterListError);
+
+	//PFState = PFSTATE_NONE;
+
+	//PlayerOwner->EventCharacterCreationComplete(true, TEXT("Character Created Successfully!"));
+}
+
+void UOrionTCPLink::OnCreateCharacterError(PlayFabError& error, void* userData)
+{
+	if (!PlayerOwner)
+		return;
+
+	PFState = PFSTATE_NONE;
+
+	PlayerOwner->EventCharacterCreationComplete(false, TEXT("Character Creation Failed!"));
+}
+
+void UOrionTCPLink::DeleteCharacter(FString CharacterID)
+{
+	if (PFState != PFSTATE_NONE)
+		return;
+
+	ClientModels::RunCloudScriptRequest request;
+	request.ActionId = std::string("DeleteCharacter");
+	request.ParamsEncoded = std::string("{\"CharacterID\":\"") + TCHAR_TO_UTF8(*CharacterID) + std::string("\"}");
+
+	client.RunCloudScript(request, UOrionTCPLink::OnDeleteCharacter, UOrionTCPLink::OnDeleteCharacterError);
+
+	PFState = PFSTATE_DELETINGCHARACTER;
+}
+
+void UOrionTCPLink::OnDeleteCharacter(ClientModels::RunCloudScriptResult& result, void* userData)
+{
+	if (!PlayerOwner)
+		return;
+
+	//save our id CharacterId
+	//result.ResultsEncoded
+
+	//PFState = PFSTATE_NONE;
+
+	//PlayerOwner->EventCharacterDeletionComplete(true);
+
+	ClientModels::RunCloudScriptRequest request;
+	request.ActionId = std::string("GetCharacters");
+
+	client.RunCloudScript(request, UOrionTCPLink::OnGetCharacterList, UOrionTCPLink::OnGetCharacterListError);
+}
+
+void UOrionTCPLink::OnDeleteCharacterError(PlayFabError& error, void* userData)
+{
+	if (!PlayerOwner)
+		return;
+
+	PFState = PFSTATE_NONE;
+
+	PlayerOwner->EventCharacterDeletionComplete(false);
 }
 
 //get the backend to tell us if this character info is legit or not
 void UOrionTCPLink::SelectCharacter(int32 Index)
 {
-	FString Delim = FString(",");
+	/*FString Delim = FString(",");
 	if (connector == nullptr)
 		connector = ConstructObject<UClientConnector>(UClientConnector::StaticClass());
 
@@ -196,7 +298,7 @@ void UOrionTCPLink::SelectCharacter(int32 Index)
 	{
 		FString Info = FString("SelectCharacter") + Delim + PlayFabID + Delim + Index + FString("\r\n\r\n");
 		connector->SendInfo(Info);
-	}
+	}*/
 }
 
 void UOrionTCPLink::GetPlayerStats(void *Stats)
@@ -236,12 +338,17 @@ void UOrionTCPLink::Login(FString UserName, FString Password)
 {
 	//PlayFabClientAPI client;
 
+	if (PFState != PFSTATE_NONE)
+		return;
+
 	ClientModels::LoginWithPlayFabRequest request;
 	request.TitleId = "93F0";
 	request.Username = TCHAR_TO_UTF8(*UserName);
 	request.Password = TCHAR_TO_UTF8(*Password);
 
-	client.LoginWithPlayFab(request, OnLogin,OnLoginError);
+	PFState = PFSTATE_LOGGINGIN;
+
+	client.LoginWithPlayFab(request, UOrionTCPLink::OnLogin, UOrionTCPLink::OnLoginError);
 }
 
 void UOrionTCPLink::LoginComplete(bool bSucceded, FString msg)
@@ -255,7 +362,7 @@ void UOrionTCPLink::LoginComplete(bool bSucceded, FString msg)
 	{
 		//pPlayer->EventLoginComplete(true, FString(""), FString(""));
 		//RetrieveCharacterData();
-		FString Delim = FString(",");
+		/*FString Delim = FString(",");
 		if(connector == nullptr)
 			connector = ConstructObject<UClientConnector>(UClientConnector::StaticClass());
 
@@ -263,7 +370,7 @@ void UOrionTCPLink::LoginComplete(bool bSucceded, FString msg)
 		{
 			FString Info = FString("CreateAccount") + Delim + PlayFabID + FString("\r\n\r\n");
 			connector->SendInfo(Info);
-		}
+		}*/
 	}
 	if (!bSucceded)
 		pPlayer->EventLoginComplete(false, msg);
@@ -290,8 +397,7 @@ void UOrionTCPLink::OnCharacterFinalized(ClientModels::GetUserDataResult& result
 {
 	AOrionPlayerController *pPlayer = PlayerOwner;
 
-	for(int32 i = 0; i < 4; i++)
-		CharacterDatas[i].Reset();
+	CharacterDatas.Empty();
 
 	for(std::map<std::string, ClientModels::UserDataRecord>::iterator it = result.Data.begin(); it!=result.Data.end(); ++it)
 	{
@@ -301,7 +407,7 @@ void UOrionTCPLink::OnCharacterFinalized(ClientModels::GetUserDataResult& result
 	//tell the player to redraw the character stuff
 	if(pPlayer)
 	{
-		pPlayer->EventDrawCharacterDatas(CharacterDatas[0], CharacterDatas[1], CharacterDatas[2] ,CharacterDatas[3]);
+		pPlayer->EventSetCharacterDatas(CharacterDatas);
 		pPlayer->EventCharacterFinalized(true, FString("Login Successful!"));
 	}
 }
@@ -313,8 +419,7 @@ void UOrionTCPLink::OnCharacterData(ClientModels::GetUserDataResult& result, voi
 	if(pPlayer)
 		pPlayer->EventLoginComplete(true, FString("Login Successful!"));
 
-	for(int32 i = 0; i < 4; i++)
-		CharacterDatas[i].Reset();
+	CharacterDatas.Empty();
 
 	for(std::map<std::string, ClientModels::UserDataRecord>::iterator it = result.Data.begin(); it!=result.Data.end(); ++it)
 	{
@@ -323,13 +428,13 @@ void UOrionTCPLink::OnCharacterData(ClientModels::GetUserDataResult& result, voi
 
 	//tell the player to redraw the character stuff
 	if(pPlayer)
-		pPlayer->EventDrawCharacterDatas(CharacterDatas[0], CharacterDatas[1], CharacterDatas[2] ,CharacterDatas[3]);
+		pPlayer->EventSetCharacterDatas(CharacterDatas);
 }
 
 void UOrionTCPLink::AddToCharacterData(const std::string first, const ClientModels::UserDataRecord second)
 {
 	//trim the number from the end of first and that will be our slot index
-	std::string title = first.substr(0, first.length()-1);
+	/*std::string title = first.substr(0, first.length()-1);
 	int32 index = atoi(first.substr(first.length()-1).c_str());
 
 	if(title == CharacterName)
@@ -349,7 +454,7 @@ void UOrionTCPLink::AddToCharacterData(const std::string first, const ClientMode
 	else if(title == CharacterSex)
 		CharacterDatas[index-1].Sex = UTF8_TO_TCHAR(second.Value.c_str());
 	else if(title == CharacterWeapon)
-		CharacterDatas[index-1].Weapon = atoi(second.Value.c_str());
+		CharacterDatas[index-1].Weapon = atoi(second.Value.c_str());*/
 }
 
 void UOrionTCPLink::OnCharacterDataFailed(PlayFabError& error, void* userData)
@@ -413,13 +518,19 @@ void UOrionTCPLink::AddUserComplete(bool bSucceded, FString msg)
 		pPlayer->EventAccountCreated(false, msg);
 }
 
-void OnLogin(ClientModels::LoginResult& result, void* userData)
+void UOrionTCPLink::OnLogin(ClientModels::LoginResult& result, void* userData)
 {
 	UOrionTCPLink::SessionTicket = UTF8_TO_TCHAR(result.SessionTicket.c_str());
 	UOrionTCPLink::PlayFabID = UTF8_TO_TCHAR(result.PlayFabId.c_str());
 	UOrionTCPLink::NewlyCreated = result.NewlyCreated;
 
-	FString Delim = FString(",");
+	ClientModels::GetCloudScriptUrlRequest request;
+	//request.Version = 4;
+	request.Testing = false;
+
+	client.GetCloudScriptUrl(request, UOrionTCPLink::OnGetCloudURL, UOrionTCPLink::OnGetCloudURLError);
+
+	/*FString Delim = FString(",");
 	if(UOrionTCPLink::connector != nullptr)
 		UOrionTCPLink::connector->CloseSockets();
 	
@@ -429,12 +540,12 @@ void OnLogin(ClientModels::LoginResult& result, void* userData)
 	{
 		FString Info = FString("CreateAccount") + Delim + UOrionTCPLink::PlayFabID + FString("\r\n\r\n");
 		UOrionTCPLink::connector->SendInfo(Info);
-	}
+	}*/
 
 	////UOrionTCPLink::LoginComplete(true, 0);
 }
 
-void OnLoginError(PlayFabError& error, void* userData)
+void UOrionTCPLink::OnLoginError(PlayFabError& error, void* userData)
 {
 	switch(error.ErrorCode)
 	{
@@ -453,13 +564,115 @@ void OnLoginError(PlayFabError& error, void* userData)
 	}
 }
 
+void UOrionTCPLink::OnGetCharacterData(ClientModels::GetCharacterDataResult& result, void* userData)
+{
+
+}
+
+void UOrionTCPLink::OnGetChracterDataError(PlayFabError& error, void* userData)
+{
+
+}
+
+void UOrionTCPLink::OnGetCloudURL(ClientModels::GetCloudScriptUrlResult& result, void* userData)
+{
+	UOrionTCPLink::CloudScriptURL = UTF8_TO_TCHAR(result.Url.c_str());
+
+	//now that we have our url, call the script to grab our character information
+	ClientModels::RunCloudScriptRequest request;
+	request.ActionId = std::string("GetCharacters");
+	
+	client.RunCloudScript(request, UOrionTCPLink::OnGetCharacterList, UOrionTCPLink::OnGetCharacterListError);
+}
+
+void UOrionTCPLink::OnGetCloudURLError(PlayFabError& error, void* userData)
+{
+	AOrionPlayerController *pPlayer = PlayerOwner;
+
+	PFState = PFSTATE_NONE;
+
+	if (pPlayer)
+		pPlayer->EventLoginComplete(true, FString("Failed to retrieve character info!"));
+}
+
+void UOrionTCPLink::OnGetCharacterList(ClientModels::RunCloudScriptResult& result, void* userData)
+{
+	//read in our character data
+	std::string theResults = result.ResultsEncoded;
+
+	FString JsonRaw = UTF8_TO_TCHAR(theResults.c_str());
+
+	CharacterDatas.Empty();
+
+	TSharedPtr<FJsonObject> JsonParsed;
+	TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(JsonRaw);
+	if (FJsonSerializer::Deserialize(JsonReader, JsonParsed))
+	{
+		TSharedPtr<FJsonObject> PlayersArray = JsonParsed->GetObjectField(TEXT("CharacterData"));
+		if (PlayersArray.IsValid())
+		{
+			TArray<TSharedPtr<FJsonValue>> CharacterObjects = PlayersArray->GetArrayField(TEXT("Characters"));
+			//PlayersArray = OverheadObject->GetArrayField(TEXT("Characters"));
+
+			for (int32 i = 0; i < CharacterObjects.Num(); i++)
+			{
+				FCharacterData Data;
+
+				TSharedPtr<FJsonObject> CharacterObject = CharacterObjects[i]->AsObject();
+				Data.pName = CharacterObject->GetStringField("CharacterName");
+				Data.pClass = CharacterObject->GetStringField("CharacterType");
+				Data.CharacterID = CharacterObject->GetStringField("CharacterId");
+
+				CharacterDatas.Add(Data);
+			}
+		}
+	}
+
+	//process each character
+	AOrionPlayerController *pPlayer = PlayerOwner;
+
+	if (pPlayer && PFState == PFSTATE_LOGGINGIN)
+		pPlayer->EventLoginComplete(true, FString("Login Successful!"));
+
+	//tell the player to redraw the character stuff
+	if (pPlayer)
+		pPlayer->EventSetCharacterDatas(CharacterDatas);
+
+	if (pPlayer && PFState == PFSTATE_DELETINGCHARACTER)
+		pPlayer->EventCharacterDeletionComplete(true);
+
+	if (pPlayer && PFState == PFSTATE_CREATINGCHARACTER)
+		pPlayer->EventCharacterCreationComplete(true, "SUCCESS");
+
+	PFState = PFSTATE_NONE;
+}
+
+void UOrionTCPLink::OnGetCharacterListError(PlayFabError& error, void* userData)
+{
+	AOrionPlayerController *pPlayer = PlayerOwner;
+
+	if (pPlayer && PFState == PFSTATE_LOGGINGIN)
+		pPlayer->EventLoginComplete(false, FString("Login Failed!"));
+
+	if (pPlayer && PFState == PFSTATE_DELETINGCHARACTER)
+		pPlayer->EventCharacterDeletionComplete(false);
+
+	if (pPlayer && PFState == PFSTATE_CREATINGCHARACTER)
+		pPlayer->EventCharacterCreationComplete(false, "CHARACTER CREATION FAILED");
+
+	PFState = PFSTATE_NONE;
+}
+
 void OnAddUser(ClientModels::RegisterPlayFabUserResult& result, void* userData)
 {
+	UOrionTCPLink::PFState = PFSTATE_NONE;
 	UOrionTCPLink::AddUserComplete(true, "Account Created Successfully!");
 }
 
 void OnAddUserError(PlayFabError& error, void* userData)
 {
+	UOrionTCPLink::PFState = PFSTATE_NONE;
+
 	switch(error.ErrorCode)
 	{
 	case 1005:

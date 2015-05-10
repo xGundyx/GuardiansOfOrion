@@ -30,12 +30,74 @@ struct FOptionsData
 };
 
 USTRUCT(BlueprintType)
+struct FOptionsValueData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = Option)
+		FString Title;
+
+	UPROPERTY(BlueprintReadOnly, Category = Option)
+		float Value;
+};
+
+USTRUCT(BlueprintType)
+struct FKeyboardOptionsData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = Option)
+		FString Title;
+
+	UPROPERTY(BlueprintReadOnly, Category = Option)
+		FString Key;
+};
+
+UENUM(BlueprintType)
+enum EControllerButton
+{
+	BUTTON_A,
+	BUTTON_B,
+	BUTTON_X,
+	BUTTON_Y,
+	BUTTON_DOWN,
+	BUTTON_LEFT,
+	BUTTON_UP,
+	BUTTON_RIGHT,
+	BUTTON_LEFTSTICK,
+	BUTTON_RIGHTSTICK,
+	BUTTON_LEFTSHOULDER,
+	BUTTON_LEFTTRIGGER,
+	BUTTON_RIGHTSHOULDER,
+	BUTTON_RIGHTTRIGGER,
+	BUTTON_START
+};
+
+USTRUCT(BlueprintType)
+struct FControllerOptionsData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = Option)
+		FString Title;
+
+	UPROPERTY(BlueprintReadOnly, Category = Option)
+		TEnumAsByte<EControllerButton> Button;
+};
+
+USTRUCT(BlueprintType)
 struct FCharacterData
 {
 	GENERATED_USTRUCT_BODY()
 
-		UPROPERTY(BlueprintReadOnly, Category = Character)
+	UPROPERTY(BlueprintReadOnly, Category = Character)
 		FString pName;
+
+	UPROPERTY(BlueprintReadOnly, Category = Character)
+		FString pClass;
+
+	UPROPERTY(BlueprintReadOnly, Category = Character)
+		FString CharacterID;
 
 	UPROPERTY(BlueprintReadOnly, Category = Character)
 		FString Sex;
@@ -64,6 +126,8 @@ struct FCharacterData
 	void Reset()
 	{
 		pName = FString("");
+		pClass = FString("");
+		CharacterID = FString("0");
 		Level = 0;
 		Exp = 0;
 		HelmetID = 0;
@@ -114,6 +178,9 @@ public:
 	UFUNCTION(exec)
 		virtual void ArmorColor(int32 index);
 
+	UFUNCTION(exec)
+		void ChangeCamera(int32 TeamIndex);
+
 	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Give Default Inventory"))
 		void EventGiveDefaultInventory();
 
@@ -156,8 +223,8 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "LoginComplete"))
 		void EventLoginComplete(const bool bResult, const FString &Msg);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "DrawCharacterDatas"))
-		void EventDrawCharacterDatas(FCharacterData charData1, FCharacterData charData2, FCharacterData charData3, FCharacterData charData4);
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "SetCharacterDatas"))
+		void EventSetCharacterDatas(const TArray<FCharacterData> &Data);
 
 	UFUNCTION(BlueprintCallable, Category = PlayFab)
 		void CreateNewAccount(FString UserName, FString Password, FString Email);
@@ -175,7 +242,10 @@ public:
 		void ReceiveErrorMessage(const FString &Message);
 
 	UFUNCTION(BlueprintCallable, Category = PlayFab)
-		void CreateNewCharacter(FString UserName, FString Gender, FString BaseColor);
+		void CreateNewCharacter(FString UserName, FString Gender, FString BaseColor, FString CharacterClass);
+
+	UFUNCTION(BlueprintCallable, Category = PlayFab)
+		void DeleteCharacter(FString CharacterID);
 
 	UFUNCTION(BlueprintCallable, Category = PlayFab)
 		void SelectCharacterAtIndex(int32 Index);
@@ -185,6 +255,9 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "CharacterCreateComplete"))
 		void EventCharacterCreationComplete(const bool bResult, const FString &Error);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "CharacterDeleteComplete"))
+		void EventCharacterDeletionComplete(const bool bResult);
 
 	void PreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel) override;
 
@@ -200,8 +273,32 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Respawn)
 		void SetDropPod(AOrionDropPod *Pod);
 
-	UFUNCTION(BlueprintCallable, Category = Respawn)
+	UFUNCTION(BlueprintCallable, Category = Menu)
 		TArray<FOptionsData> GetGameplayOptions();
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
+		TArray<FOptionsData> GetVideoOptions(bool Basic);
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
+		TArray<FOptionsValueData> GetSoundOptions();
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
+		TArray<FKeyboardOptionsData> GetKeyboardOptions();
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
+		TArray<FControllerOptionsData> GetControllerOptions();
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
+		TArray<FOptionsData> GetCreateCharacterOptions();
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
+		FOptionsValueData GetMouseSensitivity();
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
+		FOptionsValueData GetMouseReverse();
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
+		FOptionsValueData GetMouseSmooth();
 
 	UPROPERTY()
 		AOrionDropPod *DropPod;
