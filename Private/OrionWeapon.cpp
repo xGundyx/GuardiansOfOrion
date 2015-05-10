@@ -82,6 +82,8 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 	InstantConfig.WeaponIndex = 0;
 	InstantConfig.WeaponRange = 20000.0f;
 	InstantConfig.WeaponScale = 1.0f;
+
+	InventoryType = ITEM_PRIMARYWEAPON;
 }
 
 void AOrionWeapon::PostInitializeComponents()

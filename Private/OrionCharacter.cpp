@@ -58,7 +58,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 
 	Arms1PMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Arms1PMesh1P"));
 	Arms1PMesh->AlwaysLoadOnClient = true;
-	Arms1PMesh->AlwaysLoadOnServer = true;
+	Arms1PMesh->AlwaysLoadOnServer = false;
 	Arms1PMesh->bOwnerNoSee = false;
 	Arms1PMesh->bOnlyOwnerSee = true;
 	Arms1PMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
@@ -73,7 +73,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 
 	Arms1PArmorMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Arms1PArmorMesh1P"));
 	Arms1PArmorMesh->AlwaysLoadOnClient = true;
-	Arms1PArmorMesh->AlwaysLoadOnServer = true;
+	Arms1PArmorMesh->AlwaysLoadOnServer = false;
 	Arms1PArmorMesh->bOwnerNoSee = false;
 	Arms1PArmorMesh->bOnlyOwnerSee = true;
 	Arms1PArmorMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
@@ -85,6 +85,21 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Arms1PArmorMesh->CastShadow = false;
 	Arms1PArmorMesh->bPerBoneMotionBlur = false;
 	Arms1PArmorMesh->SetMasterPoseComponent(Arms1PMesh);
+
+	Arms1PLegsMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Arms1PLegsMesh1P"));
+	Arms1PLegsMesh->AlwaysLoadOnClient = true;
+	Arms1PLegsMesh->AlwaysLoadOnServer = false;
+	Arms1PLegsMesh->bOwnerNoSee = false;
+	Arms1PLegsMesh->bOnlyOwnerSee = true;
+	Arms1PLegsMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
+	Arms1PLegsMesh->bCastDynamicShadow = true;
+	Arms1PLegsMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
+	Arms1PLegsMesh->bChartDistanceFactor = true;
+	Arms1PLegsMesh->bGenerateOverlapEvents = false;
+	Arms1PLegsMesh->AttachParent = Arms1PMesh;
+	Arms1PLegsMesh->CastShadow = false;
+	Arms1PLegsMesh->bPerBoneMotionBlur = false;
+	Arms1PLegsMesh->SetMasterPoseComponent(Arms1PMesh);
 
 	BodyMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Body"));
 	BodyMesh->AlwaysLoadOnClient = true;
@@ -559,7 +574,8 @@ void AOrionCharacter::DestroyInventory()
 		if (Weapon)
 		{
 			RemoveWeapon(Weapon);
-			Weapon->Destroy();
+			//don't destroy it, it will still exist inside the inventory manager!
+			////Weapon->Destroy();
 		}
 	}
 }
@@ -580,6 +596,37 @@ void AOrionCharacter::RemoveWeapon(AOrionWeapon* Weapon)
 		////Weapon->OnLeaveInventory();
 		Inventory.RemoveSingle(Weapon);
 	}
+}
+
+AOrionWeapon *AOrionCharacter::GetWeaponFromType(EItemType Type)
+{
+	for (int32 i = 0; i < Inventory.Num(); i++)
+	{
+		if (Type == Inventory[i]->InventoryType)
+			return Inventory[i];
+	}
+
+	return nullptr;
+}
+
+//make sure our equipped weapon is legit, otherwise equip one that is
+void AOrionCharacter::CheckWeaponEquipped()
+{
+	AOrionWeapon *Weap = GetWeapon();
+
+	if (!Weap || Inventory.Num() < 1)
+		return;
+
+	bool bLegit = true;
+
+	for (int32 i = 0; i < Inventory.Num() && !bLegit; i++)
+	{
+		if (GetWeapon() == Inventory[i])
+			bLegit = true;
+	}
+
+	if (!bLegit)
+		EquipWeapon(Inventory[0]);
 }
 
 USkeletalMeshComponent* AOrionCharacter::GetPawnMesh() const
@@ -609,6 +656,8 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	// everyone
 	DOREPLIFETIME(AOrionCharacter, HealthMax);
 	DOREPLIFETIME(AOrionCharacter, Health);
+
+	DOREPLIFETIME(AOrionCharacter, Level);
 
 	DOREPLIFETIME_CONDITION(AOrionCharacter, LastTakeHitInfo, COND_Custom);
 
@@ -1643,6 +1692,11 @@ bool AOrionCharacter::IsTopDown()
 
 void AOrionCharacter::StartAiming()
 {
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC && PC->bCinematicMode)
+		return;
+
 	if (Role < ROLE_Authority)
 		ServerAim(true);
 
@@ -1665,6 +1719,11 @@ void AOrionCharacter::OnStopFire()
 
 void AOrionCharacter::OnFire()
 {
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC && PC->bCinematicMode)
+		return;
+
 	StopSprint();
 
 	if (CurrentWeapon)
@@ -1779,6 +1838,11 @@ void AOrionCharacter::LookUpAtRate(float Rate)
 void AOrionCharacter::Set1PArmorMesh(USkeletalMesh* newMesh) const
 {
 	Arms1PArmorMesh->SetSkeletalMesh(newMesh);
+}
+
+void AOrionCharacter::Set1PLegsMesh(USkeletalMesh* newMesh) const
+{
+	Arms1PLegsMesh->SetSkeletalMesh(newMesh);
 }
 
 void AOrionCharacter::SetHelmetMesh(USkeletalMesh* newMesh) const

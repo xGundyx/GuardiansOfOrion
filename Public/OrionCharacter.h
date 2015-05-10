@@ -228,6 +228,9 @@ public:
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 		class USkeletalMeshComponent* Arms1PArmorMesh;
 
+		UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+		class USkeletalMeshComponent* Arms1PLegsMesh;
+
 	/** spawn inventory, setup initial variables */
 	virtual void PostInitializeComponents() override;
 
@@ -252,6 +255,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Pawn")
 		void Set1PArmorMesh(USkeletalMesh* newMesh) const;
+
+	UFUNCTION(BlueprintCallable, Category = "Pawn")
+		void Set1PLegsMesh(USkeletalMesh* newMesh) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Pawn")
 		void SetHelmetMesh(USkeletalMesh* newMesh) const;
@@ -288,6 +294,8 @@ public:
 	virtual void UpdatePawnMeshes();
 
 	virtual bool IsTopDown();
+
+	int32 CameraIndex;
 
 	//modular pieces
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
@@ -443,6 +451,13 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Mesh)
 		float MaxMeshAdjust;
 
+	//every enemy type can have it's own loottable
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Loot)
+		TSubclassOf<class UOrionInventoryList> LootTable;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = RPG)
+		int32 Level;
+
 	//foot placement
 	UFUNCTION(BlueprintCallable, Category = Mesh)
 		virtual float GetFootOffset(FName Socket) const;
@@ -532,6 +547,10 @@ public:
 
 	/** get mesh component */
 	USkeletalMeshComponent* GetPawnMesh() const;
+
+	void EquipWeapon(class AOrionWeapon* Weapon);
+	AOrionWeapon *GetWeaponFromType(EItemType Type);
+	void CheckWeaponEquipped();
 
 	void AddAimKick(FRotator Kick);
 	void ResetAimKick();
@@ -650,6 +669,7 @@ protected:
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_Inventory)
 		TArray<class AOrionWeapon*> Inventory;
 
+public:
 	/** Handler for a touch input beginning. */
 	void TouchStarted(const ETouchIndex::Type FingerIndex, const FVector Location);
 
@@ -708,7 +728,6 @@ protected:
 	*
 	* @param Weapon	Weapon to equip
 	*/
-	void EquipWeapon(class AOrionWeapon* Weapon);
 
 	void UpdateRootYaw(float DeltaSeconds);
 

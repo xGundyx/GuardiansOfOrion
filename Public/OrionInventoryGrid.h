@@ -20,43 +20,45 @@ struct FInventoryRow
 	}
 };
 
-UCLASS()
+UCLASS(Blueprintable)
 class ORION_API UOrionInventoryGrid : public UObject
 {
 	GENERATED_BODY()
 public:
 	UOrionInventoryGrid(const FObjectInitializer& ObjectInitializer);
 
-	UPROPERTY()
-		TArray<FInventoryRow> Column;
-
-	UPROPERTY(BlueprintReadWrite, Category = Inventory)
-		TArray<UObject*> Icons;
+	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+		TArray<AOrionInventory*> Inventory;
 
 	UPROPERTY(BlueprintReadOnly, Category = Inventory)
-		int32 MaxHeight;
+		TEnumAsByte<EItemType> InventoryType;
+
+	//UPROPERTY(BlueprintReadWrite, Category = Inventory)
+	//	TArray<UTexture2D*> Icons;
+
 	UPROPERTY(BlueprintReadOnly, Category = Inventory)
-		int32 MaxWidth;
+		int32 Height;
+	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+		int32 Width;
 	UPROPERTY(BlueprintReadOnly, Category = Inventory)
 		int32 ItemSize;
-	UPROPERTY(BlueprintReadOnly, Category = Inventory)
-		int32 Padding;
+	//UPROPERTY(BlueprintReadOnly, Category = Inventory)
+	//	int32 Padding;
 
-	void CreateInventory(int32 height, int32 width, int32 size, int32 pad)
+	void CreateInventory(int32 height, int32 width, int32 size, int32 pad, EItemType type)
 	{
-		MaxHeight = height;
-		MaxWidth = width;
+		InventoryType = type;
+		Height = height;
+		Width = width;
 		ItemSize = size;
-		Padding = pad;
+		//Padding = pad;
 
-		while (Column.Num() < height)
+		for (int32 i = 0; i < height; i++)
 		{
-			FInventoryRow newColumn;
-			while (newColumn.Row.Num() < width)
+			for (int32 j = 0; j < width; j++)
 			{
-				newColumn.Row.Add(NULL);
+				Inventory.Add(nullptr);
 			}
-			Column.Add(newColumn);
 		}
 	}
 };

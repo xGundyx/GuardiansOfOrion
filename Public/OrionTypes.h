@@ -1,6 +1,8 @@
 #include "OrionTypes.generated.h"
 #pragma once
 
+class AOrionInventory;
+
 #define ORION_SURFACE_Default		SurfaceType_Default
 #define ORION_SURFACE_Concrete		SurfaceType1
 #define ORION_SURFACE_Dirt			SurfaceType2
@@ -44,6 +46,32 @@ enum EFoodType
 	FOOD_VEGETABLE,
 	FOOD_DEADMEATSMALL,
 	FOOD_DEADMEATLARGE
+};
+
+UENUM(BlueprintType)
+enum EPrimaryStats
+{
+	PRIMARYSTAT_STRENGTH,
+	PRIMARYSTAT_DEXTERITY,
+	PRIMARYSTAT_INTELLIGENCE,
+	PRIMARYSTAT_DISCIPLINE,
+	PRIMARYSTAT_VITALITY,
+	PRIMARYSTAT_POWER
+};
+
+UENUM(BlueprintType)
+enum ESecondaryStats
+{
+	SECONDARYSTAT_CRITICALHITCHANCE,
+	SECONDARYSTAT_CRITICALHITMULTIPLIER,
+	SECONDARYSTAT_DAMAGEREDUCTION,
+	SECONDARYSTAT_DAMAGEREDUCTIONBLUNT,
+	SECONDARYSTAT_DAMAGEREDUCTIONPIERCING,
+	SECONDARYSTAT_DAMAGEREDUCTIONEXPLOSIVE,
+	SECONDARYSTAT_DAMAGEREDUCTIONELEMENTAL,
+	SECONDARYSTAT_DAMAGEREDUCTIONPOISON,
+	SECONDARYSTAT_MOVEMENTSPEED,
+	SECONDARYSTAT_EXPBOOST
 };
 
 USTRUCT(BlueprintType)
@@ -149,13 +177,38 @@ struct FBonusStats
 };
 
 UENUM(BlueprintType)
-enum ECharacterClass
+enum EItemRarity
 {
-	CLASS_ASSAULT,
-	CLASS_SUPPORT,
-	CLASS_RECON,
-	CLASS_DEMO,
-	CLASS_TECH
+	RARITY_COMMON,
+	RARITY_ENHANCED,
+	RARITY_SUPERENHANCED,
+	RARITY_LEGENDARY
+};
+
+USTRUCT(BlueprintType)
+struct FPrimaryItemStats
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category = Stats)
+		TEnumAsByte<EPrimaryStats> StatType;
+	UPROPERTY(EditDefaultsOnly, Category = Stats)
+		int32 MinValue;
+	UPROPERTY(EditDefaultsOnly, Category = Stats)
+		int32 MaxValue;
+};
+
+USTRUCT(BlueprintType)
+struct FSecondaryItemStats
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category = Stats)
+		TEnumAsByte<ESecondaryStats> StatType;
+	UPROPERTY(EditDefaultsOnly, Category = Stats)
+		int32 MinValue;
+	UPROPERTY(EditDefaultsOnly, Category = Stats)
+		int32 MaxValue;
 };
 
 UENUM(BlueprintType)
@@ -169,6 +222,76 @@ enum ESuperRareStat
 	RARESTAT_GHOST,
 
 	RARESTAT_NUM //don't put anything after this
+};
+
+USTRUCT(BlueprintType)
+struct FRareItemStats
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditDefaultsOnly, Category = Stats)
+		TEnumAsByte<ESuperRareStat> StatType;
+	UPROPERTY(EditDefaultsOnly, Category = Stats)
+		int32 MinValue;
+	UPROPERTY(EditDefaultsOnly, Category = Stats)
+		int32 MaxValue;
+};
+
+USTRUCT()
+struct FDecodeItemInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	FString ItemName;
+	EItemRarity Rarity;
+	int32 RequiredLevel;
+
+	TArray<FPrimaryItemStats> PrimaryStats;
+	TArray<FSecondaryItemStats> SecondaryStats;
+	TArray<FRareItemStats> RareStats;
+};
+
+//takes an encoded string and decodes it, updating this inventory item to be that type
+static FDecodeItemInfo DecodeItem(FString code)
+{
+	FDecodeItemInfo Info;
+
+	return Info;
+}
+
+//returns the encoded value of this inventory item
+static FString EncodeItem(FDecodeItemInfo Item)
+{
+	return TEXT("");
+}
+
+UENUM(BlueprintType)
+enum EItemType
+{
+	ITEM_HELMET,
+	ITEM_CHEST,
+	ITEM_LEGS,
+	ITEM_HANDS,
+	ITEM_PRIMARYWEAPON,
+	ITEM_SECONDARYWEAPON,
+	ITEM_GADGET,
+	ITEM_RING,
+	ITEM_NECK,
+	ITEM_BELT,
+	ITEM_CAPE,
+	ITEM_USEABLE,
+	ITEM_ANY,
+	ITEM_SHIELD
+};
+
+UENUM(BlueprintType)
+enum ECharacterClass
+{
+	CLASS_ASSAULT,
+	CLASS_SUPPORT,
+	CLASS_RECON,
+	CLASS_DEMO,
+	CLASS_TECH
 };
 
 USTRUCT(BlueprintType)
@@ -211,9 +334,11 @@ struct FRareStats
 	{
 		StatsInfo.Add(FRareStatsInfo(TEXT("INSTANT REVIVE"), TEXT("INSTANTLY REVIVE FALLEN TEAMMATES"), RARESTAT_INSTANTREVIVE, CLASS_ASSAULT));
 		StatsInfo.Add(FRareStatsInfo(TEXT("OVERCHARE X-TREME"), TEXT("DEAL DAMAGE TO ALL ENEMIES ON SCREEN"), RARESTAT_OVERCHARGEXTREME, CLASS_ASSAULT));
-		StatsInfo.Add(FRareStatsInfo(TEXT("INSTANT REVIVE"), TEXT("HOVER COSTS 50% LESS FUEL"), RARESTAT_HOVER, CLASS_SUPPORT));
-		StatsInfo.Add(FRareStatsInfo(TEXT("OVERCHARE X-TREME"), TEXT("THROW 3 GRENADES AT ONCE"), RARESTAT_TWOSTONESONEBIRD, CLASS_SUPPORT));
-		StatsInfo.Add(FRareStatsInfo(TEXT("INSTANT REVIVE"), TEXT("USING CLOAK MAKES ALL TEAMMATES CLOAK FOR 5 SECONDS"), RARESTAT_TEAMCLOAK, CLASS_RECON));
-		StatsInfo.Add(FRareStatsInfo(TEXT("OVERCHARE X-TREME"), TEXT("WALK THROUGH ENEMIES WHILE CLOAKED"), RARESTAT_GHOST, CLASS_RECON));
+		StatsInfo.Add(FRareStatsInfo(TEXT("HOVERABLE"), TEXT("HOVER COSTS 50% LESS FUEL"), RARESTAT_HOVER, CLASS_SUPPORT));
+		StatsInfo.Add(FRareStatsInfo(TEXT("TWO STONES ONE BIRD"), TEXT("THROW 3 GRENADES AT ONCE"), RARESTAT_TWOSTONESONEBIRD, CLASS_SUPPORT));
+		StatsInfo.Add(FRareStatsInfo(TEXT("TEAM CLOAK"), TEXT("USING CLOAK MAKES ALL TEAMMATES CLOAK FOR 5 SECONDS"), RARESTAT_TEAMCLOAK, CLASS_RECON));
+		StatsInfo.Add(FRareStatsInfo(TEXT("GHOST"), TEXT("WALK THROUGH ENEMIES WHILE CLOAKED"), RARESTAT_GHOST, CLASS_RECON));
 	};
 };
+
+static FRareStats RareStats;

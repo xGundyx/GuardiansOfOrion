@@ -17,6 +17,16 @@ using namespace PlayFab;
  * 
  */
 
+UENUM()
+enum EPlayFabState
+{
+	PFSTATE_NONE,
+	PFSTATE_LOGGINGIN,
+	PFSTATE_CREATINGCHARACTER,
+	PFSTATE_DELETINGCHARACTER,
+	PFSTATE_CREATINGACCOUNT
+};
+
 UCLASS()
 class ORION_API UOrionTCPLink : public UObject
 {
@@ -39,8 +49,30 @@ private:
 #else
 	static bool Init(AOrionPlayerController *Owner);
 	static void Login(FString UserName, FString Password);
+	static void OnLogin(ClientModels::LoginResult& result, void* userData);
+	static void OnLoginError(PlayFabError& error, void* userData);
+
+	static void OnGetCharacterData(ClientModels::GetCharacterDataResult& result, void* userData);
+	static void OnGetChracterDataError(PlayFabError& error, void* userData);
+
+	static void OnGetCharacterList(ClientModels::RunCloudScriptResult& result, void* userData);
+	static void OnGetCharacterListError(PlayFabError& error, void* userData);
+
+	static void OnGetCloudURL(ClientModels::GetCloudScriptUrlResult& result, void* userData);
+	static void OnGetCloudURLError(PlayFabError& error, void* userData);
+
 	static void CreateAccount(FString UserName, FString Password, FString EMail);
-	static void CreateCharacter(FString UserName, FString Gender, FString BaseColor);
+
+	static void CreateCharacter(FString UserName, FString Gender, FString BaseColor, FString CharacterClass);
+
+	static void OnCreateCharacter(ClientModels::RunCloudScriptResult& result, void* userData);
+	static void OnCreateCharacterError(PlayFabError& error, void* userData);
+
+	static void DeleteCharacter(FString CharacterID);
+
+	static void OnDeleteCharacter(ClientModels::RunCloudScriptResult& result, void* userData);
+	static void OnDeleteCharacterError(PlayFabError& error, void* userData);
+
 	static void SelectCharacter(int32 Index);
 
 	//void GlobalErrorHandler(PlayFabError& error, void* userData);
@@ -67,8 +99,11 @@ private:
 	static FString SessionTicket;
 	static FString PlayFabID;
 	static bool NewlyCreated;
+	static FString CloudScriptURL;
+	static EPlayFabState PFState;
+	static FString CurrentCharacterID;
 
-	static FCharacterData CharacterDatas[4];
+	static TArray<FCharacterData> CharacterDatas;
 
 	static void OnCharacterData(ClientModels::GetUserDataResult& result, void* userData);
 	static void OnCharacterDataFailed(PlayFabError& error, void* userData);
