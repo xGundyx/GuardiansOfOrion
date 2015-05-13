@@ -679,6 +679,7 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME_CONDITION(AOrionCharacter, bFly, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(AOrionCharacter, bAim, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(AOrionCharacter, bDuck, COND_SkipOwner);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, bBlinking, COND_SkipOwner);
 
 	DOREPLIFETIME(AOrionCharacter, DrivenVehicle);
 }
@@ -1171,28 +1172,29 @@ void AOrionCharacter::UpdatePawnMeshes()
 	bool const bFirst = IsFirstPerson();
 
 	//GetMesh()->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	GetMesh()->SetHiddenInGame(bFirst); //SetOwnerNoSee(bFirst);
+	GetMesh()->SetHiddenInGame(bFirst || bBlinking); //SetOwnerNoSee(bFirst);
 
 	//BodyMesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	BodyMesh->SetHiddenInGame(bFirst); //SetOwnerNoSee(bFirst);
+	BodyMesh->SetHiddenInGame(bFirst || bBlinking); //SetOwnerNoSee(bFirst);
 
 	//HelmetMesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	HelmetMesh->SetHiddenInGame(bFirst); //SetOwnerNoSee(bFirst);
+	HelmetMesh->SetHiddenInGame(bFirst || bBlinking); //SetOwnerNoSee(bFirst);
 
 	//ArmsMesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	ArmsMesh->SetHiddenInGame(bFirst); //SetOwnerNoSee(bFirst);
+	ArmsMesh->SetHiddenInGame(bFirst || bBlinking); //SetOwnerNoSee(bFirst);
 
 	//LegsMesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	LegsMesh->SetHiddenInGame(bFirst); //>SetOwnerNoSee(bFirst);
+	LegsMesh->SetHiddenInGame(bFirst || bBlinking); //>SetOwnerNoSee(bFirst);
 
 	//Flight1Mesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	Flight1Mesh->SetHiddenInGame(bFirst); //SetOwnerNoSee(bFirst);
+	Flight1Mesh->SetHiddenInGame(bFirst || bBlinking); //SetOwnerNoSee(bFirst);
 
 	//Flight2Mesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	Flight2Mesh->SetHiddenInGame(bFirst); //SetOwnerNoSee(bFirst);
+	Flight2Mesh->SetHiddenInGame(bFirst || bBlinking); //SetOwnerNoSee(bFirst);
 
 	//Arms1PArmorMesh->MeshComponentUpdateFlag = !bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	Arms1PArmorMesh->SetHiddenInGame(!bFirst); //SetOwnerNoSee(!bFirst);
+	if(Arms1PArmorMesh)
+		Arms1PArmorMesh->SetHiddenInGame(!bFirst || bBlinking); //SetOwnerNoSee(!bFirst);
 
 	if (CurrentWeapon)
 		CurrentWeapon->AttachMeshToPawn();
@@ -1435,10 +1437,130 @@ FRotator AOrionCharacter::GetRootRotation() const
 	return RootRotation;
 }
 
+void AOrionCharacter::TryToBlink()
+{
+	//find the direction we want to try and blink in
+	FVector dir;
+	FRotator ncRot;
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	float X, Y;
+	if (PC && PC->GetMousePosition(X, Y) && GEngine)
+	{
+		float X1 = GEngine->GameViewport->Viewport->GetSizeXY().X;
+		float Y1 = GEngine->GameViewport->Viewport->GetSizeXY().Y;
+
+		//convert this to a direction for us
+		ncRot.Pitch = 0.0f;
+		ncRot.Roll = 0.0f;
+		ncRot.Yaw = (FVector(X, Y, 0) - FVector(X1, Y1, 0) / 2.0f).GetSafeNormal().Rotation().Yaw + (CameraIndex == 0 ? 0 : -180) + 45.0f + 90.0f;
+
+		dir = ncRot.Vector();
+
+		if (Role < ROLE_Authority)
+		{
+			bBlinking = true;
+			DoBlinkEffect(true);
+			ServerBlink(dir);
+		}
+		else
+			Blink(dir);
+	}
+}
+
+bool AOrionCharacter::ServerBlink_Validate(FVector dir)
+{
+	return true;
+}
+
+void AOrionCharacter::ServerBlink_Implementation(FVector dir)
+{
+	Blink(dir);
+}
+
+void AOrionCharacter::Blink(FVector dir)
+{
+	if (GetNetMode() != NM_DedicatedServer)
+	{
+		bBlinking = true;
+		DoBlinkEffect(true);
+	}
+
+	if (GetWorld() && GetWorld()->GetNavigationSystem())
+	{
+		FNavLocation loc;
+		FNavAgentProperties props;
+		props.AgentHeight = 150.0f;
+		props.AgentRadius = 150.0f;
+
+		BlinkPos = GetActorLocation();
+
+		for (int32 i = 0; i < 4; i++)
+		{
+			//find our blink end direction
+			FVector EndPos = GetActorLocation() + dir * (4 - i) * 250.0f;
+			if (GetWorld()->GetNavigationSystem()->ProjectPointToNavigation(EndPos, loc, FVector(125.0f, 125.0f, 1000.0f), GetWorld()->GetNavigationSystem()->GetNavDataForProps(props)))
+			{
+				EndPos = loc.Location + GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
+				BlinkPos = EndPos;
+				break;
+			}
+		}
+	}
+	
+	GetWorldTimerManager().SetTimer(TeleportTimer, this, &AOrionCharacter::ActuallyTeleport, 0.2, false);
+	//TeleportTo(EndPos, GetActorRotation());
+}
+
+void AOrionCharacter::ActuallyTeleport()
+{
+	TeleportTo(BlinkPos, GetActorRotation());
+
+	EndBlink();
+}
+
+void AOrionCharacter::EndBlink()
+{
+	//become visible again
+	if (GetNetMode() != NM_DedicatedServer)
+	{
+		bBlinking = false;
+		DoBlinkEffect(false);
+	}
+}
+
+void AOrionCharacter::DoBlinkEffect(bool bOn)
+{
+	UpdatePawnMeshes();
+	//GetMesh()->SetHiddenInGame(bOn);
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+	if (PC)
+	{
+		PC->SetIgnoreMoveInput(bOn);
+		PC->SetIgnoreLookInput(bOn);
+	}
+
+	if (BlinkFX)
+	{
+		UParticleSystemComponent* BlinkPSC = UGameplayStatics::SpawnEmitterAttached(BlinkFX, GetMesh());
+		if (BlinkPSC)
+		{
+			BlinkPSC->SetWorldScale3D(FVector(1.0f));
+		}
+	}
+}
+
+void AOrionCharacter::OnRep_Blink()
+{
+	DoBlinkEffect(bBlinking);
+}
+
 void AOrionCharacter::DoRoll()
 {
 	//remove roll for now
-	return;
+	//return;
 
 	float Length = 1.0f;
 
@@ -1457,25 +1579,31 @@ void AOrionCharacter::DoRoll()
 			const FVector AimDirLS = ActorToWorld().InverseTransformVectorNoScale(AimDirWS);
 			const FRotator AimRotLS = AimDirLS.Rotation();
 
-			if (AimRotLS.Yaw<-110.0f || AimRotLS.Yaw>110.0f)
+			if (AimRotLS.Yaw<-105.0f || AimRotLS.Yaw>105.0f)
 			{
 				TargetYaw = 180.0f + AimRotLS.Yaw;
-				Length = AnimInstance->Montage_Play(RollAnimation.Backwards, 1.f);
+				Length = AnimInstance->Montage_Play(RollAnimation.Backwards, 1.f) / RollAnimation.Backwards->RateScale;
+				RollDir = ROLL_BACKWARDS;
+				SetActorRotation((-AimDirWS).Rotation());
 			}
-			else if (AimRotLS.Yaw < -80.0f)
+			else if (AimRotLS.Yaw < -75.0f)
 			{
 				TargetYaw = 0.0f;
-				Length = AnimInstance->Montage_Play(RollAnimation.Left, 1.f);
+				Length = AnimInstance->Montage_Play(RollAnimation.Left, 1.f) / RollAnimation.Left->RateScale;
+				RollDir = ROLL_LEFT;
 			}
-			else if (AimRotLS.Yaw < 80.0f)
+			else if (AimRotLS.Yaw < 75.0f)
 			{
 				TargetYaw = AimRotLS.Yaw;
-				Length = AnimInstance->Montage_Play(RollAnimation.Forwards, 1.f);
+				Length = AnimInstance->Montage_Play(RollAnimation.Forwards, 1.f) / RollAnimation.Forwards->RateScale;
+				RollDir = ROLL_FORWARDS;
+				SetActorRotation(AimDirWS.Rotation());
 			}
 			else
 			{
 				TargetYaw = 0.0f;
-				Length = AnimInstance->Montage_Play(RollAnimation.Right, 1.f);
+				Length = AnimInstance->Montage_Play(RollAnimation.Right , 1.f) / RollAnimation.Right->RateScale;
+				RollDir = ROLL_RIGHT;
 			}
 		}
 	}
@@ -1489,7 +1617,7 @@ void AOrionCharacter::DoRoll()
 		PC->SetIgnoreLookInput(true);
 	}
 
-	GetWorldTimerManager().SetTimer(RollTimer, this, &AOrionCharacter::EndRoll, 0.9f*Length, false);
+	GetWorldTimerManager().SetTimer(RollTimer2, this, &AOrionCharacter::EndRoll, 0.7f*Length, false);
 	//GetWorldTimerManager().SetTimer(this, &AOrionCharacter::ResetRootRotation, Length*0.8f, false);
 }
 
@@ -1547,6 +1675,8 @@ void AOrionCharacter::ResetRootRotation()
 
 void AOrionCharacter::EndRoll()
 {
+	RollDir = ROLL_NONE;
+
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 	if (PC)
 	{
@@ -1554,6 +1684,10 @@ void AOrionCharacter::EndRoll()
 		PC->SetIgnoreLookInput(false);
 	}
 
+	//stop ducking if we roll
+	bDuck = false;
+	ServerDuck(bDuck);
+	
 	bRolling = false;
 	TargetYaw = 0.0f;
 }

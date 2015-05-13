@@ -27,6 +27,9 @@ public:
 		bool bStackable;
 
 	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+		FString EncodedValue;
+
+	UPROPERTY(BlueprintReadOnly, Category = Inventory)
 		TEnumAsByte<EItemRarity> Rarity;
 
 	UPROPERTY(BlueprintReadOnly, Category = Inventory)
@@ -47,7 +50,4 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		FString GetSlotName();
-
-private:
-	FString EncodedValue;
 };

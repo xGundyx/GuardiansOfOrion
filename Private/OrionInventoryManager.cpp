@@ -50,6 +50,109 @@ AOrionInventory *AOrionInventoryManager::GetItemAt(UOrionInventoryGrid *theGrid,
 	return theGrid->Inventory[index];
 }
 
+bool AOrionInventoryManager::HandleRightClick(UOrionInventoryGrid *theGrid, int32 index)
+{
+	//don't let the player unequip weapons just yet
+	if (theGrid == WeaponSlot1 || theGrid == WeaponSlot2)
+		return false;
+
+	//make sure it's a valid index
+	if (theGrid->Inventory.Num() <= index)
+		return false;
+
+	AOrionInventory *Inv = theGrid->Inventory[index];
+
+	//ignore clicks on null inventories
+	if (!Inv || !OwnerController)
+		return false;
+
+	//only allow this when we have a valid pawn?
+	AOrionCharacter *MyPawn = Cast<AOrionCharacter>(OwnerController->GetPawn());
+
+	//TODO: allow the player to change gear while respawning
+	if (!MyPawn)
+		return false;
+
+	//right clicking from the main inventory means we're trying to equip something, or trying to use a consumeable
+	if (theGrid == Grid)
+	{
+		return TryToEquip(MyPawn, theGrid, index);
+	}
+	//otherwise we're trying to unequip something
+	else
+	{
+		return TryToUnEquip(MyPawn, theGrid, index);
+	}
+
+	return true;
+}
+
+bool AOrionInventoryManager::TryToEquip(AOrionCharacter *MyPawn, UOrionInventoryGrid *theGrid, int32 index)
+{
+	AOrionInventory *Inv = theGrid->Inventory[index];
+
+	if (Inv)
+	{
+		//first make sure we are able to wear this piece of gear
+		if (MyPawn->Level < Inv->RequiredLevel)
+		{
+			return false;
+		}
+
+		switch (Inv->InventoryType)
+		{
+		case ITEM_HELMET:
+			return SwapItems(theGrid, index, HelmetSlot, 0);
+			break;
+		case ITEM_CHEST:
+			return SwapItems(theGrid, index, BodySlot, 0);
+			break;
+		case ITEM_LEGS:
+			return SwapItems(theGrid, index, LegsSlot, 0);
+			break;
+		case ITEM_HANDS:
+			return SwapItems(theGrid, index, HandsSlot, 0);
+			break;
+		case ITEM_PRIMARYWEAPON:
+			return SwapItems(theGrid, index, WeaponSlot1, 0);
+			break;
+		case ITEM_SECONDARYWEAPON:
+			return SwapItems(theGrid, index, WeaponSlot2, 0);
+			break;
+		default:
+			break;
+		};
+	}
+
+	return false;
+}
+
+bool AOrionInventoryManager::TryToUnEquip(AOrionCharacter *MyPawn, UOrionInventoryGrid *theGrid, int32 index)
+{
+	AOrionInventory *Inv = theGrid->Inventory[index];
+
+	if (Inv)
+	{
+		//make sure we have an empty inventory slot for this item
+		bool bSpotOpen = false;
+		int32 SlotIndex = 0;
+		for (int32 i = 0; i < Grid->Inventory.Num() && !bSpotOpen; i++)
+		{
+			if (Grid->Inventory[i] == nullptr)
+			{
+				bSpotOpen = true;
+				SlotIndex = i;
+			}
+		}
+
+		if (!bSpotOpen)
+			return false;
+
+		return SwapItems(theGrid, index, Grid, SlotIndex);
+	}
+
+	return false;
+}
 //this will equip all items based on what's in the inventory
 void AOrionInventoryManager::EquipItems(AOrionCharacter *aPawn, EItemType SlotType)
 {

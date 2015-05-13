@@ -32,6 +32,9 @@ AOrionBotSpawner::AOrionBotSpawner(const FObjectInitializer& ObjectInitializer)
 
 void AOrionBotSpawner::SpawnBots()
 {
+	if (Role != ROLE_Authority)
+		return;
+
 	for (int32 i = ActivePawns.Num(); i < NumToKeepAlive; i++)
 	{
 		if (Pawn)
@@ -82,6 +85,9 @@ void AOrionBotSpawner::Tick( float DeltaTime )
 
 void AOrionBotSpawner::CheckActivePawns()
 {
+	if (Role != ROLE_Authority)
+		return;
+
 	//limit how often we check
 	if (GetWorld()->TimeSeconds - LastPawnCheckTime >= 1.0f)
 	{

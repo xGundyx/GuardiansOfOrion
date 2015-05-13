@@ -123,15 +123,23 @@ void AOrionWeapon::AttachMeshToPawn()
 		{
 			USkeletalMeshComponent* PawnMesh1p = MyPawn->GetSpecifcPawnMesh(true);
 			USkeletalMeshComponent* PawnMesh3p = MyPawn->GetSpecifcPawnMesh(false);
-			Mesh1P->SetHiddenInGame(!MyPawn->IsFirstPerson());
-			PawnMesh1p->SetHiddenInGame(!MyPawn->IsFirstPerson());
-			Mesh3P->SetHiddenInGame(MyPawn->IsFirstPerson());
+			if (Mesh1P)
+				Mesh1P->SetHiddenInGame(!MyPawn->IsFirstPerson() || MyPawn->bBlinking);
+			if (PawnMesh1p)
+				PawnMesh1p->SetHiddenInGame(!MyPawn->IsFirstPerson() || MyPawn->bBlinking);
+			if (Mesh3P)
+				Mesh3P->SetHiddenInGame(MyPawn->IsFirstPerson() || MyPawn->bBlinking);
 			//Mesh1P->AttachTo(PawnMesh1p, AttachPoint);
-			AttachRootComponentTo(PawnMesh1p, AttachPoint);// , EAttachLocation::KeepWorldPosition);
-			Mesh3P->AttachTo(PawnMesh3p, AttachPoint);
+			if (PawnMesh1p)
+				AttachRootComponentTo(PawnMesh1p, AttachPoint);// , EAttachLocation::KeepWorldPosition);
+			if (Mesh3P)
+				Mesh3P->AttachTo(PawnMesh3p, AttachPoint);
 
-			PawnMesh1p->SetWorldScale3D(FVector(InstantConfig.WeaponScale));
-			PawnMesh1p->UpdateBounds();
+			if (PawnMesh1p)
+			{
+				PawnMesh1p->SetWorldScale3D(FVector(InstantConfig.WeaponScale));
+				PawnMesh1p->UpdateBounds();
+			}
 
 			//Mesh3P->SetRelativeLocation(FVector(0, 49.9, 1.0));
 			//Mesh3P->SetRelativeRotation(FRotator(0, 0, -5));
@@ -142,8 +150,11 @@ void AOrionWeapon::AttachMeshToPawn()
 		{
 			USkeletalMeshComponent* UseWeaponMesh = GetWeaponMesh(false);
 			USkeletalMeshComponent* UsePawnMesh = MyPawn->GetPawnMesh();
-			UseWeaponMesh->AttachTo(UsePawnMesh, AttachPoint);
-			UseWeaponMesh->SetHiddenInGame(false);
+			if (UseWeaponMesh && UsePawnMesh)
+			{
+				UseWeaponMesh->AttachTo(UsePawnMesh, AttachPoint);
+				UseWeaponMesh->SetHiddenInGame(false || MyPawn->bBlinking);
+			}
 		}
 	}
 }

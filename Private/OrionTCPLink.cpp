@@ -84,6 +84,30 @@ void UOrionTCPLink::GetPlayerStats(void *Stats, FString PlayerID)
 	server.GetUserStatistics(request, OnGetStats, OnGetStatsFailed, Stats);
 }
 
+//save player data when they leave the server
+void UOrionTCPLink::SaveCharacter(AOrionPlayerController *PC)
+{
+	if(!PC)
+		return;
+
+	ServerModels::UpdateCharacterDataRequest request;
+
+	request.PlayFabId = TCHAR_TO_UTF8(*PC->PlayFabID);
+	request.CharacterId = TCHAR_TO_UTF8(*PC->CharacterID);
+	request.Data = PC->GetInventoryData();
+	request.Permission = ServerModels::UserDataPermissionPublic;
+
+	server.UpdateCharacterReadOnlyData(request, UOrionTCPLink::OnSaveCharacterData, UOrionTCPLink::OnSaveCharacterDataError, PC);
+}
+
+void UOrionTCPLink::OnSaveCharacterData(ServerModels::UpdateCharacterDataResult& result, void* userData)
+{
+}
+
+void UOrionTCPLink::OnSaveCharacterDataError(PlayFabError& error, void* userData)
+{
+}
+
 void UOrionTCPLink::OnGetStats(ServerModels::GetUserStatisticsResult& result, void* userData)
 {
 	UOrionStats *Stats = static_cast<UOrionStats*>(userData);
@@ -203,6 +227,10 @@ void UOrionTCPLink::CreateCharacter(FString UserName, FString Gender, FString Ba
 		FString Info = FString("CreateCharacter") + Delim + PlayFabID + Delim + UserName + Delim + Gender + Delim + BaseColor + FString("\r\n\r\n");
 		connector->SendInfo(Info);
 	}*/
+}
+
+void UOrionTCPLink::SaveCharacter(AOrionPlayerController *PC)
+{
 }
 
 void UOrionTCPLink::OnCreateCharacter(ClientModels::RunCloudScriptResult& result, void* userData)

@@ -339,6 +339,9 @@ public:
 		UParticleSystemComponent *RainPSC;
 
 	FString PlayFabID;
+	FString CharacterID;
+
+	std::map<std::string,std::string> GetInventoryData();
 
 private:
 	UOrionQuestManager *QuestManager;

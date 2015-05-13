@@ -133,6 +133,9 @@ public:
 		void RemoveItemFromInventory(UOrionInventoryGrid *theGrid, int32 index);
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
+		bool HandleRightClick(UOrionInventoryGrid *theGrid, int32 index);
+
+	UFUNCTION(BlueprintCallable, Category = Inventory)
 		void Init();
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
@@ -148,4 +151,8 @@ public:
 		bool SwapItems(UOrionInventoryGrid *theGrid1, int32 index1, UOrionInventoryGrid *theGrid2, int32 index2);
 
 	APlayerController *OwnerController;
+
+private:
+	bool TryToEquip(AOrionCharacter *MyPawn, UOrionInventoryGrid *theGrid, int32 index);
+	bool TryToUnEquip(AOrionCharacter *MyPawn, UOrionInventoryGrid *theGrid, int32 index);
 };
