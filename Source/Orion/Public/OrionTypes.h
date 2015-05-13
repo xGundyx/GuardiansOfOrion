@@ -39,6 +39,16 @@ struct FDecalData
 };
 
 UENUM()
+enum ERollDir
+{
+	ROLL_NONE,
+	ROLL_FORWARDS,
+	ROLL_BACKWARDS,
+	ROLL_LEFT,
+	ROLL_RIGHT
+};
+
+UENUM()
 enum EFoodType
 {
 	FOOD_GRASS,
@@ -249,6 +259,28 @@ struct FDecodeItemInfo
 	TArray<FPrimaryItemStats> PrimaryStats;
 	TArray<FSecondaryItemStats> SecondaryStats;
 	TArray<FRareItemStats> RareStats;
+
+	FString GetItemQuality()
+	{
+		FString quality = TEXT("common");
+
+		switch (Rarity)
+		{
+		case RARITY_LEGENDARY:
+			quality = TEXT("legendary");
+			break;
+		case RARITY_SUPERENHANCED:
+			quality = TEXT("senhanced");
+			break;
+		case RARITY_ENHANCED:
+			quality = TEXT("enhanced");
+			break;
+		default:
+			break;
+		}
+
+		return quality;
+	}
 };
 
 //takes an encoded string and decodes it, updating this inventory item to be that type
@@ -262,7 +294,70 @@ static FDecodeItemInfo DecodeItem(FString code)
 //returns the encoded value of this inventory item
 static FString EncodeItem(FDecodeItemInfo Item)
 {
-	return TEXT("");
+	FString RawData;
+
+	TSharedPtr<FJsonObject> JsonParsed = MakeShareable(new FJsonObject());
+
+	JsonParsed->SetStringField(TEXT("ItemName"), Item.ItemName);
+	JsonParsed->SetStringField(TEXT("ItemQuality"), Item.GetItemQuality());
+	JsonParsed->SetStringField(TEXT("ItemLevel"), FString("") + Item.RequiredLevel);
+
+	TArray<TSharedPtr<FJsonValue>> PrimaryStats;
+
+	for (int32 i = 0; i < Item.PrimaryStats.Num(); i++)
+	{
+		TSharedPtr<FJsonObject> JsonStat = MakeShareable(new FJsonObject());
+
+		JsonStat->SetStringField(TEXT("StatType"), FString(TEXT("") + int32(Item.PrimaryStats[i].StatType)));
+		JsonStat->SetStringField(TEXT("StatMax"), FString(TEXT("") + Item.PrimaryStats[i].MaxValue));
+		JsonStat->SetStringField(TEXT("StatMin"), FString(TEXT("") + Item.PrimaryStats[i].MinValue));
+
+		TSharedPtr<FJsonValueObject> TempObj = MakeShareable(new FJsonValueObject(JsonStat));
+
+		PrimaryStats.Add(TempObj);
+	}
+
+	JsonParsed->SetArrayField(TEXT("PrimaryStats"), PrimaryStats);
+
+	TArray<TSharedPtr<FJsonValue>> SecondaryStats;
+
+	for (int32 i = 0; i < Item.SecondaryStats.Num(); i++)
+	{
+		TSharedPtr<FJsonObject> JsonStat = MakeShareable(new FJsonObject());
+
+		JsonStat->SetStringField(TEXT("StatType"), FString(TEXT("") + int32(Item.SecondaryStats[i].StatType)));
+		JsonStat->SetStringField(TEXT("StatMax"), FString(TEXT("") + Item.SecondaryStats[i].MaxValue));
+		JsonStat->SetStringField(TEXT("StatMin"), FString(TEXT("") + Item.SecondaryStats[i].MinValue));
+
+		TSharedPtr<FJsonValueObject> TempObj = MakeShareable(new FJsonValueObject(JsonStat));
+
+		SecondaryStats.Add(TempObj);
+	}
+
+	JsonParsed->SetArrayField(TEXT("SecondaryStats"), SecondaryStats);
+
+	TArray<TSharedPtr<FJsonValue>> RareStats;
+
+	for (int32 i = 0; i < Item.RareStats.Num(); i++)
+	{
+		TSharedPtr<FJsonObject> JsonStat = MakeShareable(new FJsonObject());
+
+		JsonStat->SetStringField(TEXT("StatType"), FString(TEXT("") + int32(Item.RareStats[i].StatType)));
+		JsonStat->SetStringField(TEXT("StatMax"), FString(TEXT("") + Item.RareStats[i].MaxValue));
+		JsonStat->SetStringField(TEXT("StatMin"), FString(TEXT("") + Item.RareStats[i].MinValue));
+
+		TSharedPtr<FJsonValueObject> TempObj = MakeShareable(new FJsonValueObject(JsonStat));
+
+		RareStats.Add(TempObj);
+	}
+
+	JsonParsed->SetArrayField(TEXT("RareStats"), RareStats);
+
+	TSharedRef< TJsonWriter<> > JsonWriter = TJsonWriterFactory<>::Create(&RawData);
+
+	FJsonSerializer::Serialize(JsonParsed.ToSharedRef(), JsonWriter);
+
+	return RawData;
 }
 
 UENUM(BlueprintType)

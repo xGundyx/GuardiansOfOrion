@@ -44,6 +44,10 @@ public:
 	static void GetPlayerStats(void* Stats, FString PlayerID);
 	static void OnGetStats(ServerModels::GetUserStatisticsResult& result, void* userData);
 	static void OnGetStatsFailed(PlayFabError& error, void* userData);
+
+	static void SaveCharacter(AOrionPlayerController *PC);
+	static void OnSaveCharacterData(ServerModels::UpdateCharacterDataResult& result, void* userData);
+	static void OnSaveCharacterDataError(PlayFabError& error, void* userData);
 private:
 	static PlayFabServerAPI server;
 #else
@@ -95,6 +99,8 @@ private:
 	static void OnGetStatsFailed(PlayFabError& error, void* userData);
 
 	static AOrionPlayerController *PlayerOwner;
+
+	static void SaveCharacter(AOrionPlayerController *PC);
 
 	static FString SessionTicket;
 	static FString PlayFabID;

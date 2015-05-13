@@ -81,6 +81,14 @@ APlayerController* AOrionGameMode::Login(class UPlayer* NewPlayer, const FString
 	return rPC;
 }
 
+void AOrionGameMode::Logout(AController* Exiting)
+{
+	//before this player logs out, save any data they have
+	UOrionTCPLink::SaveCharacter(Cast<AOrionPlayerController>(Exiting));
+
+	Super::Logout(Exiting);
+}
+
 //spawned from killing various types of enemies, vehicles, opening things, etc.
 void AOrionGameMode::SpawnItems(AActor *Spawner)
 {

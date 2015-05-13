@@ -545,6 +545,30 @@ public:
 	void DoRoll();
 	void EndRoll();
 
+	void TryToBlink();
+	void Blink(FVector dir);
+	void EndBlink();
+	void ActuallyTeleport();
+
+	void DoBlinkEffect(bool bOn);
+
+	UFUNCTION(reliable, server, WithValidation)
+		void ServerBlink(FVector dir);
+		bool ServerBlink_Validate(FVector dir);
+		void ServerBlink_Implementation(FVector dir);
+
+	UFUNCTION()
+		void OnRep_Blink();
+
+	UPROPERTY(ReplicatedUsing = OnRep_Blink)
+		bool bBlinking;
+
+	//TODO add replication to this
+	FVector BlinkPos;
+
+	UPROPERTY(EditDefaultsOnly, Category = Effects)
+		UParticleSystem* BlinkFX;
+
 	/** get mesh component */
 	USkeletalMeshComponent* GetPawnMesh() const;
 
@@ -761,6 +785,9 @@ public:
 
 	bool bRolling;
 
+	//TODO : replicate this!
+	TEnumAsByte<ERollDir> RollDir;
+
 	void ReallyDoEquip();
 	
 	/** current weapon rep handler */
@@ -784,6 +811,9 @@ private:
 	FTimerHandle EquipTimer;
 	FTimerHandle UnEquipTimer;
 	FTimerHandle RollTimer;
+	FTimerHandle RollTimer2;
+public:
+	FTimerHandle TeleportTimer;
 
 	FCharacterStats CharacterStats;
 };

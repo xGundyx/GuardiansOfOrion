@@ -141,8 +141,8 @@ void UOrionMovementComponent::CalcVelocity(float DeltaTime, float Friction, bool
 	{
 		if (OrionCharacterOwner->IsRolling())
 		{
-			Velocity.Normalize();
-			Velocity = Velocity*900.0f;
+			//Velocity.Normalize();
+			Velocity = Velocity*0.0f;
 			return;
 		}
 		else if (OrionCharacterOwner->IsSprinting() && IsMovingOnGround())

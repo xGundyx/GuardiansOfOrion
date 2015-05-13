@@ -102,6 +102,7 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 		Inventory->StackAmount = 1;
 		Inventory->RequiredLevel = Level;
 		Inventory->Rarity = Decoder.Rarity;
+		Inventory->EncodedValue = EncodedValue;
 
 		AOrionArmor *Armor = Cast<AOrionArmor>(Inventory);
 		if (Armor)
