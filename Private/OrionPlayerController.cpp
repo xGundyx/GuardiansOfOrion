@@ -8,6 +8,8 @@
 #include "OrionInventoryArmor.h"
 #include "OrionLocalPlayer.h"
 #include "ClientConnector.h"
+#include "OrionInventoryItem.h"
+#include "OrionPRI.h"
 
 AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -89,11 +91,13 @@ void AOrionPlayerController::ClearUMG()
 {
 	EventCleanupUMG();
 
-	if (Cast<UOrionLocalPlayer>(Player) && Cast<UOrionLocalPlayer>(Player)->InventoryManager)
+	/*if (GetInventoryManager())
 	{
-		Cast<UOrionLocalPlayer>(Player)->InventoryManager->Destroy();
-		Cast<UOrionLocalPlayer>(Player)->InventoryManager = NULL;
-	}
+		GetInventoryManager()->Destroy();
+		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+		if (PRI)
+			PRI->InventoryManager = NULL;
+	}*/
 }
 
 void AOrionPlayerController::GetPlayerViewPoint(FVector& OutCamLoc, FRotator& OutCamRot) const
@@ -113,6 +117,10 @@ void AOrionPlayerController::GetPlayerViewPoint(FVector& OutCamLoc, FRotator& Ou
 
 void AOrionPlayerController::Destroyed()
 {
+#if IS_SERVER
+	UOrionTCPLink::SaveCharacter(this);
+#endif
+
 	//cleanup our menus so we don't get a garbage collection crash
 	ClearUMG();
 
@@ -125,6 +133,7 @@ void AOrionPlayerController::PostInitializeComponents()
 
 #if !IS_SERVER
 	UOrionTCPLink::Init(this);
+#else
 #endif
 
 	//setup our inventory manager
@@ -190,7 +199,10 @@ void AOrionPlayerController::PawnPendingDestroy(APawn* P)
 	Super::PawnPendingDestroy(P);
 
 	//tell our blueprint to respawn us
-	EventRespawn();
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+	if (!GRI || !GRI->IsTopDownGame())
+		EventRespawn();
 
 	//ClientSetSpectatorCamera(CameraLocation, CameraRotation);
 }
@@ -207,11 +219,12 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 {
 	Super::Possess(aPawn);
 
-	AOrionCharacter *newPawn = Cast<AOrionCharacter>(aPawn);
-	if (newPawn && GetInventoryManager())
+	/*AOrionCharacter *newPawn = Cast<AOrionCharacter>(GetPawn());
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+	if (newPawn && PRI && PRI->InventoryManager)
 	{
-		GetInventoryManager()->EquipItems(newPawn, ITEM_ANY);
-	}
+		PRI->InventoryManager->EquipItems(newPawn, ITEM_ANY);
+	}*/
 }
 
 void AOrionPlayerController::PlayerTick(float DeltaTime)
@@ -248,6 +261,7 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 		OldViewportSizeY = y;
 		EventResizeHUD();
 	}
+#else
 #endif
 }
 
@@ -327,7 +341,14 @@ void AOrionPlayerController::ArmorColor(int32 index)
 
 AOrionInventoryManager *AOrionPlayerController::GetInventoryManager()
 {
-	UOrionLocalPlayer *myPlayer = Cast<UOrionLocalPlayer>(Player);
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	if (PRI && PRI->InventoryManager)
+		return PRI->InventoryManager;
+
+	return nullptr;
+
+	/*UOrionLocalPlayer *myPlayer = Cast<UOrionLocalPlayer>(Player);
 
 	if (!myPlayer)
 		return nullptr;
@@ -335,8 +356,119 @@ AOrionInventoryManager *AOrionPlayerController::GetInventoryManager()
 	if (myPlayer->InventoryManager)
 		return myPlayer->InventoryManager;
 
-	return nullptr;
+	return nullptr;*/
 }
+
+//this version is for filling out the player's inventory as a non dedicated server, and also for the character select screen
+void AOrionPlayerController::PopulateInventory(TSharedPtr<FJsonObject> Data)
+{
+	AOrionInventoryManager *InvMan = GetInventoryManager();
+
+	if (InvMan)
+	{
+		CreateAndGiveInventoryItem(Data, InvMan->HelmetSlot, "HelmetSlot", 0);
+		CreateAndGiveInventoryItem(Data, InvMan->BodySlot, "BodySlot", 0);
+		CreateAndGiveInventoryItem(Data, InvMan->HandsSlot, "HandsSlot", 0);
+		CreateAndGiveInventoryItem(Data, InvMan->LegsSlot, "LegsSlot", 0);
+		CreateAndGiveInventoryItem(Data, InvMan->WeaponSlot1, "PrimaryWeaponSlot", 0);
+		CreateAndGiveInventoryItem(Data, InvMan->WeaponSlot2, "SecondaryWeaponSlot", 0);
+		CreateAndGiveInventoryItem(Data, InvMan->RingSlot1, "RingSlot1", 0);
+		CreateAndGiveInventoryItem(Data, InvMan->RingSlot2, "RingSlot2", 0);
+		CreateAndGiveInventoryItem(Data, InvMan->NeckSlot, "NeckSlot", 0);
+		CreateAndGiveInventoryItem(Data, InvMan->BeltSlot, "BeltSlot", 0);
+		CreateAndGiveInventoryItem(Data, InvMan->ShieldSlot, "ShieldSlot", 0);
+		CreateAndGiveInventoryItem(Data, InvMan->GadgetSlot, "GadgetSlot", 0);
+
+		for (int32 i = 0; i < 100; i++)
+		{
+			FString Slot = UTF8_TO_TCHAR((std::string("InventorySlot") + std::to_string(i)).c_str());
+			CreateAndGiveInventoryItem(Data, InvMan->Grid, Slot, i);
+		}
+
+		//equip us fully
+		InvMan->EquipItems(Cast<AOrionCharacter>(GetPawn()), ITEM_ANY);
+		EventRedrawInventory();
+	}
+}
+
+bool AOrionPlayerController::CreateAndGiveInventoryItem(TSharedPtr<FJsonObject> Data, AOrionInventoryGrid *theGrid, FString Slot, int32 Index)
+{
+	AOrionInventoryManager *InvMan = GetInventoryManager();
+
+	if (InvMan)
+	{
+		TSharedPtr<FJsonObject> TestObject = Data->GetObjectField(TCHAR_TO_UTF8(*Slot));
+		if (TestObject.IsValid())
+		{
+			FString tString = TestObject->GetStringField("Value");
+
+			TSharedPtr<FJsonObject> JsonParsed;
+			TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(tString);
+			if (FJsonSerializer::Deserialize(JsonReader, JsonParsed))
+			{
+				FString pItemName = JsonParsed->GetStringField("ItemName");
+				FString pItemPath = JsonParsed->GetStringField("ItemPath");
+				FString pItemRarity = JsonParsed->GetStringField("ItemQuality");
+				FString pItemLevel = JsonParsed->GetStringField("ItemLevel");
+
+				FString FullPath;
+				FullPath += "Blueprint";
+				FullPath += "'";
+				FullPath += TCHAR_TO_UTF8(*pItemPath);
+				FullPath += "'";
+
+				//FStringAssetReference itemRef = FullPath;
+				//UObject *ItemObj = itemRef.ResolveObject();
+
+				UObject *ItemObj = Cast<UObject>(StaticLoadObject(UObject::StaticClass(), NULL, *FullPath));
+
+				if (ItemObj)
+				{
+					FActorSpawnParameters SpawnInfo;
+					SpawnInfo.bNoCollisionFail = true;
+					UOrionInventoryItem *Inv = Cast<UOrionInventoryItem>(ItemObj);
+					if (Inv)
+					{
+						AOrionInventory *Inventory = GetWorld()->SpawnActor<AOrionInventory>(Inv->ItemClass, SpawnInfo);
+						if (Inventory)
+						{
+							Inventory->Image = Inv->ItemIcon;
+							Inventory->InventoryType = Inv->ItemType;
+							Inventory->ItemName = pItemName;
+							Inventory->ItemDescription = Inv->ItemDesc;
+							Inventory->bStackable = Inv->bStackable;
+							Inventory->StackAmount = 1;
+							Inventory->RequiredLevel = FCString::Atoi(*pItemLevel);
+							Inventory->Rarity = GetRarityFromFString(pItemRarity);
+							Inventory->EncodedValue = tString;
+
+							AOrionArmor *Armor = Cast<AOrionArmor>(Inventory);
+							if (Armor)
+							{
+								Armor->Mesh = Inv->ItemMesh;
+								Armor->Mesh1P = Inv->ItemMesh1P;
+							}
+
+							//give it to them at a specific inventory slot!
+							if (InvMan->AddItemToInventory(theGrid, Inventory, Index) >= 0)
+								return true;
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
+//this version is for the actual in game inventory, server version
+#if IS_SERVER
+void AOrionPlayerController::PopulateInventory(std::map<std::string, PlayFab::ServerModels::UserDataRecord> Data)
+{
+}
+#else
+#endif
 
 TArray<FOptionsData> AOrionPlayerController::GetGameplayOptions()
 {
@@ -662,6 +794,24 @@ TArray<FControllerOptionsData> AOrionPlayerController::GetControllerOptions()
 	return Options;
 }
 
+void AOrionPlayerController::StartFire(uint8 FireModeNum)
+{
+	if (((IsInState(NAME_Spectating) && bPlayerIsWaiting) || IsInState(NAME_Inactive)) && !IsFrozen())
+	{
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+		if (!GRI || !GRI->IsTopDownGame())
+			ServerRestartPlayer();
+	}
+	else if (IsInState(NAME_Spectating))
+	{
+		ServerViewNextPlayer();
+	}
+	else if (GetPawn() && !bCinematicMode && !GetWorld()->bPlayersOnly)
+	{
+		GetPawn()->PawnStartFire(FireModeNum);
+	}
+}
+
 FOptionsValueData AOrionPlayerController::GetMouseSensitivity()
 {
 	FOptionsValueData Data;
@@ -724,13 +874,18 @@ void AOrionPlayerController::UpdateRotation(float DeltaTime)
 
 void AOrionPlayerController::CreateInventory()
 {
-	//make sure our current inventory is null
-	if (GetInventoryManager())
+	//only server does this here
+	if (Role != ROLE_Authority)
 		return;
 
-	UOrionLocalPlayer *myPlayer = Cast<UOrionLocalPlayer>(Player);
+	//make sure our current inventory is null
+	AOrionInventoryManager *InvMan = GetInventoryManager();
+	if (InvMan)
+		return;
 
-	if (!myPlayer)
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	if (!PRI)
 	{
 		FTimerHandle Handle;
 		GetWorldTimerManager().SetTimer(Handle, this, &AOrionPlayerController::CreateInventory, 0.01, false);
@@ -739,16 +894,67 @@ void AOrionPlayerController::CreateInventory()
 
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.bNoCollisionFail = true;
-	myPlayer->InventoryManager = GetWorld()->SpawnActor<AOrionInventoryManager>(AOrionInventoryManager::StaticClass(), SpawnInfo);
+	SpawnInfo.Owner = this;
+	PRI->InventoryManager = GetWorld()->SpawnActor<AOrionInventoryManager>(AOrionInventoryManager::StaticClass(), SpawnInfo);
 
-	if (!myPlayer->InventoryManager)
+	if (!PRI->InventoryManager)
 		return;
 
-	myPlayer->InventoryManager->Init();
-	myPlayer->InventoryManager->OwnerController = this;
+	PRI->InventoryManager->Init(this);
+	PRI->InventoryManager->OwnerController = this;
 
 	//give us some default inventory
 	GetDefaultInventory();
+}
+
+bool AOrionPlayerController::ServerSetPlayFabInfo_Validate(const FString &ID, const FString &SessionID, const FString &cID)
+{
+	return true;
+}
+
+void AOrionPlayerController::ServerSetPlayFabInfo_Implementation(const FString &ID, const FString &SessionID, const FString &cID)
+{
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+	if (PRI)
+	{
+		PRI->PlayFabID = ID;
+		PRI->SessionTicket = SessionID;
+		PRI->CharacterID = cID;
+
+		UOrionTCPLink::GetCharacterData(this);
+	}
+}
+
+void AOrionPlayerController::BeginPlay()
+{
+	Super::BeginPlay();
+
+#if !IS_SERVER
+	if (Role < ROLE_Authority)
+	{
+		ServerSetPlayFabInfo(UOrionTCPLink::PlayFabID, UOrionTCPLink::SessionTicket, UOrionTCPLink::CurrentCharacterID);
+
+		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+		if (PRI)
+		{
+			PRI->PlayFabID = UOrionTCPLink::PlayFabID;
+			PRI->SessionTicket = UOrionTCPLink::SessionTicket;
+			PRI->CharacterID = UOrionTCPLink::CurrentCharacterID;
+		}
+	}
+	else if (IsLocalPlayerController())
+	{
+		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+		if (PRI)
+		{
+			PRI->PlayFabID = UOrionTCPLink::PlayFabID;
+			PRI->SessionTicket = UOrionTCPLink::SessionTicket;
+			PRI->CharacterID = UOrionTCPLink::CurrentCharacterID;
+		}
+
+		UOrionTCPLink::GetCharacterData(this);
+	}
+#endif
 }
 
 void AOrionPlayerController::GetDefaultInventory()

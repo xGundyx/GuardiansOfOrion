@@ -9,6 +9,7 @@
 //#include "OrionAIController.h"
 #include "OrionProjectile.h"
 #include "OrionHoverVehicle.h"
+#include "OrionPRI.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AOrionCharacter
@@ -657,6 +658,13 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, HealthMax);
 	DOREPLIFETIME(AOrionCharacter, Health);
 
+	DOREPLIFETIME(AOrionCharacter, HelmetArmor);
+	DOREPLIFETIME(AOrionCharacter, BodyArmor);
+	DOREPLIFETIME(AOrionCharacter, ArmsArmor);
+	DOREPLIFETIME(AOrionCharacter, LegsArmor);
+
+	DOREPLIFETIME(AOrionCharacter, BlinkPos);
+
 	DOREPLIFETIME(AOrionCharacter, Level);
 
 	DOREPLIFETIME_CONDITION(AOrionCharacter, LastTakeHitInfo, COND_Custom);
@@ -679,7 +687,6 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME_CONDITION(AOrionCharacter, bFly, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(AOrionCharacter, bAim, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(AOrionCharacter, bDuck, COND_SkipOwner);
-	DOREPLIFETIME_CONDITION(AOrionCharacter, bBlinking, COND_SkipOwner);
 
 	DOREPLIFETIME(AOrionCharacter, DrivenVehicle);
 }
@@ -997,7 +1004,7 @@ void AOrionCharacter::OnRep_ReplicatedAnimation()
 }
 
 //override this so we can add some replication to it
-float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float InPlayRate, FName StartSectionName, bool bShouldReplicate)
+float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float InPlayRate, FName StartSectionName, bool bShouldReplicate, bool bReplicateToOwner)
 {
 	float Duration = 0.0f;
 
@@ -1012,7 +1019,7 @@ float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float I
 		ReplicatedAnimation.Mesh3PMontage = Animation.Pawn3P;
 		ReplicatedAnimation.Rate = InPlayRate;
 		ReplicatedAnimation.SectionName = StartSectionName;
-		ReplicatedAnimation.bReplicatedToOwner = false;
+		ReplicatedAnimation.bReplicatedToOwner = bReplicateToOwner;
 	}
 
 	UAnimInstance * AnimInstance = (GetMesh()) ? GetMesh()->GetAnimInstance() : NULL;
@@ -1135,6 +1142,20 @@ void AOrionCharacter::PossessedBy(class AController* InController)
 	////UpdateTeamColorsAllMIDs();
 
 	UpdatePawnMeshes();
+
+	if (Role == ROLE_Authority)
+	{
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+		if (PC)
+		{
+			AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+			if (PRI && PRI->InventoryManager)
+			{
+				if (!PRI->PlayFabID.IsEmpty())
+					PRI->InventoryManager->EquipItems(this, ITEM_ANY);
+			}
+		}
+	}
 }
 
 USkeletalMeshComponent* AOrionCharacter::GetMeshFromIndex(int32 index) const
@@ -1375,8 +1396,16 @@ void AOrionCharacter::BehindView()
 	UpdatePawnMeshes();
 }
 
+bool AOrionCharacter::ShouldIgnoreControls()
+{
+	return IsRolling() || bBlinking;
+}
+
 void AOrionCharacter::Duck()
 {
+	if (ShouldIgnoreControls())
+		return;
+
 	GetWorldTimerManager().SetTimer(RollTimer, this, &AOrionCharacter::DoRoll, 0.35, false);
 }
 
@@ -1446,7 +1475,7 @@ void AOrionCharacter::TryToBlink()
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
 	float X, Y;
-	if (PC && PC->GetMousePosition(X, Y) && GEngine)
+	if (false)//PC && PC->GetMousePosition(X, Y) && GEngine)
 	{
 		float X1 = GEngine->GameViewport->Viewport->GetSizeXY().X;
 		float Y1 = GEngine->GameViewport->Viewport->GetSizeXY().Y;
@@ -1457,34 +1486,61 @@ void AOrionCharacter::TryToBlink()
 		ncRot.Yaw = (FVector(X, Y, 0) - FVector(X1, Y1, 0) / 2.0f).GetSafeNormal().Rotation().Yaw + (CameraIndex == 0 ? 0 : -180) + 45.0f + 90.0f;
 
 		dir = ncRot.Vector();
-
-		if (Role < ROLE_Authority)
-		{
-			bBlinking = true;
-			DoBlinkEffect(true);
-			ServerBlink(dir);
-		}
-		else
-			Blink(dir);
 	}
+	else
+	{
+		//don't blink unless we're moving
+		if (GetVelocity().SizeSquared2D() < 10.0f)
+			return;
+
+		dir = GetVelocity().GetSafeNormal();
+	}
+
+	/*if (Role < ROLE_Authority)
+	{
+		bBlinking = true;
+		DoBlinkEffect(true);
+		ServerBlink(dir);
+	}
+	else*/
+	//this is for client side camera movement
+	TeleportStartPos = GetActorLocation();
+	Blink(dir);
 }
 
-bool AOrionCharacter::ServerBlink_Validate(FVector dir)
+bool AOrionCharacter::ServerBlink_Validate(FVector Pos)
 {
 	return true;
 }
 
-void AOrionCharacter::ServerBlink_Implementation(FVector dir)
+void AOrionCharacter::ServerBlink_Implementation(FVector Dir)
 {
-	Blink(dir);
+	Blink(Dir);
+}
+
+void AOrionCharacter::OnRep_Teleport()
+{
+	if (BlinkPos == FVector(0, 0, 0))
+	{
+		bBlinking = false;
+		DoBlinkEffect(false);
+	}
+	else
+	{
+		bBlinking = true;
+		DoBlinkEffect(true);
+		LastTeleportTime = GetWorld()->GetTimeSeconds();
+	}
+
+	//GetWorldTimerManager().SetTimer(TeleportTimer, this, &AOrionCharacter::EndBlink, 0.2, false);
 }
 
 void AOrionCharacter::Blink(FVector dir)
 {
-	if (GetNetMode() != NM_DedicatedServer)
+	if (Role < ROLE_Authority)
 	{
-		bBlinking = true;
-		DoBlinkEffect(true);
+		ServerBlink(dir);
+		return;
 	}
 
 	if (GetWorld() && GetWorld()->GetNavigationSystem())
@@ -1503,31 +1559,46 @@ void AOrionCharacter::Blink(FVector dir)
 			if (GetWorld()->GetNavigationSystem()->ProjectPointToNavigation(EndPos, loc, FVector(125.0f, 125.0f, 1000.0f), GetWorld()->GetNavigationSystem()->GetNavDataForProps(props)))
 			{
 				EndPos = loc.Location + GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-				BlinkPos = EndPos;
+				if (TeleportTo(EndPos, GetActorRotation()))
+					BlinkPos = EndPos;
+				else // teleport failed, need a better way to handle this
+					return;
 				break;
 			}
 		}
+
+		if (BlinkPos == FVector(0, 0, 0))
+			return;
+
+		bBlinking = true;
+		LastTeleportTime = GetWorld()->GetTimeSeconds();
+
+		if (GetNetMode() != NM_DedicatedServer)
+			DoBlinkEffect(true);
 	}
+	else
+		return;
 	
-	GetWorldTimerManager().SetTimer(TeleportTimer, this, &AOrionCharacter::ActuallyTeleport, 0.2, false);
-	//TeleportTo(EndPos, GetActorRotation());
+	GetWorldTimerManager().SetTimer(TeleportTimer, this, &AOrionCharacter::ActuallyTeleport, 0.2f, false);
 }
 
 void AOrionCharacter::ActuallyTeleport()
 {
-	TeleportTo(BlinkPos, GetActorRotation());
+	//TeleportTo(BlinkPos, GetActorRotation());
 
 	EndBlink();
 }
 
 void AOrionCharacter::EndBlink()
 {
+	bBlinking = false;
+
+	if (Role == ROLE_Authority)
+		BlinkPos = FVector(0, 0, 0);
+
 	//become visible again
 	if (GetNetMode() != NM_DedicatedServer)
-	{
-		bBlinking = false;
 		DoBlinkEffect(false);
-	}
 }
 
 void AOrionCharacter::DoBlinkEffect(bool bOn)
@@ -1552,9 +1623,38 @@ void AOrionCharacter::DoBlinkEffect(bool bOn)
 	}
 }
 
-void AOrionCharacter::OnRep_Blink()
+bool AOrionCharacter::ServerDoRoll_Validate(ERollDir rDir, FRotator rRot)
 {
-	DoBlinkEffect(bBlinking);
+	return true;
+}
+
+void AOrionCharacter::ServerDoRoll_Implementation(ERollDir rDir, FRotator rRot)
+{
+	bRolling = true;
+
+	FWeaponAnim Info;
+	switch (rDir)
+	{
+	case ROLL_LEFT:
+		Info.Pawn3P = RollAnimation.Left;
+		break;
+	case ROLL_RIGHT:
+		Info.Pawn3P = RollAnimation.Right;
+		break;
+	case ROLL_FORWARDS:
+		Info.Pawn3P = RollAnimation.Forwards;
+		break;
+	case ROLL_BACKWARDS:
+		Info.Pawn3P = RollAnimation.Backwards;
+		break;
+	default:
+		break;
+	};
+
+	SetActorRotation(rRot);
+
+	float Length = OrionPlayAnimMontage(Info);
+	GetWorldTimerManager().SetTimer(RollTimer2, this, &AOrionCharacter::EndRoll, 0.7f*Length, false);
 }
 
 void AOrionCharacter::DoRoll()
@@ -1562,11 +1662,16 @@ void AOrionCharacter::DoRoll()
 	//remove roll for now
 	//return;
 
+	if (GetWorldTimerManager().IsTimerActive(RollTimer2))
+		return;
+
 	float Length = 1.0f;
 
 	//don't roll if we're not moving
 	if (GetVelocity().Size2D() < 1.0f)
 		return;
+
+	FRotator newRot = GetActorRotation();
 
 	if (RollAnimation.Backwards != NULL)
 	{
@@ -1579,36 +1684,47 @@ void AOrionCharacter::DoRoll()
 			const FVector AimDirLS = ActorToWorld().InverseTransformVectorNoScale(AimDirWS);
 			const FRotator AimRotLS = AimDirLS.Rotation();
 
+			FWeaponAnim Info;
+
 			if (AimRotLS.Yaw<-105.0f || AimRotLS.Yaw>105.0f)
 			{
+				Info.Pawn3P = RollAnimation.Backwards;
 				TargetYaw = 180.0f + AimRotLS.Yaw;
-				Length = AnimInstance->Montage_Play(RollAnimation.Backwards, 1.f) / RollAnimation.Backwards->RateScale;
+				Length = OrionPlayAnimMontage(Info);// AnimInstance->Montage_Play(RollAnimation.Backwards, 1.f) / RollAnimation.Backwards->RateScale;
 				RollDir = ROLL_BACKWARDS;
+				newRot = (-AimDirWS).Rotation();
 				SetActorRotation((-AimDirWS).Rotation());
 			}
 			else if (AimRotLS.Yaw < -75.0f)
 			{
+				Info.Pawn3P = RollAnimation.Left;
 				TargetYaw = 0.0f;
-				Length = AnimInstance->Montage_Play(RollAnimation.Left, 1.f) / RollAnimation.Left->RateScale;
+				Length = OrionPlayAnimMontage(Info);// AnimInstance->Montage_Play(RollAnimation.Left, 1.f) / RollAnimation.Left->RateScale;
 				RollDir = ROLL_LEFT;
 			}
 			else if (AimRotLS.Yaw < 75.0f)
 			{
+				Info.Pawn3P = RollAnimation.Forwards;
 				TargetYaw = AimRotLS.Yaw;
-				Length = AnimInstance->Montage_Play(RollAnimation.Forwards, 1.f) / RollAnimation.Forwards->RateScale;
+				Length = OrionPlayAnimMontage(Info);// AnimInstance->Montage_Play(RollAnimation.Forwards, 1.f) / RollAnimation.Forwards->RateScale;
 				RollDir = ROLL_FORWARDS;
+				newRot = AimDirWS.Rotation();
 				SetActorRotation(AimDirWS.Rotation());
 			}
 			else
 			{
+				Info.Pawn3P = RollAnimation.Right;
 				TargetYaw = 0.0f;
-				Length = AnimInstance->Montage_Play(RollAnimation.Right , 1.f) / RollAnimation.Right->RateScale;
+				Length = OrionPlayAnimMontage(Info);// AnimInstance->Montage_Play(RollAnimation.Right , 1.f) / RollAnimation.Right->RateScale;
 				RollDir = ROLL_RIGHT;
 			}
 		}
 	}
 
 	bRolling = true;
+
+	if (Role < ROLE_Authority)
+		ServerDoRoll(RollDir, newRot);
 
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 	if (PC)
@@ -1717,7 +1833,7 @@ float AOrionCharacter::PlayOneShotAnimation(UAnimMontage *Anim)
 
 bool AOrionCharacter::IsSprinting() const
 {
-	return bRun;
+	return bRun && GetMovementComponent()->IsMovingOnGround() && GetMovementComponent()->Velocity.Size2D() > 1.0f;
 }
 
 bool AOrionCharacter::IsFlying() const
@@ -1765,6 +1881,9 @@ void AOrionCharacter::StopSprint()
 
 void AOrionCharacter::DoMelee()
 {
+	if (ShouldIgnoreControls())
+		return;
+
 	if (CurrentWeapon)
 	{
 		CurrentWeapon->Melee();
@@ -1773,6 +1892,9 @@ void AOrionCharacter::DoMelee()
 
 void AOrionCharacter::Reload()
 {
+	if (ShouldIgnoreControls())
+		return;
+
 	if (CurrentWeapon)
 	{
 		CurrentWeapon->StartReload();
@@ -1826,6 +1948,9 @@ bool AOrionCharacter::IsTopDown()
 
 void AOrionCharacter::StartAiming()
 {
+	if (ShouldIgnoreControls())
+		return;
+
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
 	if (PC && PC->bCinematicMode)
@@ -1853,6 +1978,9 @@ void AOrionCharacter::OnStopFire()
 
 void AOrionCharacter::OnFire()
 {
+	if (ShouldIgnoreControls())
+		return;
+
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
 	if (PC && PC->bCinematicMode)
@@ -1969,9 +2097,66 @@ void AOrionCharacter::LookUpAtRate(float Rate)
 	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
 }
 
+void AOrionCharacter::EquipArmor(AOrionArmor *Armor)
+{
+	if (Armor == nullptr)
+		return;
+
+	switch (Armor->InventoryType)
+	{
+	case ITEM_HELMET:
+		HelmetArmor = Armor;
+		SetHelmetMesh(Armor->Mesh);
+		break;
+	case ITEM_CHEST:
+		BodyArmor = Armor;
+		SetBodyMesh(Armor->Mesh);
+		break;
+	case ITEM_HANDS:
+		ArmsArmor = Armor;
+		SetArmsMesh(Armor->Mesh);
+		Set1PArmorMesh(Armor->Mesh1P);
+		break;
+	case ITEM_LEGS:
+		LegsArmor = Armor;
+		SetLegsMesh(Armor->Mesh);
+		break;
+	};
+}
+
+void AOrionCharacter::UnEquipArmor(EItemType Slot)
+{
+	switch (Slot)
+	{
+	case ITEM_HELMET:
+		HelmetArmor = nullptr;
+		SetHelmetMesh(nullptr);
+		break;
+	case ITEM_CHEST:
+		BodyArmor = nullptr;
+		SetBodyMesh(nullptr);
+		break;
+	case ITEM_HANDS:
+		ArmsArmor = nullptr;
+		SetArmsMesh(nullptr);
+		Set1PArmorMesh(nullptr);
+		break;
+	case ITEM_LEGS:
+		LegsArmor = nullptr;
+		SetLegsMesh(nullptr);
+		break;
+	}
+}
+
+void AOrionCharacter::OnRep_HelmetArmor(){ if (!HelmetArmor) UnEquipArmor(ITEM_HELMET); else EquipArmor(HelmetArmor); }
+void AOrionCharacter::OnRep_BodyArmor(){ if (!BodyArmor) UnEquipArmor(ITEM_CHEST); else EquipArmor(BodyArmor); }
+void AOrionCharacter::OnRep_ArmsArmor(){ if (!ArmsArmor) UnEquipArmor(ITEM_HANDS); else EquipArmor(ArmsArmor); }
+void AOrionCharacter::OnRep_LegsArmor(){ if (!LegsArmor) UnEquipArmor(ITEM_LEGS); else EquipArmor(LegsArmor); }
+
 void AOrionCharacter::Set1PArmorMesh(USkeletalMesh* newMesh) const
 {
-	Arms1PArmorMesh->SetSkeletalMesh(newMesh);
+	if (Arms1PArmorMesh && GetNetMode() != NM_DedicatedServer)
+		Arms1PArmorMesh->SetSkeletalMesh(newMesh);
 }
 
 void AOrionCharacter::Set1PLegsMesh(USkeletalMesh* newMesh) const

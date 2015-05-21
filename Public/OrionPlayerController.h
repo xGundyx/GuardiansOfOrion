@@ -2,6 +2,11 @@
 
 #pragma once
 
+#if IS_SERVER
+#include "playfab/PlayFabServerAPI.h"
+#else
+#include "playfab/PlayFabClientAPI.h"
+#endif
 #include "OrionWeather.h"
 #include "GameFramework/PlayerController.h"
 #include "OrionInventoryManager.h"
@@ -267,6 +272,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Respawn"))
 		void EventRespawn();
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "RedrawInventory"))
+		void EventRedrawInventory();
+
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		AOrionInventoryManager *GetInventoryManager();
 
@@ -335,16 +343,28 @@ public:
 		void ServerAllArmor_Implementation(int32 index);
 
 public:
+	virtual void BeginPlay();
+	virtual void StartFire(uint8 FireModeNum);
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerSetPlayFabInfo(const FString &ID, const FString &SessionID, const FString &cID);
+		bool ServerSetPlayFabInfo_Validate(const FString &ID, const FString &SessionID, const FString &cID);
+		void ServerSetPlayFabInfo_Implementation(const FString &ID, const FString &SessionID, const FString &cID);
+
 	UPROPERTY()//VisibleAnywhere, BlueprintReadOnly, Category = Rain)
 		UParticleSystemComponent *RainPSC;
 
-	FString PlayFabID;
-	FString CharacterID;
-
 	std::map<std::string,std::string> GetInventoryData();
+	void PopulateInventory(TSharedPtr<FJsonObject> Data);
+#if IS_SERVER
+	void PopulateInventory(std::map<std::string, PlayFab::ServerModels::UserDataRecord> Data);
+#else
+#endif
 
 private:
 	UOrionQuestManager *QuestManager;
 	UOrionStats *Stats;
 	UOrionAchievements *Achievements;
+
+	bool CreateAndGiveInventoryItem(TSharedPtr<FJsonObject> Data, AOrionInventoryGrid *theGrid, FString Slot, int32 Index);
 };

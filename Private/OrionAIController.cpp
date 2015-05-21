@@ -261,7 +261,10 @@ APawn *AOrionAIController::GetEnemy()
 void AOrionAIController::CheckEnemyStatus()
 {
 	if (myEnemy == nullptr)
+	{
+		RemoveEnemy();
 		return;
+	}
 
 	//ignore dead players
 	if (Cast<AOrionCharacter>(myEnemy) && Cast<AOrionCharacter>(myEnemy)->Health <= 0)

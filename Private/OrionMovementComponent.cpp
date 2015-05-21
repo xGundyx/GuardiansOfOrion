@@ -136,16 +136,17 @@ bool UOrionMovementComponent::IsCrouching() const
 
 void UOrionMovementComponent::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
 {
-	const AOrionCharacter* OrionCharacterOwner = Cast<AOrionCharacter>(PawnOwner);
+	AOrionCharacter* OrionCharacterOwner = Cast<AOrionCharacter>(PawnOwner);
 	if (OrionCharacterOwner)
 	{
 		if (OrionCharacterOwner->IsRolling())
 		{
 			//Velocity.Normalize();
-			Velocity = Velocity*0.0f;
+			//Velocity = Velocity*0.0f;
+			Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
 			return;
 		}
-		else if (OrionCharacterOwner->IsSprinting() && IsMovingOnGround())
+		else if (!OrionCharacterOwner->IsTopDown() && OrionCharacterOwner->IsSprinting() && IsMovingOnGround())
 		{
 			Velocity = OrionCharacterOwner->GetActorRotation().Vector()*GetMaxSpeed();
 			return;

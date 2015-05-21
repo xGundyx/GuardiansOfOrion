@@ -22,6 +22,9 @@ public:
 	UPROPERTY(Transient, Replicated)
 		FTimeOfDay WorldTime;
 
+	UPROPERTY(Replicated, BlueprintReadOnly)
+		bool bAlwaysShowCursor;
+
 	void SetWeather(AOrionWeather *theWeather);
 
 	void Tick(float DeltaSeconds) override;
@@ -29,4 +32,10 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Weather)
 		FTimeOfDay GetWorldTime() const;
+
+	UFUNCTION(BlueprintCallable, Category = Game)
+		bool IsTopDownGame();
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+		bool bTopDown;
 };

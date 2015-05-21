@@ -23,6 +23,9 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = Classes)
 		bool bAlwaysShowCursor;
+
+	virtual void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
 };
 
 

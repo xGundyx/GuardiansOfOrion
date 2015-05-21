@@ -252,6 +252,9 @@ struct FDecodeItemInfo
 {
 	GENERATED_USTRUCT_BODY()
 
+	//path to the blueprint that holds most of our data
+	FString ItemPath;
+
 	FString ItemName;
 	EItemRarity Rarity;
 	int32 RequiredLevel;
@@ -291,6 +294,20 @@ static FDecodeItemInfo DecodeItem(FString code)
 	return Info;
 }
 
+static EItemRarity GetRarityFromFString(FString rarity)
+{
+	if (rarity.Equals(TEXT("common")))
+		return RARITY_COMMON;
+	else if (rarity.Equals(TEXT("legendary")))
+		return RARITY_LEGENDARY;
+	else if (rarity.Equals(TEXT("senhanced")))
+		return RARITY_SUPERENHANCED;
+	else if (rarity.Equals(TEXT("enhanced")))
+		return RARITY_ENHANCED;
+
+	return RARITY_COMMON;
+}
+
 //returns the encoded value of this inventory item
 static FString EncodeItem(FDecodeItemInfo Item)
 {
@@ -301,6 +318,7 @@ static FString EncodeItem(FDecodeItemInfo Item)
 	JsonParsed->SetStringField(TEXT("ItemName"), Item.ItemName);
 	JsonParsed->SetStringField(TEXT("ItemQuality"), Item.GetItemQuality());
 	JsonParsed->SetStringField(TEXT("ItemLevel"), FString("") + Item.RequiredLevel);
+	JsonParsed->SetStringField(TEXT("ItemPath"), Item.ItemPath);
 
 	TArray<TSharedPtr<FJsonValue>> PrimaryStats;
 

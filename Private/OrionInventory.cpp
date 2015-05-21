@@ -6,6 +6,7 @@
 AOrionInventory::AOrionInventory(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bReplicates = true;
 }
 
 FString AOrionInventory::GetSlotName()
@@ -54,5 +55,19 @@ FString AOrionInventory::GetSlotName()
 	}
 
 	return TEXT("");
+}
+
+void AOrionInventory::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AOrionInventory, Image);
+	DOREPLIFETIME(AOrionInventory, ItemName);
+	DOREPLIFETIME(AOrionInventory, ItemDescription);
+	DOREPLIFETIME(AOrionInventory, bStackable);
+	DOREPLIFETIME(AOrionInventory, Rarity);
+	DOREPLIFETIME(AOrionInventory, StackAmount);
+	DOREPLIFETIME(AOrionInventory, RequiredLevel);
+	DOREPLIFETIME(AOrionInventory, InventoryType);
 }
 

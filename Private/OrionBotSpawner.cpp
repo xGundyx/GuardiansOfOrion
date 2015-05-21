@@ -37,7 +37,7 @@ void AOrionBotSpawner::SpawnBots()
 
 	for (int32 i = ActivePawns.Num(); i < NumToKeepAlive; i++)
 	{
-		if (Pawn)
+		if (Pawn && GetWorld() && GetWorld()->GetNavigationSystem())
 		{
 			FActorSpawnParameters SpawnInfo;
 			SpawnInfo.bNoCollisionFail = true;

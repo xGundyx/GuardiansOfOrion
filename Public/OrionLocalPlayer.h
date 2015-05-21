@@ -15,8 +15,4 @@ class ORION_API UOrionLocalPlayer : public ULocalPlayer
 	GENERATED_BODY()
 public:
 	UOrionLocalPlayer(const FObjectInitializer& ObjectInitializer);
-
-	//player inventory, kept in the local player so it persists through anything
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Inventory)
-		AOrionInventoryManager *InventoryManager;
 };
