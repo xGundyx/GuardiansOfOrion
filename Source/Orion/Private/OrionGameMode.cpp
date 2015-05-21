@@ -5,6 +5,7 @@
 #include "OrionHUD.h"
 #include "OrionDinoPawn.h"
 #include "OrionCharacter.h"
+#include "OrionPRI.h"
 #include "OrionGRI.h"
 
 AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
@@ -32,6 +33,8 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 
 	GameStateClass = AOrionGRI::StaticClass();
 
+	PlayerStateClass = AOrionPRI::StaticClass();
+
 	// use our custom HUD class
 	HUDClass = AOrionHUD::StaticClass();
 
@@ -39,9 +42,23 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 	bUseSeamlessTravel = true; 
 
 	bAlwaysShowCursor = false;
+}
+
+void AOrionGameMode::BeginPlay()
+{
+	Super::BeginPlay();
 
 #if IS_SERVER
 	UOrionTCPLink::Init();
+#endif
+}
+
+void AOrionGameMode::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+#if IS_SERVER
+	UOrionTCPLink::Update();
 #endif
 }
 
@@ -83,9 +100,6 @@ APlayerController* AOrionGameMode::Login(class UPlayer* NewPlayer, const FString
 
 void AOrionGameMode::Logout(AController* Exiting)
 {
-	//before this player logs out, save any data they have
-	UOrionTCPLink::SaveCharacter(Cast<AOrionPlayerController>(Exiting));
-
 	Super::Logout(Exiting);
 }
 
@@ -99,16 +113,28 @@ void AOrionGameMode::SpawnItems(AActor *Spawner)
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.bNoCollisionFail = true;
 
-		AOrionPickup *Pickup = GetWorld()->SpawnActor<AOrionPickup>(DefaultPickupClass, Spawner->GetActorLocation(), Spawner->GetActorRotation(), SpawnInfo);
-		if (Pickup)
+		for (TActorIterator<AOrionPlayerController> ActorItr(GetWorld()); ActorItr; ++ActorItr)
 		{
-			AOrionCharacter *Pawn = Cast<AOrionCharacter>(Spawner);
-			if (Pawn)
-				if (Pickup->Init(Pawn->LootTable, Pawn->Level))
-					bSuccess = true;
+			AOrionPlayerController *PC = *ActorItr;
 
-			if (!bSuccess)
-				Pickup->Destroy();
+			if (!PC)
+				continue;
+
+			AOrionPickup *Pickup = GetWorld()->SpawnActor<AOrionPickup>(DefaultPickupClass, Spawner->GetActorLocation(), Spawner->GetActorRotation(), SpawnInfo);
+			if (Pickup)
+			{
+				Pickup->SetOwner(PC);
+				Pickup->bOnlyRelevantToOwner = true;
+				Pickup->PickupMesh->bOnlyOwnerSee = true;
+
+				AOrionCharacter *Pawn = Cast<AOrionCharacter>(Spawner);
+				if (Pawn)
+					if (Pickup->Init(Pawn->LootTable, Pawn->Level))
+						bSuccess = true;
+
+				if (!bSuccess)
+					Pickup->Destroy();
+			}
 		}
 	}
 }

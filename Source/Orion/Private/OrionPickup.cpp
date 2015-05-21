@@ -41,8 +41,18 @@ void AOrionPickup::Tick( float DeltaTime )
 
 }
 
+void AOrionPickup::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(AOrionPickup, Inventory, COND_Custom);
+}
+
 bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 {
+	if (Role != ROLE_Authority)
+		return false;
+
 	if (!LootTable)
 		return false;
 
@@ -53,6 +63,8 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 
 	//first pick an item type
 	UOrionInventoryItem *Inv = Cast<UOrionInventoryItem>(List->PickItemType(Level)->GetDefaultObject());
+
+	Decoder.ItemPath = Inv->GetPathName();
 
 	if (Inv == nullptr)
 		return false;
@@ -113,6 +125,49 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 	}
 
 	return true;
+}
+
+//let the server know!
+void AOrionPickup::ClientGrabItem()
+{
+	if (Role != ROLE_Authority)
+		ServerGrabItem();
+	else
+		GrabItem();
+}
+
+bool AOrionPickup::ServerGrabItem_Validate()
+{
+	return true;
+}
+
+void AOrionPickup::ServerGrabItem_Implementation()
+{
+	GrabItem();
+}
+
+void AOrionPickup::GrabItem()
+{
+	if (GetOwner() && Inventory)
+	{
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetOwner());
+		if (PC)
+		{
+			AOrionInventoryManager *InvMan = PC->GetInventoryManager();
+			if (InvMan)
+			{
+				if (InvMan->AddItemToInventory(InvMan->Grid, Inventory) >= 0)
+				{
+					Destroy();
+				}
+				//inventory is full, spawn some kind of message
+				else
+				{
+
+				}
+			}
+		}
+	}
 }
 
 

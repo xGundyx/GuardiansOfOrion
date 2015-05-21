@@ -10,10 +10,28 @@
 AOrionInventoryManager::AOrionInventoryManager(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bOnlyRelevantToOwner = true;
+	bReplicates = true;
 }
 
-bool AOrionInventoryManager::SwapItems(UOrionInventoryGrid *theGrid1, int32 index1, UOrionInventoryGrid *theGrid2, int32 index2)
+bool AOrionInventoryManager::ServerSwapItems_Validate(AOrionInventoryGrid *theGrid1, int32 index1, AOrionInventoryGrid *theGrid2, int32 index2)
 {
+	return true;
+}
+
+void AOrionInventoryManager::ServerSwapItems_Implementation(AOrionInventoryGrid *theGrid1, int32 index1, AOrionInventoryGrid *theGrid2, int32 index2)
+{
+	SwapItems(theGrid1, index1, theGrid2, index2);
+}
+
+bool AOrionInventoryManager::SwapItems(AOrionInventoryGrid *theGrid1, int32 index1, AOrionInventoryGrid *theGrid2, int32 index2)
+{
+	if (Role != ROLE_Authority)
+	{
+		ServerSwapItems(theGrid1, index1, theGrid2, index2);
+		return false;
+	}
+
 	if (!theGrid1 || !theGrid2 || !OwnerController)
 		return false;
 
@@ -38,6 +56,8 @@ bool AOrionInventoryManager::SwapItems(UOrionInventoryGrid *theGrid1, int32 inde
 			if (Type != ITEM_ANY)
 				EquipItems(Cast<AOrionCharacter>(OwnerController->GetPawn()), Type);
 
+			DrawInventory();
+
 			return true;
 		}
 	}
@@ -45,15 +65,34 @@ bool AOrionInventoryManager::SwapItems(UOrionInventoryGrid *theGrid1, int32 inde
 	return false;
 }
 
-AOrionInventory *AOrionInventoryManager::GetItemAt(UOrionInventoryGrid *theGrid, int32 index)
+AOrionInventory *AOrionInventoryManager::GetItemAt(AOrionInventoryGrid *theGrid, int32 index)
 {
-	return theGrid->Inventory[index];
+	if (theGrid && theGrid->Inventory.Num() > index)
+		return theGrid->Inventory[index];
+
+	return nullptr;
 }
 
-bool AOrionInventoryManager::HandleRightClick(UOrionInventoryGrid *theGrid, int32 index)
+bool AOrionInventoryManager::ServerHandleRightClick_Validate(AOrionInventoryGrid *theGrid, int32 index)
 {
+	return true;
+}
+
+void AOrionInventoryManager::ServerHandleRightClick_Implementation(AOrionInventoryGrid *theGrid, int32 index)
+{
+	HandleRightClick(theGrid, index);
+}
+
+bool AOrionInventoryManager::HandleRightClick(AOrionInventoryGrid *theGrid, int32 index)
+{
+	if (Role != ROLE_Authority)
+	{
+		ServerHandleRightClick(theGrid, index);
+		return false;
+	}
+
 	//don't let the player unequip weapons just yet
-	if (theGrid == WeaponSlot1 || theGrid == WeaponSlot2)
+	if (theGrid == nullptr || theGrid == WeaponSlot1 || theGrid == WeaponSlot2)
 		return false;
 
 	//make sure it's a valid index
@@ -61,6 +100,9 @@ bool AOrionInventoryManager::HandleRightClick(UOrionInventoryGrid *theGrid, int3
 		return false;
 
 	AOrionInventory *Inv = theGrid->Inventory[index];
+
+	if (!OwnerController)
+		OwnerController = Cast<AOrionPlayerController>(GetOwner());
 
 	//ignore clicks on null inventories
 	if (!Inv || !OwnerController)
@@ -73,21 +115,26 @@ bool AOrionInventoryManager::HandleRightClick(UOrionInventoryGrid *theGrid, int3
 	if (!MyPawn)
 		return false;
 
+	bool bRet = false;
 	//right clicking from the main inventory means we're trying to equip something, or trying to use a consumeable
 	if (theGrid == Grid)
 	{
-		return TryToEquip(MyPawn, theGrid, index);
+		bRet = TryToEquip(MyPawn, theGrid, index);
+		DrawInventory();
+		return bRet;
 	}
 	//otherwise we're trying to unequip something
 	else
 	{
-		return TryToUnEquip(MyPawn, theGrid, index);
+		bRet = TryToUnEquip(MyPawn, theGrid, index);
+		DrawInventory();
+		return bRet;
 	}
 
 	return true;
 }
 
-bool AOrionInventoryManager::TryToEquip(AOrionCharacter *MyPawn, UOrionInventoryGrid *theGrid, int32 index)
+bool AOrionInventoryManager::TryToEquip(AOrionCharacter *MyPawn, AOrionInventoryGrid *theGrid, int32 index)
 {
 	AOrionInventory *Inv = theGrid->Inventory[index];
 
@@ -127,7 +174,7 @@ bool AOrionInventoryManager::TryToEquip(AOrionCharacter *MyPawn, UOrionInventory
 	return false;
 }
 
-bool AOrionInventoryManager::TryToUnEquip(AOrionCharacter *MyPawn, UOrionInventoryGrid *theGrid, int32 index)
+bool AOrionInventoryManager::TryToUnEquip(AOrionCharacter *MyPawn, AOrionInventoryGrid *theGrid, int32 index)
 {
 	AOrionInventory *Inv = theGrid->Inventory[index];
 
@@ -170,45 +217,36 @@ void AOrionInventoryManager::EquipItems(AOrionCharacter *aPawn, EItemType SlotTy
 	case ITEM_HELMET:
 		Armor = Cast<AOrionArmor>(HelmetSlot->Inventory[0]);
 		if (Armor)
-			aPawn->SetHelmetMesh(Armor->Mesh);
+			aPawn->EquipArmor(Armor);
 		else
-			aPawn->SetHelmetMesh(NULL);
+			aPawn->UnEquipArmor(ITEM_HELMET);
 		if(SlotType !=ITEM_ANY)
 			break;
 
 	case ITEM_CHEST:
 		Armor = Cast<AOrionArmor>(BodySlot->Inventory[0]);
 		if (Armor)
-			aPawn->SetBodyMesh(Armor->Mesh);
+			aPawn->EquipArmor(Armor);
 		else
-			aPawn->SetBodyMesh(NULL);
+			aPawn->UnEquipArmor(ITEM_CHEST);
 		if (SlotType != ITEM_ANY)
 			break;
 
 	case ITEM_HANDS:
 		Armor = Cast<AOrionArmor>(HandsSlot->Inventory[0]);
 		if (Armor)
-			aPawn->SetArmsMesh(Armor->Mesh);
+			aPawn->EquipArmor(Armor);
 		else
-			aPawn->SetArmsMesh(NULL);
-
-		if (aPawn->IsLocallyControlled())
-		{
-			if (Armor)
-				aPawn->Set1PArmorMesh(Armor->Mesh1P);
-			else
-				aPawn->Set1PArmorMesh(NULL);
-		}
-
+			aPawn->UnEquipArmor(ITEM_HANDS);
 		if (SlotType != ITEM_ANY)
 			break;
 
 	case ITEM_LEGS:
 		Armor = Cast<AOrionArmor>(LegsSlot->Inventory[0]);
 		if (Armor)
-			aPawn->SetLegsMesh(Armor->Mesh);
+			aPawn->EquipArmor(Armor);
 		else
-			aPawn->SetLegsMesh(NULL);
+			aPawn->UnEquipArmor(ITEM_LEGS);
 		if (SlotType != ITEM_ANY)
 			break;
 
@@ -216,7 +254,7 @@ void AOrionInventoryManager::EquipItems(AOrionCharacter *aPawn, EItemType SlotTy
 		Weapon = Cast<AOrionWeapon>(WeaponSlot1->Inventory[0]);
 		OtherWeapon = aPawn->GetWeaponFromType(ITEM_PRIMARYWEAPON);
 
-		if (OtherWeapon && Weapon && Weapon->InventoryType == OtherWeapon->InventoryType)
+		if (OtherWeapon == nullptr || (Weapon && Weapon->InventoryType == OtherWeapon->InventoryType))
 			bSwitchWeapon = true;
 
 		if (OtherWeapon)
@@ -256,16 +294,6 @@ void AOrionInventoryManager::EquipItems(AOrionCharacter *aPawn, EItemType SlotTy
 	}
 }
 
-void AOrionInventoryManager::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
-{
-	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	//skip owner
-	DOREPLIFETIME_CONDITION(AOrionInventoryManager, Money, COND_OwnerOnly);
-	DOREPLIFETIME_CONDITION(AOrionInventoryManager, PrimaryAmmo, COND_OwnerOnly);
-	DOREPLIFETIME_CONDITION(AOrionInventoryManager, SecondaryAmmo, COND_OwnerOnly);
-}
-
 void AOrionInventoryManager::GiveMoney(int32 Amount)
 {
 	if (Role == ROLE_Authority)
@@ -274,57 +302,61 @@ void AOrionInventoryManager::GiveMoney(int32 Amount)
 	}
 }
 
-void AOrionInventoryManager::Init()
+void AOrionInventoryManager::Init(AOrionPlayerController *PC)
 {
-	Grid = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.Owner = PC;
+
+	Grid = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (Grid)
 		Grid->CreateInventory(10, 10, 96, 1, ITEM_ANY);
 
-	HelmetSlot = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	HelmetSlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (HelmetSlot)
 		HelmetSlot->CreateInventory(1, 1, 96, 1, ITEM_HELMET);
 
-	HandsSlot = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	HandsSlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (HandsSlot)
 		HandsSlot->CreateInventory(1, 1, 96, 1, ITEM_HANDS);
 
-	BodySlot = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	BodySlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (BodySlot)
 		BodySlot->CreateInventory(1, 1, 96, 1, ITEM_CHEST);
 
-	LegsSlot = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	LegsSlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (LegsSlot)
 		LegsSlot->CreateInventory(1, 1, 96, 1, ITEM_LEGS);
 
-	WeaponSlot1 = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	WeaponSlot1 = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (WeaponSlot1)
 		WeaponSlot1->CreateInventory(1, 1, 96, 1, ITEM_PRIMARYWEAPON);
 
-	WeaponSlot2 = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	WeaponSlot2 = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (WeaponSlot2)
 		WeaponSlot2->CreateInventory(1, 1, 96, 1, ITEM_SECONDARYWEAPON);
 
-	RingSlot1 = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	RingSlot1 = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (RingSlot1)
 		RingSlot1->CreateInventory(1, 1, 96, 1, ITEM_RING);
 
-	RingSlot2 = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	RingSlot2 = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (RingSlot2)
 		RingSlot2->CreateInventory(1, 1, 96, 1, ITEM_RING);
 
-	ShieldSlot = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	ShieldSlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (ShieldSlot)
 		ShieldSlot->CreateInventory(1, 1, 96, 1, ITEM_SHIELD);
 
-	NeckSlot = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	NeckSlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (NeckSlot)
 		NeckSlot->CreateInventory(1, 1, 96, 1, ITEM_NECK);
 
-	BeltSlot = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	BeltSlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (BeltSlot)
 		BeltSlot->CreateInventory(1, 1, 96, 1, ITEM_BELT);
 
-	GadgetSlot = ConstructObject<UOrionInventoryGrid>(UOrionInventoryGrid::StaticClass());
+	GadgetSlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (GadgetSlot)
 		GadgetSlot->CreateInventory(1, 1, 96, 1, ITEM_GADGET);
 }
@@ -369,8 +401,23 @@ void AOrionInventoryManager::DestroyInventory()
 }
 
 //returns index we were added at, -1 means failure
-int32 AOrionInventoryManager::AddItemToInventory(UOrionInventoryGrid *theGrid, AOrionInventory* newItem)
+int32 AOrionInventoryManager::AddItemToInventory(AOrionInventoryGrid *theGrid, AOrionInventory* newItem, int32 Index)
 {
+	if (Index > 0)
+	{
+		if (theGrid->Inventory.Num() > Index && theGrid->Inventory[Index] == nullptr)
+		{
+			theGrid->Inventory[Index] = newItem;
+			return Index;
+		}
+		else
+		{
+			newItem->Destroy();
+			newItem = NULL;
+			return -1;
+		}
+	}
+
 	for (int32 i = 0; i < theGrid->Height; i++)
 	{
 		for (int32 j = 0; j < theGrid->Width; j++)
@@ -378,6 +425,11 @@ int32 AOrionInventoryManager::AddItemToInventory(UOrionInventoryGrid *theGrid, A
 			if (theGrid->Inventory[i*theGrid->Width + j] == NULL)
 			{
 				theGrid->Inventory[i*theGrid->Width + j] = newItem;
+
+				//tell the client about this!
+				//ClientRedraw(theGrid->InventoryType, i*theGrid->Width + j);
+				DrawInventory();
+
 				return i * theGrid->Width + j;
 			}
 		}
@@ -388,10 +440,44 @@ int32 AOrionInventoryManager::AddItemToInventory(UOrionInventoryGrid *theGrid, A
 	return -1;
 }
 
-void AOrionInventoryManager::RemoveItemFromInventory(UOrionInventoryGrid *theGrid, int32 index)
+void AOrionInventoryManager::DrawInventory()
+{
+	if (OwnerController && OwnerController->IsLocalPlayerController())
+		Cast<AOrionPlayerController>(OwnerController)->EventRedrawInventory();
+}
+
+void AOrionInventoryManager::ClientRedraw_Implementation(EItemType type, int32 index)
+{
+	if (GetOwner())
+		Cast<AOrionPlayerController>(GetOwner())->EventRedrawInventory();
+}
+
+void AOrionInventoryManager::RemoveItemFromInventory(AOrionInventoryGrid *theGrid, int32 index)
 {
 	if (theGrid->Inventory.Num() > index)
 	{
 		theGrid->Inventory[index] = NULL;
 	}
+}
+
+void AOrionInventoryManager::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, HandsSlot, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, Grid, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, HelmetSlot, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, BodySlot, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, LegsSlot, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, WeaponSlot1, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, WeaponSlot2, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, RingSlot1, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, RingSlot2, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, ShieldSlot, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, NeckSlot, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, BeltSlot, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, GadgetSlot, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, PrimaryAmmo, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, SecondaryAmmo, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, Money, COND_OwnerOnly);
 }

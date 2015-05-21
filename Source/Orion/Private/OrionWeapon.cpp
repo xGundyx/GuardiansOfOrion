@@ -514,7 +514,8 @@ FVector AOrionWeapon::GetAdjustedAim() const
 	//top down aims in the general direction the pawn is facing
 	if (MyPawn && MyPawn->IsTopDown())
 	{
-		FinalAim = Instigator->GetActorRotation().Vector();
+		//FinalAim = Instigator->GetActorRotation().Vector();
+		FinalAim = MyPawn->AimPos - FVector(0, 0, 25.0f) - MyPawn->GetActorLocation();
 	}
 	// If we have a player controller use it for the aim
 	else if (PlayerController)
@@ -873,6 +874,16 @@ void AOrionWeapon::ProcessInstantHit_Confirmed(const FHitResult& Impact, const F
 
 		SpawnTrailEffect(EndPoint);
 		SpawnImpactEffects(Impact);
+
+		FPointDamageEvent PointDmg;
+
+		PointDmg.DamageTypeClass = InstantConfig.DamageType;
+		PointDmg.HitInfo = Impact;
+		PointDmg.ShotDirection = ShootDir;
+		PointDmg.Damage = InstantConfig.HitDamage;
+
+		if (Impact.GetActor())
+			Impact.GetActor()->TakeDamage(InstantConfig.HitDamage, PointDmg, MyPawn->Controller, this);
 	}
 }
 
@@ -1005,13 +1016,19 @@ void AOrionWeapon::SimulateInstantHit(const FVector& ShotOrigin, int32 RandomSee
 
 void AOrionWeapon::DealDamage(const FHitResult& Impact, const FVector& ShootDir)
 {
+	//FRadialDamageEvent PointDmg;
 	FPointDamageEvent PointDmg;
+
 	PointDmg.DamageTypeClass = InstantConfig.DamageType;
 	PointDmg.HitInfo = Impact;
 	PointDmg.ShotDirection = ShootDir;
 	PointDmg.Damage = InstantConfig.HitDamage;
+	////PointDmg.Params.BaseDamage = InstantConfig.HitDamage;
+	////PointDmg.Params.InnerRadius = 25.0f;
+	////PointDmg.Params.OuterRadius = 25.0f;
+	////PointDmg.Origin = Impact.Location;
 
-	Impact.GetActor()->TakeDamage(PointDmg.Damage, PointDmg, MyPawn->Controller, this);
+	Impact.GetActor()->TakeDamage(InstantConfig.HitDamage, PointDmg, MyPawn->Controller, this);
 }
 
 bool AOrionWeapon::ServerNotifyMiss_Validate(FVector ShootDir, int32 RandomSeed, float ReticleSpread)

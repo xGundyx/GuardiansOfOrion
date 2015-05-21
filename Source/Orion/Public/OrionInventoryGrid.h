@@ -6,7 +6,7 @@
  * 
  */
 
-USTRUCT()
+/*USTRUCT()
 struct FInventoryRow
 {
 	GENERATED_USTRUCT_BODY()
@@ -18,30 +18,33 @@ struct FInventoryRow
 	{
 		return false;
 	}
-};
+};*/
 
 UCLASS(Blueprintable)
-class ORION_API UOrionInventoryGrid : public UObject
+class ORION_API AOrionInventoryGrid : public AActor
 {
 	GENERATED_BODY()
 public:
-	UOrionInventoryGrid(const FObjectInitializer& ObjectInitializer);
+	AOrionInventoryGrid(const FObjectInitializer& ObjectInitializer);
 
-	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+	UFUNCTION()
+		void OnRep_Inventory();
+
+	UPROPERTY(ReplicatedUsing = OnRep_Inventory, BlueprintReadOnly, Category = Inventory)
 		TArray<AOrionInventory*> Inventory;
 
-	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
 		TEnumAsByte<EItemType> InventoryType;
 
 	//UPROPERTY(BlueprintReadWrite, Category = Inventory)
 	//	TArray<UTexture2D*> Icons;
 
-	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
 		int32 Height;
-	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
 		int32 Width;
-	UPROPERTY(BlueprintReadOnly, Category = Inventory)
-		int32 ItemSize;
+	//UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
+	//	int32 ItemSize;
 	//UPROPERTY(BlueprintReadOnly, Category = Inventory)
 	//	int32 Padding;
 
@@ -50,7 +53,7 @@ public:
 		InventoryType = type;
 		Height = height;
 		Width = width;
-		ItemSize = size;
+		//ItemSize = size;
 		//Padding = pad;
 
 		for (int32 i = 0; i < height; i++)

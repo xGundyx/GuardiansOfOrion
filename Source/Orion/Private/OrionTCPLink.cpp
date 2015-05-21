@@ -8,6 +8,7 @@
 #include "StringConv.h"
 #include "ClientConnector.h"
 #include "BackendMappings.h"
+#include "OrionPRI.h"
 #include "OrionStats.h"
 
 using namespace Backend;
@@ -52,6 +53,38 @@ bool UOrionTCPLink::Init()
 	PlayFabSettings::developerSecretKey = "TYGNKQGRFUHWNJ3EQ38F759ANUIAP8JY9R1G4BAEMTKUBNW5GG";
 
 	return true;
+}
+
+void UOrionTCPLink::Update()
+{
+	server.Update();
+}
+
+void UOrionTCPLink::GetCharacterData(AOrionPlayerController *PC)
+{
+	if(!PC)
+		return;
+
+	ServerModels::GetCharacterDataRequest request;
+
+	request.PlayFabId = TCHAR_TO_UTF8(*PC->PlayFabID);
+	request.CharacterId = TCHAR_TO_UTF8(*PC->CharacterID);
+
+	server.GetCharacterReadOnlyData(request, OnGetCharacterData, OnGetCharacterDataError, PC);
+}
+
+void UOrionTCPLink::OnGetCharacterData(ServerModels::GetCharacterDataResult& result, void* userData)
+{
+	AOrionPlayerController *PC = static_cast<AOrionPlayerController*>(userData);
+
+	if(PC)
+	{
+		PC->PopulateInventory(result.Data);
+	}
+}
+
+void UOrionTCPLink::OnGetCharacterDataError(PlayFabError& error, void* userData)
+{
 }
 
 void UOrionTCPLink::SavePlayerStatistics(FString PlayerID, UOrionStats *Stats)
@@ -170,6 +203,56 @@ void UOrionTCPLink::Update()
 	client.Update();
 }
 
+//this is called from a non dedicated server host, need to allow grabbing of other non local controller's data
+void UOrionTCPLink::GetCharacterData(AOrionPlayerController *PC)
+{
+	if (PC == nullptr)
+		return;
+
+	AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+	if (PRI)
+	{
+		if (PRI->CharacterID.IsEmpty())
+			return;
+
+		ClientModels::RunCloudScriptRequest request;
+		request.ActionId = std::string("GetFullCharacterData");
+		request.ParamsEncoded = std::string("{\"CharacterID\":\"") + TCHAR_TO_UTF8(*PRI->CharacterID) +
+			std::string("\"}");
+
+		client.RunCloudScript(request, UOrionTCPLink::OnGetCharacterData, UOrionTCPLink::OnGetCharacterDataError, PC);
+	}
+}
+
+void UOrionTCPLink::OnGetCharacterData(ClientModels::RunCloudScriptResult& result, void* userData)
+{
+	AOrionPlayerController *PC = static_cast<AOrionPlayerController*>(userData);
+
+	if (PC == nullptr)
+		return;
+
+	std::string theResults = result.ResultsEncoded;
+
+	FString JsonRaw = UTF8_TO_TCHAR(theResults.c_str());
+
+	TSharedPtr<FJsonObject> JsonParsed;
+	TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(JsonRaw);
+	if (FJsonSerializer::Deserialize(JsonReader, JsonParsed))
+	{
+		TSharedPtr<FJsonObject> DataArray = JsonParsed->GetObjectField(TEXT("CharacterData"));
+		if (DataArray.IsValid())
+		{
+			TSharedPtr<FJsonObject> DataObject = DataArray->GetObjectField("data");
+
+			PC->PopulateInventory(DataObject);
+		}
+	}
+}
+
+void UOrionTCPLink::OnGetCharacterDataError(PlayFabError& error, void* userData)
+{
+}
+
 //create an account, once created, tell the backend to initialize some values for us
 void UOrionTCPLink::CreateAccount(FString UserName, FString Password, FString EMail)
 {
@@ -247,6 +330,7 @@ void UOrionTCPLink::OnCreateCharacter(ClientModels::RunCloudScriptResult& result
 	{
 		if (JsonParsed->GetStringField(TEXT("SUCCESS")) == TEXT("0"))
 		{
+			PFState = PFSTATE_NONE;
 			PlayerOwner->EventCharacterCreationComplete(false, "Error: Character Limit Has Been Reached!");
 			return;
 		}
@@ -318,15 +402,53 @@ void UOrionTCPLink::OnDeleteCharacterError(PlayFabError& error, void* userData)
 //get the backend to tell us if this character info is legit or not
 void UOrionTCPLink::SelectCharacter(int32 Index)
 {
-	/*FString Delim = FString(",");
-	if (connector == nullptr)
-		connector = ConstructObject<UClientConnector>(UClientConnector::StaticClass());
+	if (Index >= CharacterDatas.Num())
+		return;
 
-	if (connector)
+	ClientModels::RunCloudScriptRequest request;
+	request.ActionId = std::string("GetFullCharacterData");
+	request.ParamsEncoded = std::string("{\"CharacterID\":\"") + TCHAR_TO_UTF8(*CharacterDatas[Index].CharacterID) +
+		std::string("\"}");
+
+	CurrentCharacterID = TCHAR_TO_UTF8(*CharacterDatas[Index].CharacterID);
+	if (PlayerOwner)
 	{
-		FString Info = FString("SelectCharacter") + Delim + PlayFabID + Delim + Index + FString("\r\n\r\n");
-		connector->SendInfo(Info);
-	}*/
+		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerOwner->PlayerState);
+		if (PRI)
+			PRI->CharacterID = CurrentCharacterID;
+	}
+
+	client.RunCloudScript(request, UOrionTCPLink::OnSelectCharacter, UOrionTCPLink::OnSelectCharacterError);
+}
+
+void UOrionTCPLink::OnSelectCharacter(ClientModels::RunCloudScriptResult& result, void* userData)
+{
+	std::string theResults = result.ResultsEncoded;
+
+	FString JsonRaw = UTF8_TO_TCHAR(theResults.c_str());
+
+	TSharedPtr<FJsonObject> JsonParsed;
+	TSharedRef<TJsonReader<TCHAR>> JsonReader = TJsonReaderFactory<TCHAR>::Create(JsonRaw);
+	if (FJsonSerializer::Deserialize(JsonReader, JsonParsed))
+	{
+		TSharedPtr<FJsonObject> DataArray = JsonParsed->GetObjectField(TEXT("CharacterData"));
+		if (DataArray.IsValid())
+		{
+			TSharedPtr<FJsonObject> DataObject = DataArray->GetObjectField("data");
+
+			if (PlayerOwner)
+				PlayerOwner->PopulateInventory(DataObject);
+		}
+	}
+
+	//for now just have the player pick a character and connect directly to our test server (will need some kind of lobby/browser/matchmaking screen)
+	if (PlayerOwner)
+		PlayerOwner->ConsoleCommand("open 192.168.1.64:9876");
+}
+
+void UOrionTCPLink::OnSelectCharacterError(PlayFabError& error, void* userData)
+{
+
 }
 
 void UOrionTCPLink::GetPlayerStats(void *Stats)
@@ -552,6 +674,18 @@ void UOrionTCPLink::OnLogin(ClientModels::LoginResult& result, void* userData)
 	UOrionTCPLink::PlayFabID = UTF8_TO_TCHAR(result.PlayFabId.c_str());
 	UOrionTCPLink::NewlyCreated = result.NewlyCreated;
 
+	if (PlayerOwner)
+	{
+		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerOwner->PlayerState);
+
+		if (PRI)
+		{
+			PRI->PlayFabID = UOrionTCPLink::PlayFabID;
+			PRI->SessionTicket = UOrionTCPLink::SessionTicket;
+			PlayerOwner->ServerSetPlayFabInfo(UOrionTCPLink::PlayFabID, UOrionTCPLink::SessionTicket, UOrionTCPLink::CurrentCharacterID);
+		}
+	}
+
 	ClientModels::GetCloudScriptUrlRequest request;
 	//request.Version = 4;
 	request.Testing = false;
@@ -590,16 +724,8 @@ void UOrionTCPLink::OnLoginError(PlayFabError& error, void* userData)
 		UOrionTCPLink::LoginComplete(false, "An Error Has Occured!");
 		break;
 	}
-}
 
-void UOrionTCPLink::OnGetCharacterData(ClientModels::GetCharacterDataResult& result, void* userData)
-{
-
-}
-
-void UOrionTCPLink::OnGetChracterDataError(PlayFabError& error, void* userData)
-{
-
+	PFState = PFSTATE_NONE;
 }
 
 void UOrionTCPLink::OnGetCloudURL(ClientModels::GetCloudScriptUrlResult& result, void* userData)

@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
+#include "OrionInventory.h"
 #include "OrionArmor.generated.h"
 
 /**
@@ -15,9 +16,9 @@ class ORION_API AOrionArmor : public AOrionInventory
 public:
 	AOrionArmor(const FObjectInitializer& ObjectInitializer);
 
-	UPROPERTY(EditAnywhere, Category = Inventory)
+	UPROPERTY(Replicated, EditAnywhere, Category = Inventory)
 		USkeletalMesh *Mesh;
 
-	UPROPERTY(EditAnywhere, Category = Inventory)
+	UPROPERTY(Replicated, EditAnywhere, Category = Inventory)
 		USkeletalMesh *Mesh1P;
 };

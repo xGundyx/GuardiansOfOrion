@@ -3,6 +3,7 @@
 
 #include "Orion.h"
 #include "OrionTypes.h"
+#include "OrionArmor.h"
 #include "BehaviorTree/BehaviorTree.h"
 //#include "OrionHoverVehicle.h"
 #include "OrionCharacter.generated.h"
@@ -297,6 +298,27 @@ public:
 
 	int32 CameraIndex;
 
+	void EquipArmor(AOrionArmor *Armor);
+	void UnEquipArmor(EItemType Slot);
+
+	UFUNCTION()
+		void OnRep_HelmetArmor();
+	UFUNCTION()
+		void OnRep_BodyArmor();
+	UFUNCTION()
+		void OnRep_ArmsArmor();
+	UFUNCTION()
+		void OnRep_LegsArmor();
+
+	UPROPERTY(ReplicatedUsing = OnRep_HelmetArmor)
+		AOrionArmor *HelmetArmor;
+	UPROPERTY(ReplicatedUsing = OnRep_BodyArmor)
+		AOrionArmor *BodyArmor;
+	UPROPERTY(ReplicatedUsing = OnRep_ArmsArmor)
+		AOrionArmor *ArmsArmor;
+	UPROPERTY(ReplicatedUsing = OnRep_LegsArmor)
+		AOrionArmor *LegsArmor;
+
 	//modular pieces
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
 		class USkeletalMeshComponent* HelmetMesh;
@@ -350,6 +372,11 @@ public:
 		void ServerDuck(bool bNewDuck);
 		bool ServerDuck_Validate(bool bNewDuck);
 		void ServerDuck_Implementation(bool bNewDuck);
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerDoRoll(ERollDir rDir, FRotator rRot);
+		bool ServerDoRoll_Validate(ERollDir rDir, FRotator rRot);
+		void ServerDoRoll_Implementation(ERollDir rDir, FRotator rRot);
 
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerRun(bool bNewRun);
@@ -553,18 +580,21 @@ public:
 	void DoBlinkEffect(bool bOn);
 
 	UFUNCTION(reliable, server, WithValidation)
-		void ServerBlink(FVector dir);
-		bool ServerBlink_Validate(FVector dir);
-		void ServerBlink_Implementation(FVector dir);
+		void ServerBlink(FVector Pos);
+		bool ServerBlink_Validate(FVector Pos);
+		void ServerBlink_Implementation(FVector Pos);
 
-	UFUNCTION()
-		void OnRep_Blink();
-
-	UPROPERTY(ReplicatedUsing = OnRep_Blink)
+	//UPROPERTY(Replicated)
 		bool bBlinking;
 
-	//TODO add replication to this
-	FVector BlinkPos;
+	float LastTeleportTime;
+	FVector TeleportStartPos;
+
+	UFUNCTION()
+		void OnRep_Teleport();
+
+	UPROPERTY(ReplicatedUsing = OnRep_Teleport)
+		FVector BlinkPos;
 
 	UPROPERTY(EditDefaultsOnly, Category = Effects)
 		UParticleSystem* BlinkFX;
@@ -624,7 +654,7 @@ public:
 		APlayerController *GetPlayerController();
 
 	UFUNCTION(BlueprintCallable, Category = Animation)
-		float OrionPlayAnimMontage(const FWeaponAnim Animation, float InPlayRate = 1.0f, FName StartSectionName = FName(""), bool bShouldReplicate = true);// override;
+		float OrionPlayAnimMontage(const FWeaponAnim Animation, float InPlayRate = 1.0f, FName StartSectionName = FName(""), bool bShouldReplicate = true, bool bReplicateToOwner = false);// override;
 
 	void StopAnimMontage(class UAnimMontage* AnimMontage) override;
 
@@ -718,6 +748,9 @@ public:
 	void Reload();
 
 	void BehindView();
+
+	FVector AimPos;
+	bool ShouldIgnoreControls();
 
 	// generic use keybind
 	void Use();

@@ -36,6 +36,7 @@ public:
 
 #if IS_SERVER
 	static bool Init();
+	static void Update();
 
 	static void SavePlayerStatistics(FString PlayerID, UOrionStats *Stats);
 	static void OnSaveStats(ServerModels::UpdateUserStatisticsResult& result, void* userData);
@@ -48,6 +49,11 @@ public:
 	static void SaveCharacter(AOrionPlayerController *PC);
 	static void OnSaveCharacterData(ServerModels::UpdateCharacterDataResult& result, void* userData);
 	static void OnSaveCharacterDataError(PlayFabError& error, void* userData);
+
+	static void GetCharacterData(AOrionPlayerController *PC);
+	static void OnGetCharacterData(ServerModels::GetCharacterDataResult& result, void* userData);
+	static void OnGetCharacterDataError(PlayFabError& error, void* userData);
+
 private:
 	static PlayFabServerAPI server;
 #else
@@ -55,9 +61,6 @@ private:
 	static void Login(FString UserName, FString Password);
 	static void OnLogin(ClientModels::LoginResult& result, void* userData);
 	static void OnLoginError(PlayFabError& error, void* userData);
-
-	static void OnGetCharacterData(ClientModels::GetCharacterDataResult& result, void* userData);
-	static void OnGetChracterDataError(PlayFabError& error, void* userData);
 
 	static void OnGetCharacterList(ClientModels::RunCloudScriptResult& result, void* userData);
 	static void OnGetCharacterListError(PlayFabError& error, void* userData);
@@ -78,6 +81,12 @@ private:
 	static void OnDeleteCharacterError(PlayFabError& error, void* userData);
 
 	static void SelectCharacter(int32 Index);
+	static void OnSelectCharacter(ClientModels::RunCloudScriptResult& result, void* userData);
+	static void OnSelectCharacterError(PlayFabError& error, void* userData);
+
+	static void GetCharacterData(AOrionPlayerController *PC);
+	static void OnGetCharacterData(ClientModels::RunCloudScriptResult& result, void* userData);
+	static void OnGetCharacterDataError(PlayFabError& error, void* userData);
 
 	//void GlobalErrorHandler(PlayFabError& error, void* userData);
 

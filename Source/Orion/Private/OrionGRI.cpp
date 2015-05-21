@@ -1,6 +1,7 @@
 
 
 #include "Orion.h"
+#include "OrionGameMode.h"
 #include "OrionGRI.h"
 
 
@@ -8,6 +9,7 @@ AOrionGRI::AOrionGRI(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
+	bAlwaysShowCursor = false;
 }
 
 void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
@@ -15,10 +17,17 @@ void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AOrionGRI, WorldTime);
+	DOREPLIFETIME(AOrionGRI, bAlwaysShowCursor);
+	DOREPLIFETIME(AOrionGRI, bTopDown);
 	/*DOREPLIFETIME(AShooterGameState, NumTeams);
 	DOREPLIFETIME(AShooterGameState, RemainingTime);
 	DOREPLIFETIME(AShooterGameState, bTimerPaused);
 	DOREPLIFETIME(AShooterGameState, TeamScores);*/
+}
+
+bool AOrionGRI::IsTopDownGame()
+{
+	return bTopDown;
 }
 
 void AOrionGRI::SetWeather(AOrionWeather *theWeather)
@@ -35,6 +44,9 @@ void AOrionGRI::Tick(float DeltaSeconds)
 
 	if (Weather)
 		WorldTime = Weather->TheTime;
+
+	if (Role == ROLE_Authority)
+		bAlwaysShowCursor = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode())->bAlwaysShowCursor;
 }
 
 FTimeOfDay AOrionGRI::GetWorldTime() const

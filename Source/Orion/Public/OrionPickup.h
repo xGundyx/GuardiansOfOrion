@@ -32,6 +32,18 @@ public:
 	FString EncodedValue;
 	FDecodeItemInfo Decoder;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Item)
+	//this is created by the sever and sent to the owning client
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = Item)
 		AOrionInventory *Inventory;
+
+	//called from the client or host to grab the item and let the server know it's been grabbed
+	UFUNCTION(BlueprintCallable, Category = Item)
+		void ClientGrabItem();
+
+	void GrabItem();
+
+	UFUNCTION(reliable, server, WithValidation)
+		void ServerGrabItem();
+		bool ServerGrabItem_Validate();
+		void ServerGrabItem_Implementation();
 };
