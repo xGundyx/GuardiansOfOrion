@@ -18,6 +18,11 @@ void AOrionPRI::SeamlessTravelTo(APlayerState * NewPlayerState)
 
 }
 
+bool AOrionPRI::IsOnShip()
+{
+	return bOnShip;
+}
+
 void AOrionPRI::CopyProperties(class APlayerState* PlayerState)
 {
 	Super::CopyProperties(PlayerState);
@@ -37,6 +42,7 @@ void AOrionPRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME_CONDITION(AOrionPRI, InventoryManager, COND_OwnerOnly);
+	DOREPLIFETIME(AOrionPRI, bOnShip);
 }
 
 void AOrionPRI::OnRep_InventoryManager()

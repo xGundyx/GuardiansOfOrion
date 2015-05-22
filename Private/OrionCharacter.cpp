@@ -8,6 +8,7 @@
 #include "OrionMovementComponent.h"
 //#include "OrionAIController.h"
 #include "OrionProjectile.h"
+#include "OrionShipPawn.h"
 #include "OrionHoverVehicle.h"
 #include "OrionPRI.h"
 
@@ -695,6 +696,96 @@ void AOrionCharacter::Destroyed()
 {
 	Super::Destroyed();
 	////DestroyInventory();
+}
+
+void AOrionCharacter::FinishExitingShip()
+{
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::QueryOnly);
+	GetCharacterMovement()->SetMovementMode(MOVE_Walking);
+	GetCharacterMovement()->bEnablePhysicsInteraction = true;
+
+	//DetachRootComponentFromParent(true);
+	SetActorEnableCollision(true);
+
+	//disable player control for a bit
+	GetWorldTimerManager().SetTimer(ExitShipTimer, this, &AOrionCharacter::EnableControl, 0.5f, false);
+}
+
+void AOrionCharacter::EnableControl()
+{
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetController());
+
+	if (PC)
+	{
+		PC->SetCinematicMode(false, true, true);
+		PC->ClientSetCinematicMode(false, true, true, true);
+	}
+}
+
+//this is a server only function
+bool AOrionCharacter::SetShip(AOrionPlayerController *PC, AOrionShipPawn *Ship)
+{
+	CurrentShip = Ship;
+
+	AOrionPRI *PRI = nullptr;
+
+	if (PC)
+		PRI = Cast<AOrionPRI>(PC->PlayerState);
+
+	if (!PC || !PRI)
+		return false;
+
+	if (CurrentShip == nullptr)
+	{
+		FWeaponAnim Info;
+		Info.Pawn3P = ExitShipAnim;
+		float length = OrionPlayAnimMontage(Info);
+
+		DetachRootComponentFromParent(true);
+		GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+		GetCharacterMovement()->SetComponentTickEnabled(true);
+
+		if (PRI)
+			PRI->bOnShip = false;
+
+		if (length < 0.1f)
+			length = 0.1f;
+
+		GetWorldTimerManager().SetTimer(ExitShipTimer, this, &AOrionCharacter::FinishExitingShip, length * 0.55f, false);
+
+		return true;
+	}
+
+	if (PRI)
+		PRI->bOnShip = true;
+
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCharacterMovement()->DisableMovement();
+	GetCharacterMovement()->bEnablePhysicsInteraction = false;
+	GetCharacterMovement()->SetComponentTickEnabled(false);
+
+	AttachRootComponentTo(CurrentShip->GetMesh(), "Spawn1", EAttachLocation::SnapToTarget, true);
+	SetActorEnableCollision(false);
+
+	if (PC)
+	{
+		PC->SetCinematicMode(true, true, true);
+		PC->ClientSetCinematicMode(true, true, true, true);
+	}
+
+	return true;
+}
+
+bool AOrionCharacter::IsOnShip()
+{
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	if (PRI)
+	{
+		return PRI->IsOnShip();
+	}
+
+	return false;
 }
 
 void AOrionCharacter::PostInitializeComponents()

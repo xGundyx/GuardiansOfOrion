@@ -13,6 +13,8 @@ class AOrionFood;
 class AOrionWeaponDroid;
 class UOrionSquad;
 class AOrionAIController;
+class AOrionShipPawn;
+class AOrionPlayerController;
 
 //this holds a player's character stats, it gets updated whenever gear changes or level up
 USTRUCT(BlueprintType)
@@ -422,6 +424,9 @@ public:
 	/** [server] remove all weapons from inventory and destroy them */
 	void DestroyInventory();
 
+	UFUNCTION(BlueprintCallable, Category = GamePlay)
+		bool IsOnShip();
+
 	/**
 	* [server] add weapon to inventory
 	*
@@ -438,6 +443,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		UAnimMontage* DeathAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+		UAnimMontage* ExitShipAnim;
 
 	/** AnimMontage to play each time we fire */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
@@ -830,7 +838,16 @@ public:
 	/** currently equipped weapon */
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_NextWeapon)
 	class AOrionWeapon* NextWeapon;
+
+private:
+	AOrionShipPawn *CurrentShip;
+	FTimerHandle ExitShipTimer;
+
 public:
+	bool SetShip(AOrionPlayerController *PC, AOrionShipPawn *Ship);
+	void FinishExitingShip();
+	void EnableControl();
+
 	FVector CameraLocation;
 
 	UOrionSquad *Squad;
