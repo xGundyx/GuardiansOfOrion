@@ -21,9 +21,14 @@ public:
 	UFUNCTION()
 		void OnRep_InventoryManager();
 
+	bool IsOnShip();
+
 	//player inventory, only replicated to owner
 	UPROPERTY(ReplicatedUsing = OnRep_InventoryManager, BlueprintReadOnly, Category = Inventory)
 		AOrionInventoryManager *InventoryManager;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Pawn)
+		bool bOnShip;
 
 	FString PlayFabID;
 	FString SessionTicket;

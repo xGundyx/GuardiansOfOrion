@@ -22,6 +22,12 @@ void AOrionPlayerCameraManager::UpdateCamera(float DeltaTime)
 	AActor* MyDropPod = PCOwner ? Cast<AOrionPlayerController>(PCOwner)->DropPod : NULL;
 	if (MyPawn)// && MyPawn->IsFirstPerson())
 	{
+		if (MyPawn->IsTopDown())
+		{
+			Super::UpdateCamera(DeltaTime);
+			return;
+		}
+
 		if (MyPawn->GetWeapon())
 			TargetingFOV = MyPawn->GetWeapon()->InstantConfig.AimFOV;
 		else

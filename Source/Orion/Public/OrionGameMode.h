@@ -2,6 +2,7 @@
 #pragma once
 #include "GameFramework/GameMode.h"
 #include "OrionPickup.h"
+#include "OrionShipPawn.h"
 #include "OrionGameMode.generated.h"
 
 UCLASS()
@@ -26,6 +27,8 @@ public:
 
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
+
+	virtual void SetShip(AOrionShipPawn *Ship){}
 };
 
 

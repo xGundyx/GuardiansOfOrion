@@ -26,4 +26,12 @@ public:
 	//view when spawning
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		TArray<class UCameraComponent*> SpawnCameraComponent;
+
+	UFUNCTION(BlueprintCallable, Category = Pawn)
+		void UnloadPlayers();
+
+	void AddPassenger(AOrionPlayerController *PC, AOrionCharacter *Pawn);
+
+private:
+	TArray<AOrionCharacter*> Passengers;
 };
