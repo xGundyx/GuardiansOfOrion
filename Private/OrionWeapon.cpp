@@ -62,7 +62,7 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 
 	InstantConfig.AimFOV = 70.0f;
 	InstantConfig.AimSpread = 0.0f;
-	InstantConfig.AllowedViewDotHitDir = 0.0f;
+	InstantConfig.AllowedViewDotHitDir = 0.25f;
 	InstantConfig.AttachPoint = FName("");
 	InstantConfig.bAutomatic = false;
 	InstantConfig.bSingleShellReload = false;
@@ -902,8 +902,10 @@ void AOrionWeapon::ServerNotifyHit_Implementation(const FHitResult Impact, FVect
 		const FVector Origin = GetMuzzleLocation();
 		const FVector ViewDir = (Impact.Location - Origin).GetSafeNormal();
 
+		AOrionCharacter *Pawn = Cast<AOrionCharacter>(Instigator);
+
 		// is the angle between the hit and the view within allowed limits (limit + weapon max angle)
-		const float ViewDotHitDir = FVector::DotProduct(Instigator->GetViewRotation().Vector(), ViewDir);
+		const float ViewDotHitDir = FVector::DotProduct(Pawn ? (Pawn->AimPos - Pawn->GetActorLocation()).GetSafeNormal() : Instigator->GetViewRotation().Vector(), ViewDir);
 		if (ViewDotHitDir > InstantConfig.AllowedViewDotHitDir - WeaponAngleDot)
 		{
 			//if (CurrentState != EWeaponState::Idle)
