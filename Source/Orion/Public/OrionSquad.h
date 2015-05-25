@@ -36,6 +36,9 @@ public:
 		void SetSquadDestination(FVector NewDestination);
 
 private:
-	TArray<AOrionAIController*> Members;
-	FVector SquadDestination;
+	UPROPERTY()
+		TArray<AOrionAIController*> Members;
+	
+	UPROPERTY()
+		FVector SquadDestination;
 };

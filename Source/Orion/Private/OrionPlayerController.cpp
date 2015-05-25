@@ -219,12 +219,15 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 {
 	Super::Possess(aPawn);
 
-	/*AOrionCharacter *newPawn = Cast<AOrionCharacter>(GetPawn());
-	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
-	if (newPawn && PRI && PRI->InventoryManager)
+	if (Role == ROLE_Authority)
 	{
-		PRI->InventoryManager->EquipItems(newPawn, ITEM_ANY);
-	}*/
+		AOrionCharacter *newPawn = Cast<AOrionCharacter>(GetPawn());
+		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+		if (newPawn && PRI && PRI->InventoryManager)
+		{
+			PRI->InventoryManager->EquipItems(newPawn, ITEM_ANY);
+		}
+	}
 }
 
 void AOrionPlayerController::PlayerTick(float DeltaTime)

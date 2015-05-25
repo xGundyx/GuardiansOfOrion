@@ -717,11 +717,11 @@ protected:
 	void ReplicateHit(float Damage, struct FDamageEvent const& DamageEvent, class APawn* InstigatingPawn, class AActor* DamageCauser, bool bKilled);
 
 	/** current weapon rep handler */
-	UFUNCTION()
-		void OnRep_CurrentWeapon(class AOrionWeapon* LastWeapon);
+	//UFUNCTION()
+	//	void OnRep_CurrentWeapon(class AOrionWeapon* LastWeapon);
 
 	/** currently equipped weapon */
-	UPROPERTY(Transient, ReplicatedUsing = OnRep_CurrentWeapon)
+	UPROPERTY(Transient)//, ReplicatedUsing = OnRep_CurrentWeapon)
 	class AOrionWeapon* CurrentWeapon;
 
 	UFUNCTION()
@@ -757,7 +757,14 @@ public:
 
 	void BehindView();
 
-	FVector AimPos;
+	UPROPERTY(Replicated)
+		FVector AimPos;
+
+	UFUNCTION(server, reliable, WithValidation)
+		void ServerSetAimPos(FVector pos);
+		bool ServerSetAimPos_Validate(FVector pos);
+		void ServerSetAimPos_Implementation(FVector pos);
+
 	bool ShouldIgnoreControls();
 
 	// generic use keybind
@@ -840,7 +847,15 @@ public:
 	class AOrionWeapon* NextWeapon;
 
 private:
-	AOrionShipPawn *CurrentShip;
+	UFUNCTION()
+		void OnRep_ShipPawn();
+
+	UPROPERTY(ReplicatedUsing = OnRep_ShipPawn)
+		AOrionShipPawn *CurrentShip;
+
+	void AttachToShip();
+	void DetachFromShip();
+
 	FTimerHandle ExitShipTimer;
 
 public:

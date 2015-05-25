@@ -494,19 +494,22 @@ void AOrionCharacter::ServerEquipWeapon_Implementation(AOrionWeapon* Weapon)
 	EquipWeapon(Weapon);
 }
 
-void AOrionCharacter::OnRep_CurrentWeapon(AOrionWeapon* LastWeapon)
-{
+//void AOrionCharacter::OnRep_CurrentWeapon(AOrionWeapon* LastWeapon)
+//{
 	//SetCurrentWeapon(CurrentWeapon, LastWeapon);
-}
+//}
 
 void AOrionCharacter::OnRep_Inventory()
 {
 	UpdatePawnMeshes();
+
+	//check to make sure everything is still valid, clean up old guns and whatnot
+
 }
 
 void AOrionCharacter::OnRep_NextWeapon()
 {
-	SetCurrentWeapon(CurrentWeapon);
+	SetCurrentWeapon(NextWeapon, CurrentWeapon);
 }
 
 void AOrionCharacter::HandleSpecialWeaponFire(FName SocketName)
@@ -651,6 +654,14 @@ void AOrionCharacter::OnRep_ArmorIndex()
 	SetArmor(ArmorIndex);
 }
 
+void AOrionCharacter::OnRep_ShipPawn()
+{
+	if (CurrentShip)
+		AttachToShip();
+	else
+		DetachFromShip();
+}
+
 void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -664,14 +675,18 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, ArmsArmor);
 	DOREPLIFETIME(AOrionCharacter, LegsArmor);
 
+	DOREPLIFETIME(AOrionCharacter, CurrentShip);
+
+	DOREPLIFETIME(AOrionCharacter, AimPos);
+
 	DOREPLIFETIME(AOrionCharacter, BlinkPos);
 
 	DOREPLIFETIME(AOrionCharacter, Level);
 
 	DOREPLIFETIME_CONDITION(AOrionCharacter, LastTakeHitInfo, COND_Custom);
 
-	DOREPLIFETIME(AOrionCharacter, CurrentWeapon);
-	DOREPLIFETIME_CONDITION(AOrionCharacter, NextWeapon, COND_SkipOwner);
+	//DOREPLIFETIME(AOrionCharacter, CurrentWeapon);
+	DOREPLIFETIME(AOrionCharacter, NextWeapon);
 
 	DOREPLIFETIME(AOrionCharacter, Inventory);
 
@@ -722,6 +737,43 @@ void AOrionCharacter::EnableControl()
 	}
 }
 
+bool AOrionCharacter::ServerSetAimPos_Validate(FVector pos)
+{
+	return true;
+}
+
+void AOrionCharacter::ServerSetAimPos_Implementation(FVector pos)
+{
+	AimPos = pos;
+}
+
+void AOrionCharacter::AttachToShip()
+{
+	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	GetCharacterMovement()->DisableMovement();
+	GetCharacterMovement()->bEnablePhysicsInteraction = false;
+	GetCharacterMovement()->SetComponentTickEnabled(false);
+
+	AttachRootComponentTo(CurrentShip->GetMesh(), "Spawn1", EAttachLocation::SnapToTarget, true);
+	SetActorEnableCollision(false);
+}
+
+void AOrionCharacter::DetachFromShip()
+{
+	FWeaponAnim Info;
+	Info.Pawn3P = ExitShipAnim;
+	float length = OrionPlayAnimMontage(Info);
+
+	DetachRootComponentFromParent(true);
+	GetCharacterMovement()->SetMovementMode(MOVE_Flying);
+	GetCharacterMovement()->SetComponentTickEnabled(true);
+
+	if (length < 0.1f)
+		length = 0.1f;
+
+	GetWorldTimerManager().SetTimer(ExitShipTimer, this, &AOrionCharacter::FinishExitingShip, length * 0.55f, false);
+}
+
 //this is a server only function
 bool AOrionCharacter::SetShip(AOrionPlayerController *PC, AOrionShipPawn *Ship)
 {
@@ -737,21 +789,10 @@ bool AOrionCharacter::SetShip(AOrionPlayerController *PC, AOrionShipPawn *Ship)
 
 	if (CurrentShip == nullptr)
 	{
-		FWeaponAnim Info;
-		Info.Pawn3P = ExitShipAnim;
-		float length = OrionPlayAnimMontage(Info);
-
-		DetachRootComponentFromParent(true);
-		GetCharacterMovement()->SetMovementMode(MOVE_Flying);
-		GetCharacterMovement()->SetComponentTickEnabled(true);
-
 		if (PRI)
 			PRI->bOnShip = false;
 
-		if (length < 0.1f)
-			length = 0.1f;
-
-		GetWorldTimerManager().SetTimer(ExitShipTimer, this, &AOrionCharacter::FinishExitingShip, length * 0.55f, false);
+		DetachFromShip();
 
 		return true;
 	}
@@ -759,13 +800,7 @@ bool AOrionCharacter::SetShip(AOrionPlayerController *PC, AOrionShipPawn *Ship)
 	if (PRI)
 		PRI->bOnShip = true;
 
-	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
-	GetCharacterMovement()->DisableMovement();
-	GetCharacterMovement()->bEnablePhysicsInteraction = false;
-	GetCharacterMovement()->SetComponentTickEnabled(false);
-
-	AttachRootComponentTo(CurrentShip->GetMesh(), "Spawn1", EAttachLocation::SnapToTarget, true);
-	SetActorEnableCollision(false);
+	AttachToShip();
 
 	if (PC)
 	{
