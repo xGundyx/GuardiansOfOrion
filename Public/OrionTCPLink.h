@@ -9,6 +9,7 @@
 	#include "playfab/PlayFabClientAPI.h"
 #endif
 #include "ClientConnector.h"
+#include "OrionPhotonClient.h"
 #include "OrionTCPLink.generated.h"
 
 using namespace PlayFab;
@@ -88,6 +89,9 @@ private:
 	static void OnGetCharacterData(ClientModels::RunCloudScriptResult& result, void* userData);
 	static void OnGetCharacterDataError(PlayFabError& error, void* userData);
 
+	static void OnGetPhotonChatToken(ClientModels::GetPhotonAuthenticationTokenResult& result, void* userData);
+	static void OnGetPhotonChatTokenError(PlayFabError& error, void* userData);
+
 	//void GlobalErrorHandler(PlayFabError& error, void* userData);
 
 	static void LoginComplete(bool bSuccess, FString error);
@@ -117,6 +121,7 @@ private:
 	static FString CloudScriptURL;
 	static EPlayFabState PFState;
 	static FString CurrentCharacterID;
+	static FString ChatToken;
 
 	static TArray<FCharacterData> CharacterDatas;
 
@@ -126,6 +131,11 @@ private:
 	static void OnCharacterFinalizedFailed(PlayFabError& error, void* userData);
 
 	static UClientConnector *connector;
+	static AOrionPhotonClient *PhotonClient;
+
+	//photon chat hooks
+	static void SendChatMessage(FString Channel, FString Message);
+	static void ChatMessageReceived(FString ChannelName, TArray<FString> Messages);
 
 private:
 	static PlayFabClientAPI client;

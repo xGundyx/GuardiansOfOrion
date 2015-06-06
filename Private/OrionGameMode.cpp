@@ -42,6 +42,11 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 	bUseSeamlessTravel = true; 
 
 	bAlwaysShowCursor = false;
+
+	bTopDown = false;
+
+	//no team means every player is on the same side
+	bTeamGame = false;
 }
 
 void AOrionGameMode::BeginPlay()
@@ -51,6 +56,23 @@ void AOrionGameMode::BeginPlay()
 #if IS_SERVER
 	UOrionTCPLink::Init();
 #endif
+
+	InitGRI();
+}
+
+void AOrionGameMode::InitGRI()
+{
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+	if (!GRI)
+	{
+		GetWorldTimerManager().SetTimer(GRITimer, this, &AOrionGameMode::InitGRI, 0.1, false);
+		return;
+	}
+
+	GRI->bTeamGame = bTeamGame;
+	GRI->bAlwaysShowCursor = bAlwaysShowCursor;
+	GRI->bTopDown = bTopDown;
 }
 
 void AOrionGameMode::Tick(float DeltaSeconds)
@@ -78,6 +100,28 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 		if (Dino)
 			SpawnItems(Dino);
 	}
+}
+
+float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, struct FDamageEvent const& DamageEvent, class AController *EventInstigator, class AActor *DamageCauser)
+{
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+	if (!PawnToDamage || !PawnToDamage->Controller || !EventInstigator)
+		return 0.0f;
+
+	//if we're a team game, don't damage your teammates
+	if (bTeamGame && GRI && GRI->OnSameTeam(Cast<AOrionPRI>(PawnToDamage->Controller->PlayerState), Cast<AOrionPRI>(EventInstigator->PlayerState)))
+	{
+		Damage = 0.0f;
+	}
+
+	//if we're not a team game, don't do player to player damage
+	if (!bTeamGame && PawnToDamage->GetPlayerController() && Cast<APlayerController>(EventInstigator))
+	{
+		Damage = 0.0f;
+	}
+
+	return Damage;
 }
 
 APlayerController* AOrionGameMode::Login(class UPlayer* NewPlayer, const FString& Portal, const FString& Options, const TSharedPtr<class FUniqueNetId>& UniqueId, FString& ErrorMessage)

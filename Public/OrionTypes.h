@@ -12,6 +12,7 @@ class AOrionInventory;
 #define ORION_SURFACE_Grass			SurfaceType6
 #define ORION_SURFACE_Glass			SurfaceType7
 #define ORION_SURFACE_Flesh			SurfaceType8
+#define ORION_SURFACE_Shield		SurfaceType9
 
 USTRUCT()
 struct FDecalData

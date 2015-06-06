@@ -6,7 +6,7 @@
 #include "OrionFlyableArea.h"
 #include "OrionAIController.generated.h"
 
-class UOrionSquad;
+class AOrionSquad;
 
 UENUM(BlueprintType)
 enum AIMoveType
@@ -38,7 +38,7 @@ public:
 	virtual void UpdateControlRotation(float DeltaTime, bool bUpdatePawn = true) override;
 
 	UFUNCTION(BlueprintCallable, Category = Target)
-		void SetEnemy(APawn *pEnemy);
+		virtual void SetEnemy(APawn *pEnemy);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Set Blackboard Enemy"))
 		void EventSetBlackboardEnemy(APawn *pEnemy);
@@ -59,7 +59,7 @@ public:
 		void StopFiringWeapon();
 
 	UPROPERTY(BlueprintReadWrite, Category = Squad)
-		UOrionSquad *Squad;
+		AOrionSquad *Squad;
 
 	AOrionFlyableArea *GetFlyableNavMesh();
 

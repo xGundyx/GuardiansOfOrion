@@ -4,7 +4,7 @@
 #include "OrionProjectile.generated.h"
 
 UCLASS(config=Game)
-class AOrionProjectile : public AActor
+class ORION_API AOrionProjectile : public AActor
 {
 	GENERATED_BODY()
 public:
@@ -18,8 +18,28 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Movement)
 	class UProjectileMovementComponent* ProjectileMovement;
 
+	virtual void Tick(float DeltaSeconds) override;
+
 	/** called when projectile hits something */
 	UFUNCTION()
-	void OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+		void OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+
+	//UPROPERTY(EditDefaultsOnly, Category = Effects)
+	//	UParticleSystem* TracerFX;
+
+	virtual void PostInitializeComponents() override;
+	void Init(UParticleSystem* PS, FVector StartPoint, FVector EndPoint);
+
+	UPROPERTY()
+		UParticleSystemComponent* TracerPSC;
+
+	UPROPERTY()
+		FVector TargetPos;
+
+	UPROPERTY()
+		FVector StartPos;
+
+	UPROPERTY()
+		FVector TargetDir;
 };
 

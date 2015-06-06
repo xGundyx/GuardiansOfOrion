@@ -10,12 +10,12 @@
  * 
  */
 UCLASS()
-class ORION_API UOrionSquad : public UObject
+class ORION_API AOrionSquad : public AActor
 {
 	GENERATED_BODY()
 
 public:
-	UOrionSquad();
+	AOrionSquad();
 
 	UPROPERTY(BlueprintReadWrite, Category = AI)
 		AOrionAIController *Leader;

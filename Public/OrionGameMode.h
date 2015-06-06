@@ -29,6 +29,19 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 	virtual void SetShip(AOrionShipPawn *Ship){}
+
+	UPROPERTY(BlueprintReadOnly, Category = Game)
+		bool bTeamGame;
+
+	UPROPERTY(BlueprintReadOnly, Category = Game)
+		bool bTopDown;
+
+	float ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, struct FDamageEvent const& DamageEvent, class AController *EventInstigator, class AActor *DamageCauser);
+
+	void InitGRI();
+
+private:
+	FTimerHandle GRITimer;
 };
 
 

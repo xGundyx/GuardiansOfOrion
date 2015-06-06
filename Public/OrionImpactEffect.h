@@ -46,6 +46,9 @@ class AOrionImpactEffect : public AActor
 	UPROPERTY(EditDefaultsOnly, Category = Visual)
 		UParticleSystem* FleshFX;
 
+	UPROPERTY(EditDefaultsOnly, Category = Visual)
+		UParticleSystem* ShieldFX;
+
 	/** default impact sound used when material specific override doesn't exist */
 	UPROPERTY(EditDefaultsOnly, Category = Defaults)
 		USoundCue* DefaultSound;
@@ -82,6 +85,9 @@ class AOrionImpactEffect : public AActor
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 		USoundCue* FleshSound;
 
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+		USoundCue* ShieldSound;
+
 	/** default decal when material specific override doesn't exist */
 	UPROPERTY(EditDefaultsOnly, Category = Defaults)
 		struct FDecalData DefaultDecal;
@@ -100,4 +106,7 @@ protected:
 
 	/** get sound for material type */
 	USoundCue* GetImpactSound(TEnumAsByte<EPhysicalSurface> SurfaceType) const;
+
+	/** get scale of impact effect for material type */
+	FVector GetImpactScale(TEnumAsByte<EPhysicalSurface> SurfaceType) const;
 };

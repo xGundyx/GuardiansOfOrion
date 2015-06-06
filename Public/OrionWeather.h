@@ -107,11 +107,14 @@ public:
 	//virtual void PostInitializeComponents() override;
 
 	APlayerController* PlayerOwner;
-	float FogTarget;
+	UPROPERTY(Replicated)
+		float FogTarget;
 	float FogAmount;
-	float RainTarget;
+	UPROPERTY(Replicated)
+		float RainTarget;
 	float RainAmount;
-	float CloudTarget;
+	UPROPERTY(Replicated)
+		float CloudTarget;
 	float CloudAmount;
 	float SunYaw;
 
@@ -124,7 +127,7 @@ public:
 	virtual void PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent) override;
 #endif
 
-	UPROPERTY(EditAnywhere, Category = Time)
+	UPROPERTY(Replicated, EditAnywhere, Category = Time)
 		FTimeOfDay TheTime;
 
 	UPROPERTY(EditAnywhere, Category = Time)

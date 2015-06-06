@@ -3,13 +3,13 @@
 #include "Orion.h"
 #include "OrionSquad.h"
 
-UOrionSquad::UOrionSquad()
+AOrionSquad::AOrionSquad()
 {
 	Members.Empty();
 	Leader = nullptr;
 }
 
-void UOrionSquad::AddSquadMember(AOrionAIController *NewMember)
+void AOrionSquad::AddSquadMember(AOrionAIController *NewMember)
 {
 	if (NewMember == nullptr)
 		return;
@@ -25,7 +25,7 @@ void UOrionSquad::AddSquadMember(AOrionAIController *NewMember)
 	InitMember(NewMember);
 }
 
-void UOrionSquad::RemoveSquadMember(AOrionAIController *MemberToRemove)
+void AOrionSquad::RemoveSquadMember(AOrionAIController *MemberToRemove)
 {
 	if (MemberToRemove == nullptr)
 		return;
@@ -38,7 +38,7 @@ void UOrionSquad::RemoveSquadMember(AOrionAIController *MemberToRemove)
 	//check for bad controllers?
 }
 
-void UOrionSquad::FindNewLeader()
+void AOrionSquad::FindNewLeader()
 {
 	if (Members.Num() > 0)
 		Leader = Members[0];
@@ -46,7 +46,7 @@ void UOrionSquad::FindNewLeader()
 		Leader = nullptr;
 }
 
-void UOrionSquad::SetEnemy(APawn *pEnemy)
+void AOrionSquad::SetEnemy(APawn *pEnemy)
 {
 	for (int32 i = 0; i < Members.Num(); i++)
 	{
@@ -57,7 +57,7 @@ void UOrionSquad::SetEnemy(APawn *pEnemy)
 	}
 }
 
-void UOrionSquad::InitMember(AOrionAIController *NewMember)
+void AOrionSquad::InitMember(AOrionAIController *NewMember)
 {
 	if (Leader && Leader != NewMember)
 	{
@@ -67,12 +67,12 @@ void UOrionSquad::InitMember(AOrionAIController *NewMember)
 	}
 }
 
-FVector UOrionSquad::GetLeaderDestination()
+FVector AOrionSquad::GetLeaderDestination()
 {
 	return SquadDestination;
 }
 
-void UOrionSquad::SetSquadDestination(FVector NewDestination)
+void AOrionSquad::SetSquadDestination(FVector NewDestination)
 {
 	SquadDestination = NewDestination;
 }

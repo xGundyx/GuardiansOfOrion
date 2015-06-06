@@ -5,13 +5,14 @@
 #include "OrionTypes.h"
 #include "OrionArmor.h"
 #include "BehaviorTree/BehaviorTree.h"
+#include "OrionHealthBar.h"
 //#include "OrionHoverVehicle.h"
 #include "OrionCharacter.generated.h"
 
 class AOrionHoverVehicle;
 class AOrionFood;
 class AOrionWeaponDroid;
-class UOrionSquad;
+class AOrionSquad;
 class AOrionAIController;
 class AOrionShipPawn;
 class AOrionPlayerController;
@@ -84,6 +85,8 @@ struct FAnimInfo
 		bool bToggle;
 	UPROPERTY()
 		bool bReplicatedToOwner;
+	UPROPERTY()
+		bool bStopAllOtherAnims;
 };
 
 USTRUCT()
@@ -231,8 +234,11 @@ public:
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 		class USkeletalMeshComponent* Arms1PArmorMesh;
 
-		UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		class USkeletalMeshComponent* Arms1PLegsMesh;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Classes)
+		TSubclassOf<class UOrionHealthBar>  DefaultHealthBarClass;
+
+	//UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+		//class USkeletalMeshComponent* Arms1PLegsMesh;
 
 	/** spawn inventory, setup initial variables */
 	virtual void PostInitializeComponents() override;
@@ -462,6 +468,12 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Health)
 		float HealthMax;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Health)
+		float Shield;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Health)
+		float ShieldMax;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Camera)
 		FVector CameraOffset;
 
@@ -662,7 +674,7 @@ public:
 		APlayerController *GetPlayerController();
 
 	UFUNCTION(BlueprintCallable, Category = Animation)
-		float OrionPlayAnimMontage(const FWeaponAnim Animation, float InPlayRate = 1.0f, FName StartSectionName = FName(""), bool bShouldReplicate = true, bool bReplicateToOwner = false);// override;
+		float OrionPlayAnimMontage(const FWeaponAnim Animation, float InPlayRate = 1.0f, FName StartSectionName = FName(""), bool bShouldReplicate = true, bool bReplicateToOwner = false, bool bStopOtherAnims = false);// override;
 
 	void StopAnimMontage(class UAnimMontage* AnimMontage) override;
 
@@ -830,8 +842,8 @@ public:
 		bool ServerSetAimYaw_Validate(float yaw, float pitch);
 		void ServerSetAimYaw_Implementation(float yaw, float pitch);
 
-
-	bool bRolling;
+	UPROPERTY(Replicated)
+		bool bRolling;
 
 	//TODO : replicate this!
 	TEnumAsByte<ERollDir> RollDir;
@@ -865,7 +877,7 @@ public:
 
 	FVector CameraLocation;
 
-	UOrionSquad *Squad;
+	AOrionSquad *Squad;
 
 protected:
 	// APawn interface
@@ -881,5 +893,14 @@ public:
 	FTimerHandle TeleportTimer;
 
 	FCharacterStats CharacterStats;
+
+	//reference to health bar for us
+	UPROPERTY(BlueprintReadWrite, Category = HUD)
+		UOrionHealthBar *MyHealthBar;
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "CreateHealthBar"))
+		void EventCreateHealthBar();
+
+	void CreateHealthBar();
 };
 

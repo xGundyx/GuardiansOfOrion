@@ -11,6 +11,9 @@ AOrionDinoPawn::AOrionDinoPawn(const FObjectInitializer& ObjectInitializer)
 {
 	RunningModifier = 1.0f;
 	RotationRate = 1.5f;
+
+	Shield = 0.0f;
+	ShieldMax = 0.0f;
 }
 
 FVector2D AOrionDinoPawn::GetAim(float DeltaTime)

@@ -33,4 +33,14 @@ public:
 	FString PlayFabID;
 	FString SessionTicket;
 	FString CharacterID;
+
+	UFUNCTION(BlueprintCallable, Category = Team)
+		int32 GetTeamIndex();
+
+	UFUNCTION(BlueprintCallable, Category = Team)
+		void SetTeamIndex(int32 index);
+
+private:
+	UPROPERTY(Replicated)
+		int32 TeamIndex;
 };

@@ -3,8 +3,21 @@
 #pragma once
 
 #include "OrionWeather.h"
+#include "OrionPRI.h"
 #include "GameFramework/GameState.h"
 #include "OrionGRI.generated.h"
+
+USTRUCT(BlueprintType)
+struct FTeamInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		TArray<AOrionPRI*> TeamMembers;
+
+	UPROPERTY()
+		int32 TeamIndex;
+};
 
 /**
  * 
@@ -38,4 +51,18 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadOnly)
 		bool bTopDown;
+
+	UFUNCTION(BlueprintCallable, Category = Game)
+		bool OnSameTeam(AOrionPRI *Actor1, AOrionPRI *Actor2);
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+		bool bTeamGame;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+		TArray<FTeamInfo> Teams;
+
+	bool AddPlayerToTeam(AOrionPlayerController *PC, int32 TeamIndex);
+	void RemovePlayerFromTeam(AOrionPlayerController *PC, int32 Index);
+
+	void InitTeams();
 };

@@ -224,8 +224,8 @@ public:
 	UFUNCTION()
 		void OnRep_MyPawn();
 
-	UFUNCTION()
-		void OnRep_Reload();
+	//UFUNCTION()
+	//	void OnRep_Reload();
 
 	/** set the weapon's owning pawn */
 	void SetOwningPawn(AOrionCharacter* AOrionCharacter);
