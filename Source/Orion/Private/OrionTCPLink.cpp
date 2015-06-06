@@ -31,6 +31,8 @@ bool UOrionTCPLink::NewlyCreated = false;
 TArray<FCharacterData> UOrionTCPLink::CharacterDatas;
 EPlayFabState UOrionTCPLink::PFState = PFSTATE_NONE;
 FString UOrionTCPLink::CurrentCharacterID = FString("");
+FString UOrionTCPLink::ChatToken = FString("");
+AOrionPhotonClient *UOrionTCPLink::PhotonClient = nullptr;
 
 UClientConnector *UOrionTCPLink::connector;
 
@@ -194,6 +196,8 @@ bool UOrionTCPLink::Init(AOrionPlayerController *Owner)
 	PlayFabSettings::globalErrorHandler = GlobalErrorHandler;
 
 	PlayerOwner = Owner;
+
+	PFState = PFSTATE_NONE;
 
 	return true;
 }
@@ -782,8 +786,26 @@ void UOrionTCPLink::OnGetCharacterList(ClientModels::RunCloudScriptResult& resul
 		}
 	}
 
+	ClientModels::GetPhotonAuthenticationTokenRequest request;
+	request.PhotonApplicationId = std::string("7ad31ad4-fd07-4343-ab4a-f40570b0dfd6"); //chat
+	//request.PhotonApplicationId = std::string("899b07e0-1737-4e33-a93d-9bdd550f17ba"); //realtime
+
+	client.GetPhotonAuthenticationToken(request, UOrionTCPLink::OnGetPhotonChatToken, UOrionTCPLink::OnGetPhotonChatTokenError);
+}
+
+void UOrionTCPLink::OnGetPhotonChatToken(ClientModels::GetPhotonAuthenticationTokenResult& result, void* userData)
+{
 	//process each character
 	AOrionPlayerController *pPlayer = PlayerOwner;
+
+	ChatToken = UTF8_TO_TCHAR(result.PhotonCustomAuthenticationToken.c_str());
+
+	if (!PhotonClient && pPlayer)
+	{
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.bNoCollisionFail = true;
+		PhotonClient = pPlayer->GetWorld()->SpawnActor<AOrionPhotonClient>(AOrionPhotonClient::StaticClass(), SpawnInfo);
+	}
 
 	if (pPlayer && PFState == PFSTATE_LOGGINGIN)
 		pPlayer->EventLoginComplete(true, FString("Login Successful!"));
@@ -799,6 +821,36 @@ void UOrionTCPLink::OnGetCharacterList(ClientModels::RunCloudScriptResult& resul
 		pPlayer->EventCharacterCreationComplete(true, "SUCCESS");
 
 	PFState = PFSTATE_NONE;
+}
+
+void UOrionTCPLink::OnGetPhotonChatTokenError(PlayFabError& error, void* userData)
+{
+	AOrionPlayerController *pPlayer = PlayerOwner;
+
+	if (pPlayer && PFState == PFSTATE_LOGGINGIN)
+		pPlayer->EventLoginComplete(false, FString("Login Failed: Unable to Connect to Photon!"));
+
+	PFState = PFSTATE_NONE;
+}
+
+void UOrionTCPLink::SendChatMessage(FString Channel, FString Message)
+{
+	if (PhotonClient)
+	{
+		PhotonClient->SendChatMessage(Channel, Message);
+	}
+}
+
+void UOrionTCPLink::ChatMessageReceived(FString ChannelName, TArray<FString> Messages)
+{
+	AOrionPlayerController *pPlayer = PlayerOwner;
+
+	//send the message to our in game chat windows
+	if (pPlayer && pPlayer->GetChatManager())
+	{
+		for (int32 i = 0; i < Messages.Num(); i++)
+			pPlayer->GetChatManager()->AddChatEntry(ChannelName, Messages[i]);
+	}
 }
 
 void UOrionTCPLink::OnGetCharacterListError(PlayFabError& error, void* userData)

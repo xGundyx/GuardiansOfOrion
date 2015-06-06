@@ -27,7 +27,12 @@ void AOrionWeather::BeginPlay()
 
 	//register us with the GRI
 	if (Cast<AOrionGRI>(GWorld->GameState))
+	{
+		if (Role == ROLE_Authority)
+			ChooseWeather();
+
 		Cast<AOrionGRI>(GWorld->GameState)->SetWeather(this);
+	}
 
 	/*if (RainPSC)
 	{
@@ -47,6 +52,17 @@ void AOrionWeather::PostLoad()
 	ALight::PostLoad();
 
 	PrimaryActorTick.bCanEverTick = true;
+}
+
+void AOrionWeather::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	// everyone
+	DOREPLIFETIME(AOrionWeather, FogTarget);
+	DOREPLIFETIME(AOrionWeather, RainTarget);
+	DOREPLIFETIME(AOrionWeather, CloudTarget);
+	DOREPLIFETIME(AOrionWeather, TheTime);
 }
 
 void AOrionWeather::ChooseWeather()
@@ -204,7 +220,8 @@ void AOrionWeather::UpdateWeather(float DeltaSeconds)
 	//float DeltaSeconds = GetWorld()->TimeSeconds - LastUpdateTime;
 	//LastUpdateTime = GetWorld()->TimeSeconds;
 	//advance the time
-	TheTime = TheTime + DeltaSeconds;
+	if (Role == ROLE_Authority)
+		TheTime = TheTime + DeltaSeconds;
 
 	FRotator rot;
 	FTimeOfDay MidNight;
@@ -242,11 +259,14 @@ void AOrionWeather::UpdateWeather(float DeltaSeconds)
 	else
 		CloudAmount = FMath::Max(CloudAmount - DeltaSeconds*0.1f, CloudTarget);
 
-	UpdateFog(DeltaSeconds);
-	UpdateRain(DeltaSeconds);
-	UpdateClouds(DeltaSeconds);
+	if (GetNetMode() != NM_DedicatedServer)
+	{
+		UpdateFog(DeltaSeconds);
+		UpdateRain(DeltaSeconds);
+		UpdateClouds(DeltaSeconds);
 
-	EventUpdateWeather(DeltaSeconds);
+		EventUpdateWeather(DeltaSeconds);
+	}
 }
 
 void AOrionWeather::UpdateFog(float DeltaSeconds)
@@ -260,6 +280,13 @@ void AOrionWeather::UpdateFog(float DeltaSeconds)
 
 void AOrionWeather::UpdateRain(float DeltaSeconds)
 {
+	if (!PlayerOwner)
+	{
+		PlayerOwner = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
+		if (!PlayerOwner)
+			return;
+	}
+
 	///this is a hack to get the rain to keep falling, for some reason it keeps shutting off:/
 	/*if (bIsRaining && Cast<AOrionPlayerController>(PlayerOwner)->RainPSC && Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->bWasCompleted)
 	{

@@ -26,6 +26,13 @@ void AOrionPlayerController::AttemptLogin(FString UserName, FString Password)
 #endif
 }
 
+void AOrionPlayerController::SendChatMessage(FString Channel, FString Message)
+{
+#if !IS_SERVER
+	UOrionTCPLink::SendChatMessage(Channel, Message);
+#endif
+}
+
 void AOrionPlayerController::CreateNewAccount(FString UserName, FString Password, FString Email)
 {
 #if !IS_SERVER
@@ -133,6 +140,15 @@ void AOrionPlayerController::PostInitializeComponents()
 
 #if !IS_SERVER
 	UOrionTCPLink::Init(this);
+
+	if (IsLocalPlayerController())
+	{
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.bNoCollisionFail = true;
+		ChatManager = GetWorld()->SpawnActor<AOrionChatManager>(AOrionChatManager::StaticClass(), SpawnInfo);
+		if (ChatManager)
+			ChatManager->pPlayerOwner = this;
+	}
 #else
 #endif
 
@@ -234,23 +250,6 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 
-	if (TheSun == NULL)// && IsLocalPlayerController())
-	{
-		for (FActorIterator It(GetWorld()); It; ++It)
-		{
-			TheSun = Cast<AOrionWeather>(*It);
-			if (TheSun != NULL)
-			{
-				TheSun->PlayerOwner = this;
-				TheSun->ChooseWeather();
-				break;
-			}
-		}
-	}
-
-	if (TheSun)
-		TheSun->UpdateWeather(DeltaTime);
-
 #if !IS_SERVER
 	UOrionTCPLink::Update();
 	UClientConnector::Update();
@@ -295,17 +294,32 @@ void AOrionPlayerController::TestSettings()
 
 void AOrionPlayerController::PerfectDay()
 {
-	TheSun->PerfectDay();
+	if (GetWorld())
+	{
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+		if (GRI && GRI->Weather)
+			GRI->Weather->PerfectDay();
+	}
 }
 
 void AOrionPlayerController::HeavyRain()
 {
-	TheSun->HeavyRain();
+	if (GetWorld())
+	{
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+		if (GRI && GRI->Weather)
+			GRI->Weather->HeavyRain();
+	}
 }
 
 void AOrionPlayerController::ClearNight()
 {
-	TheSun->ClearNight();
+	if (GetWorld())
+	{
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+		if (GRI && GRI->Weather)
+			GRI->Weather->ClearNight();
+	}
 }
 
 bool AOrionPlayerController::ServerAllArmor_Validate(int32 index)
@@ -340,6 +354,11 @@ void AOrionPlayerController::ArmorColor(int32 index)
 	{
 		myPawn->EventUpdateArmorColor(index);
 	}
+}
+
+AOrionChatManager *AOrionPlayerController::GetChatManager()
+{
+	return ChatManager;
 }
 
 AOrionInventoryManager *AOrionPlayerController::GetInventoryManager()

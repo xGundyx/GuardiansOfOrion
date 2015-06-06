@@ -1,6 +1,7 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 
 #include "Orion.h"
+#include "OrionProjectile.h"
 #include "OrionWeapon.h"
 
 //auto rifle -3.0 30.0 -13.5
@@ -1097,11 +1098,18 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 
 	if (TracerFX)
 	{
-		UParticleSystemComponent* TracerPSC = UGameplayStatics::SpawnEmitterAtLocation(this, TracerFX, Origin, vDir.Rotation());
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.Instigator = Instigator;
+		SpawnInfo.bNoCollisionFail = true;
+
+		AOrionProjectile *Proj = GetWorld()->SpawnActor<AOrionProjectile>(AOrionProjectile::StaticClass(), Origin, vDir.Rotation(), SpawnInfo);
+		if (Proj)
+			Proj->Init(TracerFX, Origin, EndPoint);
+		/*UParticleSystemComponent* TracerPSC = UGameplayStatics::SpawnEmitterAtLocation(this, TracerFX, Origin, vDir.Rotation());
 		if (TracerPSC)
 		{
 			TracerPSC->SetWorldScale3D(FVector(1.0));
-		}
+		}*/
 	}
 
 	if (MuzzleFX.Num() > 0)
@@ -1118,7 +1126,7 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 	{
 		LastFireSoundTime = GetWorld()->GetTimeSeconds();
 
-		PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim, Role == ROLE_Authority);
+		PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim, false);//Role == ROLE_Authority);
 		PlayWeaponSound(FireSound);
 	}
 }
@@ -1310,10 +1318,10 @@ void AOrionWeapon::ServerStopFire_Implementation()
 
 float AOrionWeapon::PlayWeaponAnimation(const FWeaponAnim& Animation, bool bReplicate)
 {
-	float Duration = 0.0f;
+	float Duration = 0.01f;
 
 	if (MyPawn)
-		Duration = MyPawn->OrionPlayAnimMontage(Animation);
+		Duration = MyPawn->OrionPlayAnimMontage(Animation, 1.0f, FName(""), bReplicate);
 	return Duration;
 }
 
@@ -1329,7 +1337,7 @@ void AOrionWeapon::OnRep_MyPawn()
 	}
 }
 
-void AOrionWeapon::OnRep_Reload()
+/*void AOrionWeapon::OnRep_Reload()
 {
 	if (true)//bPendingReload)
 	{
@@ -1339,7 +1347,7 @@ void AOrionWeapon::OnRep_Reload()
 	{
 		StopReload();
 	}
-}
+}*/
 
 void AOrionWeapon::SimulateWeaponFire()
 {
@@ -1379,7 +1387,7 @@ void AOrionWeapon::SimulateWeaponFire()
 
 	//if (!bLoopedFireAnim || !bPlayingFireAnim)
 	//{
-	PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim, Role == ROLE_Authority);
+	PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim, false);//Role == ROLE_Authority);
 	//	bPlayingFireAnim = true;
 	//}
 

@@ -37,6 +37,12 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	ThirdPersonCameraComponent->AttachParent = GetCapsuleComponent();
 	ThirdPersonCameraComponent->RelativeLocation = FVector(0, 0, 0); // Position the camera
 
+	static ConstructorHelpers::FObjectFinder<UBlueprint> HealthBarObject(TEXT("/Game/UI/HUD/Widgets/HealthBar"));
+	if (HealthBarObject.Object != NULL)
+	{
+		DefaultHealthBarClass = (UClass*)HealthBarObject.Object->GeneratedClass;
+	}
+
 	// Default offset from the character location for projectiles to spawn
 	GunOffset = FVector(100.0f, 30.0f, 10.0f);
 
@@ -88,7 +94,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Arms1PArmorMesh->bPerBoneMotionBlur = false;
 	Arms1PArmorMesh->SetMasterPoseComponent(Arms1PMesh);
 
-	Arms1PLegsMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Arms1PLegsMesh1P"));
+	/*Arms1PLegsMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("LegsMesh1P"));
 	Arms1PLegsMesh->AlwaysLoadOnClient = true;
 	Arms1PLegsMesh->AlwaysLoadOnServer = false;
 	Arms1PLegsMesh->bOwnerNoSee = false;
@@ -98,10 +104,9 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Arms1PLegsMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
 	Arms1PLegsMesh->bChartDistanceFactor = true;
 	Arms1PLegsMesh->bGenerateOverlapEvents = false;
-	Arms1PLegsMesh->AttachParent = Arms1PMesh;
+	Arms1PLegsMesh->AttachParent = FirstPersonCameraComponent;
 	Arms1PLegsMesh->CastShadow = false;
-	Arms1PLegsMesh->bPerBoneMotionBlur = false;
-	Arms1PLegsMesh->SetMasterPoseComponent(Arms1PMesh);
+	Arms1PLegsMesh->bPerBoneMotionBlur = false;*/
 
 	BodyMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Body"));
 	BodyMesh->AlwaysLoadOnClient = true;
@@ -189,6 +194,9 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 
 	Health = 100.0;
 	HealthMax = 100.0;
+
+	Shield = 500.0;
+	ShieldMax = 500.0;
 
 	bFirstPerson = true;
 	UpdatePawnMeshes();
@@ -509,7 +517,8 @@ void AOrionCharacter::OnRep_Inventory()
 
 void AOrionCharacter::OnRep_NextWeapon()
 {
-	SetCurrentWeapon(NextWeapon, CurrentWeapon);
+	if (!IsLocallyControlled())
+		SetCurrentWeapon(NextWeapon, CurrentWeapon);
 }
 
 void AOrionCharacter::HandleSpecialWeaponFire(FName SocketName)
@@ -669,6 +678,8 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	// everyone
 	DOREPLIFETIME(AOrionCharacter, HealthMax);
 	DOREPLIFETIME(AOrionCharacter, Health);
+	DOREPLIFETIME(AOrionCharacter, ShieldMax);
+	DOREPLIFETIME(AOrionCharacter, Shield);
 
 	DOREPLIFETIME(AOrionCharacter, HelmetArmor);
 	DOREPLIFETIME(AOrionCharacter, BodyArmor);
@@ -678,9 +689,8 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, CurrentShip);
 
 	DOREPLIFETIME(AOrionCharacter, AimPos);
-
+	DOREPLIFETIME(AOrionCharacter, bRolling);
 	DOREPLIFETIME(AOrionCharacter, BlinkPos);
-
 	DOREPLIFETIME(AOrionCharacter, Level);
 
 	DOREPLIFETIME_CONDITION(AOrionCharacter, LastTakeHitInfo, COND_Custom);
@@ -836,6 +846,10 @@ void AOrionCharacter::PostInitializeComponents()
 	// set initial mesh visibility (3rd person view)
 	UpdatePawnMeshes();
 
+	//spawn our health bar hud element
+	if (GetNetMode() != NM_DedicatedServer)
+		CreateHealthBar();//EventCreateHealthBar();
+
 	// create material instance for setting team colors (3rd person view)
 	/*for (int32 iMat = 0; iMat < Mesh->GetNumMaterials(); iMat++)
 	{
@@ -854,7 +868,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 	// Modify based on game rules.
 	AOrionGameMode* const Game = GetWorld()->GetAuthGameMode<AOrionGameMode>();
-	////Damage = Game ? Game->ModifyDamage(Damage, this, DamageEvent, EventInstigator, DamageCauser) : 0.f;
+	Damage = Game ? Game->ModifyDamage(Damage, this, DamageEvent, EventInstigator, DamageCauser) : 0.f;
 
 	UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject());
 
@@ -887,9 +901,16 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	}
 
 	const float ActualDamage = Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+
 	if (ActualDamage > 0.f)
 	{
-		Health -= ActualDamage;
+		//take off shield damage first
+		float TotalDamage = ActualDamage;
+
+		TotalDamage = FMath::Max(0.0f, TotalDamage - Shield);
+		Shield = FMath::Max(0.0f, Shield - ActualDamage);
+
+		Health -= TotalDamage;
 		if (Health <= 0)
 		{
 			Die(ActualDamage, DamageEvent, EventInstigator, DamageCauser);
@@ -1032,6 +1053,24 @@ void AOrionCharacter::StopAllAnimMontages()
 	{
 		UseMesh->AnimScriptInstance->Montage_Stop(0.0f);
 	}
+
+	if (CurrentWeapon)
+	{
+		USkeletalMeshComponent* WeaponMesh = CurrentWeapon->GetWeaponMesh(bFirstPerson);
+		if (WeaponMesh && WeaponMesh->AnimScriptInstance)
+			WeaponMesh->AnimScriptInstance->Montage_Stop(0.0f);
+	}
+}
+
+void AOrionCharacter::CreateHealthBar()
+{
+	MyHealthBar = CreateWidget<UOrionHealthBar>(GetWorld(), DefaultHealthBarClass);
+
+	if (MyHealthBar)
+	{
+		MyHealthBar->AddToViewport(10);
+		MyHealthBar->OwningPawn = this;
+	}
 }
 
 void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& DamageEvent, class APawn* PawnInstigator, class AActor* DamageCauser)
@@ -1039,6 +1078,12 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	if (bIsDying)
 	{
 		return;
+	}
+
+	if (MyHealthBar)
+	{
+		MyHealthBar->RemoveFromParent();
+		MyHealthBar = nullptr;
 	}
 
 	bReplicateMovement = false;
@@ -1126,11 +1171,14 @@ void AOrionCharacter::OnRep_ReplicatedAnimation()
 	Info.Weapon1P = ReplicatedAnimation.Weapon1PMontage;
 	Info.Weapon3P = ReplicatedAnimation.Weapon3PMontage;
 
+	if (ReplicatedAnimation.bStopAllOtherAnims)
+		StopAllAnimMontages();
+
 	OrionPlayAnimMontage(Info, ReplicatedAnimation.Rate, ReplicatedAnimation.SectionName);
 }
 
 //override this so we can add some replication to it
-float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float InPlayRate, FName StartSectionName, bool bShouldReplicate, bool bReplicateToOwner)
+float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float InPlayRate, FName StartSectionName, bool bShouldReplicate, bool bReplicateToOwner, bool bStopOtherAnims)
 {
 	float Duration = 0.0f;
 
@@ -1146,6 +1194,7 @@ float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float I
 		ReplicatedAnimation.Rate = InPlayRate;
 		ReplicatedAnimation.SectionName = StartSectionName;
 		ReplicatedAnimation.bReplicatedToOwner = bReplicateToOwner;
+		ReplicatedAnimation.bStopAllOtherAnims = bStopOtherAnims;
 	}
 
 	UAnimInstance * AnimInstance = (GetMesh()) ? GetMesh()->GetAnimInstance() : NULL;
@@ -1779,8 +1828,10 @@ void AOrionCharacter::ServerDoRoll_Implementation(ERollDir rDir, FRotator rRot)
 
 	SetActorRotation(rRot);
 
-	float Length = OrionPlayAnimMontage(Info);
-	GetWorldTimerManager().SetTimer(RollTimer2, this, &AOrionCharacter::EndRoll, 0.7f*Length, false);
+	StopAllAnimMontages();
+
+	float Length = OrionPlayAnimMontage(Info, 1.0f, FName(""), true, false, true);
+	GetWorldTimerManager().SetTimer(RollTimer2, this, &AOrionCharacter::EndRoll, 0.9f*Length, false);
 }
 
 void AOrionCharacter::DoRoll()
@@ -1805,6 +1856,14 @@ void AOrionCharacter::DoRoll()
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (AnimInstance != NULL)
 		{
+			if (CurrentWeapon && CurrentWeapon->WeaponState == WEAP_RELOADING)
+			{
+				//CurrentWeapon->StopReload();
+			}
+
+			//prevent upper body from doing wacky things
+			StopAllAnimMontages();
+
 			FVector AimDirWS = GetVelocity();
 			AimDirWS.Normalize();
 			const FVector AimDirLS = ActorToWorld().InverseTransformVectorNoScale(AimDirWS);
@@ -1859,7 +1918,7 @@ void AOrionCharacter::DoRoll()
 		PC->SetIgnoreLookInput(true);
 	}
 
-	GetWorldTimerManager().SetTimer(RollTimer2, this, &AOrionCharacter::EndRoll, 0.7f*Length, false);
+	GetWorldTimerManager().SetTimer(RollTimer2, this, &AOrionCharacter::EndRoll, 0.9f*Length, false);
 	//GetWorldTimerManager().SetTimer(this, &AOrionCharacter::ResetRootRotation, Length*0.8f, false);
 }
 
@@ -2287,7 +2346,7 @@ void AOrionCharacter::Set1PArmorMesh(USkeletalMesh* newMesh) const
 
 void AOrionCharacter::Set1PLegsMesh(USkeletalMesh* newMesh) const
 {
-	Arms1PLegsMesh->SetSkeletalMesh(newMesh);
+	//Arms1PLegsMesh->SetSkeletalMesh(newMesh);
 }
 
 void AOrionCharacter::SetHelmetMesh(USkeletalMesh* newMesh) const

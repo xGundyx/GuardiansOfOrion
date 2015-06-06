@@ -14,11 +14,25 @@ void AOrionImpactEffect::PostInitializeComponents()
 	UPhysicalMaterial* HitPhysMat = SurfaceHit.PhysMaterial.Get();
 	EPhysicalSurface HitSurfaceType = UPhysicalMaterial::DetermineSurfaceType(HitPhysMat);
 
+	AOrionCharacter *Pawn = Cast<AOrionCharacter>(SurfaceHit.GetActor());
+	if (Pawn)
+	{
+		if (Pawn->Shield > 0.0f)
+			HitSurfaceType = ORION_SURFACE_Shield;
+		else
+			HitSurfaceType = ORION_SURFACE_Flesh;
+	}
+
 	// show particles
 	UParticleSystem* ImpactFX = GetImpactFX(HitSurfaceType);
 	if (ImpactFX)
 	{
-		UGameplayStatics::SpawnEmitterAtLocation(this, ImpactFX, GetActorLocation(), GetActorRotation());
+		UParticleSystemComponent *PSC = UGameplayStatics::SpawnEmitterAtLocation(this, ImpactFX, GetActorLocation(), GetActorRotation());
+
+		if (PSC)
+		{
+			PSC->SetWorldScale3D(GetImpactScale(HitSurfaceType));
+		}
 	}
 
 	// play sound
@@ -54,6 +68,7 @@ UParticleSystem* AOrionImpactEffect::GetImpactFX(TEnumAsByte<EPhysicalSurface> S
 		case ORION_SURFACE_Grass:		ImpactFX = GrassFX; break;
 		case ORION_SURFACE_Glass:		ImpactFX = GlassFX; break;
 		case ORION_SURFACE_Flesh:		ImpactFX = FleshFX; break;
+		case ORION_SURFACE_Shield:		ImpactFX = ShieldFX; break; 
 		default:						ImpactFX = DefaultFX; break;
 	}
 
@@ -74,8 +89,30 @@ USoundCue* AOrionImpactEffect::GetImpactSound(TEnumAsByte<EPhysicalSurface> Surf
 		case ORION_SURFACE_Grass:		ImpactSound = GrassSound; break;
 		case ORION_SURFACE_Glass:		ImpactSound = GlassSound; break;
 		case ORION_SURFACE_Flesh:		ImpactSound = FleshSound; break;
+		case ORION_SURFACE_Shield:		ImpactSound = ShieldSound; break;
 		default:						ImpactSound = DefaultSound; break;
 	}
 
 	return ImpactSound;
+}
+
+FVector AOrionImpactEffect::GetImpactScale(TEnumAsByte<EPhysicalSurface> SurfaceType) const
+{
+	FVector Scale = FVector(1.0f);
+
+	switch (SurfaceType)
+	{
+	case ORION_SURFACE_Concrete:	Scale = FVector(1.0f); break;
+	case ORION_SURFACE_Dirt:		Scale = FVector(1.0f); break;
+	case ORION_SURFACE_Water:		Scale = FVector(1.0f); break;
+	case ORION_SURFACE_Metal:		Scale = FVector(1.0f); break;
+	case ORION_SURFACE_Wood:		Scale = FVector(1.0f); break;
+	case ORION_SURFACE_Grass:		Scale = FVector(1.0f); break;
+	case ORION_SURFACE_Glass:		Scale = FVector(1.0f); break;
+	case ORION_SURFACE_Flesh:		Scale = FVector(2.5f); break;
+	case ORION_SURFACE_Shield:		Scale = FVector(2.5f); break;
+	default:						Scale = FVector(1.0f); break;
+	}
+
+	return Scale;
 }

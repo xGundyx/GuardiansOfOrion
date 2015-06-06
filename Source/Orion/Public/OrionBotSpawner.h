@@ -33,7 +33,7 @@ public:
 		bool bCreateSquad;
 
 	UFUNCTION(BlueprintCallable, Category = Squad)
-		UOrionSquad *GetSquad();
+		AOrionSquad *GetSquad();
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Squad)
 		int32 NumToKeepAlive;
@@ -57,7 +57,7 @@ public:
 		float SpawnRadius;
 
 private:
-	UOrionSquad *Squad;
+	AOrionSquad *Squad;
 	FTimerHandle SpawnTimer;
 	TArray<AOrionCharacter*> ActivePawns;
 	float LastPawnCheckTime;

@@ -52,7 +52,7 @@ void AOrionBotSpawner::SpawnBots()
 
 			if (Squad == nullptr && bCreateSquad)
 			{
-				Squad = ConstructObject<UOrionSquad>(UOrionSquad::StaticClass(), this, NAME_None, RF_NoFlags, NULL, false, NULL);
+				Squad = GetWorld()->SpawnActor<AOrionSquad>(AOrionSquad::StaticClass(), Loc.Location + FVector(0, 0, 150.0f), GetActorRotation(), SpawnInfo); //, this, NAME_None, RF_NoFlags, NULL, false, NULL);
 			}
 
 			if (Squad && NewPawn)
@@ -111,7 +111,7 @@ void AOrionBotSpawner::CheckActivePawns()
 	}
 }
 
-UOrionSquad *AOrionBotSpawner::GetSquad()
+AOrionSquad *AOrionBotSpawner::GetSquad()
 {
 	return Squad;
 }

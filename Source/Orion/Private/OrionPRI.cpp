@@ -7,7 +7,7 @@
 AOrionPRI::AOrionPRI(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-
+	TeamIndex = -1;
 }
 
 void AOrionPRI::SeamlessTravelTo(APlayerState * NewPlayerState)
@@ -43,10 +43,21 @@ void AOrionPRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 
 	DOREPLIFETIME_CONDITION(AOrionPRI, InventoryManager, COND_OwnerOnly);
 	DOREPLIFETIME(AOrionPRI, bOnShip);
+	DOREPLIFETIME(AOrionPRI, TeamIndex);
 }
 
 void AOrionPRI::OnRep_InventoryManager()
 {
 	//if (InventoryManager)
 	//	InventoryManager->Init();
+}
+
+void AOrionPRI::SetTeamIndex(int32 index)
+{
+	TeamIndex = index;
+}
+
+int32 AOrionPRI::GetTeamIndex()
+{
+	return TeamIndex;
 }

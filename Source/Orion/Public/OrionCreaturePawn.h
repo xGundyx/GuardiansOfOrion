@@ -13,7 +13,6 @@ class ORION_API AOrionCreaturePawn : public AOrionDinoPawn
 {
 	GENERATED_BODY()
 	
-	
-	
-	
+public:
+	AOrionCreaturePawn(const FObjectInitializer& ObjectInitializer);
 };

@@ -16,6 +16,7 @@
 #include "OrionAchievements.h"
 #include "OrionDroidPawn.h"
 #include "OrionDropPod.h"
+#include "OrionChatManager.h"
 #include "OrionPlayerController.generated.h"
 
 /**
@@ -192,6 +193,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Open Inventory Screen"))
 		void EventOpenInventoryScreen();
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Update Chat Window"))
+		void EventUpdateChatWindows();
+
 	//try to start this quest
 	UFUNCTION(BlueprintCallable, Category = Quests)
 		bool AddNewQuest(AOrionQuest *newQuest);
@@ -224,6 +228,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = PlayFab)
 		void AttemptLogin(FString UserName, FString Password);
+
+	UFUNCTION(BlueprintCallable, Category = PlayFab)
+		void SendChatMessage(FString Channel, FString Message);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "LoginComplete"))
 		void EventLoginComplete(const bool bResult, const FString &Msg);
@@ -277,6 +284,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		AOrionInventoryManager *GetInventoryManager();
+
+	UFUNCTION(BlueprintCallable, Category = Chat)
+		AOrionChatManager *GetChatManager();
 
 	UFUNCTION(BlueprintCallable, Category = Respawn)
 		void SetDropPod(AOrionDropPod *Pod);
@@ -365,6 +375,8 @@ private:
 	UOrionQuestManager *QuestManager;
 	UOrionStats *Stats;
 	UOrionAchievements *Achievements;
+
+	AOrionChatManager *ChatManager;
 
 	bool CreateAndGiveInventoryItem(TSharedPtr<FJsonObject> Data, AOrionInventoryGrid *theGrid, FString Slot, int32 Index);
 };
