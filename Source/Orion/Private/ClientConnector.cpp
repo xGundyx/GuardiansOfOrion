@@ -46,7 +46,8 @@ void UClientConnector::Update()
 	TArray<uint8> ReceivedData;
 	if (LoginSenderSocket && LoginSenderSocket->HasPendingData(bytes_to_read))
 	{
-		ReceivedData.Init(FMath::Min(bytes_to_read, 65507u));
+		ReceivedData.SetNumUninitialized(FMath::Min(bytes_to_read, 65507u));
+		//ReceivedData.Init(FMath::Min(bytes_to_read, 65507u));
 
 		int32 Read = 0;
 		if(LoginSenderSocket->Recv(ReceivedData.GetData(), ReceivedData.Num(), Read))

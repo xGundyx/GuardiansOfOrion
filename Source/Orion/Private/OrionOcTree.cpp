@@ -99,7 +99,7 @@ void UOrionOcTree::InsertPoint(FVector pos, float den, FVector center, float wid
 
 			for (int32 i = 0; i < 8; i++)
 			{
-				Children[i] = ConstructObject<UOrionOcTree>(UOrionOcTree::StaticClass());
+				Children[i] = NewObject<UOrionOcTree>(this, UOrionOcTree::StaticClass());
 				Children[i]->Density = -100.0;
 				//Children[i]->Position = center + (TreeOffsets[i] * width);
 				Children[i]->Width = width / 2.0;

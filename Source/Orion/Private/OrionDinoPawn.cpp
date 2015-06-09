@@ -114,7 +114,7 @@ void AOrionDinoPawn::OrientToGround(float DeltaTime)
 	FHitResult Hit(ForceInit);
 	if (GetWorld())
 	{
-		GetWorld()->LineTraceSingle(Hit, vStart, vEnd, ECC_Pawn, TraceParams);
+		GetWorld()->LineTraceSingleByChannel(Hit, vStart, vEnd, ECC_Pawn, TraceParams);
 		if (Hit.bBlockingHit)
 		{
 			GroundNormal = Hit.ImpactNormal;

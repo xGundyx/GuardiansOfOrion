@@ -75,7 +75,8 @@ void AOrionGRI::BeginPlay()
 {
 	Super::BeginPlay();
 
-	InitTeams();
+	if (Role == ROLE_Authority)
+		InitTeams();
 }
 
 bool AOrionGRI::AddPlayerToTeam(AOrionPlayerController *PC, int32 Index)

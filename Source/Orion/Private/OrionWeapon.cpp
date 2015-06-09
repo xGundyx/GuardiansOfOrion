@@ -503,7 +503,7 @@ FHitResult AOrionWeapon::WeaponTrace(const FVector& StartTrace, const FVector& E
 
 	FHitResult Hit(ForceInit);
 	if (GetWorld())
-		GetWorld()->LineTraceSingle(Hit, StartTrace, EndTrace, COLLISION_WEAPON, TraceParams);
+		GetWorld()->LineTraceSingleByChannel(Hit, StartTrace, EndTrace, COLLISION_WEAPON, TraceParams);
 
 	return Hit;
 }

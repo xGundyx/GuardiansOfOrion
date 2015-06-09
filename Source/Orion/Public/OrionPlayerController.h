@@ -187,13 +187,13 @@ public:
 	UFUNCTION(exec)
 		void ChangeCamera(int32 TeamIndex);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Give Default Inventory"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Give Default Inventory"))
 		void EventGiveDefaultInventory();
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Open Inventory Screen"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Open Inventory Screen"))
 		void EventOpenInventoryScreen();
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Update Chat Window"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Update Chat Window"))
 		void EventUpdateChatWindows();
 
 	//try to start this quest
@@ -232,25 +232,25 @@ public:
 	UFUNCTION(BlueprintCallable, Category = PlayFab)
 		void SendChatMessage(FString Channel, FString Message);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "LoginComplete"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "LoginComplete"))
 		void EventLoginComplete(const bool bResult, const FString &Msg);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "SetCharacterDatas"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SetCharacterDatas"))
 		void EventSetCharacterDatas(const TArray<FCharacterData> &Data);
 
 	UFUNCTION(BlueprintCallable, Category = PlayFab)
 		void CreateNewAccount(FString UserName, FString Password, FString Email);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "AccountCreateComplete"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "AccountCreateComplete"))
 		void EventAccountCreationComplete(const bool bResult, const FString &Error);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "AccountCreated"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "AccountCreated"))
 		void EventAccountCreated(const bool bResult, const FString &Error);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "CharacterFinalized"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "CharacterFinalized"))
 		void EventCharacterFinalized(const bool bResult, const FString &Error);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "ReceiveErrorMessage"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ReceiveErrorMessage"))
 		void ReceiveErrorMessage(const FString &Message);
 
 	UFUNCTION(BlueprintCallable, Category = PlayFab)
@@ -262,24 +262,24 @@ public:
 	UFUNCTION(BlueprintCallable, Category = PlayFab)
 		void SelectCharacterAtIndex(int32 Index);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "SelectCharacterComplete"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SelectCharacterComplete"))
 		void EventSelectCharacterComplete(const bool bResult, const FString &Error);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "CharacterCreateComplete"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "CharacterCreateComplete"))
 		void EventCharacterCreationComplete(const bool bResult, const FString &Error);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "CharacterDeleteComplete"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "CharacterDeleteComplete"))
 		void EventCharacterDeletionComplete(const bool bResult);
 
 	void PreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel) override;
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "CleanupUMG"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "CleanupUMG"))
 		void EventCleanupUMG();
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Respawn"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Respawn"))
 		void EventRespawn();
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "RedrawInventory"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "RedrawInventory"))
 		void EventRedrawInventory();
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
@@ -324,7 +324,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = MainMenu)
 		UCameraComponent *MenuCamera;
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "ResizeHUD"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ResizeHUD"))
 		void EventResizeHUD();
 
 	int32 OldViewportSizeX;

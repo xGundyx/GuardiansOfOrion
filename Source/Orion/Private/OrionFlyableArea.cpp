@@ -141,7 +141,7 @@ void AOrionFlyableArea::DoTrace(FVector Center, float Width)
 
 	//FCollisionObjectQueryParams QueryParams;
 
-	if (GetWorld()->SweepSingle(Hit, start, end, rot, COLLISION_FLYABLE, FCollisionShape::MakeBox(FVector(Width) / 2.0f), TraceParams))//Params, QueryParams))
+	if (GetWorld()->SweepSingleByChannel(Hit, start, end, rot, COLLISION_FLYABLE, FCollisionShape::MakeSphere(Width/2.0f)/*Box(FVector(Width) / 2.0f)*/, TraceParams))//Params, QueryParams))
 	{
 		for (int32 i = 0; i < 8; i++)
 		{
@@ -467,7 +467,7 @@ void AOrionFlyableArea::SmoothPath(TArray<FVector> &FullPath)
 
 			FCollisionObjectQueryParams QueryParams;
 
-			if (GetWorld()->SweepSingle(Hit, start, end, rot, FCollisionShape::MakeSphere(25.0f), Params, QueryParams))
+			if (GetWorld()->SweepSingleByObjectType(Hit, start, end, rot, QueryParams, FCollisionShape::MakeSphere(25.0f), Params))
 			{
 				RealPath.Add(FullPath[j - 1]);
 				break;

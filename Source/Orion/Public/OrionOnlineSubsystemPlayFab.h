@@ -17,7 +17,7 @@
 */
 class /*ORIONONLINESUBSYSTEMPLAYFAB_API*/ FOrionOnlineSubsystemPlayFab
 	: public FOnlineSubsystemImpl
-	, public FTickerObjectBase
+	//, public FTickerObjectBase
 {
 public:
 

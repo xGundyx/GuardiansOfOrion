@@ -333,7 +333,7 @@ bool UOrionGeneratedMeshComponent::ContainsPhysicsTriMeshData(bool InUseAllTriDa
 
 void UOrionGeneratedMeshComponent::UpdateBodySetup() {
 	if (ModelBodySetup == NULL)	{
-		ModelBodySetup = ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
+		ModelBodySetup = NewObject<UBodySetup>(this, UBodySetup::StaticClass());// ConstructObject<UBodySetup>(UBodySetup::StaticClass(), this);
 		ModelBodySetup->CollisionTraceFlag = CTF_UseComplexAsSimple;
 		ModelBodySetup->bMeshCollideAll = true;
 	}
