@@ -44,7 +44,7 @@ void AOrionBotSpawner::SpawnBots()
 
 			FNavLocation Loc;
 
-			GetWorld()->GetNavigationSystem()->GetRandomPointInRadius(GetActorLocation(), SpawnRadius, Loc);
+			GetWorld()->GetNavigationSystem()->GetRandomReachablePointInRadius(GetActorLocation(), SpawnRadius, Loc);
 
 			AOrionCharacter* NewPawn = GetWorld()->SpawnActor<AOrionCharacter>(Pawn, Loc.Location + FVector(0, 0, 150.0f), GetActorRotation(), SpawnInfo);
 			if (NewPawn)

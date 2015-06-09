@@ -227,7 +227,7 @@ void AOrionVoxelBase::RebuildTerrain()
 
 	float MaxHeight = UOrionDiamondSquare::MaxHeight*1.0 + 0.05;
 	//allocate memory for all of our chunks
-	VoxelTree = ConstructObject<UOrionOcTree>(UOrionOcTree::StaticClass());
+	VoxelTree = NewObject<UOrionOcTree>(this, UOrionOcTree::StaticClass());
 	VoxelTree->Width = DIAMOND_RES*VOXEL_WIDTH;
 
 	//init some values

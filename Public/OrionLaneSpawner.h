@@ -37,7 +37,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Spawn)
 		AOrionCharacter *GetSpawnObject();
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Change Preview Mesh"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Change Preview Mesh"))
 		void EventChangeMesh();
 
 #if WITH_EDITOR

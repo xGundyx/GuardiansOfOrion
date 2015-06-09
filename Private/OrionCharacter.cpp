@@ -200,9 +200,6 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 
 	bFirstPerson = true;
 	UpdatePawnMeshes();
-
-	// Note: The ProjectileClass and the skeletal mesh/anim blueprints for Mesh1P are set in the
-	// derived blueprint asset named MyCharacter (to avoid direct content references in C++)
 }
 
 void AOrionCharacter::SetDrivenVehicle(AOrionHoverVehicle *newVehicle)
@@ -402,8 +399,10 @@ void AOrionCharacter::ResetAimKick()
 
 FVector AOrionCharacter::GetPawnViewLocation() const
 {
-	if (IsFirstPerson())
+	if (IsFirstPerson() || (PlayerState && PlayerState->bIsABot))
 		return GetActorLocation() + FVector(0.f, 0.f, BaseEyeHeight);
+	//else if (bIsABot && GetMesh())
+	//	return GetMesh()->GetSocketLocation(FName("Bite"));
 	else
 		return CameraLocation; 
 }
@@ -2241,7 +2240,7 @@ float AOrionCharacter::GetFootOffset(FName Socket) const
 	FVector vEnd = vStart - FVector(0,0,GetCapsuleComponent()->GetScaledCapsuleHalfHeight()*2.0);
 
 	//if (GWorld->LineTraceSingle(Hit, vStart, vEnd, COLLISION_WEAPON,TraceParams))
-	if (GWorld->SweepSingle(Hit, vStart, vEnd, FQuat::Identity, ECollisionChannel::ECC_Pawn, FCollisionShape::MakeSphere(5), TraceParams))
+	if (GWorld->SweepSingleByChannel(Hit, vStart, vEnd, FQuat::Identity, ECollisionChannel::ECC_Pawn, FCollisionShape::MakeSphere(5), TraceParams))
 	{
 		return FMath::Clamp(vStart.Z - Hit.Location.Z, 40.0f, 165.0f);
 	}

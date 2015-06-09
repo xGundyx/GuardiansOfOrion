@@ -306,8 +306,8 @@ public:
 	bool bIsRaining;
 	bool bIsSnowing;
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Every Tick"))
-		virtual void EventUpdateWeather(float DeltaSeconds);
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Every Tick"))
+	virtual void EventUpdateWeather(float DeltaSeconds);
 
 	virtual void PostLoad() override;
 	virtual void BeginPlay() override;

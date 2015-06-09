@@ -40,7 +40,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Target)
 		virtual void SetEnemy(APawn *pEnemy);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Set Blackboard Enemy"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Set Blackboard Enemy"))
 		void EventSetBlackboardEnemy(APawn *pEnemy);
 
 	UFUNCTION(BlueprintCallable, Category = Target)

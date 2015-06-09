@@ -990,8 +990,8 @@ void AOrionPlayerController::GetDefaultInventory()
 
 void AOrionPlayerController::InitStatsAndAchievements()
 {
-	Stats = ConstructObject<UOrionStats>(UOrionStats::StaticClass());
-	Achievements = ConstructObject<UOrionAchievements>(UOrionAchievements::StaticClass());
+	Stats = NewObject<UOrionStats>(this, UOrionStats::StaticClass());
+	Achievements = NewObject<UOrionAchievements>(this, UOrionAchievements::StaticClass());
 }
 
 void AOrionPlayerController::ReadStats()
@@ -1040,7 +1040,7 @@ void AOrionPlayerController::SetStatValue(FStatID id, int32 iAmount, int32 fAmou
 
 void AOrionPlayerController::InitQuestManager()
 {
-	QuestManager = ConstructObject<UOrionQuestManager>(UOrionQuestManager::StaticClass());
+	QuestManager = NewObject<UOrionQuestManager>(this, UOrionQuestManager::StaticClass());
 }
 
 void AOrionPlayerController::CompleteQuest(AOrionQuest *questToComplete)

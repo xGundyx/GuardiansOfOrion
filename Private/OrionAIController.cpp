@@ -13,6 +13,7 @@ AOrionAIController::AOrionAIController(const FObjectInitializer& ObjectInitializ
 {
 	MoveType = AIMOVE_WALKING;
 	bFinishedPath = true;
+	bWantsPlayerState = true;
 }
 
 void AOrionAIController::Possess(APawn* aPawn)
@@ -51,9 +52,9 @@ FVector AOrionAIController::GetRandomFlightPoint(bool bIsLanding)
 	{
 		FNavLocation pos;
 
-		if (GetWorld() && GetWorld()->GetNavigationSystem())
+		if (GetWorld() && GetWorld()->GetNavigationSystem() && GetPawn())
 		{
-			GetWorld()->GetNavigationSystem()->GetRandomPoint(pos);
+			GetWorld()->GetNavigationSystem()->GetRandomReachablePointInRadius(GetPawn()->GetActorLocation(), 25000.0f, pos);
 			return pos.Location;
 		}
 

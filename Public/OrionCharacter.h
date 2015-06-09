@@ -41,19 +41,19 @@ struct FWeaponAnim
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(BlueprintReadWrite, Category = Animation)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 		UAnimMontage* Weapon1P;
 
 	/** animation played on pawn (1st person view) */
-	UPROPERTY(BlueprintReadWrite, Category = Animation)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 		UAnimMontage* Pawn1P;
 
 	/** animation played on pawn (3rd person view) */
-	UPROPERTY(BlueprintReadWrite, Category = Animation)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 		UAnimMontage* Pawn3P;
 
 	/** animation played on the actual weapon model (mainly just reloads) */
-	UPROPERTY(BlueprintReadWrite, Category = Animation)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 		UAnimMontage* Weapon3P;
 
 	FWeaponAnim()
@@ -635,28 +635,28 @@ public:
 	//UPROPERTY(EditAnywhere, Category = Behavior)
 	//class UBehaviorTree* BotBehavior;
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Change 1P Armor"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Change 1P Armor"))
 		void EventUpdate1PArmor(int32 index);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Change Helmet"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Change Helmet"))
 		void EventUpdateHelmet(int32 index);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Change Chest"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Change Chest"))
 		void EventUpdateBody(int32 index);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Change Arms"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Change Arms"))
 		void EventUpdateArms(int32 index);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Change Legs"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Change Legs"))
 		void EventUpdateLegs(int32 index);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Change Flight1"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Change Flight1"))
 		void EventUpdateFlight1(int32 index);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Change Flight2"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Change Flight2"))
 		void EventUpdateFlight2(int32 index);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "Set Armor Color"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Set Armor Color"))
 		void EventUpdateArmorColor(int32 index);
 
 	UFUNCTION(BlueprintCallable, Category = Mesh)
@@ -898,7 +898,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = HUD)
 		UOrionHealthBar *MyHealthBar;
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (FriendlyName = "CreateHealthBar"))
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "CreateHealthBar"))
 		void EventCreateHealthBar();
 
 	void CreateHealthBar();

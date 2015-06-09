@@ -14,8 +14,8 @@ public:
 
 	virtual void Killed(AController* Killer, AController* KilledPlayer, APawn* KilledPawn, const UDamageType* DamageType);
 
-	virtual APlayerController* Login(class UPlayer* NewPlayer, const FString& Portal, const FString& Options, const TSharedPtr<class FUniqueNetId>& UniqueId, FString& ErrorMessage);
-	virtual void Logout(AController* Exiting);
+	virtual APlayerController* Login(UPlayer* NewPlayer, ENetRole RemoteRole, const FString& Portal, const FString& Options, const TSharedPtr<FUniqueNetId>& UniqueId, FString& ErrorMessage) override;
+	virtual void Logout(AController* Exiting) override;
 
 	void SpawnItems(AActor *Spawner);
 

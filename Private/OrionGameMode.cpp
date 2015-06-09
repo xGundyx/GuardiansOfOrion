@@ -124,9 +124,9 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 	return Damage;
 }
 
-APlayerController* AOrionGameMode::Login(class UPlayer* NewPlayer, const FString& Portal, const FString& Options, const TSharedPtr<class FUniqueNetId>& UniqueId, FString& ErrorMessage)
+APlayerController* AOrionGameMode::Login(UPlayer* NewPlayer, ENetRole RemoteRole, const FString& Portal, const FString& Options, const TSharedPtr<FUniqueNetId>& UniqueId, FString& ErrorMessage)
 {
-	APlayerController *rPC = Super::Login(NewPlayer, Portal, Options, UniqueId, ErrorMessage);
+	APlayerController *rPC = Super::Login(NewPlayer, RemoteRole, Portal, Options, UniqueId, ErrorMessage);
 
 #if IS_SERVER
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(NewPlayer);
