@@ -6,6 +6,7 @@
 #include "OrionArmor.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "OrionHealthBar.h"
+//#include "AI/Navigation/NavigationInvokerComponent.h"
 //#include "OrionHoverVehicle.h"
 #include "OrionCharacter.generated.h"
 
@@ -233,6 +234,9 @@ public:
 
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 		class USkeletalMeshComponent* Arms1PArmorMesh;
+
+	//UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+	//	UNavigationInvokerComponent* InvokerComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Classes)
 		TSubclassOf<class UOrionHealthBar>  DefaultHealthBarClass;
@@ -597,7 +601,7 @@ public:
 	void EndBlink();
 	void ActuallyTeleport();
 
-	void DoBlinkEffect(bool bOn);
+	void DoBlinkEffect(bool bOn, FVector pos);
 
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerBlink(FVector Pos);

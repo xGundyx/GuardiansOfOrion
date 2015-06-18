@@ -13,7 +13,8 @@ class ORION_API AOrionDropPodTarget : public AActor
 {
 	GENERATED_BODY()
 	
-	
-	
-	
+public:
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Spawn)
+		int32 TeamIndex;
 };

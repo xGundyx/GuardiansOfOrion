@@ -131,12 +131,15 @@ void AOrionWeapon::AttachMeshToPawn()
 			if (Mesh3P)
 				Mesh3P->SetHiddenInGame(MyPawn->IsFirstPerson() || MyPawn->bBlinking);
 			//Mesh1P->AttachTo(PawnMesh1p, AttachPoint);
-			if (PawnMesh1p)
+			if (PawnMesh1p && PawnMesh1p->SkeletalMesh)
 				AttachRootComponentTo(PawnMesh1p, AttachPoint);// , EAttachLocation::KeepWorldPosition);
-			if (Mesh3P)
+			if (Mesh3P && Mesh3P->SkeletalMesh)
 				Mesh3P->AttachTo(PawnMesh3p, AttachPoint);
 
-			if (PawnMesh1p)
+			//add it to the outliner
+			Mesh3P->SetRenderCustomDepth(true);
+
+			if (PawnMesh1p && PawnMesh1p->SkeletalMesh)
 			{
 				PawnMesh1p->SetWorldScale3D(FVector(InstantConfig.WeaponScale));
 				PawnMesh1p->UpdateBounds();
@@ -156,6 +159,9 @@ void AOrionWeapon::AttachMeshToPawn()
 				UseWeaponMesh->AttachTo(UsePawnMesh, AttachPoint);
 				UseWeaponMesh->SetHiddenInGame(false || MyPawn->bBlinking);
 			}
+
+			//make sure it's not in the outliner
+			Mesh3P->SetRenderCustomDepth(false);
 		}
 	}
 }
