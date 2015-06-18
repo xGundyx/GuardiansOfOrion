@@ -64,6 +64,9 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 	GetMesh()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 
+	//InvokerComponent = ObjectInitializer.CreateOptionalDefaultSubobject<UNavigationInvokerComponent>(this, TEXT("NavInvoker"));
+	//InvokerComponent->bAutoActivate = true;
+
 	Arms1PMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Arms1PMesh1P"));
 	Arms1PMesh->AlwaysLoadOnClient = true;
 	Arms1PMesh->AlwaysLoadOnServer = false;
@@ -1394,6 +1397,18 @@ void AOrionCharacter::UpdatePawnMeshes()
 	if (CurrentWeapon)
 		CurrentWeapon->AttachMeshToPawn();
 	//	CurrentWeapon->OnEquip();
+
+	//if we're a local player controller, set us up to render outlines behind walls
+	if (Controller && Controller->IsLocalPlayerController())
+	{
+		GetMesh()->SetRenderCustomDepth(true);
+		BodyMesh->SetRenderCustomDepth(true);
+		HelmetMesh->SetRenderCustomDepth(true);
+		ArmsMesh->SetRenderCustomDepth(true);
+		LegsMesh->SetRenderCustomDepth(true);
+		Flight1Mesh->SetRenderCustomDepth(true);
+		Flight2Mesh->SetRenderCustomDepth(true);
+	}
 }
 
 class UPawnMovementComponent* AOrionCharacter::GetMovementComponent() const
@@ -1697,12 +1712,12 @@ void AOrionCharacter::OnRep_Teleport()
 	if (BlinkPos == FVector(0, 0, 0))
 	{
 		bBlinking = false;
-		DoBlinkEffect(false);
+		DoBlinkEffect(false, GetActorLocation());
 	}
 	else
 	{
 		bBlinking = true;
-		DoBlinkEffect(true);
+		DoBlinkEffect(true, BlinkPos);
 		LastTeleportTime = GetWorld()->GetTimeSeconds();
 	}
 
@@ -1732,9 +1747,15 @@ void AOrionCharacter::Blink(FVector dir)
 			FVector EndPos = GetActorLocation() + dir * (4 - i) * 250.0f;
 			if (GetWorld()->GetNavigationSystem()->ProjectPointToNavigation(EndPos, loc, FVector(125.0f, 125.0f, 1000.0f), GetWorld()->GetNavigationSystem()->GetNavDataForProps(props)))
 			{
+				FVector StartPos = GetActorLocation();
 				EndPos = loc.Location + GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 				if (TeleportTo(EndPos, GetActorRotation()))
+				{
+					if (GetNetMode() != NM_DedicatedServer)
+						DoBlinkEffect(true, StartPos);
+
 					BlinkPos = EndPos;
+				}
 				else // teleport failed, need a better way to handle this
 					return;
 				break;
@@ -1746,9 +1767,6 @@ void AOrionCharacter::Blink(FVector dir)
 
 		bBlinking = true;
 		LastTeleportTime = GetWorld()->GetTimeSeconds();
-
-		if (GetNetMode() != NM_DedicatedServer)
-			DoBlinkEffect(true);
 	}
 	else
 		return;
@@ -1772,10 +1790,10 @@ void AOrionCharacter::EndBlink()
 
 	//become visible again
 	if (GetNetMode() != NM_DedicatedServer)
-		DoBlinkEffect(false);
+		DoBlinkEffect(false, GetActorLocation());
 }
 
-void AOrionCharacter::DoBlinkEffect(bool bOn)
+void AOrionCharacter::DoBlinkEffect(bool bOn, FVector pos)
 {
 	UpdatePawnMeshes();
 	//GetMesh()->SetHiddenInGame(bOn);
@@ -1789,10 +1807,10 @@ void AOrionCharacter::DoBlinkEffect(bool bOn)
 
 	if (BlinkFX)
 	{
-		UParticleSystemComponent* BlinkPSC = UGameplayStatics::SpawnEmitterAttached(BlinkFX, GetMesh());
+		UParticleSystemComponent* BlinkPSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BlinkFX, pos);
 		if (BlinkPSC)
 		{
-			BlinkPSC->SetWorldScale3D(FVector(1.0f));
+			BlinkPSC->SetWorldScale3D(FVector(3.0f));
 		}
 	}
 }

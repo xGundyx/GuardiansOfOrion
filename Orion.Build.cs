@@ -15,11 +15,17 @@ public class Orion : ModuleRules
         get { return Path.GetFullPath(Path.Combine(ModulePath, "../../External/")); }
     }
 
+    private string VoxelPath
+    {
+        get { return Path.GetFullPath(Path.Combine(ModulePath, "../../Source/Voxel/sdk_2.0.3.99/MD/")); }
+    }
+
 	public Orion(TargetInfo Target)
 	{
         Definitions.Add("ORIONONLINESUBSYSTEMPLAYFAB_PACKAGE=1");
 
-        PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "InputCore", "RHI", "RenderCore", "OnlineSubsystem", "ShaderCore", "Slate", "SlateCore", "UMG", "Sockets", "Networking", "Json", "JsonUtilities" });
+        PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "InputCore", "RHI", "RenderCore", "OnlineSubsystem", "ShaderCore", "Slate", "SlateCore", 
+            "UMG", "Sockets", "Networking", "Json", "JsonUtilities", "OrionVoxel", "UnrealEd", "ProceduralMeshComponent" });
 
         LoadPlayFab(Target);
 	}
@@ -63,6 +69,13 @@ public class Orion : ModuleRules
 
                 Definitions.Add("IS_SERVER=1");
             }
+
+            //voxel farm stuff
+            PublicAdditionalLibraries.Add(Path.Combine(VoxelPath, "lib", "x64", "VoxelFarmLibrary.lib"));
+            PublicAdditionalLibraries.Add(Path.Combine(VoxelPath, "lib", "x64", "VoxelFarmIOLibrary.lib"));
+
+            PublicIncludePaths.Add(Path.Combine(VoxelPath, "Engine.CPP"));
+            PublicIncludePaths.Add(Path.Combine(VoxelPath, "IO.LIB"));
 
             PublicIncludePaths.Add(Path.Combine(ThirdPartyPath, "Shared"));
         }
