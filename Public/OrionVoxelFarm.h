@@ -1,35 +1,23 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
-//voxelfarm includes
-#include "AllowWindowsPlatformTypes.h"
-#pragma warning (disable: 4263)
-#pragma warning (disable: 4264)
-
-using namespace std;
-#include "VoxelFarm.h"
-#include "BundleDataByteParser.h"
-#include "BundleProject.h"
-#include "Worley.h"
-#include "HydroTile.h"
-#include "FileUtils.h"
-#include "ClipmapView.h"
-#include "VoxelDB.h"
-#include "BlockData.h"
-
-#pragma warning (default: 4263)
-#pragma warning (default: 4264)
-#include "HideWindowsPlatformTypes.h"
-//end voxelfarm
-
 #include "OrionVoxelMain.h"
 #include "ProceduralMeshComponent.h"
-
 #include "OrionVoxelFarm.generated.h"
 
-using namespace VoxelFarm::Bundle;
-using namespace VoxelFarm;
-using namespace VoxelFarm::Architecture;
+USTRUCT()
+struct FProceduralSeamItem
+{
+	GENERATED_BODY()
+
+	UPROPERTY()
+		UProceduralMeshComponent *Comp;
+
+	UPROPERTY()
+		UMaterialInstanceDynamic *Mat;
+
+	bool operator==(const FProceduralSeamItem Other) const { return Comp == Other.Comp; }
+};
 
 USTRUCT()
 struct FProceduralMeshItem
@@ -37,7 +25,17 @@ struct FProceduralMeshItem
 	GENERATED_BODY()
 
 	__int64 CellData;
-	UProceduralMeshComponent *Comp;
+	UPROPERTY()
+		UProceduralMeshComponent *Comp;
+
+	UPROPERTY()
+		TArray<FProceduralSeamItem> Seams;
+
+	float SolidPercent;
+	bool bRemoving;
+
+	UPROPERTY()
+		UMaterialInstanceDynamic *Mat;
 
 	bool operator==(const FProceduralMeshItem Other) const { return CellData == Other.CellData; }
 	bool operator==(const __int64 Other) const { return CellData == Other; }
@@ -61,6 +59,8 @@ public:
 
 	void Tick(float DeltaSeconds) override;
 	void BeginPlay() override;
+	void BeginDestroy() override;
+	bool ShouldTickIfViewportsOnly() const override;
 
 	void InitializeTerrain();
 
@@ -70,6 +70,11 @@ public:
 	void CleanupCells();
 	void CleanupSeams();
 
+	void UpdateCells(float DeltaTime);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Voxel)
+		int32 RandomSeed;
+
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "AddMesh"))
 		void EventAddMesh(const TArray<FVector> &Vertices, const TArray<FVector> &Normals, const TArray<int32> &Indices, const TArray<FColor> &Colors, const TArray<FVector2D> &UVs, FProceduralHelper &Comp);
 
@@ -78,9 +83,13 @@ public:
 
 	//UPROPERTY(BlueprintReadWrite, Category = Procedural)
 		TArray<FProceduralMeshItem> MeshArray;
+		TArray<FProceduralMeshItem> MeshesToDelete;
+
+		TArray<__int64> ActivateArray;
+		TArray<__int64> DeactivateArray;
 
 	bool RemoveCell(__int64 CellData);
-	void AddCell(TArray<FVector> Vertices, TArray<FVector> Normals, TArray<int32> Indices, TArray<FColor> Colors, TArray<FVector2D> UVs, __int64 CellData);
+	void AddCell(TArray<FVector> Vertices, TArray<FVector> Normals, TArray<int32> Indices, TArray<FColor> Colors, TArray<FVector2D> UVs, __int64 CellData, bool bSeam = false);
 private:
 
 	AOrionVoxelMain *VoxFarm;

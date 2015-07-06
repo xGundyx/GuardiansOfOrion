@@ -6,6 +6,7 @@
 #include "OrionArmor.h"
 #include "BehaviorTree/BehaviorTree.h"
 #include "OrionHealthBar.h"
+#include "OrionGib.h"
 //#include "AI/Navigation/NavigationInvokerComponent.h"
 //#include "OrionHoverVehicle.h"
 #include "OrionCharacter.generated.h"
@@ -17,6 +18,39 @@ class AOrionSquad;
 class AOrionAIController;
 class AOrionShipPawn;
 class AOrionPlayerController;
+class AOrionAbility;
+
+USTRUCT()
+struct FGibReplicate
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		int32 Index;
+
+	UPROPERTY()
+		FName Socket;
+};
+
+USTRUCT(BlueprintType)
+struct FGibHelper
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gibs)
+		TSubclassOf<class AOrionGib> Gib;
+
+	UPROPERTY()
+		bool bActivated;
+
+	float TimeTillBloodDecal;
+
+	FGibHelper()
+	{
+		TimeTillBloodDecal = -1.0f;
+		bActivated = false;
+	}
+};
 
 //this holds a player's character stats, it gets updated whenever gear changes or level up
 USTRUCT(BlueprintType)
@@ -630,6 +664,33 @@ public:
 	AOrionWeapon *GetWeaponFromType(EItemType Type);
 	void CheckWeaponEquipped();
 
+	UFUNCTION(reliable, client, Category = Inventory)
+		void ClientEquipWeapon(class AOrionWeapon* Weapon);
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gibs)
+		TArray<FGibHelper> Gibs;
+
+	void HandleGibs(float damage, FDamageEvent const& DamageEvent);
+
+	//UFUNCTION(unreliable, client, Category = Gibs)
+	void SpawnGibs(int32 index, FVector pos, FRotator rot);
+
+	UPROPERTY(EditDefaultsOnly, Category = Gibs)
+		UParticleSystem* BloodSpurtFX;
+
+	UPROPERTY(EditDefaultsOnly, Category = Gibs)
+		UMaterialInstanceConstant* BloodDecal;
+
+	UFUNCTION()
+		void OnRep_Gibs();
+
+	UPROPERTY(ReplicatedUsing = OnRep_Gibs)
+		FGibReplicate GibRep;
+
+	TArray<FDecalHelper> BloodDecals;
+	
+	void UpdateBloodDecals(float DeltaSeconds);
+
 	void AddAimKick(FRotator Kick);
 	void ResetAimKick();
 	void ProcessAimKick(FRotator& OutViewRotation, FRotator& OutDeltaRot);
@@ -777,6 +838,38 @@ public:
 		FVector AimPos;
 
 	UFUNCTION(server, reliable, WithValidation)
+		void ServerActivateSkill();
+		bool ServerActivateSkill_Validate();
+		void ServerActivateSkill_Implementation();
+
+	//called by the client to try and use a skill
+	void TryToActivateSkill();
+
+	//called by authority to activate a skill
+	void ActivateSkill();
+
+	void SpawnDefaultAbilities();
+
+	//array for future use if we want multiple abilities on one character
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Skill)
+		TArray<TSubclassOf<class AOrionAbility> > AbilityClasses;
+
+	//our current ability
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Skill)
+		AOrionAbility *CurrentSkill;
+
+	UPROPERTY(BlueprintReadOnly, Category = Skill)
+		TArray<UMaterialInstanceDynamic*> CharacterMats;
+
+	UPROPERTY(BlueprintReadOnly, Category = Skill)
+		TArray<UMaterialInstanceDynamic*> CharacterCloakMats;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Skill)
+		UMaterialInstance *CloakParent;
+
+	virtual void InitMaterials();
+
+	UFUNCTION(server, reliable, WithValidation)
 		void ServerSetAimPos(FVector pos);
 		bool ServerSetAimPos_Validate(FVector pos);
 		void ServerSetAimPos_Implementation(FVector pos);
@@ -882,6 +975,8 @@ public:
 	FVector CameraLocation;
 
 	AOrionSquad *Squad;
+
+	bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
 
 protected:
 	// APawn interface

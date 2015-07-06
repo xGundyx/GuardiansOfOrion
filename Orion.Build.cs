@@ -15,18 +15,20 @@ public class Orion : ModuleRules
         get { return Path.GetFullPath(Path.Combine(ModulePath, "../../External/")); }
     }
 
-    private string VoxelPath
-    {
-        get { return Path.GetFullPath(Path.Combine(ModulePath, "../../Source/Voxel/sdk_2.0.3.99/MD/")); }
-    }
-
 	public Orion(TargetInfo Target)
 	{
         Definitions.Add("ORIONONLINESUBSYSTEMPLAYFAB_PACKAGE=1");
 
-        PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "InputCore", "RHI", "RenderCore", "OnlineSubsystem", "ShaderCore", "Slate", "SlateCore", 
-            "UMG", "Sockets", "Networking", "Json", "JsonUtilities", "OrionVoxel", "UnrealEd", "ProceduralMeshComponent" });
-
+        if (Target.Type == TargetRules.TargetType.Editor)
+        {
+            PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "InputCore", "RHI", "RenderCore", "OnlineSubsystem", "ShaderCore", "Slate", "SlateCore", 
+                "UMG", "Sockets", "Networking", "Json", "JsonUtilities", "OrionVoxel", "UnrealEd", "ProceduralMeshComponent" });
+        }
+        else
+        {
+            PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "InputCore", "RHI", "RenderCore", "OnlineSubsystem", "ShaderCore", "Slate", "SlateCore", 
+             "UMG", "Sockets", "Networking", "Json", "JsonUtilities", "OrionVoxel",/* "UnrealEd",*/ "ProceduralMeshComponent" });
+        }
         LoadPlayFab(Target);
 	}
 
@@ -41,11 +43,14 @@ public class Orion : ModuleRules
             if (Target.Type != TargetRules.TargetType.Server)
             {
                 PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabClientSDK", "lib", "x64", "PlayFabClientAPI.lib"));
-                PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabClientSDK", "dependencies", "lib", "x64", "libcurl.lib"));
-                PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabClientSDK", "dependencies", "lib", "x64", "libeay32.lib"));
-                PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabClientSDK", "dependencies", "lib", "x64", "ssleay32.lib"));
-                PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabClientSDK", "dependencies", "lib", "x64", "zlib.lib"));
-                PublicAdditionalLibraries.Add("Wldap32.Lib");
+                if (Target.Type == TargetRules.TargetType.Editor)
+                {
+                   // PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabClientSDK", "dependencies", "lib", "x64", "libcurl.lib"));
+                    //PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabClientSDK", "dependencies", "lib", "x64", "libeay32.lib"));
+                    //PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabClientSDK", "dependencies", "lib", "x64", "ssleay32.lib"));
+                    //PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabClientSDK", "dependencies", "lib", "x64", "zlib.lib"));
+                    //PublicAdditionalLibraries.Add("Wldap32.Lib");
+                }
 
                 PublicIncludePaths.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabClientSDK", "include"));
                 PublicIncludePaths.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabClientSDK", "dependencies", "include"));
@@ -59,23 +64,17 @@ public class Orion : ModuleRules
             {
                 //only the server needs access to these
                 PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabServerSDK", "lib", "x64", "PlayFabServerAPI.lib"));
-                PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabServerSDK", "dependencies", "lib", "x64", "libcurl.lib"));
-                PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabServerSDK", "dependencies", "lib", "x64", "libeay32.lib"));
-                PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabServerSDK", "dependencies", "lib", "x64", "ssleay32.lib"));
-                PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabServerSDK", "dependencies", "lib", "x64", "zlib.lib"));
+              //  PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabServerSDK", "dependencies", "lib", "x64", "libcurl.lib"));
+               // PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabServerSDK", "dependencies", "lib", "x64", "libeay32.lib"));
+              //  PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabServerSDK", "dependencies", "lib", "x64", "ssleay32.lib"));
+                //PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabServerSDK", "dependencies", "lib", "x64", "zlib.lib"));
+               // PublicAdditionalLibraries.Add("Wldap32.Lib");
 
                 PublicIncludePaths.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabServerSDK", "include"));
                 PublicIncludePaths.Add(Path.Combine(ThirdPartyPath, "PlayFabSDK", "PlayFabServerSDK", "dependencies", "include"));
 
                 Definitions.Add("IS_SERVER=1");
             }
-
-            //voxel farm stuff
-            PublicAdditionalLibraries.Add(Path.Combine(VoxelPath, "lib", "x64", "VoxelFarmLibrary.lib"));
-            PublicAdditionalLibraries.Add(Path.Combine(VoxelPath, "lib", "x64", "VoxelFarmIOLibrary.lib"));
-
-            PublicIncludePaths.Add(Path.Combine(VoxelPath, "Engine.CPP"));
-            PublicIncludePaths.Add(Path.Combine(VoxelPath, "IO.LIB"));
 
             PublicIncludePaths.Add(Path.Combine(ThirdPartyPath, "Shared"));
         }

@@ -250,7 +250,8 @@ void AOrionInventoryManager::EquipItems(AOrionCharacter *aPawn, EItemType SlotTy
 		if (SlotType != ITEM_ANY)
 			break;
 
-	case ITEM_PRIMARYWEAPON:
+	//disable until finalized and default weapons are in
+	/*case ITEM_PRIMARYWEAPON:
 		Weapon = Cast<AOrionWeapon>(WeaponSlot1->Inventory[0]);
 		OtherWeapon = aPawn->GetWeaponFromType(ITEM_PRIMARYWEAPON);
 
@@ -290,7 +291,7 @@ void AOrionInventoryManager::EquipItems(AOrionCharacter *aPawn, EItemType SlotTy
 		bSwitchWeapon = false;
 
 		if (SlotType != ITEM_ANY)
-			break;
+			break;*/
 	}
 }
 

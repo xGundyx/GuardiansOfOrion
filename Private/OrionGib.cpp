@@ -1,0 +1,59 @@
+#include "Orion.h"
+#include "OrionGib.h"
+
+AOrionGib::AOrionGib(const FObjectInitializer& ObjectInitializer)
+	: Super(ObjectInitializer.SetDefaultSubobjectClass<UOrionMovementComponent>(ACharacter::CharacterMovementComponentName))
+{
+	Mesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("GibMesh"));
+	Mesh->AlwaysLoadOnClient = true;
+	Mesh->AlwaysLoadOnServer = true;
+
+	static FName CollisionProfileName(TEXT("Ragdoll"));
+	Mesh->SetCollisionProfileName(CollisionProfileName);
+
+	Mesh->bReceivesDecals = false;
+	Mesh->SetSimulatePhysics(true);
+
+	DoBloodSpurt = false;
+
+	PrimaryActorTick.bCanEverTick = true;
+}
+
+void AOrionGib::Tick(float DeltaSeconds)
+{
+	if (BloodDecal.Mat)
+	{
+		//update our decal if needed
+		BloodDecal.TimeLeft = BloodDecal.TimeLeft - DeltaSeconds * 0.1f;
+		BloodDecal.Mat->SetScalarParameterValue("Time_M", FMath::Min(0.99f, 1.2f - BloodDecal.TimeLeft));
+
+		if (BloodDecal.TimeLeft <= -1.0f)
+		{
+			BloodDecal.Mat = NULL;
+		}
+	}
+}
+
+void AOrionGib::BeginPlay()
+{
+	Super::BeginPlay();
+
+	FTimerHandle THandle;
+	GetWorldTimerManager().SetTimer(THandle, this, &AOrionGib::SpawnBlood, 2.0f, false);
+}
+
+void AOrionGib::SpawnBlood()
+{
+	if (BloodMat)
+	{
+		UDecalComponent *Dec = UGameplayStatics::SpawnDecalAtLocation(GetWorld(), BloodMat, FVector(FMath::RandRange(64, 128), FMath::RandRange(64, 128), 32.0f), Mesh->GetSocketLocation(FName(TEXT("Blood"))), FRotator(-90, 0, 0), 30.0f);
+		
+		if (Dec)
+		{
+			BloodDecal.Mat = UMaterialInstanceDynamic::Create(Dec->GetMaterial(0), this);
+			BloodDecal.TimeLeft = 1.2f;
+
+			Dec->SetMaterial(0, BloodDecal.Mat);
+		}
+	}
+}

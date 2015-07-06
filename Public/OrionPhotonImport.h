@@ -4,6 +4,8 @@
 #pragma clang diagnostic ignored "-Woverloaded-virtual"
 #endif
 
+#if !IS_SERVER
+
 #if _EG_WINDOWS_PLATFORM
 #include "AllowWindowsPlatformTypes.h"
 #pragma warning (disable: 4263)
@@ -15,4 +17,6 @@
 #pragma warning (default: 4263)
 #pragma warning (default: 4264)
 #include "HideWindowsPlatformTypes.h"
+#endif
+
 #endif

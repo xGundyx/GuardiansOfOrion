@@ -12,7 +12,7 @@ AOrionPhotonClient::AOrionPhotonClient(const FObjectInitializer& ObjectInitializ
 {
 	PrimaryActorTick.bCanEverTick = true;
 }
-
+#if !IS_SERVER
 void AOrionPhotonClient::BeginPlay()
 {
 	Super::BeginPlay();
@@ -79,3 +79,5 @@ void AOrionPhotonClient::SendChatMessage(FString Channel, FString Message)
 		chatclient->opPublishMessage(*Channel, ExitGames::Common::Helpers::ValueToObject::get(*Message));
 	}
 }
+
+#endif

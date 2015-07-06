@@ -1,5 +1,7 @@
 #pragma once
 
+//#if !IS_SERVER
+
 #include "GameFramework/Actor.h"
 #include "OrionLoadBalancing.h"
 #include "OrionChatListener.h"
@@ -12,14 +14,9 @@ class ORION_API AOrionPhotonClient : public AActor
 
 public:
 	AOrionPhotonClient(const FObjectInitializer& ObjectInitializer);
-
+#if !IS_SERVER
 	void BeginPlay() override;
 	void Tick(float DeltaSeconds) override;
-
-	FString serverAddress;
-	FString AppID;
-	FString ChatAppID;
-	FString appVersion;
 
 	void SendChatMessage(FString Channel, FString Message);
 
@@ -31,4 +28,10 @@ private:
 
 	UOrionLoadBalancing* listener;
 	UOrionChatListener* chatlistener;
+#endif
+public:
+	FString serverAddress;
+	FString AppID;
+	FString ChatAppID;
+	FString appVersion;
 };

@@ -28,7 +28,7 @@ public:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 
-	virtual void SetShip(AOrionShipPawn *Ship){}
+	virtual void SetShip(AOrionShipPawn *Ship, int32 Index){}
 
 	UPROPERTY(BlueprintReadOnly, Category = Game)
 		bool bTeamGame;

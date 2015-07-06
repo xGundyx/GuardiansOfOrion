@@ -8,6 +8,12 @@
 AOrionGRI::AOrionGRI(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	static ConstructorHelpers::FObjectFinder<UBlueprint> MapperObject(TEXT("/Game/InventoryLists/GooInventoryMapper"));
+	if (MapperObject.Object != NULL)
+	{
+		DefaultMapperClass = (UClass*)MapperObject.Object->GeneratedClass;
+	}
+
 	PrimaryActorTick.bCanEverTick = true;
 	bAlwaysShowCursor = false;
 	bTeamGame = false;
@@ -22,6 +28,7 @@ void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionGRI, bTopDown);
 	DOREPLIFETIME(AOrionGRI, bTeamGame);
 	DOREPLIFETIME(AOrionGRI, Teams);
+	DOREPLIFETIME(AOrionGRI, Weather);
 	/*DOREPLIFETIME(AShooterGameState, NumTeams);
 	DOREPLIFETIME(AShooterGameState, RemainingTime);
 	DOREPLIFETIME(AShooterGameState, bTimerPaused);
@@ -54,15 +61,11 @@ bool AOrionGRI::OnSameTeam(AOrionPRI *Actor1, AOrionPRI *Actor2)
 
 void AOrionGRI::Tick(float DeltaSeconds)
 {
-	if (Role < ROLE_Authority)
-	{
-		return;
-	}
-
 	if (Weather)
 	{
 		Weather->UpdateWeather(DeltaSeconds);
-		WorldTime = Weather->TheTime;
+		if (Role == ROLE_Authority)
+			WorldTime = Weather->TheTime;
 	}
 }
 
@@ -75,17 +78,31 @@ void AOrionGRI::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (Role == ROLE_Authority)
-		InitTeams();
+	//initialize our mapper
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.bNoCollisionFail = true;
+
+	Mapper = GetWorld()->SpawnActor<AOrionPlayFabInventoryMapper>(DefaultMapperClass, SpawnInfo);
 }
 
 bool AOrionGRI::AddPlayerToTeam(AOrionPlayerController *PC, int32 Index)
 {
+	if (Role == ROLE_Authority && Teams.Num() <= 0)
+		InitTeams();
+
+	if (!PC || Teams.Num() <= Index)
+		return false;
+
 	for (int32 i = 0; i < Teams.Num(); i++)
 	{
 		if (Teams[i].TeamIndex == Index)
 		{
 			Teams[i].TeamMembers.AddUnique(Cast<AOrionPRI>(PC->PlayerState));
+			AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+
+			if (PRI)
+				PRI->SetTeamIndex(Index);
+
 			return true;
 		}
 	}
@@ -95,6 +112,9 @@ bool AOrionGRI::AddPlayerToTeam(AOrionPlayerController *PC, int32 Index)
 
 void AOrionGRI::RemovePlayerFromTeam(AOrionPlayerController *PC, int32 Index)
 {
+	if (!PC || Teams.Num() <= Index)
+		return;
+
 	for (int32 i = 0; i < Teams.Num(); i++)
 	{
 		if (Teams[i].TeamIndex == Index)
@@ -107,6 +127,8 @@ void AOrionGRI::RemovePlayerFromTeam(AOrionPlayerController *PC, int32 Index)
 
 void AOrionGRI::InitTeams()
 {
+	Teams.Empty();
+
 	FTeamInfo newTeam;
 
 	//Purple Team
@@ -118,7 +140,7 @@ void AOrionGRI::InitTeams()
 	Teams.Add(newTeam);
 
 	//Random Dino Team
-	newTeam.TeamIndex = 2;
-	Teams.Add(newTeam);
+	////newTeam.TeamIndex = 2;
+	////Teams.Add(newTeam);
 }
 

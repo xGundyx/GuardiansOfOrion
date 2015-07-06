@@ -2,23 +2,16 @@
 
 #pragma once
 
+#if !IS_SERVER
+
 #include "Object.h"
 #include "OrionPhotonImport.h"
 //#include "OrionLoadBalancing.generated.h"
 
 class AOrionPhotonClient;
 
-//using ExitGames::Client::Photon::LoadBalancing;
-
-/**
- * 
- */
-//UCLASS()
-class /*ORION_API*/ UOrionLoadBalancing : public ExitGames::LoadBalancing::Listener
+class UOrionLoadBalancing : public ExitGames::LoadBalancing::Listener
 {
-	//GENERATED_BODY()
-	
-	
 public:
 	UOrionLoadBalancing(AOrionPhotonClient *newView){ view = newView; gridSize = 16; map = "TestMap"; }
 	~UOrionLoadBalancing(){}
@@ -67,3 +60,5 @@ private:
 
 	ExitGames::LoadBalancing::Client *client;
 };
+
+#endif

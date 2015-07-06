@@ -17,6 +17,8 @@ AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObjectI
 	PlayerCameraManagerClass = AOrionPlayerCameraManager::StaticClass();
 
 	//RainPSC = ObjectInitializer.CreateOptionalDefaultSubobject<UParticleSystemComponent>(this, TEXT("Rain"));
+
+	bHideWeapons = false;
 }
 
 void AOrionPlayerController::AttemptLogin(FString UserName, FString Password)
@@ -114,7 +116,8 @@ void AOrionPlayerController::GetPlayerViewPoint(FVector& OutCamLoc, FRotator& Ou
 	if(MyPawn && !MyPawn->IsFirstPerson())
 	{
 		Super::GetPlayerViewPoint(OutCamLoc, OutCamRot);
-		OutCamLoc = MyPawn->CameraLocation;
+		if (IsLocalPlayerController())
+			OutCamLoc = MyPawn->CameraLocation;
 	}
 	else
 	{
@@ -244,6 +247,7 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 			PRI->InventoryManager->EquipItems(newPawn, ITEM_ANY);
 		}
 	}
+	
 }
 
 void AOrionPlayerController::PlayerTick(float DeltaTime)
@@ -290,6 +294,16 @@ void AOrionPlayerController::TestSettings()
 	{
 		GEngine->GameUserSettings->ApplySettings(true);
 	}
+}
+
+void AOrionPlayerController::HideWeapons()
+{
+	bHideWeapons = true;
+}
+
+void AOrionPlayerController::ShowWeapons()
+{
+	bHideWeapons = false;
 }
 
 void AOrionPlayerController::PerfectDay()
@@ -990,8 +1004,8 @@ void AOrionPlayerController::GetDefaultInventory()
 
 void AOrionPlayerController::InitStatsAndAchievements()
 {
-	Stats = NewObject<UOrionStats>(this, UOrionStats::StaticClass());
-	Achievements = NewObject<UOrionAchievements>(this, UOrionAchievements::StaticClass());
+	//Stats = NewObject<UOrionStats>(this, UOrionStats::StaticClass());
+	//Achievements = NewObject<UOrionAchievements>(this, UOrionAchievements::StaticClass());
 }
 
 void AOrionPlayerController::ReadStats()

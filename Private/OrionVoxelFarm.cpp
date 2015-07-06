@@ -1,31 +1,29 @@
 #include "Orion.h"
 #include "OrionVoxelFarm.h"
 
-CMaterialLibrary materialLibrary;
-CArchitectureManager architectureManager;
-CSimplexWorld* simplexWorld;
-CSimplexWorldTerrainPage simplexPages(simplexWorld);
-CInstanceSimplexWorld instanceManagerSimplex(simplexWorld, &architectureManager);
-CGenerator worldGenerator;
-CBlockData blockData;
-CHeightmapWaterLayer waterLayer(&simplexPages, 63, 16000.0, 47000.0); 
-CClipmapView clipmapView(&materialLibrary, &worldGenerator, &blockData);
-ContourThreadContext* threadContext;// = VF_NEW VoxelFarm::ContourThreadContext();
-CCellData::ThreadContext* threadContextCellData;// = VF_NEW VoxelFarm::CCellData::ThreadContext();
-IO::CVoxelDB voxelDB;
-//BlockIOHandler blockIO;
-
 #define VOXELSCALE 20.0f
 #define VOXELLOD 2
+#define MAX_CELLS_PROCESSED 2
+#define MAX_LOD_RENDERED 15
 
 AOrionVoxelFarm::AOrionVoxelFarm(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	PrimaryActorTick.bCanEverTick = true;
+	RandomSeed = -1;
+}
+
+//make us tick during level editing
+bool AOrionVoxelFarm::ShouldTickIfViewportsOnly() const
+{
+	return GetWorld() != nullptr;
 }
 
 void AOrionVoxelFarm::Tick(float DeltaSeconds)
 {
+	if (VoxFarm == NULL && RandomSeed > -1)
+		InitializeTerrain();
+
 	Super::Tick(DeltaSeconds);
 
 	//update the view to match the player's view
@@ -34,15 +32,40 @@ void AOrionVoxelFarm::Tick(float DeltaSeconds)
 		FVector pos = GetActorLocation();
 		FVector dir;
 
+		UpdateCells(DeltaSeconds);
+
 		//if (GEngine)
 		//	pos = GEngine->GetFirstLocalPlayerController(GetWorld())->PlayerCameraManager->GetCameraLocation();
-
+#if WITH_EDITOR
 		if (GEditor)
 		{
-			FEditorViewportClient* client = (FEditorViewportClient*)GEditor->GetActiveViewport()->GetClient();
-			pos = client->GetViewLocation();
-			dir = client->GetViewRotation().Vector();
+			if (GEngine && GEngine->GetFirstLocalPlayerController(GetWorld()) && Cast<AOrionCharacter>(GEngine->GetFirstLocalPlayerController(GetWorld())->GetPawn()))
+			{
+				FRotator rot;
+				GEngine->GetFirstLocalPlayerController(GetWorld())->GetPlayerViewPoint(pos, rot);
+				dir = rot.Vector();
+			}
+			else
+			{
+				FEditorViewportClient* client = (FEditorViewportClient*)GEditor->GetActiveViewport()->GetClient();
+				pos = client->GetViewLocation();
+				dir = client->GetViewRotation().Vector();
+			}
 		}
+		else if (GEngine)
+		{
+			FRotator rot;
+			GEngine->GetFirstLocalPlayerController(GetWorld())->GetPlayerViewPoint(pos, rot);
+			dir = rot.Vector();
+		}
+#else
+		if (GEngine)
+		{
+			FRotator rot;
+			GEngine->GetFirstLocalPlayerController(GetWorld())->GetPlayerViewPoint(pos, rot);
+			dir = rot.Vector();
+		}
+#endif
 
 		////UE_LOG(LogTemp, Warning, TEXT("ClipMapPos %f %f %f"), pos.X, pos.Y, pos.Z);
 
@@ -67,8 +90,8 @@ void AOrionVoxelFarm::Tick(float DeltaSeconds)
 
 		CleanupCells();
 
-		if (bRet)
-			return;
+		//if (bRet)
+		//	return;
 
 		bool NewScene = false;
 		VoxFarm->IsSceneNew(&NewScene);
@@ -92,33 +115,147 @@ void AOrionVoxelFarm::Tick(float DeltaSeconds)
 					int32 index = MeshArray.Find(tItem);
 					if (index != INDEX_NONE)
 					{
-						MeshArray[index].Comp->SetHiddenInGame(false);
+						if (MeshArray[index].SolidPercent < 1.0f)
+							ActivateArray.AddUnique(MeshArray[index].CellData);
+
+						DeactivateArray.Remove(MeshArray[index].CellData);
+
 						VisibleItems.Add(index);
-						//showCell(sceneCells[c]);
-						//tmp_visibleCells.Add(sceneCells[c]);
 					}
-					// a cell is in the scene but not in unity. we came across an empty cell.
+					// a cell is in the scene but not in unreal. we came across an empty cell.
 				}
 
 				for (int32 i = 0; i < MeshArray.Num(); i++)
 				{
 					if (VisibleItems.Find(i) == INDEX_NONE)
-						MeshArray[i].Comp->SetHiddenInGame(true);
+					{
+						if (MeshArray[i].SolidPercent > 0.0f)
+							DeactivateArray.AddUnique(MeshArray[i].CellData);
+
+						ActivateArray.Remove(MeshArray[i].CellData);
+					}
 				}
 
 				VisibleItems.Empty();
-
-				//foreach(KeyValuePair<Int64, GameObject> entry in cells_)
-				//	if (!tmp_visibleCells.Contains(entry.Key))
-				//		hideCell(entry.Key);
-
-				//tmp_visibleCells.Clear();
-
-				//Resources.UnloadUnusedAssets();
 			}
 		}
 		VoxFarm->Idle();
 		//CleanupSeams();
+	}
+}
+
+//update material parameters for fading in/out
+void AOrionVoxelFarm::UpdateCells(float DeltaTime)
+{
+	float FadeSpeed = 2.5f;
+
+	for (auto iter(ActivateArray.CreateIterator()); iter; iter++)
+	//for (int32 i = 0; i < ActivateArray.Num(); i++)
+	{
+		float Target = 1.0f;
+
+		FProceduralMeshItem tItem;
+		tItem.CellData = *iter;
+
+		int32 index = MeshArray.Find(tItem);
+
+		if (index != INDEX_NONE)
+		{
+			Target = FMath::Min(1.0f, MeshArray[index].SolidPercent + DeltaTime * FadeSpeed);
+
+			MeshArray[index].Mat->SetScalarParameterValue(FName(TEXT("SolidPercent")), Target);
+			MeshArray[index].SolidPercent = Target;
+
+			//update the seams
+			for (int32 j = 0; j < MeshArray[index].Seams.Num(); j++)
+			{
+				MeshArray[index].Seams[j].Mat->SetScalarParameterValue(FName(TEXT("SolidPercent")), Target);
+			}
+
+			if (Target >= 1.0f)
+			{
+				ActivateArray.Remove(MeshArray[index].CellData);
+			}
+		}
+		else
+		{
+			__int64 CellToRemove = *iter;
+			ActivateArray.Remove(CellToRemove);
+		}
+	}
+
+	//make sure everything is active before removing old meshes
+	if (ActivateArray.Num() > 0)
+		return;
+
+	for (auto iter2(DeactivateArray.CreateIterator()); iter2; iter2++)
+	//for (int32 i = 0; i < DeactivateArray.Num(); i++)
+	{
+		float Target = 1.0f;
+
+		FProceduralMeshItem tItem;
+		tItem.CellData = *iter2;
+
+		int32 index = MeshArray.Find(tItem);
+
+		if (index != INDEX_NONE)
+		{
+			Target = FMath::Max(0.0f, MeshArray[index].SolidPercent - DeltaTime * FadeSpeed);
+
+			MeshArray[index].Mat->SetScalarParameterValue(FName(TEXT("SolidPercent")), Target);
+			MeshArray[index].SolidPercent = Target;
+
+			//update the seams
+			for (int32 j = 0; j < MeshArray[index].Seams.Num(); j++)
+			{
+				MeshArray[index].Seams[j].Mat->SetScalarParameterValue(FName(TEXT("SolidPercent")), Target);
+			}
+
+			if (Target <= 0.0f)
+			{
+				DeactivateArray.Remove(MeshArray[index].CellData);
+			}
+		}
+		else
+			DeactivateArray.Remove(*iter2);
+	}
+
+	for (auto iter3(MeshesToDelete.CreateIterator()); iter3; iter3++)
+	{
+		float Target = 1.0f;
+
+		//FProceduralMeshItem Item = *iter3;
+
+		Target = FMath::Max(0.0f, iter3->SolidPercent - DeltaTime * FadeSpeed);
+
+		iter3->Mat->SetScalarParameterValue(FName(TEXT("SolidPercent")), Target);
+		iter3->SolidPercent = Target;
+
+		//update the seams
+		for (int32 j = 0; j < iter3->Seams.Num(); j++)
+		{
+			iter3->Seams[j].Mat->SetScalarParameterValue(FName(TEXT("SolidPercent")), Target);
+		}
+
+		if (Target <= 0.0f)
+		{
+			//remove it!
+			FProceduralMeshItem Mesh;
+			Mesh.CellData = iter3->CellData;
+
+			for (int32 j = 0; j < iter3->Seams.Num(); j++)
+			{
+				iter3->Seams[j].Comp->ClearAllMeshSections();
+				iter3->Seams[j].Comp = NULL;
+			}
+
+			iter3->Seams.Empty();
+
+			iter3->Comp->ClearAllMeshSections();
+			iter3->Comp = NULL;
+
+			MeshesToDelete.RemoveSingle(Mesh);
+		}
 	}
 }
 
@@ -157,46 +294,70 @@ bool AOrionVoxelFarm::RemoveCell(__int64 CellData)
 {
 	bool bRet = false;
 
-	for (auto iter(MeshArray.CreateIterator()); iter; iter++)
-	//for (int32 i = 0; i < MeshArray.Num(); i++)
+	FProceduralMeshItem tItem;
+	tItem.CellData = CellData;
+
+	int32 index = MeshArray.Find(tItem);
+
+	if (index != INDEX_NONE)
 	{
-		FProceduralMeshItem Mesh = *iter;
+		DeactivateArray.Remove(CellData);
+		ActivateArray.Remove(CellData);
 
-		if (Mesh.CellData == CellData)
-		{
-			MeshArray.RemoveSingle(*iter);
+		MeshesToDelete.AddUnique(MeshArray[index]);
+		MeshArray.Remove(tItem);
 
-			Mesh.Comp->ClearAllMeshSections();
-			//Mesh.Comp->DestroyComponent();
-			Mesh.Comp = NULL;
-			Mesh.CellData = 0;
-
-			bRet = true;
-		}
+		bRet = true;
 	}
 
 	return bRet;
 }
 
-void AOrionVoxelFarm::AddCell(TArray<FVector> Vertices, TArray<FVector> Normals, TArray<int32> Indices, TArray<FColor> Colors, TArray<FVector2D> UVs, __int64 CellData)
+void AOrionVoxelFarm::AddCell(TArray<FVector> Vertices, TArray<FVector> Normals, TArray<int32> Indices, TArray<FColor> Colors, TArray<FVector2D> UVs, __int64 CellData, bool bSeam)
 {
 	FProceduralMeshItem NewCell;
 	FProceduralHelper NewComp;
 
 	NewCell.CellData = CellData;
+	EventAddMesh(Vertices, Normals, Indices, Colors, UVs, NewComp);
 
-	//FString fStr = FString("ProcMesh %lld", (long long)CellData);
-	//NewComp = ConstructObject<UProceduralMeshComponent>(UProceduralMeshComponent::StaticClass(), this, FName(*fStr));
+	if (NewComp.Comp == NULL)
+		return;
 
-	//if (NewComp)
+	UMaterialInstanceDynamic* MI = UMaterialInstanceDynamic::Create(NewComp.Comp->GetMaterial(0), this);
+
+	NewComp.Comp->SetMaterial(0, MI);
+
+	if (bSeam)
 	{
-		//TArray<FVector2D> UV0;
-		//TArray<FColor> VertexColors;
-		//TArray<FProcMeshTangent> Tangents;
-		//NewComp->CreateMeshSection(0, Vertices, Indices, Normals, UV0, VertexColors, Tangents, false);
-		EventAddMesh(Vertices, Normals, Indices, Colors, UVs, NewComp);
+		int32 index = MeshArray.Find(NewCell);
+		if (index != INDEX_NONE)
+		{
+			FProceduralSeamItem NewSeam;
+			NewSeam.Comp = NewComp.Comp;
+
+			NewSeam.Mat = MI;
+			MI->SetScalarParameterValue(FName(TEXT("SolidPercent")), MeshArray[index].SolidPercent);
+			MeshArray[index].Seams.Add(NewSeam);
+		}
+		else
+		{
+			//error!
+		}
+	}
+	else
+	{
 		NewCell.Comp = NewComp.Comp;
-		MeshArray.Add(NewCell);
+		NewCell.Mat = MI;
+		NewCell.bRemoving = false;
+		NewCell.SolidPercent = 0.0f;
+
+		ActivateArray.AddUnique(CellData);
+		DeactivateArray.Remove(CellData);
+
+		MI->SetScalarParameterValue(FName(TEXT("SolidPercent")), 0.0f);
+
+		MeshArray.AddUnique(NewCell);
 	}
 }
 
@@ -211,80 +372,92 @@ bool AOrionVoxelFarm::ProcessCells()
 	bool bImmediate;
 	bool bRet = false;
 
+	int32 CellsProcessed = 0;
+	int level = 0;
+
 	//get cell
-	VoxFarm->GetNextCellToBake(&CellID, &CellData, &bImmediate);
+	VoxFarm->GetNextCellToBake(&CellID, &CellData, &bImmediate, &level);
 
 	while (CellData != 0)
 	{
-		//do stuff to it
-		int VertexCount;
-		float *Vertices = NULL;
-		float *Normals = NULL;
-		float *FaceNormals = NULL;
-		unsigned int *MaterialsA = NULL;
-		unsigned int *MaterialsB = NULL;
-
-		VoxFarm->GetCellGeometry(&VertexCount, &Vertices, &Normals, &FaceNormals, &MaterialsA, &MaterialsB, CellData);
-
-		//unpack the id so we can use it properly
-		float x = 0.0f;
-		float y = 0.0f;
-		float z = 0.0f;
-
-		//now that we have some data, create some meshes with it!
-		TArray<FVector> VertexBuffer;
-		TArray<FVector> NormalBuffer;
-		TArray<int32> IndexBuffer;
-		TArray<FColor> ColorBuffer;
-		TArray<FVector2D> UVBuffer;
-		
-		float scale = 1.0f;
-		
-		VoxFarm->CellTransform(&x, &y, &z, &scale, CellData);
-
-		//int32 MeshIndex = int32(x / scale) 
-		//	+ int32(y / scale) * 1024 
-		//	+ int32(z / scale) * 1024 * 1024;
-
-		for (int32 i = 0; i < VertexCount * 3; i += 3)
+		//ignore things above a certain lod
+		if (level < MAX_LOD_RENDERED)
 		{
-			FVector vert(Vertices[i], -Vertices[i + 2], Vertices[i + 1]);
+			//do stuff to it
+			int VertexCount;
+			float *Vertices = NULL;
+			float *Normals = NULL;
+			float *FaceNormals = NULL;
+			unsigned int *MaterialsA = NULL;
+			unsigned int *MaterialsB = NULL;
 
-			vert *= scale;
-			vert += FVector(x, -z, y);
-			vert *= VOXELSCALE;
+			VoxFarm->GetCellGeometry(&VertexCount, &Vertices, &Normals, &FaceNormals, &MaterialsA, &MaterialsB, CellData);
 
-			VertexBuffer.Add(vert);
+			//unpack the id so we can use it properly
+			float x = 0.0f;
+			float y = 0.0f;
+			float z = 0.0f;
 
-			FVector norm(Normals[i], -Normals[i + 2], Normals[i + 1]);
-			NormalBuffer.Add(norm);
+			//now that we have some data, create some meshes with it!
+			TArray<FVector> VertexBuffer;
+			TArray<FVector> NormalBuffer;
+			TArray<int32> IndexBuffer;
+			TArray<FColor> ColorBuffer;
+			TArray<FVector2D> UVBuffer;
 
-			IndexBuffer.Add(i);
-			IndexBuffer.Add(i + 2);
-			IndexBuffer.Add(i + 1);
+			float scale = 1.0f;
 
-			//materials
-			byte *bPtrA = new byte[VertexCount * 4];
-			memcpy(bPtrA, MaterialsA, sizeof(byte) * VertexCount * 4);
+			VoxFarm->CellTransform(&x, &y, &z, &scale, CellData);
 
-			byte *bPtrB = new byte[VertexCount * 4];
-			memcpy(bPtrB, MaterialsB, sizeof(byte) * VertexCount * 4);
+			//int32 MeshIndex = int32(x / scale) 
+			//	+ int32(y / scale) * 1024 
+			//	+ int32(z / scale) * 1024 * 1024;
 
-			int16 matId1 = bPtrA[i / 3 * 4];
-			int16 matId2 = bPtrA[i / 3 * 4 + 2];
-			int16 matId3 = bPtrB[i / 3 * 4];
+			for (int32 i = 0; i < VertexCount * 3; i += 3)
+			{
+				FVector vert(Vertices[i], -Vertices[i + 2], Vertices[i + 1]);
 
-			float div = 1;// materialCount;
-			FColor col(matId1, matId2, matId3, 255);
-			ColorBuffer.Add(col);
+				vert *= scale;
+				vert += FVector(x, -z, y);
+				vert *= VOXELSCALE;
 
-			UVBuffer.Add(FVector2D((float)bPtrB[i / 3 * 4 + 2] / 255, (float)bPtrB[i / 3 * 4 + 3] / 255));
+				VertexBuffer.Add(vert);
 
-			delete bPtrA;
-			delete bPtrB;
+				FVector norm(Normals[i], -Normals[i + 2], Normals[i + 1]);
+				NormalBuffer.Add(norm);
+
+				if (i % 9 == 0)
+				{
+					IndexBuffer.Add(i / 3);
+					IndexBuffer.Add(i / 3 + 2);
+					IndexBuffer.Add(i / 3 + 1);
+				}
+
+				//materials
+				uint8 *bPtrA = new uint8[VertexCount * 4];
+				memcpy(bPtrA, MaterialsA, sizeof(uint8) * VertexCount * 4);
+
+				uint8 *bPtrB = new uint8[VertexCount * 4];
+				memcpy(bPtrB, MaterialsB, sizeof(uint8) * VertexCount * 4);
+
+				int16 matId1 = bPtrA[i / 3 * 4];
+				int16 matId2 = bPtrA[i / 3 * 4 + 2];
+				int16 matId3 = bPtrB[i / 3 * 4];
+
+				float div = 1;// materialCount;
+				FColor col(matId1, matId2, matId3, 255);
+				ColorBuffer.Add(col);
+
+				UVBuffer.Add(FVector2D((float)bPtrB[i / 3 * 4 + 2] / 255.0f, (float)bPtrB[i / 3 * 4 + 3] / 255.0f));
+
+				delete bPtrA;
+				delete bPtrB;
+			}
+
+			AddCell(VertexBuffer, NormalBuffer, IndexBuffer, ColorBuffer, UVBuffer, CellData, false);
+
+			CellsProcessed++;
 		}
-
-		AddCell(VertexBuffer, NormalBuffer, IndexBuffer, ColorBuffer, UVBuffer, CellData);
 
 		//release cell
 		VoxFarm->NotifyCellBaked(CellID, CellData);
@@ -292,10 +465,13 @@ bool AOrionVoxelFarm::ProcessCells()
 		CellID = 0;
 		CellData = 0;
 
-		//try for more!
-		VoxFarm->GetNextCellToBake(&CellID, &CellData, &bImmediate);
-
 		bRet = true;
+
+		if (CellsProcessed >= MAX_CELLS_PROCESSED)
+			break;
+
+		//try for more!
+		VoxFarm->GetNextCellToBake(&CellID, &CellData, &bImmediate, &level);
 	}
 
 	return bRet;
@@ -307,80 +483,91 @@ bool AOrionVoxelFarm::ProcessSeams()
 	__int64 CellData = 0;
 	bool bRet = false;
 
+	int32 CellsProcessed = 0;
+	int level = 0;
+
 	//get cell
-	VoxFarm->GetNextSeam(&CellID, &CellData);
+	VoxFarm->GetNextSeam(&CellID, &CellData, &level);
 
 	while (CellData != 0)
 	{
-		//do stuff to it
-		int VertexCount;
-		float *Vertices = NULL;
-		float *Normals = NULL;
-		float *FaceNormals = NULL;
-		unsigned int *MaterialsA = NULL;
-		unsigned int *MaterialsB = NULL;
-
-		VoxFarm->GetSeamGeometry(&VertexCount, &Vertices, &Normals, &FaceNormals, &MaterialsA, &MaterialsB, CellData);
-
-		//unpack the id so we can use it properly
-		float x = 0.0f;
-		float y = 0.0f;
-		float z = 0.0f;
-
-		//now that we have some data, create some meshes with it!
-		TArray<FVector> VertexBuffer;
-		TArray<FVector> NormalBuffer;
-		TArray<int32> IndexBuffer;
-		TArray<FColor> ColorBuffer;
-		TArray<FVector2D> UVBuffer;
-
-		float scale = 1.0f;
-
-		VoxFarm->CellTransform(&x, &y, &z, &scale, CellData);
-
-		//int32 MeshIndex = int32(x / scale) 
-		//	+ int32(y / scale) * 1024 
-		//	+ int32(z / scale) * 1024 * 1024;
-
-		for (int32 i = 0; i < VertexCount * 3; i += 3)
+		if (level < MAX_LOD_RENDERED)
 		{
-			FVector vert(Vertices[i], -Vertices[i + 2], Vertices[i + 1]);
+			//do stuff to it
+			int VertexCount;
+			float *Vertices = NULL;
+			float *Normals = NULL;
+			float *FaceNormals = NULL;
+			unsigned int *MaterialsA = NULL;
+			unsigned int *MaterialsB = NULL;
 
-			vert *= scale;
-			vert += FVector(x, -z, y);
-			vert *= VOXELSCALE;
+			VoxFarm->GetSeamGeometry(&VertexCount, &Vertices, &Normals, &FaceNormals, &MaterialsA, &MaterialsB, CellData);
 
-			VertexBuffer.Add(vert);
+			//unpack the id so we can use it properly
+			float x = 0.0f;
+			float y = 0.0f;
+			float z = 0.0f;
 
-			FVector norm(Normals[i], -Normals[i + 2], Normals[i + 1]);
-			NormalBuffer.Add(norm);
+			//now that we have some data, create some meshes with it!
+			TArray<FVector> VertexBuffer;
+			TArray<FVector> NormalBuffer;
+			TArray<int32> IndexBuffer;
+			TArray<FColor> ColorBuffer;
+			TArray<FVector2D> UVBuffer;
 
-			IndexBuffer.Add(i);
-			IndexBuffer.Add(i + 2);
-			IndexBuffer.Add(i + 1);
+			float scale = 1.0f;
 
-			//materials
-			byte *bPtrA = new byte[VertexCount * 4];
-			memcpy(bPtrA, MaterialsA, sizeof(byte) * VertexCount * 4);
+			VoxFarm->CellTransform(&x, &y, &z, &scale, CellData);
 
-			byte *bPtrB = new byte[VertexCount * 4];
-			memcpy(bPtrB, MaterialsB, sizeof(byte) * VertexCount * 4);
+			//int32 MeshIndex = int32(x / scale) 
+			//	+ int32(y / scale) * 1024 
+			//	+ int32(z / scale) * 1024 * 1024;
 
-			int16 matId1 = bPtrA[i / 3 * 4];
-			int16 matId2 = bPtrA[i / 3 * 4 + 2];
-			int16 matId3 = bPtrB[i / 3 * 4];
+			for (int32 i = 0; i < VertexCount * 3; i += 3)
+			{
+				FVector vert(Vertices[i], -Vertices[i + 2], Vertices[i + 1]);
 
-			float div = 1;// materialCount;
-			FColor col(matId1, matId2, matId3, 255);
-			ColorBuffer.Add(col);
+				vert *= scale;
+				vert += FVector(x, -z, y);
+				vert *= VOXELSCALE;
 
-			UVBuffer.Add(FVector2D((float)bPtrB[i / 3 * 4 + 2] / 255, (float)bPtrB[i / 3 * 4 + 3] / 255));
+				VertexBuffer.Add(vert);
 
-			delete bPtrA;
-			delete bPtrB;
+				FVector norm(Normals[i], -Normals[i + 2], Normals[i + 1]);
+				NormalBuffer.Add(norm);
+
+				if (i % 9 == 0)
+				{
+					IndexBuffer.Add(i / 3);
+					IndexBuffer.Add(i / 3 + 2);
+					IndexBuffer.Add(i / 3 + 1);
+				}
+
+				//materials
+				uint8 *bPtrA = new uint8[VertexCount * 4];
+				memcpy(bPtrA, MaterialsA, sizeof(uint8) * VertexCount * 4);
+
+				uint8 *bPtrB = new uint8[VertexCount * 4];
+				memcpy(bPtrB, MaterialsB, sizeof(uint8) * VertexCount * 4);
+
+				int16 matId1 = bPtrA[i / 3 * 4];
+				int16 matId2 = bPtrA[i / 3 * 4 + 2];
+				int16 matId3 = bPtrB[i / 3 * 4];
+
+				float div = 1;// materialCount;
+				FColor col(matId1, matId2, matId3, 255);
+				ColorBuffer.Add(col);
+
+				UVBuffer.Add(FVector2D((float)bPtrB[i / 3 * 4 + 2] / 255, (float)bPtrB[i / 3 * 4 + 3] / 255));
+
+				delete bPtrA;
+				delete bPtrB;
+			}
+
+			AddCell(VertexBuffer, NormalBuffer, IndexBuffer, ColorBuffer, UVBuffer, CellData, true);
+
+			CellsProcessed++;
 		}
-
-		AddCell(VertexBuffer, NormalBuffer, IndexBuffer, ColorBuffer, UVBuffer, CellData);
 
 		//release cell
 		VoxFarm->NotifyBakedSeam(CellID, CellData);
@@ -388,9 +575,12 @@ bool AOrionVoxelFarm::ProcessSeams()
 		CellID = 0;
 		CellData = 0;
 
-		VoxFarm->GetNextSeam(&CellID, &CellData);
-
 		bRet = true;
+
+		if (CellsProcessed >= MAX_CELLS_PROCESSED)
+			break;
+
+		VoxFarm->GetNextSeam(&CellID, &CellData, &level);
 	}
 
 	return bRet;
@@ -400,7 +590,9 @@ void AOrionVoxelFarm::BeginPlay()
 {
 	Super::BeginPlay();
 
-	InitializeTerrain();
+	if (RandomSeed < 0)
+		RandomSeed = 180;
+		//InitializeTerrain();
 }
 
 void AOrionVoxelFarm::InitializeTerrain()
@@ -412,7 +604,23 @@ void AOrionVoxelFarm::InitializeTerrain()
 
 	if (VoxFarm)
 	{
-		VoxFarm->InitProject(TEXT("G:\\Users\\Gundy\\Documents\\Unreal Projects\\Orion\\Source\\Voxel\\sdk_2.0.3.99\\Examples\\TerrainExample2\\"));
+		//VoxFarm->InitProject(TEXT("G:\\Users\\Gundy\\Documents\\Unreal Projects\\Orion\\Source\\Voxel\\sdk_2.0.3.99\\Examples\\TerrainExample2\\"));
 		////VoxFarm->InitPerlin();
+		FString ProjDir = FPaths::GameDir();
+		ProjDir += "Voxel/";
+		VoxFarm->InitCustom(ProjDir);
 	}
+}
+
+void AOrionVoxelFarm::BeginDestroy()
+{
+	if (VoxFarm)
+	{
+		VoxFarm->ShutdownVoxel();
+		VoxFarm->Destroy();
+	}
+
+	VoxFarm = nullptr;
+
+	Super::BeginDestroy();
 }

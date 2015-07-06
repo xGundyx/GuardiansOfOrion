@@ -69,8 +69,13 @@ void UOrionTCPLink::GetCharacterData(AOrionPlayerController *PC)
 
 	ServerModels::GetCharacterDataRequest request;
 
-	request.PlayFabId = TCHAR_TO_UTF8(*PC->PlayFabID);
-	request.CharacterId = TCHAR_TO_UTF8(*PC->CharacterID);
+	AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+
+	if (!PRI)
+		return;
+
+	request.PlayFabId = TCHAR_TO_UTF8(*PRI->PlayFabID);
+	request.CharacterId = TCHAR_TO_UTF8(*PRI->CharacterID);
 
 	server.GetCharacterReadOnlyData(request, OnGetCharacterData, OnGetCharacterDataError, PC);
 }
@@ -127,8 +132,13 @@ void UOrionTCPLink::SaveCharacter(AOrionPlayerController *PC)
 
 	ServerModels::UpdateCharacterDataRequest request;
 
-	request.PlayFabId = TCHAR_TO_UTF8(*PC->PlayFabID);
-	request.CharacterId = TCHAR_TO_UTF8(*PC->CharacterID);
+	AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+
+	if (!PRI)
+		return;
+
+	request.PlayFabId = TCHAR_TO_UTF8(*PRI->PlayFabID);
+	request.CharacterId = TCHAR_TO_UTF8(*PRI->CharacterID);
 	request.Data = PC->GetInventoryData();
 	request.Permission = ServerModels::UserDataPermissionPublic;
 
@@ -196,6 +206,7 @@ bool UOrionTCPLink::Init(AOrionPlayerController *Owner)
 	PlayFabSettings::globalErrorHandler = GlobalErrorHandler;
 
 	PlayerOwner = Owner;
+	PhotonClient = nullptr; //this is needed to reinit the photon client when reconnecting
 
 	PFState = PFSTATE_NONE;
 
@@ -457,6 +468,7 @@ void UOrionTCPLink::OnSelectCharacterError(PlayFabError& error, void* userData)
 
 void UOrionTCPLink::GetPlayerStats(void *Stats)
 {
+	return;
 	//ClientModels::GetUserStatisticsRequest request;
 	//request.PlayFabID = TCHAR_TO_UTF8(*PlayFabID);
 	client.GetUserStatistics(OnGetStats, OnGetStatsFailed, Stats);
@@ -780,6 +792,11 @@ void UOrionTCPLink::OnGetCharacterList(ClientModels::RunCloudScriptResult& resul
 				Data.pName = CharacterObject->GetStringField("CharacterName");
 				Data.pClass = CharacterObject->GetStringField("CharacterType");
 				Data.CharacterID = CharacterObject->GetStringField("CharacterId");
+				Data.Level = FCString::Atoi(*CharacterObject->GetStringField("Level"));
+				Data.Sex = CharacterObject->GetStringField("Gender");
+				Data.SuitColor = CharacterObject->GetStringField("SuitColor");
+
+				ParseDisplayItems(CharacterObject, &Data);
 
 				CharacterDatas.Add(Data);
 			}
@@ -791,6 +808,41 @@ void UOrionTCPLink::OnGetCharacterList(ClientModels::RunCloudScriptResult& resul
 	//request.PhotonApplicationId = std::string("899b07e0-1737-4e33-a93d-9bdd550f17ba"); //realtime
 
 	client.GetPhotonAuthenticationToken(request, UOrionTCPLink::OnGetPhotonChatToken, UOrionTCPLink::OnGetPhotonChatTokenError);
+}
+
+void UOrionTCPLink::ParseDisplayItems(TSharedPtr<FJsonObject> jObject, FCharacterData* Data)
+{
+	TSharedPtr<FJsonObject> tObject = jObject->GetObjectField("Inventory");
+
+	TArray<TSharedPtr<FJsonValue>> InventoryObjects = tObject->GetArrayField(TEXT("Inventory"));
+
+	for (int32 i = 0; i < InventoryObjects.Num(); i++)
+	{
+		TSharedPtr<FJsonObject> InvObject = InventoryObjects[i]->AsObject();
+
+		FString slot = InvObject->GetStringField("ItemClass");
+
+		if (slot == TEXT("Helmet"))
+		{
+			Data->HelmetID.ItemName = InvObject->GetStringField("ItemId");
+			Data->HelmetID.InstanceID = InvObject->GetStringField("ItemInstanceID");
+		}
+		else if (slot == TEXT("Chest"))
+		{
+			Data->ChestID.ItemName = InvObject->GetStringField("ItemId");
+			Data->ChestID.InstanceID = InvObject->GetStringField("ItemInstanceID");
+		}
+		else if (slot == TEXT("Arms"))
+		{
+			Data->HandsID.ItemName = InvObject->GetStringField("ItemId");
+			Data->HandsID.InstanceID = InvObject->GetStringField("ItemInstanceID");
+		}
+		else if (slot == TEXT("Legs"))
+		{
+			Data->LegsID.ItemName = InvObject->GetStringField("ItemId");
+			Data->LegsID.InstanceID = InvObject->GetStringField("ItemInstanceID");
+		}
+	}
 }
 
 void UOrionTCPLink::OnGetPhotonChatToken(ClientModels::GetPhotonAuthenticationTokenResult& result, void* userData)

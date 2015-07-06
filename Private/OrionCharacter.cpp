@@ -445,6 +445,29 @@ bool AOrionCharacter::IsRolling() const
 	return bRolling;
 }
 
+void AOrionCharacter::SpawnDefaultAbilities()
+{
+	if (Role < ROLE_Authority)
+	{
+		return;
+	}
+
+	int32 NumAbilities = AbilityClasses.Num();
+	for (int32 i = 0; i < NumAbilities; i++)
+	{
+		if (AbilityClasses[i])
+		{
+			FActorSpawnParameters SpawnInfo;
+			SpawnInfo.bNoCollisionFail = true;
+			SpawnInfo.Owner = this;
+
+			CurrentSkill = GetWorld()->SpawnActor<AOrionAbility>(AbilityClasses[i], SpawnInfo);
+			//only do one ability for now
+			break;
+		}
+	}
+}
+
 void AOrionCharacter::SpawnDefaultInventory()
 {
 	if (Role < ROLE_Authority)
@@ -452,8 +475,6 @@ void AOrionCharacter::SpawnDefaultInventory()
 		return;
 	}
 
-	// #ttp 321024 - GDC: OrionGAME: Disable secondary weapon (temp)
-	// Temporary hack for GDC - add only the first weapon (rifle) thereby disabling the rocket launcher
 	int32 NumWeaponClasses = DefaultInventoryClasses.Num();
 	for (int32 i = 0; i < NumWeaponClasses; i++)
 	{
@@ -461,6 +482,7 @@ void AOrionCharacter::SpawnDefaultInventory()
 		{
 			FActorSpawnParameters SpawnInfo;
 			SpawnInfo.bNoCollisionFail = true;
+			SpawnInfo.Owner = this;
 			AOrionWeapon* NewWeapon = GetWorld()->SpawnActor<AOrionWeapon>(DefaultInventoryClasses[i], SpawnInfo);
 			AddWeapon(NewWeapon);
 		}
@@ -470,6 +492,7 @@ void AOrionCharacter::SpawnDefaultInventory()
 	if (Inventory.Num() > 0)
 	{
 		EquipWeapon(Inventory[0]);
+		ClientEquipWeapon(Inventory[0]);
 	}
 }
 
@@ -513,13 +536,17 @@ void AOrionCharacter::OnRep_Inventory()
 {
 	UpdatePawnMeshes();
 
+	//todo: make this check for best weapon to use when getting a new gun!
+	if (IsLocallyControlled() && Inventory.Num() > 0)
+		EquipWeapon(Inventory[0]);
+
 	//check to make sure everything is still valid, clean up old guns and whatnot
 
 }
 
 void AOrionCharacter::OnRep_NextWeapon()
 {
-	if (!IsLocallyControlled())
+	if (!IsLocallyControlled() && NextWeapon != nullptr)
 		SetCurrentWeapon(NextWeapon, CurrentWeapon);
 }
 
@@ -569,11 +596,13 @@ void AOrionCharacter::ReallyDoEquip()
 	// equip new one
 	if (NextWeapon)
 	{
-		NextWeapon->SetOwningPawn(this);	// Make sure weapon's MyPawn is pointing back to us. During replication, we can't guarantee APawn::CurrentWeapon will rep after AWeapon::MyPawn!
+		if (Role == ROLE_Authority)
+			NextWeapon->SetOwningPawn(this);	// Make sure weapon's MyPawn is pointing back to us. During replication, we can't guarantee APawn::CurrentWeapon will rep after AWeapon::MyPawn!
 		NextWeapon->OnEquip();
 	}
 
-	NextWeapon = nullptr;
+	//if (Role == ROLE_Authority)
+		//NextWeapon = nullptr;
 }
 
 void AOrionCharacter::DestroyInventory()
@@ -602,6 +631,7 @@ void AOrionCharacter::AddWeapon(AOrionWeapon* Weapon)
 	{
 		////Weapon->OnEnterInventory(this);
 		Inventory.AddUnique(Weapon);
+		Weapon->SetOwningPawn(this);
 	}
 }
 
@@ -683,6 +713,8 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, ShieldMax);
 	DOREPLIFETIME(AOrionCharacter, Shield);
 
+	DOREPLIFETIME(AOrionCharacter, GibRep);
+
 	DOREPLIFETIME(AOrionCharacter, HelmetArmor);
 	DOREPLIFETIME(AOrionCharacter, BodyArmor);
 	DOREPLIFETIME(AOrionCharacter, ArmsArmor);
@@ -698,7 +730,7 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME_CONDITION(AOrionCharacter, LastTakeHitInfo, COND_Custom);
 
 	//DOREPLIFETIME(AOrionCharacter, CurrentWeapon);
-	DOREPLIFETIME(AOrionCharacter, NextWeapon);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, NextWeapon, COND_SkipOwner);
 
 	DOREPLIFETIME(AOrionCharacter, Inventory);
 
@@ -835,14 +867,36 @@ bool AOrionCharacter::IsOnShip()
 	return false;
 }
 
+void AOrionCharacter::InitMaterials()
+{
+	//setup some materials
+	CharacterMats.SetNumUninitialized(5);
+	CharacterCloakMats.SetNumUninitialized(5);
+
+	CharacterMats[0] = UMaterialInstanceDynamic::Create(GetMesh()->GetMaterial(0), this); if (CharacterMats[0]) GetMesh()->SetMaterial(0, CharacterMats[0]);
+	CharacterMats[1] = UMaterialInstanceDynamic::Create(HelmetMesh->GetMaterial(0), this); if (CharacterMats[0]) HelmetMesh->SetMaterial(0, CharacterMats[1]);//head
+	CharacterMats[2] = UMaterialInstanceDynamic::Create(BodyMesh->GetMaterial(0), this); if (CharacterMats[0]) BodyMesh->SetMaterial(0, CharacterMats[2]);//body
+	CharacterMats[3] = UMaterialInstanceDynamic::Create(LegsMesh->GetMaterial(0), this); if (CharacterMats[0]) LegsMesh->SetMaterial(0, CharacterMats[3]);//legs
+	CharacterMats[4] = UMaterialInstanceDynamic::Create(ArmsMesh->GetMaterial(0), this); if (CharacterMats[0]) ArmsMesh->SetMaterial(0, CharacterMats[4]);//hands
+
+	CharacterCloakMats[0] = UMaterialInstanceDynamic::Create(CloakParent, this); CharacterCloakMats[0]->CopyParameterOverrides(CharacterMats[0]);
+	CharacterCloakMats[1] = UMaterialInstanceDynamic::Create(CloakParent, this); CharacterCloakMats[1]->CopyParameterOverrides(CharacterMats[1]);
+	CharacterCloakMats[2] = UMaterialInstanceDynamic::Create(CloakParent, this); CharacterCloakMats[2]->CopyParameterOverrides(CharacterMats[2]);
+	CharacterCloakMats[3] = UMaterialInstanceDynamic::Create(CloakParent, this); CharacterCloakMats[3]->CopyParameterOverrides(CharacterMats[3]);
+	CharacterCloakMats[4] = UMaterialInstanceDynamic::Create(CloakParent, this); CharacterCloakMats[4]->CopyParameterOverrides(CharacterMats[4]);
+}
+
 void AOrionCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
+	InitMaterials();
+
 	if (Role == ROLE_Authority)
 	{
-		Health = HealthMax;// GetMaxHealth();
+		Health = HealthMax;
 		SpawnDefaultInventory();
+		SpawnDefaultAbilities();
 	}
 
 	// set initial mesh visibility (3rd person view)
@@ -850,13 +904,143 @@ void AOrionCharacter::PostInitializeComponents()
 
 	//spawn our health bar hud element
 	if (GetNetMode() != NM_DedicatedServer)
-		CreateHealthBar();//EventCreateHealthBar();
+		CreateHealthBar();
+}
 
-	// create material instance for setting team colors (3rd person view)
-	/*for (int32 iMat = 0; iMat < Mesh->GetNumMaterials(); iMat++)
+void AOrionCharacter::HandleGibs(float damage, FDamageEvent const& DamageEvent)
+{
+	const FPointDamageEvent *RealEvent = (FPointDamageEvent*)&DamageEvent;
+	FName CurrentBone, TargetBone;
+
+	if (RealEvent)
 	{
-	MeshMIDs.Add(Mesh->CreateAndSetMaterialInstanceDynamic(iMat));
-	}*/
+		for (int32 i = 0; i < Gibs.Num(); i++)
+		{
+			if (Gibs[i].bActivated)
+				continue;
+
+			AOrionGib *Gib = Cast<AOrionGib>(Gibs[i].Gib.GetDefaultObject());
+
+			if (Gib && Gib->Mesh)
+			{
+				CurrentBone = RealEvent->HitInfo.BoneName;
+				TargetBone = GetMesh()->GetSocketBoneName(Gib->SocketName);
+
+				while (CurrentBone != NAME_None)
+				{
+					if (TargetBone == CurrentBone)
+					{
+						//do gib action
+						FVector pos;
+						FRotator rot;
+						GetMesh()->GetSocketWorldLocationAndRotation(Gib->SocketName, pos, rot);
+						SpawnGibs(i, pos, rot);
+
+						GibRep.Index = i;
+						GibRep.Socket = Gib->SocketName;
+
+						return;
+					}
+
+					CurrentBone = GetMesh()->GetParentBone(CurrentBone);
+				}
+			}
+		}
+	}
+}
+
+void AOrionCharacter::OnRep_Gibs()
+{
+	FVector pos;
+	FRotator rot;
+
+	GetMesh()->GetSocketWorldLocationAndRotation(GibRep.Socket, pos, rot);
+
+	SpawnGibs(GibRep.Index, pos, rot);
+}
+
+void AOrionCharacter::SpawnGibs(int32 index, FVector pos, FRotator rot)
+{
+	if (index >= Gibs.Num())
+		return;
+
+	//spawn the actual gib into the world
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.Owner = this;
+
+	AOrionGib *NewGib = GetWorld()->SpawnActor<AOrionGib>(Gibs[index].Gib, pos, rot, SpawnInfo);
+
+	if (NewGib)
+	{
+		//hide the bone on the mesh
+		GetMesh()->HideBoneByName(GetMesh()->GetSocketBoneName(NewGib->SocketName), PBO_None);
+		NewGib->Mesh->AddImpulse(FMath::VRand() * 1000.0f, NAME_None, true);
+		NewGib->BloodMat = BloodDecal;
+
+		Gibs[index].bActivated = true;			//make sure it only happens once
+		Gibs[index].TimeTillBloodDecal = 2.0f;	//delay the blood pool to give the mesh time to stop moving
+
+		if (NewGib->DoBloodSpurt)
+		{
+			UParticleSystemComponent* BloodPSC = UGameplayStatics::SpawnEmitterAttached(BloodSpurtFX, GetMesh(), NewGib->SocketName);
+		}
+	}
+}
+
+void AOrionCharacter::UpdateBloodDecals(float DeltaSeconds)
+{
+	//first update any timers relating to pending blood decals
+	for (auto giter(Gibs.CreateIterator()); giter; giter++)
+	{
+		if (giter && giter->bActivated && giter->TimeTillBloodDecal >= 0.0f)
+		{
+			giter->TimeTillBloodDecal -= DeltaSeconds;
+
+			if (giter->TimeTillBloodDecal <= 0.0f)
+			{
+				giter->TimeTillBloodDecal = -1.0f;
+
+				AOrionGib *Gib = Cast<AOrionGib>(giter->Gib.GetDefaultObject());
+
+				if (BloodDecal && Gib && Gib->Mesh)
+				{
+					FVector pos;
+					FRotator rot;
+					GetMesh()->GetSocketWorldLocationAndRotation(Gib->SocketName, pos, rot);
+
+					UDecalComponent *Dec = UGameplayStatics::SpawnDecalAtLocation(GetWorld(), BloodDecal, FVector(FMath::RandRange(64, 128), FMath::RandRange(64, 128), 32.0f), pos, FRotator(-90, 0, 0), 30.0f);
+					if (Dec)
+					{
+						FDecalHelper NewDecal;
+						NewDecal.Mat = UMaterialInstanceDynamic::Create(Dec->GetMaterial(0), this);
+						NewDecal.TimeLeft = 1.2f;
+
+						Dec->SetMaterial(0, NewDecal.Mat);
+
+						BloodDecals.Add(NewDecal);
+					}
+				}
+			}
+		}
+	}
+
+	for (auto iter(BloodDecals.CreateIterator()); iter; iter++)
+	{
+		if (iter && iter->Mat->IsValidLowLevel())
+		{
+			iter->TimeLeft = iter->TimeLeft - DeltaSeconds * 0.1f;
+			iter->Mat->SetScalarParameterValue("Time_M", FMath::Min(0.99f, 1.2f - iter->TimeLeft));
+
+			if (iter->TimeLeft <= -1.0f)
+			{
+				FDecalHelper tDecal;
+				tDecal.Mat = iter->Mat;
+				BloodDecals.Remove(tDecal);
+				//iter->Mat = NULL;
+			}
+		}
+	}
 }
 
 float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser)
@@ -865,6 +1049,9 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 	if (Health <= 0.f)
 	{
+		//see if we want to blow some body pieces off
+		HandleGibs(Damage, DamageEvent);
+
 		return 0.f;
 	}
 
@@ -916,6 +1103,9 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 		if (Health <= 0)
 		{
 			Die(ActualDamage, DamageEvent, EventInstigator, DamageCauser);
+
+			//see if we want to blow some body pieces off
+			HandleGibs(Damage, DamageEvent);
 		}
 		else
 		{
@@ -1161,6 +1351,11 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	}
 }
 
+void AOrionCharacter::ClientEquipWeapon_Implementation(AOrionWeapon *Weapon)
+{
+	SetCurrentWeapon(Weapon);
+}
+
 void AOrionCharacter::OnRep_ReplicatedAnimation()
 {
 	//skip if this animation is only played locally
@@ -1335,6 +1530,38 @@ void AOrionCharacter::PossessedBy(class AController* InController)
 	}
 }
 
+bool AOrionCharacter::IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const
+{
+	if (bAlwaysRelevant || RealViewer == Controller || IsOwnedBy(ViewTarget) || IsOwnedBy(RealViewer) || this == ViewTarget || ViewTarget == Instigator
+		|| IsBasedOnActor(ViewTarget) || (ViewTarget && ViewTarget->IsBasedOnActor(this)))
+	{
+		return true;
+	}
+	else if ((bHidden || bOnlyRelevantToOwner) && (!GetRootComponent() || !GetRootComponent()->IsCollisionEnabled()))
+	{
+		return false;
+	}
+	else
+	{
+		UPrimitiveComponent* MovementBase = GetMovementBase();
+		AActor* BaseActor = MovementBase ? MovementBase->GetOwner() : NULL;
+		if (MovementBase && BaseActor && GetMovementComponent() && ((Cast<const USkeletalMeshComponent>(MovementBase)) || (BaseActor == GetOwner())))
+		{
+			return BaseActor->IsNetRelevantFor(RealViewer, ViewTarget, SrcLocation);
+		}
+	}
+
+	const AOrionPlayerController *PC = Cast<AOrionPlayerController>(RealViewer);
+	FRotator Rot;
+	FVector Pos;// = SrcLocation;
+	if (PC)
+		PC->GetPlayerViewPoint(Pos, Rot);
+	else
+		Pos = SrcLocation;
+
+	return ((Pos - GetActorLocation()).SizeSquared() < NetCullDistanceSquared);
+}
+
 USkeletalMeshComponent* AOrionCharacter::GetMeshFromIndex(int32 index) const
 {
 	switch (index)
@@ -1423,6 +1650,12 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 	UpdateRootYaw(DeltaSeconds);
 
 	UpdateAimKick(DeltaSeconds);
+
+	UpdateBloodDecals(DeltaSeconds);
+
+	//hax for now
+	//if (CurrentWeapon == NULL && Inventory.Num() > 0)
+	//	EquipWeapon(Inventory[0]);
 }
 
 void AOrionCharacter::UpdateAimKick(float DeltaSeconds)
@@ -1510,6 +1743,49 @@ void AOrionCharacter::SetupPlayerInputComponent(class UInputComponent* InputComp
 
 	InputComponent->BindAction("NextWeapon", IE_Pressed, this, &AOrionCharacter::OnNextWeapon);
 	InputComponent->BindAction("PrevWeapon", IE_Pressed, this, &AOrionCharacter::OnPrevWeapon);
+
+	InputComponent->BindAction("ActivateSkill", IE_Pressed, this, &AOrionCharacter::TryToActivateSkill);
+}
+
+void AOrionCharacter::TryToActivateSkill()
+{
+	if (Role < ROLE_Authority)
+		ServerActivateSkill();
+	else
+		ActivateSkill();
+}
+
+bool AOrionCharacter::ServerActivateSkill_Validate()
+{
+	return true;
+}
+
+void AOrionCharacter::ServerActivateSkill_Implementation()
+{
+	//try to activate our current skill
+	ActivateSkill();
+}
+
+void AOrionCharacter::ActivateSkill()
+{
+	UOrionMovementComponent *comp = Cast<UOrionMovementComponent>(GetMovementComponent());
+	if (!comp || comp->MovementMode == MOVE_Flying)
+		return;
+
+	if (CurrentSkill)
+	{
+		if (!CurrentSkill->IsSkillActive())
+		{
+			if (CurrentSkill->ActivateSkill())
+			{
+
+			}
+		}
+		else
+		{
+			CurrentSkill->DeactivateSkill();
+		}
+	}
 }
 
 void AOrionCharacter::OnNextWeapon()
@@ -1672,7 +1948,15 @@ void AOrionCharacter::TryToBlink()
 		//convert this to a direction for us
 		ncRot.Pitch = 0.0f;
 		ncRot.Roll = 0.0f;
-		ncRot.Yaw = (FVector(X, Y, 0) - FVector(X1, Y1, 0) / 2.0f).GetSafeNormal().Rotation().Yaw + (CameraIndex == 0 ? 0 : -180) + 45.0f + 90.0f;
+		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+		int32 cIndex = CameraIndex;
+
+		if (PRI && CameraIndex == 0)
+			cIndex = PRI->GetTeamIndex();
+		else
+			cIndex = FMath::Max(0, CameraIndex - 1);
+
+		ncRot.Yaw = (FVector(X, Y, 0) - FVector(X1, Y1, 0) / 2.0f).GetSafeNormal().Rotation().Yaw + (cIndex == 0 ? 0 : -180) + 45.0f + 90.0f;
 
 		dir = ncRot.Vector();
 	}
@@ -1810,7 +2094,7 @@ void AOrionCharacter::DoBlinkEffect(bool bOn, FVector pos)
 		UParticleSystemComponent* BlinkPSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), BlinkFX, pos);
 		if (BlinkPSC)
 		{
-			BlinkPSC->SetWorldScale3D(FVector(3.0f));
+			BlinkPSC->SetWorldScale3D(FVector(2.0f));
 		}
 	}
 }

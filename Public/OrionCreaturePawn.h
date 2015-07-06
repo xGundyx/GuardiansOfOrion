@@ -15,4 +15,6 @@ class ORION_API AOrionCreaturePawn : public AOrionDinoPawn
 	
 public:
 	AOrionCreaturePawn(const FObjectInitializer& ObjectInitializer);
+
+	void InitMaterials() {} //no instances needed
 };

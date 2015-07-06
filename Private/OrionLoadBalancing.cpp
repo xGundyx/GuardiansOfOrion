@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Orion.h"
+#if !IS_SERVER
 #include "OrionLoadBalancing.h"
 
 using namespace ExitGames::Common;
@@ -123,3 +124,5 @@ void UOrionLoadBalancing::onLobbyStatsResponse(const ExitGames::Common::JVector<
 void UOrionLoadBalancing::onRoomPropertiesChange(const ExitGames::Common::Hashtable& changes)
 {
 }
+
+#endif

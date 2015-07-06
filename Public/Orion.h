@@ -14,7 +14,9 @@
 #include "OrionPlayerController.h"
 #include "OrionTCPLink.h"
 #include "UMG.h"
+#if WITH_EDITOR
 #include "UnrealEd.h"
+#endif
 //#include "OrionAIController.h"
 //#include "OrionDroidController.h"
 //#include "OrionDinoController.h"

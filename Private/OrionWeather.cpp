@@ -9,6 +9,8 @@ AOrionWeather::AOrionWeather(const FObjectInitializer& ObjectInitializer)
 {
 	//RainPSC = ObjectInitializer.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("Rain"));
 	//SnowPSC = ObjectInitializer.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("Snow"));
+	bReplicates = true;
+	bAlwaysRelevant = true;
 }
 
 #if WITH_EDITOR
@@ -29,9 +31,10 @@ void AOrionWeather::BeginPlay()
 	if (Cast<AOrionGRI>(GWorld->GameState))
 	{
 		if (Role == ROLE_Authority)
+		{
 			ChooseWeather();
-
-		Cast<AOrionGRI>(GWorld->GameState)->SetWeather(this);
+			Cast<AOrionGRI>(GWorld->GameState)->SetWeather(this);
+		}
 	}
 
 	/*if (RainPSC)
@@ -96,8 +99,11 @@ void AOrionWeather::StartRaining()
 {
 	ClearWeatherTimers();
 
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(PlayerOwner);
+
 	//if (!Cast<AOrionPlayerController>(PlayerOwner)->RainPSC || !Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->Template)
-	//{
+	if (PC)
+	{
 		//RainPSC = ConstructObject<UParticleSystemComponent>(UParticleSystemComponent::StaticClass());
 		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC = UGameplayStatics::SpawnEmitterAtLocation(PlayerOwner, Rain, GetActorLocation(), FRotator::ZeroRotator, false);
 		//RainPSC = UGameplayStatics::SpawnEmitterAttached(Rain, RootComponent, NAME_None, GetActorLocation(), GetActorRotation(), EAttachLocation::KeepWorldPosition, false); 
@@ -108,9 +114,9 @@ void AOrionWeather::StartRaining()
 		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->bAutoActivate = false;
 		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->bAutoDestroy = false;
 		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->SetHiddenInGame(false);
-	//}
+	}
 	
-	if (Cast<AOrionPlayerController>(PlayerOwner)->RainPSC)
+	if (PC && PC->RainPSC)
 	{
 		//FVector Origin = GetWeatherLocation();
 		//FRotator Dir(0, 0, 0);
@@ -127,7 +133,9 @@ void AOrionWeather::StartRaining()
 
 void AOrionWeather::StopRaining()
 {
-	if (Cast<AOrionPlayerController>(PlayerOwner)->RainPSC)
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(PlayerOwner);
+
+	if (PC && PC->RainPSC)
 	{
 		bIsRaining = false;
 		//if (RainPSC->Template)

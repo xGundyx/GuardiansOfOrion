@@ -1,4 +1,5 @@
 #include "Orion.h"
+#if !IS_SERVER
 #include "OrionChatListener.h"
 
 using namespace ExitGames::Common;
@@ -93,3 +94,5 @@ void UOrionChatListener::onGetMessages(const JString& channelName, const JVector
 void UOrionChatListener::onPrivateMessage(const JString& sender, const Object& message, const JString& channelName)
 {
 }
+
+#endif
