@@ -33,7 +33,9 @@ void UOrionStats::FlushPlayerStats(AOrionPlayerController* PC)
 {
 #if IS_SERVER
 	//call directly to playfab from dedicated servers only!
-	UOrionTCPLink::SavePlayerStatistics(PC->PlayFabID, this);
+	AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+	if (PRI)
+		UOrionTCPLink::SavePlayerStatistics(PRI->PlayFabID, this);
 #endif
 }
 

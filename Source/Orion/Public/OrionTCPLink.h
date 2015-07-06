@@ -7,9 +7,9 @@
 	#include "playfab/PlayFabServerAPI.h"
 #else
 	#include "playfab/PlayFabClientAPI.h"
+	#include "OrionPhotonClient.h"
 #endif
 #include "ClientConnector.h"
-#include "OrionPhotonClient.h"
 #include "OrionTCPLink.generated.h"
 
 using namespace PlayFab;
@@ -132,6 +132,8 @@ private:
 
 	static UClientConnector *connector;
 	static AOrionPhotonClient *PhotonClient;
+
+	static void ParseDisplayItems(TSharedPtr<FJsonObject> jObject, FCharacterData* Data);
 
 	//photon chat hooks
 	static void SendChatMessage(FString Channel, FString Message);

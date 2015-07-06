@@ -122,12 +122,13 @@ void AOrionWeapon::AttachMeshToPawn()
 		FName AttachPoint = InstantConfig.AttachPoint;// TEXT("WeaponPoint");// MyPawn->GetWeaponAttachPoint();
 		if (MyPawn->IsLocallyControlled() == true)
 		{
+			AOrionPlayerController *PC = Cast<AOrionPlayerController>(MyPawn->Controller);
 			USkeletalMeshComponent* PawnMesh1p = MyPawn->GetSpecifcPawnMesh(true);
 			USkeletalMeshComponent* PawnMesh3p = MyPawn->GetSpecifcPawnMesh(false);
 			if (Mesh1P)
-				Mesh1P->SetHiddenInGame(!MyPawn->IsFirstPerson() || MyPawn->bBlinking);
+				Mesh1P->SetHiddenInGame(!MyPawn->IsFirstPerson() || MyPawn->bBlinking || (PC && PC->bHideWeapons));
 			if (PawnMesh1p)
-				PawnMesh1p->SetHiddenInGame(!MyPawn->IsFirstPerson() || MyPawn->bBlinking);
+				PawnMesh1p->SetHiddenInGame(!MyPawn->IsFirstPerson() || MyPawn->bBlinking || (PC && PC->bHideWeapons));
 			if (Mesh3P)
 				Mesh3P->SetHiddenInGame(MyPawn->IsFirstPerson() || MyPawn->bBlinking);
 			//Mesh1P->AttachTo(PawnMesh1p, AttachPoint);
@@ -889,8 +890,8 @@ void AOrionWeapon::ProcessInstantHit_Confirmed(const FHitResult& Impact, const F
 		PointDmg.ShotDirection = ShootDir;
 		PointDmg.Damage = InstantConfig.HitDamage;
 
-		if (Impact.GetActor())
-			Impact.GetActor()->TakeDamage(InstantConfig.HitDamage, PointDmg, MyPawn->Controller, this);
+		//if (Impact.GetActor())
+		//	Impact.GetActor()->TakeDamage(InstantConfig.HitDamage, PointDmg, MyPawn->Controller, this);
 	}
 }
 
@@ -910,10 +911,14 @@ void AOrionWeapon::ServerNotifyHit_Implementation(const FHitResult Impact, FVect
 		const FVector ViewDir = (Impact.Location - Origin).GetSafeNormal();
 
 		AOrionCharacter *Pawn = Cast<AOrionCharacter>(Instigator);
+		AOrionCharacter *Victim = Cast<AOrionCharacter>(Impact.GetActor());
 
 		// is the angle between the hit and the view within allowed limits (limit + weapon max angle)
 		const float ViewDotHitDir = FVector::DotProduct(Pawn ? (Pawn->AimPos - Pawn->GetActorLocation()).GetSafeNormal() : Instigator->GetViewRotation().Vector(), ViewDir);
-		if (ViewDotHitDir > InstantConfig.AllowedViewDotHitDir - WeaponAngleDot)
+
+		if (Victim && Victim->Health <= 0)
+			ProcessInstantHit_Confirmed(Impact, Origin, ShootDir, RandomSeed, ReticleSpread);
+		else if (ViewDotHitDir > InstantConfig.AllowedViewDotHitDir - WeaponAngleDot)
 		{
 			//if (CurrentState != EWeaponState::Idle)
 			//{
@@ -1118,7 +1123,7 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 		}*/
 	}
 
-	if (MuzzleFX.Num() > 0)
+	if (MuzzleFX.Num() > 0 && MyPawn)
 	{
 		UParticleSystemComponent* MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX[0], GetWeaponMesh(MyPawn->IsFirstPerson()), MuzzleAttachPoint[0]);
 		if (MuzzlePSC > 0)
@@ -1186,7 +1191,7 @@ void AOrionWeapon::OnEquip()
 	bPendingEquip = true;
 	WeaponState = WEAP_EQUIPPING;
 
-	float Duration = PlayWeaponAnimation(EquipAnim, Role == ROLE_Authority);
+	float Duration = PlayWeaponAnimation(EquipAnim, false);// Role == ROLE_Authority);
 
 	if (Duration <= 0.0f)
 	{
@@ -1254,7 +1259,7 @@ float AOrionWeapon::OnUnEquip()
 		GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::OnEquipFinished);
 	}*/
 
-	float Duration = PlayWeaponAnimation(HolsterAnim, Role == ROLE_Authority);
+	float Duration = PlayWeaponAnimation(HolsterAnim, false);// Role == ROLE_Authority);
 
 	if (Duration <= 0.0f)
 	{

@@ -15,6 +15,8 @@ class ORION_API AOrionDroidPawn : public AOrionCharacter
 public:
 	AOrionDroidPawn(const FObjectInitializer& ObjectInitializer);
 
+	void InitMaterials() override {}
+
 	UFUNCTION(BlueprintCallable, Category = Hover)
 		virtual float GetFinRotation(float DeltaTime);
 

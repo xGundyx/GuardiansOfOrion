@@ -5,6 +5,7 @@
 #include "OrionWeather.h"
 #include "OrionPRI.h"
 #include "GameFramework/GameState.h"
+#include "OrionPlayFabInventoryMapper.h"
 #include "OrionGRI.generated.h"
 
 USTRUCT(BlueprintType)
@@ -65,4 +66,10 @@ public:
 	void RemovePlayerFromTeam(AOrionPlayerController *PC, int32 Index);
 
 	void InitTeams();
+
+	UPROPERTY()
+		TSubclassOf<class AOrionPlayFabInventoryMapper> DefaultMapperClass;
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		AOrionPlayFabInventoryMapper *Mapper;
 };

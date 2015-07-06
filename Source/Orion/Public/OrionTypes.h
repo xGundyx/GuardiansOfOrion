@@ -14,6 +14,20 @@ class AOrionInventory;
 #define ORION_SURFACE_Flesh			SurfaceType8
 #define ORION_SURFACE_Shield		SurfaceType9
 
+USTRUCT(BlueprintType)
+struct FDecalHelper
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		UMaterialInstanceDynamic *Mat;
+
+	float TimeLeft;
+
+	bool operator==(const FDecalHelper Other) const { return Mat == Other.Mat; }
+};
+
+
 USTRUCT()
 struct FDecalData
 {
@@ -67,7 +81,9 @@ enum EPrimaryStats
 	PRIMARYSTAT_INTELLIGENCE,
 	PRIMARYSTAT_DISCIPLINE,
 	PRIMARYSTAT_VITALITY,
-	PRIMARYSTAT_POWER
+	PRIMARYSTAT_POWER,
+	PRIMARYSTAT_DEFENSE,
+	PRIMARYSTAT_DAMAGE
 };
 
 UENUM(BlueprintType)

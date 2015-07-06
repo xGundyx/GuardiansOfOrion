@@ -17,6 +17,7 @@
 #include "OrionDroidPawn.h"
 #include "OrionDropPod.h"
 #include "OrionChatManager.h"
+#include "OrionPlayFabInventoryMapper.h"
 #include "OrionPlayerController.generated.h"
 
 /**
@@ -92,6 +93,18 @@ struct FControllerOptionsData
 };
 
 USTRUCT(BlueprintType)
+struct FInventoryMapper
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = Character)
+		FString InstanceID;
+
+	UPROPERTY(BlueprintReadOnly, Category = Character)
+		FString ItemName;
+};
+
+USTRUCT(BlueprintType)
 struct FCharacterData
 {
 	GENERATED_USTRUCT_BODY()
@@ -109,25 +122,31 @@ struct FCharacterData
 		FString Sex;
 
 	UPROPERTY(BlueprintReadOnly, Category = Character)
+		FString SuitColor;
+
+	UPROPERTY(BlueprintReadOnly, Category = Character)
 		int32 Level;
 
 	UPROPERTY(BlueprintReadOnly, Category = Character)
 		int32 Exp;
 
 	UPROPERTY(BlueprintReadOnly, Category = Character)
-		int32 HelmetID;
+		FInventoryMapper HelmetID;
 
 	UPROPERTY(BlueprintReadOnly, Category = Character)
-		int32 ChestID;
+		FInventoryMapper ChestID;
 
 	UPROPERTY(BlueprintReadOnly, Category = Character)
-		int32 HandsID;
+		FInventoryMapper HandsID;
 
 	UPROPERTY(BlueprintReadOnly, Category = Character)
-		int32 LegsID;
+		FInventoryMapper LegsID;
 
 	UPROPERTY(BlueprintReadOnly, Category = Character)
-		int32 Weapon;
+		FInventoryMapper PrimaryWeaponID;
+
+	UPROPERTY(BlueprintReadOnly, Category = Character)
+		FInventoryMapper SecondaryWeaponID;
 
 	void Reset()
 	{
@@ -136,12 +155,20 @@ struct FCharacterData
 		CharacterID = FString("0");
 		Level = 0;
 		Exp = 0;
-		HelmetID = 0;
-		ChestID = 0;
-		HandsID = 0;
-		LegsID = 0;
+		HelmetID.ItemName = FString("");
+		ChestID.ItemName = FString("");
+		HandsID.ItemName = FString("");
+		LegsID.ItemName = FString("");
+		PrimaryWeaponID.ItemName = FString("");
+		SecondaryWeaponID.ItemName = FString("");
+		HelmetID.InstanceID = FString("");
+		ChestID.InstanceID = FString("");
+		HandsID.InstanceID = FString("");
+		LegsID.InstanceID = FString("");
+		PrimaryWeaponID.InstanceID = FString("");
+		SecondaryWeaponID.InstanceID = FString("");
+		SuitColor = FString("");
 		Sex = FString("");
-		Weapon = 0;
 	}
 };
 
@@ -168,6 +195,13 @@ public:
 	virtual void Possess(APawn* aPawn) override;
 
 	AOrionWeather* TheSun;
+	bool bHideWeapons;
+
+	UFUNCTION(exec)
+		virtual void HideWeapons();
+
+	UFUNCTION(exec)
+		virtual void ShowWeapons();
 
 	UFUNCTION(exec)
 		virtual void PerfectDay();
@@ -379,4 +413,8 @@ private:
 	AOrionChatManager *ChatManager;
 
 	bool CreateAndGiveInventoryItem(TSharedPtr<FJsonObject> Data, AOrionInventoryGrid *theGrid, FString Slot, int32 Index);
+
+public:
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		TArray<FInventoryMapping> InventoryMapppings;
 };

@@ -32,6 +32,12 @@ public:
 
 	void AddPassenger(AOrionPlayerController *PC, AOrionCharacter *Pawn);
 
+	UPROPERTY(BlueprintReadOnly, Category = Spawn)
+		int32 TeamIndex;
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Spawned"))
+		void EventSpawnShip(int32 Team);
+
 private:
 	TArray<AOrionCharacter*> Passengers;
 };

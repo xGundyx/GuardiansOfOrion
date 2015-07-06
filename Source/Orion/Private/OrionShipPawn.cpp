@@ -44,7 +44,7 @@ void AOrionShipPawn::UnloadPlayers()
 	//remove us from the game mode
 	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
 	if (Game)
-		Game->SetShip(nullptr);
+		Game->SetShip(nullptr, TeamIndex);
 }
 
 void AOrionShipPawn::AddPassenger(AOrionPlayerController *PC, AOrionCharacter *Pawn)
