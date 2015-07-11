@@ -24,10 +24,13 @@ public:
 		int32 PlayerIndex;
 
 	UFUNCTION(BlueprintCallable, Category = Placer)
-		void UpdateData(int32 index);
+		void UpdateData(FCharacterData Data);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SetArmor"))
 		void EventSetArmor(EItemType Slot, UOrionInventoryItem *Item);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SetWeapon"))
+		void EventSetWeapon(UOrionInventoryItem *Item);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
 		class USkeletalMeshComponent* BaseMesh;
@@ -43,4 +46,7 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
 		class USkeletalMeshComponent* LegsMesh;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
+		class USkeletalMeshComponent* WeaponMesh;
 };

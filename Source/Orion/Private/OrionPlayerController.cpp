@@ -7,9 +7,10 @@
 #include "OrionArmor.h"
 #include "OrionInventoryArmor.h"
 #include "OrionLocalPlayer.h"
-#include "ClientConnector.h"
+//#include "ClientConnector.h"
 #include "OrionInventoryItem.h"
 #include "OrionPRI.h"
+#include "PhotonProxy.h"
 
 AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -24,42 +25,42 @@ AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObjectI
 void AOrionPlayerController::AttemptLogin(FString UserName, FString Password)
 {
 #if !IS_SERVER
-	UOrionTCPLink::Login(UserName, Password);
+	//UOrionTCPLink::Login(UserName, Password);
 #endif
 }
 
 void AOrionPlayerController::SendChatMessage(FString Channel, FString Message)
 {
 #if !IS_SERVER
-	UOrionTCPLink::SendChatMessage(Channel, Message);
+	//UOrionTCPLink::SendChatMessage(Channel, Message);
 #endif
 }
 
 void AOrionPlayerController::CreateNewAccount(FString UserName, FString Password, FString Email)
 {
 #if !IS_SERVER
-	UOrionTCPLink::CreateAccount(UserName, Password, Email);
+	//UOrionTCPLink::CreateAccount(UserName, Password, Email);
 #endif
 }
 
 void AOrionPlayerController::CreateNewCharacter(FString UserName, FString Gender, FString BaseColor, FString CharacterClass)
 {
 #if !IS_SERVER
-	UOrionTCPLink::CreateCharacter(UserName, Gender, BaseColor, CharacterClass);
+	//UOrionTCPLink::CreateCharacter(UserName, Gender, BaseColor, CharacterClass);
 #endif
 }
 
 void AOrionPlayerController::DeleteCharacter(FString CharacterID)
 {
 #if !IS_SERVER
-	UOrionTCPLink::DeleteCharacter(CharacterID);
+	//UOrionTCPLink::DeleteCharacter(CharacterID);
 #endif
 }
 
 void AOrionPlayerController::SelectCharacterAtIndex(int32 Index)
 {
 #if !IS_SERVER
-	UOrionTCPLink::SelectCharacter(Index);
+	//UOrionTCPLink::SelectCharacter(Index);
 #endif
 }
 
@@ -128,7 +129,7 @@ void AOrionPlayerController::GetPlayerViewPoint(FVector& OutCamLoc, FRotator& Ou
 void AOrionPlayerController::Destroyed()
 {
 #if IS_SERVER
-	UOrionTCPLink::SaveCharacter(this);
+	//UOrionTCPLink::SaveCharacter(this);
 #endif
 
 	//cleanup our menus so we don't get a garbage collection crash
@@ -142,7 +143,7 @@ void AOrionPlayerController::PostInitializeComponents()
 	Super::PostInitializeComponents();
 
 #if !IS_SERVER
-	UOrionTCPLink::Init(this);
+	//UOrionTCPLink::Init(this);
 
 	if (IsLocalPlayerController())
 	{
@@ -250,13 +251,27 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 	
 }
 
+void AOrionPlayerController::AddDamageNumber(int32 Damage, FVector Pos)
+{
+	if (GetNetMode() == NM_DedicatedServer)
+		ClientAddDamageNumber(Damage, Pos);
+
+	EventAddDamageNumber(Damage, Pos);
+}
+
+void AOrionPlayerController::ClientAddDamageNumber_Implementation(int32 Damage, FVector Pos)
+{
+	AddDamageNumber(Damage, Pos);
+}
+
 void AOrionPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 
 #if !IS_SERVER
-	UOrionTCPLink::Update();
-	UClientConnector::Update();
+	//UOrionTCPLink::Update();
+	//UClientConnector::Update();
+	UPhotonProxy::Update(DeltaTime);
 
 	int32 x, y;
 	//check if we need to update our hud scaling
@@ -957,7 +972,7 @@ void AOrionPlayerController::ServerSetPlayFabInfo_Implementation(const FString &
 		PRI->SessionTicket = SessionID;
 		PRI->CharacterID = cID;
 
-		UOrionTCPLink::GetCharacterData(this);
+		//UOrionTCPLink::GetCharacterData(this);
 	}
 }
 
@@ -968,14 +983,14 @@ void AOrionPlayerController::BeginPlay()
 #if !IS_SERVER
 	if (Role < ROLE_Authority)
 	{
-		ServerSetPlayFabInfo(UOrionTCPLink::PlayFabID, UOrionTCPLink::SessionTicket, UOrionTCPLink::CurrentCharacterID);
+		//ServerSetPlayFabInfo(UOrionTCPLink::PlayFabID, UOrionTCPLink::SessionTicket, UOrionTCPLink::CurrentCharacterID);
 
 		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
 		if (PRI)
 		{
-			PRI->PlayFabID = UOrionTCPLink::PlayFabID;
-			PRI->SessionTicket = UOrionTCPLink::SessionTicket;
-			PRI->CharacterID = UOrionTCPLink::CurrentCharacterID;
+			//PRI->PlayFabID = UOrionTCPLink::PlayFabID;
+			//PRI->SessionTicket = UOrionTCPLink::SessionTicket;
+			//PRI->CharacterID = UOrionTCPLink::CurrentCharacterID;
 		}
 	}
 	else if (IsLocalPlayerController())
@@ -983,12 +998,12 @@ void AOrionPlayerController::BeginPlay()
 		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
 		if (PRI)
 		{
-			PRI->PlayFabID = UOrionTCPLink::PlayFabID;
-			PRI->SessionTicket = UOrionTCPLink::SessionTicket;
-			PRI->CharacterID = UOrionTCPLink::CurrentCharacterID;
+			//PRI->PlayFabID = UOrionTCPLink::PlayFabID;
+			//PRI->SessionTicket = UOrionTCPLink::SessionTicket;
+			//PRI->CharacterID = UOrionTCPLink::CurrentCharacterID;
 		}
 
-		UOrionTCPLink::GetCharacterData(this);
+		//UOrionTCPLink::GetCharacterData(this);
 	}
 #endif
 }

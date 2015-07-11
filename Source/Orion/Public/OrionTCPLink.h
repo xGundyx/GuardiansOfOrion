@@ -3,20 +3,17 @@
 #pragma once
 
 #include "Object.h"
-#if IS_SERVER
+/*#if IS_SERVER
 	#include "playfab/PlayFabServerAPI.h"
 #else
 	#include "playfab/PlayFabClientAPI.h"
 	#include "OrionPhotonClient.h"
-#endif
-#include "ClientConnector.h"
-#include "OrionTCPLink.generated.h"
+#endif*/
+#include "PlayFabRequestProxy.h"
+//#include "ClientConnector.h"
+//#include "OrionTCPLink.generated.h"
 
-using namespace PlayFab;
-
-/**
- * 
- */
+/*using namespace PlayFab;
 
 UENUM()
 enum EPlayFabState
@@ -142,4 +139,4 @@ private:
 private:
 	static PlayFabClientAPI client;
 #endif
-};
+};*/

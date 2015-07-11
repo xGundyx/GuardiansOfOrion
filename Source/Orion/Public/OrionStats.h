@@ -6,7 +6,8 @@
 #include <iostream>
 #include <string>
 #include <map>
-#include "playfab/PlayFabBaseModel.h"
+//#include "playfab/PlayFabBaseModel.h"
+#include "PlayFabRequestProxy.h"
 #include "OrionStats.generated.h"
 
 class AOrionPlayerController;
@@ -75,7 +76,7 @@ public:
 	
 	TArray<FPlayerStats> aStats;
 
-	std::map<std::string, PlayFab::Int32> GetStatsMap();
+	//std::map<std::string, PlayFab::Int32> GetStatsMap();
 
 	bool bInitialized;
 

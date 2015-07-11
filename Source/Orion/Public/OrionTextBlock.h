@@ -16,4 +16,8 @@ class ORION_API UOrionTextBlock : public UTextBlock
 public:
 	UFUNCTION(BlueprintCallable, Category = "Customization")
 		void SetANewFont(FSlateFontInfo NewFontInfo);
+	UFUNCTION(BlueprintCallable, Category = "Customization")
+		void SetANewHeightPercentage(float height);
+	UFUNCTION(BlueprintCallable, Category = "Customization")
+		void SetANewWrapWidth(float width);
 };

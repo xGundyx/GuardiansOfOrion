@@ -70,6 +70,16 @@ AOrionMenuCharacter::AOrionMenuCharacter(const FObjectInitializer& ObjectInitial
 	HelmetMesh->AttachParent = BaseMesh;
 	HelmetMesh->SetMasterPoseComponent(BaseMesh);
 
+	WeaponMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Weapon"));
+	WeaponMesh->AlwaysLoadOnClient = true;
+	WeaponMesh->AlwaysLoadOnServer = true;
+	WeaponMesh->bOwnerNoSee = false;
+	WeaponMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
+	WeaponMesh->bCastDynamicShadow = true;
+	WeaponMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
+	WeaponMesh->bChartDistanceFactor = true;
+	WeaponMesh->bGenerateOverlapEvents = false;
+
 }
 
 // Called when the game starts or when spawned
@@ -86,11 +96,9 @@ void AOrionMenuCharacter::Tick( float DeltaTime )
 
 }
 
-void AOrionMenuCharacter::UpdateData(int32 index)
+void AOrionMenuCharacter::UpdateData(FCharacterData Data)
 {
 #if !IS_SERVER
-	FCharacterData Data = UOrionTCPLink::CharacterDatas[index];
-
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
 
 	//set our armors
@@ -128,6 +136,13 @@ void AOrionMenuCharacter::UpdateData(int32 index)
 			{
 				UOrionInventoryItem *LegsItem = Cast<UOrionInventoryItem>(Item->ItemLink->GetDefaultObject());
 				EventSetArmor(ITEM_LEGS, LegsItem);
+			}
+
+			Item = Mapper->InventoryMappings.FindByKey(TEXT("CombatShotgun"));// Data.PrimaryWeaponID.ItemName);
+			if (Item && Item->ItemLink)
+			{
+				UOrionInventoryItem *WeaponItem = Cast<UOrionInventoryItem>(Item->ItemLink->GetDefaultObject());
+				EventSetWeapon(WeaponItem);
 			}
 		}
 	}
