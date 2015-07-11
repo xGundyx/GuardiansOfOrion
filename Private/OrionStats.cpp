@@ -25,7 +25,7 @@ void UOrionStats::ReadPlayerStats()
 {
 #if IS_SERVER
 #else
-	UOrionTCPLink::GetPlayerStats(this);
+	//UOrionTCPLink::GetPlayerStats(this);
 #endif
 }
 
@@ -33,13 +33,13 @@ void UOrionStats::FlushPlayerStats(AOrionPlayerController* PC)
 {
 #if IS_SERVER
 	//call directly to playfab from dedicated servers only!
-	AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
-	if (PRI)
-		UOrionTCPLink::SavePlayerStatistics(PRI->PlayFabID, this);
+	//AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+	//if (PRI)
+	//	UOrionTCPLink::SavePlayerStatistics(PRI->PlayFabID, this);
 #endif
 }
 
-std::map<std::string, PlayFab::Int32> UOrionStats::GetStatsMap()
+/*std::map<std::string, PlayFab::Int32> UOrionStats::GetStatsMap()
 {
 	std::map<std::string, PlayFab::Int32> Map;
 
@@ -50,4 +50,4 @@ std::map<std::string, PlayFab::Int32> UOrionStats::GetStatsMap()
 	}
 
 	return Map;
-}
+}*/

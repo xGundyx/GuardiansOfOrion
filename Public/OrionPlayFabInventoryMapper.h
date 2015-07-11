@@ -9,10 +9,10 @@ struct FInventoryMapping
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Character)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Character)
 		FString ItemID;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Character)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Character)
 		TSubclassOf<class UOrionInventoryItem> ItemLink;
 
 	FInventoryMapping(){ ItemLink = nullptr; }

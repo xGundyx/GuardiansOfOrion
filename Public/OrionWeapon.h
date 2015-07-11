@@ -106,7 +106,7 @@ struct FInstantWeaponData
 	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
 		float RecoilScale;
 
-	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Accuracy)
 		FName AttachPoint;
 
 	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
@@ -130,8 +130,8 @@ class AOrionWeapon : public AOrionInventory
 public:
 	AOrionWeapon(const FObjectInitializer& ObjectInitializer);
 
-	UPROPERTY(EditDefaultsOnly, Category = Config)
-	FInstantWeaponData InstantConfig;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Config)
+		FInstantWeaponData InstantConfig;
 
 	virtual void PostInitializeComponents() override;
 

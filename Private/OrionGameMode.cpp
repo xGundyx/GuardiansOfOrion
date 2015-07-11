@@ -99,6 +99,8 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 		AOrionDinoPawn *Dino = Cast<AOrionDinoPawn>(KilledPawn);
 		if (Dino)
 			SpawnItems(Dino);
+
+		//award some experience to the team
 	}
 }
 

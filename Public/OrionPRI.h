@@ -30,9 +30,14 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Pawn)
 		bool bOnShip;
 
-	FString PlayFabID;
-	FString SessionTicket;
-	FString CharacterID;
+	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
+		FString PlayFabID;
+	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
+		FString SessionTicket;
+	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
+		FString CharacterID;
+	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
+		FString PlayFabName;
 
 	UFUNCTION(BlueprintCallable, Category = Team)
 		int32 GetTeamIndex();

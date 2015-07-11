@@ -6,12 +6,12 @@
 #include "SharedPointer.h"
 #include "OrionTCPLink.h"
 #include "StringConv.h"
-#include "ClientConnector.h"
+//#include "ClientConnector.h"
 #include "BackendMappings.h"
 #include "OrionPRI.h"
 #include "OrionStats.h"
 
-using namespace Backend;
+/*using namespace Backend;
 
 void GlobalErrorHandler(PlayFabError& error, void* userData);
 
@@ -302,29 +302,6 @@ void UOrionTCPLink::CreateCharacter(FString UserName, FString Gender, FString Ba
 	client.RunCloudScript(request, UOrionTCPLink::OnCreateCharacter, UOrionTCPLink::OnCreateCharacterError);
 
 	PFState = PFSTATE_CREATINGCHARACTER;
-
-	/*ClientModels::UpdateUserDataRequest request;
-
-	request.Permission = ClientModels::UserDataPermission::UserDataPermissionPublic;
-
-	std::map<std::string, std::string> newData;
-
-	newData["CharacterName"] = TCHAR_TO_UTF8(*UserName);
-	newData["CharacterGender"] = TCHAR_TO_UTF8(*Gender);
-	newData["CharacterColor"] = TCHAR_TO_UTF8(*BaseColor);
-	request.Data = newData;
-
-	client.UpdateUserData(request, OnCreateCharacter, OnAddUserError);*/
-
-	/*FString Delim = FString(",");
-	if(connector == nullptr)
-		connector = ConstructObject<UClientConnector>(UClientConnector::StaticClass());
-
-	if (connector)
-	{
-		FString Info = FString("CreateCharacter") + Delim + PlayFabID + Delim + UserName + Delim + Gender + Delim + BaseColor + FString("\r\n\r\n");
-		connector->SendInfo(Info);
-	}*/
 }
 
 void UOrionTCPLink::SaveCharacter(AOrionPlayerController *PC)
@@ -528,15 +505,6 @@ void UOrionTCPLink::LoginComplete(bool bSucceded, FString msg)
 	{
 		//pPlayer->EventLoginComplete(true, FString(""), FString(""));
 		//RetrieveCharacterData();
-		/*FString Delim = FString(",");
-		if(connector == nullptr)
-			connector = ConstructObject<UClientConnector>(UClientConnector::StaticClass());
-
-		if (connector)
-		{
-			FString Info = FString("CreateAccount") + Delim + PlayFabID + FString("\r\n\r\n");
-			connector->SendInfo(Info);
-		}*/
 	}
 	if (!bSucceded)
 		pPlayer->EventLoginComplete(false, msg);
@@ -600,27 +568,6 @@ void UOrionTCPLink::OnCharacterData(ClientModels::GetUserDataResult& result, voi
 void UOrionTCPLink::AddToCharacterData(const std::string first, const ClientModels::UserDataRecord second)
 {
 	//trim the number from the end of first and that will be our slot index
-	/*std::string title = first.substr(0, first.length()-1);
-	int32 index = atoi(first.substr(first.length()-1).c_str());
-
-	if(title == CharacterName)
-		CharacterDatas[index-1].pName = UTF8_TO_TCHAR(second.Value.c_str());
-	else if(title == CharacterLevel)
-		CharacterDatas[index-1].Level = atoi(second.Value.c_str());
-	else if(title == CharacterExp)
-		CharacterDatas[index-1].Exp = atoi(second.Value.c_str());
-	else if(title == CharacterHelmet)
-		CharacterDatas[index-1].HelmetID = atoi(second.Value.c_str());
-	else if(title == CharacterChest)
-		CharacterDatas[index-1].ChestID = atoi(second.Value.c_str());
-	else if(title == CharacterHands)
-		CharacterDatas[index-1].HandsID = atoi(second.Value.c_str());
-	else if(title == CharacterLegs)
-		CharacterDatas[index-1].LegsID = atoi(second.Value.c_str());
-	else if(title == CharacterSex)
-		CharacterDatas[index-1].Sex = UTF8_TO_TCHAR(second.Value.c_str());
-	else if(title == CharacterWeapon)
-		CharacterDatas[index-1].Weapon = atoi(second.Value.c_str());*/
 }
 
 void UOrionTCPLink::OnCharacterDataFailed(PlayFabError& error, void* userData)
@@ -707,18 +654,6 @@ void UOrionTCPLink::OnLogin(ClientModels::LoginResult& result, void* userData)
 	request.Testing = false;
 
 	client.GetCloudScriptUrl(request, UOrionTCPLink::OnGetCloudURL, UOrionTCPLink::OnGetCloudURLError);
-
-	/*FString Delim = FString(",");
-	if(UOrionTCPLink::connector != nullptr)
-		UOrionTCPLink::connector->CloseSockets();
-	
-	UOrionTCPLink::connector = ConstructObject<UClientConnector>(UClientConnector::StaticClass());
-
-	if (UOrionTCPLink::connector)
-	{
-		FString Info = FString("CreateAccount") + Delim + UOrionTCPLink::PlayFabID + FString("\r\n\r\n");
-		UOrionTCPLink::connector->SendInfo(Info);
-	}*/
 
 	////UOrionTCPLink::LoginComplete(true, 0);
 }
@@ -961,4 +896,4 @@ void OnAddUserError(PlayFabError& error, void* userData)
 void GlobalErrorHandler(PlayFabError& error, void* userData)
 {
 	printf("Got a global error\n");
-}
+}*/

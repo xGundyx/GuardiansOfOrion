@@ -8,3 +8,15 @@ void UOrionTextBlock::SetANewFont(FSlateFontInfo NewFontInfo)
 	Font = NewFontInfo;
 	SynchronizeProperties();
 }
+
+void UOrionTextBlock::SetANewHeightPercentage(float height)
+{
+	LineHeightPercentage = height;
+	SynchronizeProperties();
+}
+
+void UOrionTextBlock::SetANewWrapWidth(float width)
+{
+	WrapTextAt = width;
+	SynchronizeProperties();
+}

@@ -2,11 +2,12 @@
 
 #pragma once
 
-#if IS_SERVER
+/*#if IS_SERVER
 #include "playfab/PlayFabServerAPI.h"
 #else
 #include "playfab/PlayFabClientAPI.h"
-#endif
+#endif*/
+#include "PlayFabRequestProxy.h"
 #include "OrionWeather.h"
 #include "GameFramework/PlayerController.h"
 #include "OrionInventoryManager.h"
@@ -97,10 +98,10 @@ struct FInventoryMapper
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(BlueprintReadOnly, Category = Character)
+	UPROPERTY(BlueprintReadWrite, Category = Character)
 		FString InstanceID;
 
-	UPROPERTY(BlueprintReadOnly, Category = Character)
+	UPROPERTY(BlueprintReadWrite, Category = Character)
 		FString ItemName;
 };
 
@@ -109,43 +110,43 @@ struct FCharacterData
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(BlueprintReadOnly, Category = Character)
+	UPROPERTY(BlueprintReadWrite, Category = Character)
 		FString pName;
 
-	UPROPERTY(BlueprintReadOnly, Category = Character)
+	UPROPERTY(BlueprintReadWrite, Category = Character)
 		FString pClass;
 
-	UPROPERTY(BlueprintReadOnly, Category = Character)
+	UPROPERTY(BlueprintReadWrite, Category = Character)
 		FString CharacterID;
 
-	UPROPERTY(BlueprintReadOnly, Category = Character)
+	UPROPERTY(BlueprintReadWrite, Category = Character)
 		FString Sex;
 
-	UPROPERTY(BlueprintReadOnly, Category = Character)
+	UPROPERTY(BlueprintReadWrite, Category = Character)
 		FString SuitColor;
 
-	UPROPERTY(BlueprintReadOnly, Category = Character)
+	UPROPERTY(BlueprintReadWrite, Category = Character)
 		int32 Level;
 
-	UPROPERTY(BlueprintReadOnly, Category = Character)
+	UPROPERTY(BlueprintReadWrite, Category = Character)
 		int32 Exp;
 
-	UPROPERTY(BlueprintReadOnly, Category = Character)
+	UPROPERTY(BlueprintReadWrite, Category = Character)
 		FInventoryMapper HelmetID;
 
-	UPROPERTY(BlueprintReadOnly, Category = Character)
+	UPROPERTY(BlueprintReadWrite, Category = Character)
 		FInventoryMapper ChestID;
 
-	UPROPERTY(BlueprintReadOnly, Category = Character)
+	UPROPERTY(BlueprintReadWrite, Category = Character)
 		FInventoryMapper HandsID;
 
-	UPROPERTY(BlueprintReadOnly, Category = Character)
+	UPROPERTY(BlueprintReadWrite, Category = Character)
 		FInventoryMapper LegsID;
 
-	UPROPERTY(BlueprintReadOnly, Category = Character)
+	UPROPERTY(BlueprintReadWrite, Category = Character)
 		FInventoryMapper PrimaryWeaponID;
 
-	UPROPERTY(BlueprintReadOnly, Category = Character)
+	UPROPERTY(BlueprintReadWrite, Category = Character)
 		FInventoryMapper SecondaryWeaponID;
 
 	void Reset()
@@ -352,8 +353,19 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Menu)
 		FOptionsValueData GetMouseSmooth();
 
+	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
+		TArray<FCharacterData> CharacterDatas;
+
 	UPROPERTY()
 		AOrionDropPod *DropPod;
+
+	UFUNCTION(client, reliable)
+		void ClientAddDamageNumber(int32 Damage, FVector Pos);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SpawnDamageNumber"))
+		void EventAddDamageNumber(int32 Damage, FVector Pos);
+
+	void AddDamageNumber(int32 Damage, FVector Pos);
 
 	UPROPERTY(BlueprintReadWrite, Category = MainMenu)
 		UCameraComponent *MenuCamera;

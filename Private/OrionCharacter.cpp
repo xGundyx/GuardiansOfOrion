@@ -1100,6 +1100,17 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 		Shield = FMath::Max(0.0f, Shield - ActualDamage);
 
 		Health -= TotalDamage;
+
+		AOrionPlayerController *Damager = Cast<AOrionPlayerController>(EventInstigator);
+		if (Damager)
+		{
+			const FPointDamageEvent *RealEvent = (FPointDamageEvent*)&DamageEvent;
+			if (RealEvent)
+			{
+				Damager->AddDamageNumber(TotalDamage, RealEvent->HitInfo.ImpactPoint);
+			}
+		}
+
 		if (Health <= 0)
 		{
 			Die(ActualDamage, DamageEvent, EventInstigator, DamageCauser);
