@@ -138,7 +138,10 @@ public:
 	virtual void Destroyed() override;
 
 	virtual void Melee();
-	virtual void DoMelee();
+
+	UFUNCTION(BlueprintCallable, Category = AI)
+		virtual float DoMelee();
+
 	virtual void ResetMelee();
 	virtual void CancelMelee();
 
@@ -175,6 +178,17 @@ public:
 
 	/** check if weapon can be reloaded */
 	bool CanReload() const;
+
+	UPROPERTY(BlueprintReadOnly, Category = Skill)
+		TArray<UMaterialInstanceDynamic*> WeaponMats;
+
+	UPROPERTY(BlueprintReadOnly, Category = Skill)
+		TArray<UMaterialInstanceDynamic*> WeaponCloakMats;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Skill)
+		UMaterialInstance *CloakParent;
+
+	void InitMaterials();
 
 	/** reload animations */
 	UPROPERTY(EditDefaultsOnly, Category = Animation)

@@ -7,6 +7,7 @@
 #include "BehaviorTree/BehaviorTree.h"
 #include "OrionHealthBar.h"
 #include "OrionGib.h"
+#include "Perception/PawnSensingComponent.h"
 //#include "AI/Navigation/NavigationInvokerComponent.h"
 //#include "OrionHoverVehicle.h"
 #include "OrionCharacter.generated.h"
@@ -19,6 +20,7 @@ class AOrionAIController;
 class AOrionShipPawn;
 class AOrionPlayerController;
 class AOrionAbility;
+class AOrionGrenade;
 
 USTRUCT()
 struct FGibReplicate
@@ -344,6 +346,21 @@ public:
 
 	int32 CameraIndex;
 
+	virtual void DoGrenade();
+	virtual void TossGrenade();
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerTossGrenade(FVector dir);
+		bool ServerTossGrenade_Validate(FVector dir);
+		void ServerTossGrenade_Implementation(FVector dir);
+
+	void ActuallyTossGrenade(FVector dir);
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Grenade)
+		float GrenadeCooldown;
+
+	void UpdateCooldowns(float DeltaTime);
+
 	void EquipArmor(AOrionArmor *Armor);
 	void UnEquipArmor(EItemType Slot);
 
@@ -489,6 +506,9 @@ public:
 		UAnimMontage* DeathAnim;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+		UAnimMontage* GrenadeAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		UAnimMontage* ExitShipAnim;
 
 	/** AnimMontage to play each time we fire */
@@ -523,6 +543,9 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Mesh)
 		FName RightFootSocket;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Grenade)
+		FName GrenadeSocket;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Mesh)
 		FVector AimAjustment;
@@ -858,6 +881,9 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Skill)
 		AOrionAbility *CurrentSkill;
 
+	UFUNCTION(BlueprintCallable, Category = Skill)
+		void SetAbility(AOrionAbility *NewSkill);
+
 	UPROPERTY(BlueprintReadOnly, Category = Skill)
 		TArray<UMaterialInstanceDynamic*> CharacterMats;
 
@@ -868,6 +894,15 @@ public:
 		UMaterialInstance *CloakParent;
 
 	virtual void InitMaterials();
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Awareness)
+		 UPawnSensingComponent *PawnSensor;
+
+	UFUNCTION()
+		void OnHearNoise(APawn *HeardPawn, const FVector &Location, float Volume);
+
+	UFUNCTION()
+		void OnSeePawn(APawn *SeenPawn);
 
 	UFUNCTION(server, reliable, WithValidation)
 		void ServerSetAimPos(FVector pos);
@@ -900,6 +935,12 @@ public:
 	/** default inventory list */
 	UPROPERTY(EditDefaultsOnly, Category = Inventory)
 		TArray<TSubclassOf<class AOrionWeapon> > DefaultInventoryClasses;
+
+	UPROPERTY(EditDefaultsOnly, Category = Inventory)
+		TSubclassOf<class AOrionGrenade> GrenadeClass;
+
+	UPROPERTY(BlueprintReadOnly, Category = Inventory)
+		AOrionGrenade* Grenade;
 
 	/** updates current weapon */
 	void SetCurrentWeapon(class AOrionWeapon* NewWeapon, class AOrionWeapon* LastWeapon = NULL);
@@ -988,6 +1029,7 @@ private:
 	FTimerHandle UnEquipTimer;
 	FTimerHandle RollTimer;
 	FTimerHandle RollTimer2;
+	FTimerHandle GrenadeTimer;
 public:
 	FTimerHandle TeleportTimer;
 

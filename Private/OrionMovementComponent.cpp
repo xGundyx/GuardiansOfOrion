@@ -101,6 +101,23 @@ float UOrionMovementComponent::GetMaxSpeed() const
 		{
 			SpeedMod *= 1.0f;
 		}
+		else if (Cast<AOrionDroidPawn>(PawnOwner))
+		{
+			if (OrionCharacterOwner->bFly)
+				SpeedMod *= OrionCharacterOwner->bLanding ? 5.0 : 12.0;
+			else if (OrionCharacterOwner->bDuck)
+			{
+				SpeedMod *= 0.4f;
+				if (OrionCharacterOwner->bAim)
+					SpeedMod *= 0.625;
+			}
+			else if (OrionCharacterOwner->bRun && IsMovingOnGround())
+				SpeedMod *= 1.15f;
+			else if (OrionCharacterOwner->bAim)
+				SpeedMod *= 0.4;
+			else
+				SpeedMod *= 0.75f;
+		}
 		else
 		{
 			if (OrionCharacterOwner->bFly)
@@ -137,7 +154,7 @@ bool UOrionMovementComponent::IsCrouching() const
 void UOrionMovementComponent::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
 {
 	AOrionCharacter* OrionCharacterOwner = Cast<AOrionCharacter>(PawnOwner);
-	if (OrionCharacterOwner)
+	if (OrionCharacterOwner && (OrionCharacterOwner->PlayerState == nullptr || OrionCharacterOwner->PlayerState->bIsABot == false))
 	{
 		if (OrionCharacterOwner->IsRolling())
 		{

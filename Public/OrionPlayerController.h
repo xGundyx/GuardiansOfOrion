@@ -198,6 +198,13 @@ public:
 	AOrionWeather* TheSun;
 	bool bHideWeapons;
 
+	//0 = assault, 1 = support, 2 = recon
+	UFUNCTION(exec)
+		virtual void ChangeClass(int32 index);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ChangeClass"))
+		void EventChangeClass(int32 index);
+
 	UFUNCTION(exec)
 		virtual void HideWeapons();
 

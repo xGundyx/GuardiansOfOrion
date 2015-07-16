@@ -2,6 +2,7 @@
 
 #include "Orion.h"
 #include "OrionProjectile.h"
+#include "OrionAbility.h"
 #include "OrionWeapon.h"
 
 //auto rifle -3.0 30.0 -13.5
@@ -91,6 +92,8 @@ void AOrionWeapon::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
+	InitMaterials();
+
 	AmmoInClip = InstantConfig.ClipSize;
 	Ammo = InstantConfig.MaxAmmo;
 
@@ -138,7 +141,8 @@ void AOrionWeapon::AttachMeshToPawn()
 				Mesh3P->AttachTo(PawnMesh3p, AttachPoint);
 
 			//add it to the outliner
-			Mesh3P->SetRenderCustomDepth(true);
+			if (MyPawn->PlayerState && !MyPawn->PlayerState->bIsABot)
+				Mesh3P->SetRenderCustomDepth(true);
 
 			if (PawnMesh1p && PawnMesh1p->SkeletalMesh)
 			{
@@ -164,6 +168,12 @@ void AOrionWeapon::AttachMeshToPawn()
 			//make sure it's not in the outliner
 			Mesh3P->SetRenderCustomDepth(false);
 		}
+
+		InitMaterials();
+
+		//update our cloak values by telling the player about us
+		if (MyPawn->CurrentSkill)
+			MyPawn->CurrentSkill->EventCheckMaterials();
 	}
 }
 
@@ -177,7 +187,7 @@ void AOrionWeapon::Tick(float DeltaSeconds)
 		//HandleViewOffsets(DeltaSeconds);
 
 		if (CurrentFiringSpread > 0.0f && GetWorld()->TimeSeconds - LastFireTime > 0.5f)
-			CurrentFiringSpread = FMath::Max(0.0f, CurrentFiringSpread - DeltaSeconds*2.0f);
+			CurrentFiringSpread = FMath::Max(0.0f, CurrentFiringSpread - DeltaSeconds*20.0f*InstantConfig.FiringSpreadIncrement);
 
 		//if we need to reload, try to start it automatically
 		if (AmmoInClip == 0 && WeaponState != WEAP_RELOADING&&Ammo > 0)
@@ -300,12 +310,17 @@ void AOrionWeapon::Melee()
 	DoMelee();
 }
 
-void AOrionWeapon::DoMelee()
+float AOrionWeapon::DoMelee()
 {
 	WeaponState = WEAP_MELEE;
 	float Len = PlayWeaponAnimation(MeleeAnim, Role == ROLE_Authority);
 
+	if (Len < 0.1f)
+		Len = 0.1f;
+
 	GetWorldTimerManager().SetTimer(MeleeTimer, this, &AOrionWeapon::ResetMelee, Len, false);
+
+	return Len;
 }
 
 void AOrionWeapon::ResetMelee()
@@ -626,6 +641,10 @@ bool AOrionWeapon::CanFire() const
 
 void AOrionWeapon::UseAmmo()
 {
+	//make ai not use any ammo
+	if (MyPawn && MyPawn->PlayerState && MyPawn->PlayerState->bIsABot)
+		return;
+
 	AmmoInClip--;
 
 	Ammo--;
@@ -1140,6 +1159,34 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 		PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim, false);//Role == ROLE_Authority);
 		PlayWeaponSound(FireSound);
 	}
+}
+
+void AOrionWeapon::InitMaterials()
+{
+	//setup some materials
+	//WeaponMats.Empty();
+	//WeaponCloakMats.Empty();
+
+	if (!CloakParent)
+		return;
+
+	if (WeaponMats.Num() == 0)
+		WeaponMats.SetNumUninitialized(2);
+	if (WeaponCloakMats.Num() == 0)
+		WeaponCloakMats.SetNumUninitialized(2);
+
+	//reset materials to default if needed
+	if (Mesh1P) Mesh1P->OverrideMaterials.Empty();
+	if (Mesh3P) Mesh3P->OverrideMaterials.Empty();
+
+	if (Mesh1P) WeaponMats[0] = UMaterialInstanceDynamic::Create(Mesh1P->GetMaterial(0), this); if (WeaponMats[0]) Mesh1P->SetMaterial(0, WeaponMats[0]);
+	if (Mesh3P) WeaponMats[1] = UMaterialInstanceDynamic::Create(Mesh3P->GetMaterial(0), this); if (WeaponMats[1]) Mesh3P->SetMaterial(0, WeaponMats[1]);
+
+	if (Mesh1P) Mesh1P->SetTranslucentSortPriority(2);
+	if (Mesh3P) Mesh3P->SetTranslucentSortPriority(2);
+
+	WeaponCloakMats[0] = UMaterialInstanceDynamic::Create(CloakParent, this); if (Mesh1P && Mesh1P->SkeletalMesh) WeaponCloakMats[0]->CopyParameterOverrides(Cast<UMaterialInstance>(Mesh1P->SkeletalMesh->Materials[0].MaterialInterface));
+	WeaponCloakMats[1] = UMaterialInstanceDynamic::Create(CloakParent, this); if (Mesh3P && Mesh3P->SkeletalMesh) WeaponCloakMats[1]->CopyParameterOverrides(Cast<UMaterialInstance>(Mesh3P->SkeletalMesh->Materials[0].MaterialInterface));
 }
 
 UAudioComponent* AOrionWeapon::PlayWeaponSound(USoundCue* Sound)

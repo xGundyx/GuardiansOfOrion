@@ -29,17 +29,49 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "TickAbility"))
 		void EventTickAbility(float DeltaSeconds);
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "CheckMaterials"))
+		void EventCheckMaterials();
+
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "StartEffects"))
 		void EventPlayStartEffects();
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "StopEffects"))
 		void EventPlayStopEffects();
 
+	UFUNCTION(BlueprintCallable, Category = Skill)
+		bool IsJetpacking() { return bIsJetpacking; }
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
+		bool IsCloaking() { return bIsCloaking; }
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
+		bool IsOvercharging() { return bIsOvercharging; }
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
+		void SetJetpacking(bool bActive) { bIsJetpacking = bActive; }
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
+		void SetCloaking(bool bActive) { bIsCloaking = bActive; }
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
+		void SetOvercharging(bool bActive) { bIsOvercharging = bActive; }
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Skill)
 		bool bOneShotAbility;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Skill)
 		float OneShotEnergyCost;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Skill)
+		float RechargeRate;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Skill)
+		float EnergyRate;
+
+	float TimeSinceLastActive;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Skill)
+		float RechargeDelay;
 
 private:
 	void DoActivateEffects();
@@ -54,8 +86,7 @@ private:
 	UPROPERTY(Replicated)
 		float Energy;
 
-	float RechargeRate;
-	float EnergyRate;
-	float TimeSinceLastActive;
-	float RechargeDelay;
+	bool bIsJetpacking;
+	bool bIsCloaking;
+	bool bIsOvercharging;
 };

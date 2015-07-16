@@ -4,6 +4,7 @@
 
 #include "AIController.h"
 #include "OrionFlyableArea.h"
+#include "BehaviorTree/BlackboardComponent.h"
 #include "OrionAIController.generated.h"
 
 class AOrionSquad;
@@ -34,8 +35,18 @@ public:
 	
 	virtual void Tick(float DeltaTime) override;
 
+	void GetPlayerViewPoint(FVector& OutCamLoc, FRotator& OutCamRot) const override;
+
 	/** Update direction AI is looking based on FocalPoint */
 	virtual void UpdateControlRotation(float DeltaTime, bool bUpdatePawn = true) override;
+
+	UFUNCTION()
+		void OnHearNoise(APawn *HeardPawn, const FVector &Location, float Volume);
+
+	UFUNCTION()
+		void OnSeePawn(APawn *SeenPawn);
+
+	UBlackboardComponent *GetBlackboard();
 
 	UFUNCTION(BlueprintCallable, Category = Target)
 		virtual void SetEnemy(APawn *pEnemy);
