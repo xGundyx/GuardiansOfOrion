@@ -23,6 +23,10 @@ void AOrionImpactEffect::PostInitializeComponents()
 			HitSurfaceType = ORION_SURFACE_Flesh;
 	}
 
+	AOrionCharacter *Droid = Cast<AOrionDroidPawn>(SurfaceHit.GetActor());
+	if (Droid)
+		HitSurfaceType = ORION_SURFACE_Shield;
+
 	// show particles
 	UParticleSystem* ImpactFX = GetImpactFX(HitSurfaceType);
 	if (ImpactFX)

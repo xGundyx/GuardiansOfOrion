@@ -6,7 +6,6 @@
 #include "OrionAIController.h"
 #include "OrionPathFollowingComponent.h"
 
-
 AOrionAIController::AOrionAIController(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UOrionPathFollowingComponent>(TEXT("PathFollowingComponent")))
 
@@ -237,6 +236,15 @@ void AOrionAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn
 	}
 }
 
+UBlackboardComponent *AOrionAIController::GetBlackboard()
+{
+	UBlackboardComponent* BlackboardComp = nullptr;
+
+	BlackboardComp = FindComponentByClass<UBlackboardComponent>();
+
+	return BlackboardComp;
+}
+
 void AOrionAIController::SetEnemy(APawn *pEnemy)
 {
 	//for now we'll force the ai to enter a run state when we have an enemy
@@ -244,7 +252,11 @@ void AOrionAIController::SetEnemy(APawn *pEnemy)
 		Cast<AOrionCharacter>(GetPawn())->bRun = true;
 
 	myEnemy = pEnemy;
-	EventSetBlackboardEnemy(pEnemy);
+	//EventSetBlackboardEnemy(pEnemy);
+	UBlackboardComponent *BlackBoard = GetBlackboard();
+
+	if (BlackBoard)
+		BlackBoard->SetValueAsObject(TEXT("Enemy"), myEnemy);
 
 	//if we're in a squad, and we're the leader, tell our followers what to do about it
 	if (Squad && Squad->Leader == this)
@@ -278,6 +290,42 @@ void AOrionAIController::RemoveEnemy()
 		Cast<AOrionCharacter>(GetPawn())->bRun = false;
 
 	myEnemy = nullptr;
+
+	StopFiringWeapon();
+}
+
+void AOrionAIController::GetPlayerViewPoint(FVector& OutCamLoc, FRotator& OutCamRot) const
+{
+	FRotator rot;
+	APawn *Target;
+
+	Target = myEnemy;
+
+	if (Target == NULL || !Target->IsValidLowLevel())
+	{
+		return Super::GetPlayerViewPoint(OutCamLoc, OutCamRot);
+	}
+
+	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
+
+	if (!P)
+		return Super::GetPlayerViewPoint(OutCamLoc, OutCamRot);
+
+	P->GetPawnMesh()->GetSocketWorldLocationAndRotation(FName("Aim"), OutCamLoc, rot);
+
+	//make sure the target isn't too far away
+	if ((Target->GetActorLocation() - OutCamLoc).Size2D() > 3000.0)
+	{
+		return Super::GetPlayerViewPoint(OutCamLoc, OutCamRot);
+	}
+
+	FVector AimDirWS = Target->GetActorLocation() - OutCamLoc + FVector(0.0f, 0.0f, 75.0f);
+	AimDirWS.Normalize();
+	const FVector AimDirLS = ActorToWorld().InverseTransformVectorNoScale(AimDirWS);
+	const FRotator AimRotLS = AimDirLS.Rotation();
+
+	//OutCamRot = AimRotLS;
+	OutCamRot = AimDirWS.Rotation();
 }
 
 void AOrionAIController::StartFiringWeapon(FName SocketName, FVector Direction)
@@ -295,5 +343,29 @@ void AOrionAIController::StopFiringWeapon()
 	if (pPawn && pPawn->GetWeapon())
 	{
 		pPawn->GetWeapon()->StopFire();
+	}
+}
+
+void AOrionAIController::OnHearNoise(APawn *HeardPawn, const FVector &Location, float Volume)
+{
+
+}
+
+void AOrionAIController::OnSeePawn(APawn *SeenPawn)
+{
+	//if we already have an enemy, just ignore for now
+	if (GetEnemy())
+		return;
+
+	//for now just ignore other bots and go straight for humans
+	if (SeenPawn && SeenPawn->PlayerState && SeenPawn->PlayerState->bIsABot)
+		return;
+
+	AOrionCharacter *pPawn = Cast<AOrionCharacter>(SeenPawn);
+
+	if (pPawn)
+	{
+		if (!pPawn->IsOnShip() && pPawn->Health > 0)
+			SetEnemy(SeenPawn);
 	}
 }

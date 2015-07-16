@@ -251,6 +251,36 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 	
 }
 
+void AOrionPlayerController::ChangeClass(int32 index)
+{
+	//change our armor
+	switch (index)
+	{
+	case 0: //assault
+		AllArmor(0);
+		break;
+	case 1: //support
+		AllArmor(3);
+		break;
+	case 2: //recon
+		AllArmor(5);
+		break;
+	};
+
+	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
+	if (P)
+	{
+		P->InitMaterials();
+		if (P->GetWeapon() && index == 5)
+		{
+			P->GetWeapon()->InitMaterials();
+		}
+	}
+
+	//let blueprints change the ability
+	EventChangeClass(index);
+}
+
 void AOrionPlayerController::AddDamageNumber(int32 Damage, FVector Pos)
 {
 	if (GetNetMode() == NM_DedicatedServer)

@@ -121,5 +121,8 @@ float UOrionDinoMovementComponent::GetMaxSpeed() const
 			SpeedMod *= 1.0f;
 	}
 
+	if (SpeedMod == 0.0f)
+		SpeedMod = 0.001f;
+
 	return SpeedMod;
 }

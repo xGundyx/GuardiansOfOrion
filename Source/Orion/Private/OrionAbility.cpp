@@ -21,6 +21,10 @@ AOrionAbility::AOrionAbility(const FObjectInitializer& ObjectInitializer)
 	bIsSkillActive = false;
 	bOneShotAbility = false;
 	OneShotEnergyCost = 25.0f;
+
+	bIsJetpacking = false;
+	bIsCloaking = false;
+	bIsOvercharging = false;
 }
 
 void AOrionAbility::Tick(float DeltaSeconds)

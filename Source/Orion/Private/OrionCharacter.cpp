@@ -11,6 +11,7 @@
 #include "OrionShipPawn.h"
 #include "OrionHoverVehicle.h"
 #include "OrionPRI.h"
+#include "OrionGrenade.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AOrionCharacter
@@ -195,14 +196,37 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Flight2Mesh->AttachParent = GetMesh();
 	Flight2Mesh->SetMasterPoseComponent(GetMesh());
 
+	PawnSensor = ObjectInitializer.CreateOptionalDefaultSubobject<UPawnSensingComponent>(this, TEXT("Pawn Sensor"));
+	PawnSensor->SensingInterval = .25f; // 4 times per second
+	PawnSensor->bOnlySensePlayers = false;
+	PawnSensor->SetPeripheralVisionAngle(85.f);
+
 	Health = 100.0;
 	HealthMax = 100.0;
 
 	Shield = 500.0;
 	ShieldMax = 500.0;
 
+	GrenadeCooldown = 0.0f;
+
 	bFirstPerson = true;
 	UpdatePawnMeshes();
+}
+
+void AOrionCharacter::OnHearNoise(APawn *HeardPawn, const FVector &Location, float Volume)
+{
+	//this is only needed for aicontrollers
+	AOrionAIController *AI = Cast<AOrionAIController>(Controller);
+	if (AI)
+		AI->OnHearNoise(HeardPawn, Location, Volume);
+}
+
+void AOrionCharacter::OnSeePawn(APawn *SeenPawn)
+{
+	//this is only needed for aicontrollers
+	AOrionAIController *AI = Cast<AOrionAIController>(Controller);
+	if (AI)
+		AI->OnSeePawn(SeenPawn);
 }
 
 void AOrionCharacter::SetDrivenVehicle(AOrionHoverVehicle *newVehicle)
@@ -262,7 +286,7 @@ FVector2D AOrionCharacter::GetAim(float DeltaTime)
 	////if (!Controller || !IsLocallyControlled())
 	////	return FVector2D(AimYaw, AimPitch);
 
-	GetPawnMesh()->GetSocketWorldLocationAndRotation(FName("Aim"), pos, rot);
+	//GetPawnMesh()->GetSocketWorldLocationAndRotation(FName("Aim"), pos, rot);
 
 	//GetWeapon()->GetWeaponMesh(false)->GetSocketWorldLocationAndRotation(FName("MuzzleFlashSocket"), pos, rot);
 	FVector AimDirWS = /*(CameraLocation + Controller->GetControlRotation().Vector()*5000.0) - pos;*/ GetBaseAimRotation().Vector();
@@ -748,6 +772,8 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME_CONDITION(AOrionCharacter, bAim, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(AOrionCharacter, bDuck, COND_SkipOwner);
 
+	DOREPLIFETIME_CONDITION(AOrionCharacter, GrenadeCooldown, COND_OwnerOnly);
+
 	DOREPLIFETIME(AOrionCharacter, DrivenVehicle);
 }
 
@@ -869,26 +895,49 @@ bool AOrionCharacter::IsOnShip()
 
 void AOrionCharacter::InitMaterials()
 {
+	if (!CloakParent)
+		return;
+
 	//setup some materials
+	CharacterMats.Empty();
+	CharacterCloakMats.Empty();
+
 	CharacterMats.SetNumUninitialized(5);
 	CharacterCloakMats.SetNumUninitialized(5);
 
-	CharacterMats[0] = UMaterialInstanceDynamic::Create(GetMesh()->GetMaterial(0), this); if (CharacterMats[0]) GetMesh()->SetMaterial(0, CharacterMats[0]);
-	CharacterMats[1] = UMaterialInstanceDynamic::Create(HelmetMesh->GetMaterial(0), this); if (CharacterMats[0]) HelmetMesh->SetMaterial(0, CharacterMats[1]);//head
-	CharacterMats[2] = UMaterialInstanceDynamic::Create(BodyMesh->GetMaterial(0), this); if (CharacterMats[0]) BodyMesh->SetMaterial(0, CharacterMats[2]);//body
-	CharacterMats[3] = UMaterialInstanceDynamic::Create(LegsMesh->GetMaterial(0), this); if (CharacterMats[0]) LegsMesh->SetMaterial(0, CharacterMats[3]);//legs
-	CharacterMats[4] = UMaterialInstanceDynamic::Create(ArmsMesh->GetMaterial(0), this); if (CharacterMats[0]) ArmsMesh->SetMaterial(0, CharacterMats[4]);//hands
+	//reset materials to default if needed
+	if (GetMesh()) GetMesh()->OverrideMaterials.Empty();
+	if (HelmetMesh) HelmetMesh->OverrideMaterials.Empty();
+	if (BodyMesh) BodyMesh->OverrideMaterials.Empty();
+	if (LegsMesh) LegsMesh->OverrideMaterials.Empty();
+	if (ArmsMesh) ArmsMesh->OverrideMaterials.Empty();
 
-	CharacterCloakMats[0] = UMaterialInstanceDynamic::Create(CloakParent, this); CharacterCloakMats[0]->CopyParameterOverrides(CharacterMats[0]);
-	CharacterCloakMats[1] = UMaterialInstanceDynamic::Create(CloakParent, this); CharacterCloakMats[1]->CopyParameterOverrides(CharacterMats[1]);
-	CharacterCloakMats[2] = UMaterialInstanceDynamic::Create(CloakParent, this); CharacterCloakMats[2]->CopyParameterOverrides(CharacterMats[2]);
-	CharacterCloakMats[3] = UMaterialInstanceDynamic::Create(CloakParent, this); CharacterCloakMats[3]->CopyParameterOverrides(CharacterMats[3]);
-	CharacterCloakMats[4] = UMaterialInstanceDynamic::Create(CloakParent, this); CharacterCloakMats[4]->CopyParameterOverrides(CharacterMats[4]);
+	CharacterMats[0] = UMaterialInstanceDynamic::Create(GetMesh()->GetMaterial(0), this); if (CharacterMats[0]) GetMesh()->SetMaterial(0, CharacterMats[0]);
+	CharacterMats[1] = UMaterialInstanceDynamic::Create(HelmetMesh->GetMaterial(0), this); if (CharacterMats[1]) HelmetMesh->SetMaterial(0, CharacterMats[1]);//head
+	CharacterMats[2] = UMaterialInstanceDynamic::Create(BodyMesh->GetMaterial(0), this); if (CharacterMats[2]) BodyMesh->SetMaterial(0, CharacterMats[2]);//body
+	CharacterMats[3] = UMaterialInstanceDynamic::Create(LegsMesh->GetMaterial(0), this); if (CharacterMats[3]) LegsMesh->SetMaterial(0, CharacterMats[3]);//legs
+	CharacterMats[4] = UMaterialInstanceDynamic::Create(ArmsMesh->GetMaterial(0), this); if (CharacterMats[4]) ArmsMesh->SetMaterial(0, CharacterMats[4]);//hands
+
+	//some greasy sorting for going cloaked with armor on
+	if (GetMesh()) GetMesh()->SetTranslucentSortPriority(1);
+	if (HelmetMesh) HelmetMesh->SetTranslucentSortPriority(2);
+	if (BodyMesh) BodyMesh->SetTranslucentSortPriority(2);
+	if (LegsMesh) LegsMesh->SetTranslucentSortPriority(2);
+	if (ArmsMesh) ArmsMesh->SetTranslucentSortPriority(2);
+
+	CharacterCloakMats[0] = UMaterialInstanceDynamic::Create(CloakParent, this); if(GetMesh() && GetMesh()->SkeletalMesh) CharacterCloakMats[0]->CopyParameterOverrides(Cast<UMaterialInstance>(GetMesh()->SkeletalMesh->Materials[0].MaterialInterface));
+	CharacterCloakMats[1] = UMaterialInstanceDynamic::Create(CloakParent, this); if (HelmetMesh && HelmetMesh->SkeletalMesh) CharacterCloakMats[1]->CopyParameterOverrides(Cast<UMaterialInstance>(HelmetMesh->SkeletalMesh->Materials[0].MaterialInterface));
+	CharacterCloakMats[2] = UMaterialInstanceDynamic::Create(CloakParent, this); if (BodyMesh && BodyMesh->SkeletalMesh) CharacterCloakMats[2]->CopyParameterOverrides(Cast<UMaterialInstance>(BodyMesh->SkeletalMesh->Materials[0].MaterialInterface));
+	CharacterCloakMats[3] = UMaterialInstanceDynamic::Create(CloakParent, this); if (LegsMesh && LegsMesh->SkeletalMesh) CharacterCloakMats[3]->CopyParameterOverrides(Cast<UMaterialInstance>(LegsMesh->SkeletalMesh->Materials[0].MaterialInterface));
+	CharacterCloakMats[4] = UMaterialInstanceDynamic::Create(CloakParent, this); if (ArmsMesh && ArmsMesh->SkeletalMesh) CharacterCloakMats[4]->CopyParameterOverrides(Cast<UMaterialInstance>(ArmsMesh->SkeletalMesh->Materials[0].MaterialInterface));
 }
 
 void AOrionCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
+
+	PawnSensor->OnSeePawn.AddDynamic(this, &AOrionCharacter::OnSeePawn);
+	PawnSensor->OnHearNoise.AddDynamic(this, &AOrionCharacter::OnHearNoise);
 
 	InitMaterials();
 
@@ -1043,6 +1092,14 @@ void AOrionCharacter::UpdateBloodDecals(float DeltaSeconds)
 	}
 }
 
+void AOrionCharacter::SetAbility(AOrionAbility *NewAbility)
+{
+	if (CurrentSkill)
+		CurrentSkill->Destroy();
+
+	CurrentSkill = NewAbility;
+}
+
 float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser)
 {
 	//AOrionPlayerController* MyPC = Cast<AOrionPlayerController>(Controller);
@@ -1107,7 +1164,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 			const FPointDamageEvent *RealEvent = (FPointDamageEvent*)&DamageEvent;
 			if (RealEvent)
 			{
-				Damager->AddDamageNumber(TotalDamage, RealEvent->HitInfo.ImpactPoint);
+				Damager->AddDamageNumber(ActualDamage, RealEvent->HitInfo.ImpactPoint);
 			}
 		}
 
@@ -1282,6 +1339,9 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	{
 		return;
 	}
+
+	if (CurrentWeapon)
+		CurrentWeapon->StopFire();
 
 	if (MyHealthBar)
 	{
@@ -1664,9 +1724,17 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 
 	UpdateBloodDecals(DeltaSeconds);
 
+	UpdateCooldowns(DeltaSeconds);
+
 	//hax for now
 	//if (CurrentWeapon == NULL && Inventory.Num() > 0)
 	//	EquipWeapon(Inventory[0]);
+}
+
+void AOrionCharacter::UpdateCooldowns(float DeltaTime)
+{
+	if (Role == ROLE_Authority)
+		GrenadeCooldown = FMath::Max(0.0f, GrenadeCooldown - DeltaTime);
 }
 
 void AOrionCharacter::UpdateAimKick(float DeltaSeconds)
@@ -1756,6 +1824,69 @@ void AOrionCharacter::SetupPlayerInputComponent(class UInputComponent* InputComp
 	InputComponent->BindAction("PrevWeapon", IE_Pressed, this, &AOrionCharacter::OnPrevWeapon);
 
 	InputComponent->BindAction("ActivateSkill", IE_Pressed, this, &AOrionCharacter::TryToActivateSkill);
+
+	InputComponent->BindAction("ThrowGrenade", IE_Pressed, this, &AOrionCharacter::TossGrenade);
+}
+
+void AOrionCharacter::TossGrenade()
+{
+	if (GrenadeCooldown > 0.0f)
+		return;
+
+	FWeaponAnim GrenAnim;
+	GrenAnim.Pawn3P = GrenadeAnim;
+
+	float Len = OrionPlayAnimMontage(GrenAnim, 1.0f, TEXT(""), true, false, true);
+
+	GetWorldTimerManager().SetTimer(GrenadeTimer, this, &AOrionCharacter::DoGrenade, Len*0.6f, false);
+}
+
+bool AOrionCharacter::ServerTossGrenade_Validate(FVector dir)
+{
+	return true;
+}
+
+void AOrionCharacter::ServerTossGrenade_Implementation(FVector dir)
+{
+	ActuallyTossGrenade(dir);
+}
+
+//throw this bitch
+void AOrionCharacter::ActuallyTossGrenade(FVector dir)
+{
+	if (GrenadeCooldown > 0.0f)
+		return;
+
+	if (Role == ROLE_Authority)
+	{
+		GrenadeCooldown = 5.0f;
+
+		if (GrenadeClass)
+		{
+			FActorSpawnParameters SpawnInfo;
+			SpawnInfo.bNoCollisionFail = true;
+			SpawnInfo.Owner = this;
+
+			FVector pos;
+			FRotator rot;
+
+			GetMesh()->GetSocketWorldLocationAndRotation(GrenadeSocket, pos, rot);
+
+			GetWorld()->SpawnActor<AOrionGrenade>(GrenadeClass, pos + FVector(0.0f, 0.0f, 25.0f) + dir * 75.0f, dir.Rotation(), SpawnInfo);
+		}
+	}
+}
+
+void AOrionCharacter::DoGrenade()
+{
+	FVector dir;
+
+	dir = GetViewRotation().Vector();
+
+	if (Role < ROLE_Authority)
+		ServerTossGrenade(dir);
+	else
+		ActuallyTossGrenade(dir);
 }
 
 void AOrionCharacter::TryToActivateSkill()

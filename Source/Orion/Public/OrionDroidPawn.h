@@ -27,6 +27,7 @@ public:
 		virtual float GetBackRotation(float DeltaTime);
 
 	void HandleSpecialWeaponFire(FName SocketName);
+	virtual FVector2D GetAim(float DeltaTime) override;
 	
 private:
 	float FinsRotation;
