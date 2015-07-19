@@ -14,6 +14,24 @@ class AOrionInventory;
 #define ORION_SURFACE_Flesh			SurfaceType8
 #define ORION_SURFACE_Shield		SurfaceType9
 
+UENUM(BlueprintType)
+enum EGibType
+{
+	GIB_HEAD,
+	GIB_LEFTARM,
+	GIB_RIGHTARM,
+	GIB_LEFTLEG,
+	GIB_RIGHTLEG
+};
+
+UENUM(BlueprintType)
+enum EAIType
+{
+	AI_STATIONARY,
+	AI_WANDER,
+	AI_HUNTING
+};
+
 USTRUCT(BlueprintType)
 struct FDecalHelper
 {

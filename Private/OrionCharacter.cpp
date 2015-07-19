@@ -209,6 +209,12 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 
 	GrenadeCooldown = 0.0f;
 
+	HeadScale = 1.0f;
+	LeftLegScale = 1.0f;
+	RightLegScale = 1.0f;
+	LeftArmScale = 1.0f;
+	RightArmScale = 1.0f;
+
 	bFirstPerson = true;
 	UpdatePawnMeshes();
 }
@@ -1023,16 +1029,37 @@ void AOrionCharacter::SpawnGibs(int32 index, FVector pos, FRotator rot)
 	if (NewGib)
 	{
 		//hide the bone on the mesh
-		GetMesh()->HideBoneByName(GetMesh()->GetSocketBoneName(NewGib->SocketName), PBO_None);
+		////GetMesh()->HideBoneByName(GetMesh()->GetSocketBoneName(NewGib->SocketName), PBO_None);
 		NewGib->Mesh->AddImpulse(FMath::VRand() * 1000.0f, NAME_None, true);
 		NewGib->BloodMat = BloodDecal;
 
 		Gibs[index].bActivated = true;			//make sure it only happens once
 		Gibs[index].TimeTillBloodDecal = 2.0f;	//delay the blood pool to give the mesh time to stop moving
 
+		switch (NewGib->GibType)
+		{
+		case GIB_HEAD:
+			HeadScale = 0.0f;
+			break;
+		case GIB_LEFTLEG:
+			LeftLegScale = 0.0f;
+			break;
+		case GIB_RIGHTLEG:
+			RightLegScale = 0.0f;
+			break;
+		case GIB_LEFTARM:
+			LeftArmScale = 0.0f;
+			break;
+		case GIB_RIGHTARM:
+			RightArmScale = 0.0f;
+			break;
+		}
+
 		if (NewGib->DoBloodSpurt)
 		{
-			UParticleSystemComponent* BloodPSC = UGameplayStatics::SpawnEmitterAttached(BloodSpurtFX, GetMesh(), NewGib->SocketName);
+			FName BloodSpurt = FName(*(NewGib->SocketName.ToString() + TEXT("Spurt")));
+			if (GetMesh()->GetSocketByName(BloodSpurt))
+				UParticleSystemComponent* BloodPSC = UGameplayStatics::SpawnEmitterAttached(BloodSpurtFX, GetMesh(), BloodSpurt);
 		}
 	}
 }
@@ -1058,17 +1085,34 @@ void AOrionCharacter::UpdateBloodDecals(float DeltaSeconds)
 					FRotator rot;
 					GetMesh()->GetSocketWorldLocationAndRotation(Gib->SocketName, pos, rot);
 
-					UDecalComponent *Dec = UGameplayStatics::SpawnDecalAtLocation(GetWorld(), BloodDecal, FVector(FMath::RandRange(64, 128), FMath::RandRange(64, 128), 32.0f), pos, FRotator(-90, 0, 0), 30.0f);
-					if (Dec)
+					FHitResult Hit;
+
+					FCollisionQueryParams TraceParams(FName(TEXT("FootTrace")), true, this);
+
+					TraceParams.AddIgnoredActor(this);
+					TraceParams.bTraceAsyncScene = true;
+					TraceParams.bReturnPhysicalMaterial = true;
+
+					if (GetWorld()->LineTraceSingleByObjectType(Hit, pos, pos - FVector(0.0f, 0.0f, 150.0f), FCollisionObjectQueryParams::DefaultObjectQueryParam, TraceParams))
 					{
-						FDecalHelper NewDecal;
-						NewDecal.Mat = UMaterialInstanceDynamic::Create(Dec->GetMaterial(0), this);
-						NewDecal.TimeLeft = 1.2f;
+						pos = Hit.ImpactPoint;
 
-						Dec->SetMaterial(0, NewDecal.Mat);
+						UDecalComponent *Dec = UGameplayStatics::SpawnDecalAtLocation(GetWorld(), BloodDecal, FVector(FMath::RandRange(64, 128), FMath::RandRange(64, 128), 32.0f), pos, FRotator(-90, 0, 0), 30.0f);
+						if (Dec)
+						{
+							FDecalHelper NewDecal;
+							NewDecal.Mat = UMaterialInstanceDynamic::Create(Dec->GetMaterial(0), this);
+							NewDecal.TimeLeft = 1.2f;
 
-						BloodDecals.Add(NewDecal);
+							Dec->SetMaterial(0, NewDecal.Mat);
+
+							//Gibs.Remove(*giter);
+
+							BloodDecals.Add(NewDecal);
+						}
 					}
+					//else
+					//	Gibs.Remove(*giter);
 				}
 			}
 		}

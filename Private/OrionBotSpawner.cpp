@@ -35,12 +35,15 @@ void AOrionBotSpawner::SpawnBots()
 	if (Role != ROLE_Authority)
 		return;
 
-	for (int32 i = ActivePawns.Num(); i < NumToKeepAlive; i++)
+	if (GetWorld() == nullptr || GetWorld()->GetNavigationSystem() == nullptr)
+		return;
+
+	for (int32 i = ActivePawns.Num(); i < NumToKeepAlive || NumToKeepAlive < 0; i++)
 	{
 		if (Pawn && GetWorld() && GetWorld()->GetNavigationSystem())
 		{
 			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.bNoCollisionFail = true;
+			SpawnInfo.bNoCollisionFail = false;
 
 			FNavLocation Loc;
 
@@ -48,7 +51,12 @@ void AOrionBotSpawner::SpawnBots()
 
 			AOrionCharacter* NewPawn = GetWorld()->SpawnActor<AOrionCharacter>(Pawn, Loc.Location + FVector(0, 0, 150.0f), GetActorRotation(), SpawnInfo);
 			if (NewPawn)
+			{
 				NewPawn->SpawnDefaultController();
+				NewPawn->SetAIType(AIType);
+			}
+			else
+				continue;
 
 			if (Squad == nullptr && bCreateSquad)
 			{
@@ -61,7 +69,16 @@ void AOrionBotSpawner::SpawnBots()
 			}
 
 			ActivePawns.Add(NewPawn);
+
+			//this means it was just a one time spawn and can be removed
+			if (NumToKeepAlive < 0)
+			{
+				Destroy();
+				return;
+			}
 		}
+		else if (NumToKeepAlive < 0)
+			return;
 	}
 }
 
@@ -106,7 +123,7 @@ void AOrionBotSpawner::CheckActivePawns()
 			}
 		}
 
-		if (ActivePawns.Num() < NumToKeepAlive && !GetWorldTimerManager().IsTimerActive(SpawnTimer))
+		if ((ActivePawns.Num() < NumToKeepAlive || NumToKeepAlive < 0) && !GetWorldTimerManager().IsTimerActive(SpawnTimer))
 			GetWorldTimerManager().SetTimer(SpawnTimer, this, &AOrionBotSpawner::SpawnBots, SpawnDelay, false);
 	}
 }

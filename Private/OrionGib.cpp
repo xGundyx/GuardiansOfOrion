@@ -40,20 +40,39 @@ void AOrionGib::BeginPlay()
 
 	FTimerHandle THandle;
 	GetWorldTimerManager().SetTimer(THandle, this, &AOrionGib::SpawnBlood, 2.0f, false);
+
+	SetLifeSpan(32.0f);
 }
 
 void AOrionGib::SpawnBlood()
 {
 	if (BloodMat)
 	{
-		UDecalComponent *Dec = UGameplayStatics::SpawnDecalAtLocation(GetWorld(), BloodMat, FVector(FMath::RandRange(64, 128), FMath::RandRange(64, 128), 32.0f), Mesh->GetSocketLocation(FName(TEXT("Blood"))), FRotator(-90, 0, 0), 30.0f);
-		
-		if (Dec)
-		{
-			BloodDecal.Mat = UMaterialInstanceDynamic::Create(Dec->GetMaterial(0), this);
-			BloodDecal.TimeLeft = 1.2f;
+		FVector pos;
+		FRotator rot;
+		Mesh->GetSocketWorldLocationAndRotation("Blood", pos, rot);
 
-			Dec->SetMaterial(0, BloodDecal.Mat);
+		FHitResult Hit;
+
+		FCollisionQueryParams TraceParams(FName(TEXT("BloodGibTrace")), true, this);
+
+		TraceParams.AddIgnoredActor(this);
+		TraceParams.bTraceAsyncScene = true;
+		TraceParams.bReturnPhysicalMaterial = true;
+
+		if (GetWorld()->LineTraceSingleByObjectType(Hit, pos, pos - FVector(0.0f, 0.0f, 150.0f), FCollisionQueryFlag::Get().GetAllStaticObjectsQueryFlag(), TraceParams))
+		{
+			pos = Hit.ImpactPoint;
+
+			UDecalComponent *Dec = UGameplayStatics::SpawnDecalAtLocation(GetWorld(), BloodMat, FVector(FMath::RandRange(64, 128), FMath::RandRange(64, 128), 32.0f), pos, FRotator(-90, 0, 0), 30.0f);
+
+			if (Dec)
+			{
+				BloodDecal.Mat = UMaterialInstanceDynamic::Create(Dec->GetMaterial(0), this);
+				BloodDecal.TimeLeft = 1.2f;
+
+				Dec->SetMaterial(0, BloodDecal.Mat);
+			}
 		}
 	}
 }
