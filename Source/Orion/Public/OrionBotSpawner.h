@@ -56,6 +56,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Squad)
 		float SpawnRadius;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Mesh)
+		TEnumAsByte<EAIType> AIType;
+
 private:
 	AOrionSquad *Squad;
 	FTimerHandle SpawnTimer;

@@ -20,6 +20,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gibs)
 		bool DoBloodSpurt;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gibs)
+		TEnumAsByte<EGibType> GibType;
+
 	//UDecalComponent* Decal;
 	FDecalHelper BloodDecal;
 

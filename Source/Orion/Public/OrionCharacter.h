@@ -52,6 +52,8 @@ struct FGibHelper
 		TimeTillBloodDecal = -1.0f;
 		bActivated = false;
 	}
+
+	bool operator==(const FGibHelper Other) const { return Gib == Other.Gib; }
 };
 
 //this holds a player's character stats, it gets updated whenever gear changes or level up
@@ -345,6 +347,11 @@ public:
 	virtual bool IsTopDown();
 
 	int32 CameraIndex;
+
+	UPROPERTY(BlueprintReadOnly, Category = "AI")
+		TEnumAsByte<EAIType> AIType;
+
+	void SetAIType(EAIType type) { AIType = type; }
 
 	virtual void DoGrenade();
 	virtual void TossGrenade();
@@ -689,6 +696,21 @@ public:
 
 	UFUNCTION(reliable, client, Category = Inventory)
 		void ClientEquipWeapon(class AOrionWeapon* Weapon);
+
+	UPROPERTY(BlueprintReadOnly, Category = Gibs)
+		float LeftLegScale;
+
+	UPROPERTY(BlueprintReadOnly, Category = Gibs)
+		float RightLegScale;
+
+	UPROPERTY(BlueprintReadOnly, Category = Gibs)
+		float LeftArmScale;
+
+	UPROPERTY(BlueprintReadOnly, Category = Gibs)
+		float RightArmScale;
+
+	UPROPERTY(BlueprintReadOnly, Category = Gibs)
+		float HeadScale;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gibs)
 		TArray<FGibHelper> Gibs;

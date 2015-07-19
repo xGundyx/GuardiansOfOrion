@@ -247,16 +247,22 @@ UBlackboardComponent *AOrionAIController::GetBlackboard()
 
 void AOrionAIController::SetEnemy(APawn *pEnemy)
 {
-	//for now we'll force the ai to enter a run state when we have an enemy
-	if (Cast<AOrionCharacter>(GetPawn()))
-		Cast<AOrionCharacter>(GetPawn())->bRun = true;
-
-	myEnemy = pEnemy;
 	//EventSetBlackboardEnemy(pEnemy);
 	UBlackboardComponent *BlackBoard = GetBlackboard();
 
 	if (BlackBoard)
+	{
+		myEnemy = pEnemy;
 		BlackBoard->SetValueAsObject(TEXT("Enemy"), myEnemy);
+	}
+	else
+	{
+		return;
+	}
+
+	//for now we'll force the ai to enter a run state when we have an enemy
+	if (Cast<AOrionCharacter>(GetPawn()))
+		Cast<AOrionCharacter>(GetPawn())->bRun = true;
 
 	//if we're in a squad, and we're the leader, tell our followers what to do about it
 	if (Squad && Squad->Leader == this)
