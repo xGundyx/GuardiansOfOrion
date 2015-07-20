@@ -40,6 +40,8 @@ public:
 
 	void InitGRI();
 
+	virtual void SpawnWave() {}
+
 private:
 	FTimerHandle GRITimer;
 };

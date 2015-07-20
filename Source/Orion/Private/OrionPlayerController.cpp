@@ -10,6 +10,7 @@
 //#include "ClientConnector.h"
 #include "OrionInventoryItem.h"
 #include "OrionPRI.h"
+#include "OrionGameMode.h"
 #include "PhotonProxy.h"
 
 AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObjectInitializer)
@@ -284,7 +285,10 @@ void AOrionPlayerController::ChangeClass(int32 index)
 void AOrionPlayerController::AddDamageNumber(int32 Damage, FVector Pos)
 {
 	if (GetNetMode() == NM_DedicatedServer)
+	{
 		ClientAddDamageNumber(Damage, Pos);
+		return;
+	}
 
 	EventAddDamageNumber(Damage, Pos);
 }
@@ -314,6 +318,16 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 	}
 #else
 #endif
+}
+
+void AOrionPlayerController::SpawnWave()
+{
+	if (GetWorld())
+	{
+		AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
+		if (Game)
+			Game->SpawnWave();
+	}
 }
 
 void AOrionPlayerController::TestSettings()
