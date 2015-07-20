@@ -2,7 +2,7 @@
 #include "OrionGib.h"
 
 AOrionGib::AOrionGib(const FObjectInitializer& ObjectInitializer)
-	: Super(ObjectInitializer.SetDefaultSubobjectClass<UOrionMovementComponent>(ACharacter::CharacterMovementComponentName))
+	: Super(ObjectInitializer)
 {
 	Mesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("GibMesh"));
 	Mesh->AlwaysLoadOnClient = true;
@@ -13,6 +13,8 @@ AOrionGib::AOrionGib(const FObjectInitializer& ObjectInitializer)
 
 	Mesh->bReceivesDecals = false;
 	Mesh->SetSimulatePhysics(true);
+
+	RootComponent = Mesh;
 
 	DoBloodSpurt = false;
 

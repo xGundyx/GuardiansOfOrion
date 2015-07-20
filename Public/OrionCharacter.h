@@ -389,6 +389,15 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_LegsArmor)
 		AOrionArmor *LegsArmor;
 
+	//ring mesh under the player
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
+		class UStaticMeshComponent* RingMesh;
+
+	UPROPERTY()
+		UMaterialInstanceDynamic *RingMat;
+
+	void UpdatePlayerRingColor();
+
 	//modular pieces
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
 		class USkeletalMeshComponent* HelmetMesh;

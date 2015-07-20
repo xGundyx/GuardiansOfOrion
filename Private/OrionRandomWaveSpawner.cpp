@@ -38,30 +38,6 @@ AOrionRandomWaveSpawner::AOrionRandomWaveSpawner(const FObjectInitializer& Objec
 
 	SpawnRadius = 5000.0f;
 	MaxToSpawnPerFrame = 10;
-
-	//this must match EAISpawnType enum
-	if (SpawnClasses.Num() == 0)
-	{
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor")));//raptor
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Compy.bot_Compy")));//compy
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Dilo.bot_Dilo")));//dilo
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_TRex.bot_TRex")));//trex
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Triceratops.bot_Triceratops")));//trike
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor")));//rham
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor")));//ptera
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor")));//anky
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor")));//kruger
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor")));//jeckyl
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor")));//namor
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor")));//viper
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor")));//orbdroid
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor")));//bones
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor")));//assault
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor")));//support
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor")));//recon
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor")));//tech
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor")));//demo
-	}
 }
 
 TSubclassOf<AOrionCharacter> AOrionRandomWaveSpawner::GetBlueprintFromPath(FString path)
@@ -106,6 +82,30 @@ void AOrionRandomWaveSpawner::BeginPlay()
 	ClassEnabled.Add(bRecon);
 	ClassEnabled.Add(bTech);
 	ClassEnabled.Add(bDemo);
+
+	//this must match EAISpawnType enum
+	if (SpawnClasses.Num() == 0)
+	{
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//raptor
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Compy.bot_Compy'")));//compy
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Dilo.bot_Dilo'")));//dilo
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_TRex.bot_TRex'")));//trex
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Triceratops.bot_Triceratops'")));//trike
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//rham
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//ptera
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//anky
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//kruger
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//jeckyl
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//namor
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//viper
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//orbdroid
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//bones
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//assault
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//support
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//recon
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//tech
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//demo
+	}
 }
 
 void AOrionRandomWaveSpawner::Tick( float DeltaTime )
@@ -159,6 +159,8 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM])
 
 void AOrionRandomWaveSpawner::SpawnFailures()
 {
+	TArray<int32> MoreFailures;
+
 	for (int32 i = 0; i < FailedToSpawn.Num(); i++)
 	{
 		FActorSpawnParameters SpawnInfo;
@@ -168,7 +170,7 @@ void AOrionRandomWaveSpawner::SpawnFailures()
 
 		GetWorld()->GetNavigationSystem()->GetRandomReachablePointInRadius(GetActorLocation(), SpawnRadius, Loc);
 
-		AOrionCharacter* NewPawn = GetWorld()->SpawnActor<AOrionCharacter>(SpawnClasses[i], Loc.Location + FVector(0, 0, 150.0f), GetActorRotation(), SpawnInfo);
+		AOrionCharacter* NewPawn = GetWorld()->SpawnActor<AOrionCharacter>(SpawnClasses[FailedToSpawn[i]], Loc.Location + FVector(0, 0, 150.0f), GetActorRotation(), SpawnInfo);
 		if (NewPawn)
 		{
 			NewPawn->SpawnDefaultController();
@@ -176,10 +178,13 @@ void AOrionRandomWaveSpawner::SpawnFailures()
 		}
 		else
 		{
-			FailedToSpawn.Add(i);
+			MoreFailures.Add(FailedToSpawn[i]);
 			continue;
 		}
 	}
+
+	FailedToSpawn.Empty();
+	FailedToSpawn = MoreFailures;
 
 	if (FailedToSpawn.Num() > 0)
 	{

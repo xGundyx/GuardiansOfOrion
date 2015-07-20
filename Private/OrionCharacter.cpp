@@ -27,6 +27,8 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	BaseLookUpRate = 45.f;
 	RotationRate = 0.0f;
 
+	RingMat = nullptr;
+
 	//AIControllerClass = AOrionAIController::StaticClass();
 
 	// Create a CameraComponent	
@@ -200,6 +202,9 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	PawnSensor->SensingInterval = .25f; // 4 times per second
 	PawnSensor->bOnlySensePlayers = false;
 	PawnSensor->SetPeripheralVisionAngle(85.f);
+
+	RingMesh = ObjectInitializer.CreateOptionalDefaultSubobject<UStaticMeshComponent>(this, TEXT("Ring"));
+	RingMesh->AddLocalOffset(FVector(0.0f, 0.0f, -85.0f));
 
 	Health = 100.0;
 	HealthMax = 100.0;
@@ -781,6 +786,7 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME_CONDITION(AOrionCharacter, GrenadeCooldown, COND_OwnerOnly);
 
 	DOREPLIFETIME(AOrionCharacter, DrivenVehicle);
+	DOREPLIFETIME(AOrionCharacter, CurrentSkill);
 }
 
 void AOrionCharacter::Destroyed()
@@ -830,7 +836,8 @@ void AOrionCharacter::AttachToShip()
 	GetCharacterMovement()->bEnablePhysicsInteraction = false;
 	GetCharacterMovement()->SetComponentTickEnabled(false);
 
-	AttachRootComponentTo(CurrentShip->GetMesh(), "Spawn1", EAttachLocation::SnapToTarget, true);
+	FString Socket = FString::Printf(TEXT("Spawn%i"), CurrentShip->GetNumPassengers() + 1);
+	AttachRootComponentTo(CurrentShip->GetMesh(), FName(*Socket), EAttachLocation::SnapToTarget, true);
 	SetActorEnableCollision(false);
 }
 
@@ -960,6 +967,8 @@ void AOrionCharacter::PostInitializeComponents()
 	//spawn our health bar hud element
 	if (GetNetMode() != NM_DedicatedServer)
 		CreateHealthBar();
+
+	UpdatePlayerRingColor();
 }
 
 void AOrionCharacter::HandleGibs(float damage, FDamageEvent const& DamageEvent)
@@ -1422,6 +1431,10 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	// remove all weapons
 	DestroyInventory();
 
+	// hide ring
+	if (RingMesh)
+		RingMesh->SetHiddenInGame(true);
+
 	// switch back to 3rd person view
 	UpdatePawnMeshes();
 
@@ -1621,12 +1634,75 @@ void AOrionCharacter::SetRagdollPhysics()
 	}
 }
 
+void AOrionCharacter::UpdatePlayerRingColor()
+{
+	if (PlayerState == nullptr)
+	{
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, this, &AOrionCharacter::UpdatePlayerRingColor, 1.0, false);
+		return;
+	}
+
+	if (PlayerState && PlayerState->bIsABot)
+		return;
+
+	if (RingMesh && !RingMesh->StaticMesh)
+		return;
+
+	if (!RingMat)
+	{
+		RingMat = UMaterialInstanceDynamic::Create(RingMesh->GetMaterial(0), this);
+		RingMesh->SetMaterial(0, RingMat);
+	}
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
+
+	FLinearColor col;
+	col.R = 5.0f;
+	col.G = 0.0f;
+	col.B = 0.0f;
+	col.A = 1.0f;
+
+	if (PC)
+	{
+		AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
+		if (PRI && GRI)
+		{
+			if (PC == Controller)
+			{
+				col.R = 0.0f;
+				col.G = 5.0f;
+				col.B = 0.0f;
+				col.A = 1.0f;
+			}
+			else if (GRI->OnSameTeam(PRI, Cast<AOrionPRI>(PlayerState)))
+			{
+				col.R = 0.0f;
+				col.G = 0.0f;
+				col.B = 5.0f;
+				col.A = 1.0f;
+			}
+			else
+			{
+				col.R = 5.0f;
+				col.G = 0.0f;
+				col.B = 0.0f;
+				col.A = 1.0f;
+			}
+		}
+	}
+
+	RingMat->SetVectorParameterValue("CircleColor", col);
+}
+
 void AOrionCharacter::PossessedBy(class AController* InController)
 {
 	Super::PossessedBy(InController);
 
 	// [server] as soon as PlayerState is assigned, set team colors of this pawn for local player
 	////UpdateTeamColorsAllMIDs();
+	//UpdatePlayerRingColor();
 
 	UpdatePawnMeshes();
 

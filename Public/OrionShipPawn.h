@@ -38,6 +38,8 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Spawned"))
 		void EventSpawnShip(int32 Team);
 
+	int32 GetNumPassengers() { return Passengers.Num(); }
+
 private:
 	TArray<AOrionCharacter*> Passengers;
 };

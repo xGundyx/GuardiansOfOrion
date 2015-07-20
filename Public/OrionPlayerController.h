@@ -396,6 +396,9 @@ public:
 	UFUNCTION(exec)
 		void TestSettings();
 
+	UFUNCTION(exec)
+		void SpawnWave();
+
 	virtual void Destroyed() override;
 
 	void UpdateRotation(float DeltaTime) override;
