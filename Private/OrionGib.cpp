@@ -48,6 +48,15 @@ void AOrionGib::BeginPlay()
 
 void AOrionGib::SpawnBlood()
 {
+	//if we aren't at a stop yet, wait a bit
+	//if (Mesh->ComponentVelocity.Size() > 10.0f)
+	if (Mesh->GetPhysicsLinearVelocity(Mesh->GetSocketBoneName("Blood")).Size() > 1.0f)
+	{
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, this, &AOrionGib::SpawnBlood, 0.25f, false);
+		return;
+	}
+
 	if (BloodMat)
 	{
 		FVector pos;

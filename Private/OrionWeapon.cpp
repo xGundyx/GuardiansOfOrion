@@ -1148,7 +1148,7 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 		if (MuzzlePSC > 0)
 		{
 			//MuzzlePSC->SetVectorParameter(FName("FlashScale"), FVector(InstantConfig.MuzzleScale));
-			MuzzlePSC->SetWorldScale3D(FVector(InstantConfig.MuzzleScale));
+			MuzzlePSC->SetWorldScale3D(FVector(InstantConfig.MuzzleScale * (MyPawn && MyPawn->IsTopDown() ? 2.5 : 1.0)));
 		}
 	}
 

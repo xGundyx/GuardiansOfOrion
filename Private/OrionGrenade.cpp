@@ -22,8 +22,8 @@ AOrionGrenade::AOrionGrenade(const FObjectInitializer& ObjectInitializer) : Supe
 
 	ProjectileMovement = ObjectInitializer.CreateDefaultSubobject<UProjectileMovementComponent>(this, TEXT("ProjectileComp"));
 	ProjectileMovement->UpdatedComponent = GrenadeMesh;
-	ProjectileMovement->InitialSpeed = 1500.0f;
-	ProjectileMovement->MaxSpeed = 1500.0f;
+	ProjectileMovement->InitialSpeed = 800.0f;
+	ProjectileMovement->MaxSpeed = 800.0f;
 	ProjectileMovement->bRotationFollowsVelocity = false;
 	ProjectileMovement->bShouldBounce = true;
 	ProjectileMovement->ProjectileGravityScale = 1.0f;
@@ -39,10 +39,12 @@ AOrionGrenade::AOrionGrenade(const FObjectInitializer& ObjectInitializer) : Supe
 void AOrionGrenade::Init(FVector dir)
 {
 	//spawn a projectile using our mesh
+	ProjectileMovement->Velocity = dir;
 }
 
 void AOrionGrenade::Tick(float DeltaSeconds)
 {
+	Super::Tick(DeltaSeconds);
 	//make the mesh rotate to simulate actual rolling, doesn't have to be too pretty:p
 }
 

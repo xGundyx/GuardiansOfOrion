@@ -78,6 +78,12 @@ public:
 		void FindFlightPath(FVector Destination);
 
 	UFUNCTION(BlueprintCallable, Category = Navigation)
+		void FlyToPoint(FVector Destination);
+
+	UFUNCTION(BlueprintCallable, Category = Navigation)
+		FVector GetNextDirectFlyLocation();
+
+	UFUNCTION(BlueprintCallable, Category = Navigation)
 		FVector GetRandomFlightPoint(bool bIsLanding);
 
 	UFUNCTION(BlueprintCallable, Category = Navigation)
@@ -93,6 +99,7 @@ public:
 		TEnumAsByte<AIMoveType> MoveType;
 
 	EPathFollowingRequestResult::Type MoveFlyToLocation(const FVector& Dest, float AcceptanceRadius, bool bStopOnOverlap, bool bUsePathfinding, bool bProjectDestinationToNavigation, bool bCanStrafe, TSubclassOf<UNavigationQueryFilter> FilterClass);
+	EPathFollowingRequestResult::Type MoveDirectFlyToLocation(const FVector& Dest, float AcceptanceRadius, TSubclassOf<UNavigationQueryFilter> FilterClass);
 
 private:
 	APawn *myEnemy;

@@ -4,6 +4,7 @@
 #include "OrionWeapon.h"
 #include "OrionSquad.h"
 #include "OrionAIController.h"
+#include "OrionAbility.h"
 #include "OrionPathFollowingComponent.h"
 
 AOrionAIController::AOrionAIController(const FObjectInitializer& ObjectInitializer)
@@ -45,6 +46,18 @@ void AOrionAIController::FindFlightPath(FVector Destination)
 	}
 }
 
+void AOrionAIController::FlyToPoint(FVector Destination)
+{
+	if(GetPawn())
+	{
+		FlightPath.Empty();
+		FlightPath.Add(Destination);
+		FlightIndex = 0;
+
+		MoveDirectFlyToLocation(Destination, 100.0f, UNavigationQueryFilter::StaticClass());
+	}
+}
+
 FVector AOrionAIController::GetRandomFlightPoint(bool bIsLanding)
 {
 	if (bIsLanding)
@@ -65,6 +78,49 @@ FVector AOrionAIController::GetRandomFlightPoint(bool bIsLanding)
 
 	if (FlyArea)
 		return FlyArea->GetRandomPoint();
+
+	return FVector(0.0f);
+}
+
+FVector AOrionAIController::GetNextDirectFlyLocation()
+{
+	if (!GetPawn())
+		return FVector(0.0f);
+
+	//if we have an enemy, make sure we can see them
+	if (myEnemy)
+	{
+		bool bCanSeeEnemy = false;
+
+		FHitResult Hit;
+		FCollisionQueryParams TraceParams(FName(TEXT("FlyTrace")), true, this);
+
+		TraceParams.AddIgnoredActor(this);
+		TraceParams.AddIgnoredActor(GetPawn());
+		TraceParams.bTraceAsyncScene = true;
+		TraceParams.bReturnPhysicalMaterial = true;
+
+		FVector vStart = GetPawn()->GetActorLocation();
+		FVector vEnd = myEnemy->GetActorLocation() + FVector(0.0f, 0.0f, 45.0f);
+
+		if (GetWorld()->LineTraceSingleByObjectType(Hit, vStart, vEnd, FCollisionObjectQueryParams::DefaultObjectQueryParam, TraceParams))
+		{
+			if (Hit.GetActor() != myEnemy)
+				bCanSeeEnemy = false;
+			else
+				bCanSeeEnemy = true;
+		}
+		else
+			bCanSeeEnemy = true;
+
+		if (bCanSeeEnemy)
+			return vEnd - FVector(0.0f, 0.0f, 75.0f);
+		
+		//if we have an enemy, but we can't see him, try to fly up a bit and and try again
+		FVector dir = (vEnd + FVector(0.0f, 0.0f, 500.0f) - vStart).GetSafeNormal();
+
+		return vStart + dir * 750.0f;
+	}
 
 	return FVector(0.0f);
 }
@@ -127,6 +183,56 @@ EPathFollowingRequestResult::Type AOrionAIController::MoveFlyToLocation(const FV
 	}*/
 
 	if (bCanRequestMove && GetPathFollowingComponent() && GetPathFollowingComponent()->HasReached(GoalLocation, AcceptanceRadius, !bStopOnOverlap))
+	{
+		//UE_VLOG(this, LogAINavigation, Log, TEXT("MoveToLocation: already at goal!"));
+
+		// make sure previous move request gets aborted
+		GetPathFollowingComponent()->AbortMove(TEXT("Aborting move due to new move request finishing with AlreadyAtGoal"), FAIRequestID::AnyRequest);
+
+		GetPathFollowingComponent()->SetLastMoveAtGoal(true);
+
+		OnMoveCompleted(FAIRequestID::CurrentRequest, EPathFollowingResult::Success);
+		Result = EPathFollowingRequestResult::AlreadyAtGoal;
+		bCanRequestMove = false;
+	}
+
+	if (bCanRequestMove)
+	{
+		if (Cast<UOrionPathFollowingComponent>(GetPathFollowingComponent()))
+		{
+			Result = EPathFollowingRequestResult::RequestSuccessful;
+			Cast<UOrionPathFollowingComponent>(GetPathFollowingComponent())->SetStatus(EPathFollowingStatus::Moving);
+		}
+	}
+
+	if (Result == EPathFollowingRequestResult::Failed)
+	{
+		if (GetPathFollowingComponent())
+		{
+			GetPathFollowingComponent()->SetLastMoveAtGoal(false);
+		}
+
+		OnMoveCompleted(FAIRequestID::InvalidRequest, EPathFollowingResult::Invalid);
+	}
+
+	return Result;
+}
+
+EPathFollowingRequestResult::Type AOrionAIController::MoveDirectFlyToLocation(const FVector& Dest, float AcceptanceRadius, TSubclassOf<UNavigationQueryFilter> FilterClass)
+{
+	EPathFollowingRequestResult::Type Result = EPathFollowingRequestResult::Failed;
+	bool bCanRequestMove = true;
+
+	// Check input is valid
+	if (Dest.ContainsNaN())
+	{
+		ensure(!Dest.ContainsNaN());
+		bCanRequestMove = false;
+	}
+
+	FVector GoalLocation = Dest;
+
+	if (bCanRequestMove && GetPathFollowingComponent() && GetPathFollowingComponent()->HasReached(GoalLocation, AcceptanceRadius, false))
 	{
 		//UE_VLOG(this, LogAINavigation, Log, TEXT("MoveToLocation: already at goal!"));
 
@@ -279,14 +385,23 @@ APawn *AOrionAIController::GetEnemy()
 //if we have an enemy, make sure he is still valid
 void AOrionAIController::CheckEnemyStatus()
 {
-	if (myEnemy == nullptr)
+	if (myEnemy == nullptr || !myEnemy->IsValidLowLevel())
 	{
 		RemoveEnemy();
 		return;
 	}
 
+	bool bRemoveEnemy = false;
+
+	AOrionCharacter *pEnemy = Cast<AOrionCharacter>(myEnemy);
+
+	if (pEnemy && pEnemy->CurrentSkill && pEnemy->CurrentSkill->IsCloaking())
+		bRemoveEnemy = true;
 	//ignore dead players
-	if (Cast<AOrionCharacter>(myEnemy) && Cast<AOrionCharacter>(myEnemy)->Health <= 0)
+	else if (Cast<AOrionCharacter>(myEnemy) && Cast<AOrionCharacter>(myEnemy)->Health <= 0)
+		bRemoveEnemy = true;
+
+	if (bRemoveEnemy)
 		RemoveEnemy();
 }
 
@@ -298,6 +413,13 @@ void AOrionAIController::RemoveEnemy()
 	myEnemy = nullptr;
 
 	StopFiringWeapon();
+
+	UBlackboardComponent *BlackBoard = GetBlackboard();
+
+	if (BlackBoard)
+	{
+		BlackBoard->SetValueAsObject(TEXT("Enemy"), nullptr);
+	}
 }
 
 void AOrionAIController::GetPlayerViewPoint(FVector& OutCamLoc, FRotator& OutCamRot) const
@@ -367,10 +489,17 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 	if (SeenPawn && SeenPawn->PlayerState && SeenPawn->PlayerState->bIsABot)
 		return;
 
+	//don't care about spawning ships
+	if (Cast<AOrionShipPawn>(SeenPawn))
+		return;
+
 	AOrionCharacter *pPawn = Cast<AOrionCharacter>(SeenPawn);
 
 	if (pPawn)
 	{
+		if (pPawn->CurrentSkill && pPawn->CurrentSkill->IsCloaking())
+			return;
+
 		if (!pPawn->IsOnShip() && pPawn->Health > 0)
 			SetEnemy(SeenPawn);
 	}

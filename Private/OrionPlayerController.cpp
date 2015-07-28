@@ -111,6 +111,23 @@ void AOrionPlayerController::ClearUMG()
 	}*/
 }
 
+void AOrionPlayerController::GetAudioListenerPosition(FVector& OutLocation, FVector& OutFrontDir, FVector& OutRightDir)
+{
+	if (GetPawn())
+	{
+		FVector ViewLocation = GetPawn()->GetActorLocation() + FVector(0.0f, 0.0f, 45.0f);
+		FRotator ViewRotation = GetPawn()->GetActorRotation();
+
+		const FRotationTranslationMatrix ViewRotationMatrix(ViewRotation, ViewLocation);
+
+		OutLocation = ViewLocation;
+		OutFrontDir = ViewRotationMatrix.GetUnitAxis(EAxis::X);
+		OutRightDir = ViewRotationMatrix.GetUnitAxis(EAxis::Y);
+	}
+	else
+		Super::GetAudioListenerPosition(OutLocation, OutFrontDir, OutRightDir);
+}
+
 void AOrionPlayerController::GetPlayerViewPoint(FVector& OutCamLoc, FRotator& OutCamRot) const
 {
 	AOrionCharacter* MyPawn = Cast<AOrionCharacter>(GetPawn());
@@ -246,15 +263,32 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
 		if (newPawn && PRI && PRI->InventoryManager)
 		{
-			PRI->InventoryManager->EquipItems(newPawn, ITEM_ANY);
+			////PRI->InventoryManager->EquipItems(newPawn, ITEM_ANY);
+			ChangeClass(1);
 		}
 	}
-	
+}
+
+bool AOrionPlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad)
+{
+	bool bRet = Super::InputKey(Key, EventType, AmountDepressed, bGamepad);
+
+	EventPressKey(Key, bGamepad);
+
+	return bRet;
 }
 
 void AOrionPlayerController::ChangeClass(int32 index)
 {
-	//change our armor
+	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
+
+	if (!P)
+		return;
+
+	P->DestroyInventory();
+	P->SpawnClassWeapons(index);
+
+	//change our armor and weapons
 	switch (index)
 	{
 	case 0: //assault
@@ -268,7 +302,6 @@ void AOrionPlayerController::ChangeClass(int32 index)
 		break;
 	};
 
-	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
 	if (P)
 	{
 		P->InitMaterials();
@@ -755,11 +788,11 @@ TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("JUMP");
-	NewOption.Key = TEXT("SPACEBAR");
+	NewOption.Key = TEXT("Spacebar");
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("SPRINT");
-	NewOption.Key = TEXT("LEFT SHIFT");
+	NewOption.Key = TEXT("Left Shift");
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("CROUCH/ROLL");
@@ -771,11 +804,11 @@ TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("FIRE WEAPON");
-	NewOption.Key = TEXT("MOUSE 1");
+	NewOption.Key = TEXT("Left Mouse Button");
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("AIM WEAPON");
-	NewOption.Key = TEXT("MOUSE 2");
+	NewOption.Key = TEXT("Right Mouse Button");
 	Options.Add(NewOption);
 	
 	NewOption.Title = TEXT("RELOAD");
@@ -787,7 +820,7 @@ TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("USE ABILITY");
-	NewOption.Key = TEXT("LEFT CTRL");
+	NewOption.Key = TEXT("Left Ctrl");
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("PRIMARY WEAPON");

@@ -29,6 +29,9 @@ FVector2D AOrionDinoPawn::GetAim(float DeltaTime)
 
 	if (Target == NULL || !Target->IsValidLowLevel())
 	{
+		if (Target)
+			Cast<AOrionAIController>(Controller)->RemoveEnemy();
+
 		AimYaw = 0.0f;
 		AimPitch = 0.0f;
 		return FVector2D(AimYaw, AimPitch);

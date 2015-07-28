@@ -96,7 +96,7 @@ void UOrionPathFollowingComponent::FollowPathSegment(float DeltaTime)
 				return;
 			}
 
-			if ((Pawn->GetActorLocation() - GetCurrentTargetFlyingLocation()).Size() < (Pawn->bLanding ? Pawn->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 10.0f : 1000.0f))
+			if ((Pawn->GetActorLocation() - GetCurrentTargetFlyingLocation()).Size() < (Pawn->bLanding ? Pawn->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 10.0f : Pawn->FlyingOffset))
 			{
 				if (Pawn->bLanding)
 				{

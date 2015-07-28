@@ -366,6 +366,8 @@ public:
 	UPROPERTY()
 		AOrionDropPod *DropPod;
 
+	void GetAudioListenerPosition(FVector& OutLocation, FVector& OutFrontDir, FVector& OutRightDir) override;
+
 	UFUNCTION(client, reliable)
 		void ClientAddDamageNumber(int32 Damage, FVector Pos);
 
@@ -411,6 +413,11 @@ public:
 public:
 	virtual void BeginPlay();
 	virtual void StartFire(uint8 FireModeNum);
+
+	bool InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad) override;
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "OrionKeyPressed"))
+		void EventPressKey(FKey Key, bool Gamepad);
 
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerSetPlayFabInfo(const FString &ID, const FString &SessionID, const FString &cID);

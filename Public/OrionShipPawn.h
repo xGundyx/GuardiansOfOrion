@@ -40,6 +40,12 @@ public:
 
 	int32 GetNumPassengers() { return Passengers.Num(); }
 
+	UPROPERTY(BlueprintReadWrite, Category = Camera)
+		FVector CameraLocation;
+
+	UPROPERTY(BlueprintReadWrite, Category = Camera)
+		FRotator CameraRotation;
+
 private:
 	TArray<AOrionCharacter*> Passengers;
 };

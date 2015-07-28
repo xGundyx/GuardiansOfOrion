@@ -32,6 +32,43 @@ struct FGibReplicate
 
 	UPROPERTY()
 		FName Socket;
+
+	UPROPERTY()
+		FVector Velocity;
+};
+
+USTRUCT()
+struct FFootStepSound
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gibs)
+		USoundCue *ConcreteSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gibs)
+		USoundCue *GravelSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gibs)
+		USoundCue *MetalSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gibs)
+		USoundCue *MudSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gibs)
+		USoundCue *WaterSound;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gibs)
+		USoundCue *WoodSound;
+
+	FFootStepSound()
+	{
+		ConcreteSound = nullptr;
+		GravelSound = nullptr;
+		MetalSound = nullptr;
+		MudSound = nullptr;
+		WaterSound = nullptr;
+		WoodSound = nullptr;
+	}
 };
 
 USTRUCT(BlueprintType)
@@ -95,11 +132,14 @@ struct FWeaponAnim
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 		UAnimMontage* Weapon3P;
 
+	bool bHideWeapon;
+
 	FWeaponAnim()
 		: Weapon1P(NULL)
 		, Weapon3P(NULL)
 		, Pawn1P(NULL)
 		, Pawn3P(NULL)
+		, bHideWeapon(false)
 	{}
 };
 
@@ -126,6 +166,8 @@ struct FAnimInfo
 		bool bReplicatedToOwner;
 	UPROPERTY()
 		bool bStopAllOtherAnims;
+	UPROPERTY()
+		bool bHideWeapon;
 };
 
 USTRUCT()
@@ -527,6 +569,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		UAnimMontage* ExitShipAnim;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+		UAnimMontage* LandAnim;
+
 	/** AnimMontage to play each time we fire */
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		UAnimMontage* FireAnimation;
@@ -591,6 +636,14 @@ public:
 	//weapon fire effect helper, mainly only used for special weapon types with multiple flashes going off
 	UFUNCTION(BlueprintCallable, Category = Weapon)
 		virtual void HandleSpecialWeaponFire(FName SocketName);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Audio)
+		FFootStepSound FootStepSounds;
+
+	UFUNCTION(BlueprintCallable, Category = Audio)
+		void PlayFootStepSound(USoundCue *Cue, FVector pos);
+
+	float LastFootStepSound;
 
 	/** get camera view type */
 	UFUNCTION(BlueprintCallable, Category = Mesh)
@@ -727,7 +780,7 @@ public:
 	void HandleGibs(float damage, FDamageEvent const& DamageEvent);
 
 	//UFUNCTION(unreliable, client, Category = Gibs)
-	void SpawnGibs(int32 index, FVector pos, FRotator rot);
+	void SpawnGibs(int32 index, FVector pos, FRotator rot, FVector dir);
 
 	UPROPERTY(EditDefaultsOnly, Category = Gibs)
 		UParticleSystem* BloodSpurtFX;
@@ -968,10 +1021,24 @@ public:
 		TArray<TSubclassOf<class AOrionWeapon> > DefaultInventoryClasses;
 
 	UPROPERTY(EditDefaultsOnly, Category = Inventory)
+		TArray<TSubclassOf<class AOrionWeapon> > DefaultAssaultInventoryClasses;
+
+	UPROPERTY(EditDefaultsOnly, Category = Inventory)
+		TArray<TSubclassOf<class AOrionWeapon> > DefaultSupportInventoryClasses;
+
+	UPROPERTY(EditDefaultsOnly, Category = Inventory)
+		TArray<TSubclassOf<class AOrionWeapon> > DefaultReconInventoryClasses;
+
+	void SpawnClassWeapons(int32 ClassIndex);
+
+	UPROPERTY(EditDefaultsOnly, Category = Inventory)
 		TSubclassOf<class AOrionGrenade> GrenadeClass;
 
 	UPROPERTY(BlueprintReadOnly, Category = Inventory)
 		AOrionGrenade* Grenade;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AI)
+		float FlyingOffset;
 
 	/** updates current weapon */
 	void SetCurrentWeapon(class AOrionWeapon* NewWeapon, class AOrionWeapon* LastWeapon = NULL);
@@ -1023,19 +1090,27 @@ public:
 	UFUNCTION()
 		void OnRep_NextWeapon();
 
+	UPROPERTY(BlueprintReadOnly, Category = Spawn)
+		bool bShoulderCamera;
+
+	UPROPERTY(BlueprintReadOnly, Category = Spawn)
+		bool bShipCamera;
+
 	/** currently equipped weapon */
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_NextWeapon)
 	class AOrionWeapon* NextWeapon;
 
-private:
+protected:
 	UFUNCTION()
 		void OnRep_ShipPawn();
 
 	UPROPERTY(ReplicatedUsing = OnRep_ShipPawn)
 		AOrionShipPawn *CurrentShip;
 
-	void AttachToShip();
-	void DetachFromShip();
+	AOrionShipPawn *CameraShip;
+
+	virtual void AttachToShip();
+	virtual void DetachFromShip();
 
 	FTimerHandle ExitShipTimer;
 
@@ -1061,7 +1136,11 @@ private:
 	FTimerHandle RollTimer;
 	FTimerHandle RollTimer2;
 	FTimerHandle GrenadeTimer;
+	FTimerHandle GrenadeHideTimer;
+
 public:
+	void UnhideWeapon();
+
 	FTimerHandle TeleportTimer;
 
 	FCharacterStats CharacterStats;
