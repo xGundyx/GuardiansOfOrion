@@ -8,7 +8,7 @@
 class UDestructibleComponent;
 
 UCLASS()
-class ORION_API AOrionDestructible : public AActor
+class ORION_API AOrionDestructible : public ADestructibleActor //AActor
 {
 	GENERATED_BODY()
 	
@@ -22,13 +22,15 @@ public:
 	// Called every frame
 	virtual void Tick( float DeltaSeconds ) override;
 
-	virtual void EditorReplacedActor(AActor * OldActor) override;
+	virtual void PostInitializeComponents() override;
 
-	USkeletalMesh *Skel;
+	//virtual void EditorReplacedActor(AActor * OldActor) override;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Destruction)
-		UDestructibleComponent* DestructibleComponent;
+	//USkeletalMesh *Skel;
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "CopyProperties"))
-		void EventCopyProperties(AActor *Other);
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Destruction)
+	//	UDestructibleComponent* DestructibleComponent;
+
+	//UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "CopyProperties"))
+	//	void EventCopyProperties(AActor *Other);
 };

@@ -91,7 +91,7 @@ void AOrionRandomWaveSpawner::BeginPlay()
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Dilo.bot_Dilo'")));//dilo
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_TRex.bot_TRex'")));//trex
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Triceratops.bot_Triceratops'")));//trike
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//rham
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Rham.bot_Rham'")));//rham
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//ptera
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//anky
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//kruger

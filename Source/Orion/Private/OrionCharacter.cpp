@@ -66,6 +66,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	GetMesh()->SetCollisionResponseToChannel(COLLISION_PROJECTILE, ECR_Block);
 	GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 	GetMesh()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
+	GetMesh()->StreamingDistanceMultiplier = 10.0f;
 
 	//InvokerComponent = ObjectInitializer.CreateOptionalDefaultSubobject<UNavigationInvokerComponent>(this, TEXT("NavInvoker"));
 	//InvokerComponent->bAutoActivate = true;
@@ -127,6 +128,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
 	BodyMesh->AttachParent = GetMesh();
 	BodyMesh->SetMasterPoseComponent(GetMesh());
+	BodyMesh->StreamingDistanceMultiplier = 10.0f;
 
 	HelmetMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Helmet"));
 	HelmetMesh->AlwaysLoadOnClient = true;
@@ -141,6 +143,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
 	HelmetMesh->AttachParent = GetMesh();
 	HelmetMesh->SetMasterPoseComponent(GetMesh());
+	HelmetMesh->StreamingDistanceMultiplier = 10.0f;
 
 	ArmsMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Arms"));
 	ArmsMesh->AlwaysLoadOnClient = true;
@@ -155,6 +158,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
 	ArmsMesh->AttachParent = GetMesh();
 	ArmsMesh->SetMasterPoseComponent(GetMesh());
+	ArmsMesh->StreamingDistanceMultiplier = 10.0f;
 
 	LegsMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Legs"));
 	LegsMesh->AlwaysLoadOnClient = true;
@@ -169,6 +173,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
 	LegsMesh->AttachParent = GetMesh();
 	LegsMesh->SetMasterPoseComponent(GetMesh());
+	LegsMesh->StreamingDistanceMultiplier = 10.0f;
 
 	Flight1Mesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Flight1"));
 	Flight1Mesh->AlwaysLoadOnClient = true;
@@ -183,6 +188,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
 	Flight1Mesh->AttachParent = GetMesh();
 	Flight1Mesh->SetMasterPoseComponent(GetMesh());
+	Flight1Mesh->StreamingDistanceMultiplier = 10.0f;
 
 	Flight2Mesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Flight2"));
 	Flight2Mesh->AlwaysLoadOnClient = true;
@@ -197,6 +203,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
 	Flight2Mesh->AttachParent = GetMesh();
 	Flight2Mesh->SetMasterPoseComponent(GetMesh());
+	Flight2Mesh->StreamingDistanceMultiplier = 10.0f;
 
 	PawnSensor = ObjectInitializer.CreateOptionalDefaultSubobject<UPawnSensingComponent>(this, TEXT("Pawn Sensor"));
 	PawnSensor->SensingInterval = .25f; // 4 times per second
@@ -222,6 +229,8 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 
 	bFirstPerson = true;
 	UpdatePawnMeshes();
+
+	FlyingOffset = 100.0f;
 }
 
 void AOrionCharacter::OnHearNoise(APawn *HeardPawn, const FVector &Location, float Volume)
@@ -531,6 +540,48 @@ void AOrionCharacter::SpawnDefaultInventory()
 	}
 }
 
+void AOrionCharacter::SpawnClassWeapons(int32 ClassIndex)
+{
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.Owner = this;
+
+	AOrionWeapon* NewWeapon = nullptr;
+	TArray<TSubclassOf<class AOrionWeapon> > WeaponClasses;
+
+	switch(ClassIndex)
+	{
+	case 0:
+		WeaponClasses = DefaultAssaultInventoryClasses;
+		break;
+	case 1:
+		WeaponClasses = DefaultSupportInventoryClasses;
+		break;
+	case 2:
+		WeaponClasses = DefaultReconInventoryClasses;
+		break;
+	}
+
+	if (WeaponClasses.Num() <= 0)
+		return;
+
+	for (int32 i = 0; i < WeaponClasses.Num(); i++)
+	{
+		if (WeaponClasses[i])
+		{
+			NewWeapon = GetWorld()->SpawnActor<AOrionWeapon>(WeaponClasses[i], SpawnInfo);
+			if (NewWeapon)
+				AddWeapon(NewWeapon);
+		}
+	}
+
+	if (Inventory.Num() > 0)
+	{
+		EquipWeapon(Inventory[0]);
+		ClientEquipWeapon(Inventory[0]);
+	}
+}
+
 AOrionWeapon* AOrionCharacter::GetWeapon() const
 {
 	return CurrentWeapon;
@@ -733,7 +784,10 @@ void AOrionCharacter::OnRep_ArmorIndex()
 void AOrionCharacter::OnRep_ShipPawn()
 {
 	if (CurrentShip)
+	{
+		CameraShip = CurrentShip;
 		AttachToShip();
+	}
 	else
 		DetachFromShip();
 }
@@ -854,13 +908,15 @@ void AOrionCharacter::DetachFromShip()
 	if (length < 0.1f)
 		length = 0.1f;
 
-	GetWorldTimerManager().SetTimer(ExitShipTimer, this, &AOrionCharacter::FinishExitingShip, length * 0.55f, false);
+	GetWorldTimerManager().SetTimer(ExitShipTimer, this, &AOrionCharacter::FinishExitingShip, length * 1.1f, false);
 }
 
 //this is a server only function
 bool AOrionCharacter::SetShip(AOrionPlayerController *PC, AOrionShipPawn *Ship)
 {
 	CurrentShip = Ship;
+	if (Ship != nullptr)
+		CameraShip = Ship;
 
 	AOrionPRI *PRI = nullptr;
 
@@ -949,6 +1005,9 @@ void AOrionCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
+	bShoulderCamera = FMath::RandRange(0, 1) == 1;
+	bShipCamera = !bShoulderCamera;
+
 	PawnSensor->OnSeePawn.AddDynamic(this, &AOrionCharacter::OnSeePawn);
 	PawnSensor->OnHearNoise.AddDynamic(this, &AOrionCharacter::OnHearNoise);
 
@@ -994,14 +1053,16 @@ void AOrionCharacter::HandleGibs(float damage, FDamageEvent const& DamageEvent)
 				{
 					if (TargetBone == CurrentBone)
 					{
+						FVector vel = RealEvent->ShotDirection * FMath::Max(500.0f, FMath::Min(1500.0f, damage * 2.5f));
 						//do gib action
 						FVector pos;
 						FRotator rot;
 						GetMesh()->GetSocketWorldLocationAndRotation(Gib->SocketName, pos, rot);
-						SpawnGibs(i, pos, rot);
+						SpawnGibs(i, pos, rot, vel);
 
 						GibRep.Index = i;
 						GibRep.Socket = Gib->SocketName;
+						GibRep.Velocity = vel;
 
 						return;
 					}
@@ -1013,6 +1074,16 @@ void AOrionCharacter::HandleGibs(float damage, FDamageEvent const& DamageEvent)
 	}
 }
 
+void AOrionCharacter::PlayFootStepSound(USoundCue *Cue, FVector pos)
+{
+	if (GetWorld()->GetTimeSeconds() - LastFootStepSound < 0.25f)
+		return;
+
+	LastFootStepSound = GetWorld()->GetTimeSeconds();
+
+	UGameplayStatics::PlaySoundAtLocation(GetWorld(), Cue, pos, bRun ? 0.5f : 0.25f, 1.0f);
+}
+
 void AOrionCharacter::OnRep_Gibs()
 {
 	FVector pos;
@@ -1020,10 +1091,10 @@ void AOrionCharacter::OnRep_Gibs()
 
 	GetMesh()->GetSocketWorldLocationAndRotation(GibRep.Socket, pos, rot);
 
-	SpawnGibs(GibRep.Index, pos, rot);
+	SpawnGibs(GibRep.Index, pos, rot, GibRep.Velocity);
 }
 
-void AOrionCharacter::SpawnGibs(int32 index, FVector pos, FRotator rot)
+void AOrionCharacter::SpawnGibs(int32 index, FVector pos, FRotator rot, FVector dir)
 {
 	if (index >= Gibs.Num())
 		return;
@@ -1033,13 +1104,13 @@ void AOrionCharacter::SpawnGibs(int32 index, FVector pos, FRotator rot)
 	SpawnInfo.bNoCollisionFail = true;
 	SpawnInfo.Owner = this;
 
-	AOrionGib *NewGib = GetWorld()->SpawnActor<AOrionGib>(Gibs[index].Gib, pos, rot, SpawnInfo);
+	AOrionGib *NewGib = GetWorld()->SpawnActor<AOrionGib>(Gibs[index].Gib, pos + FVector(0.0f, 0.0f, 20.0f), rot, SpawnInfo);
 
 	if (NewGib)
 	{
 		//hide the bone on the mesh
 		////GetMesh()->HideBoneByName(GetMesh()->GetSocketBoneName(NewGib->SocketName), PBO_None);
-		NewGib->Mesh->AddImpulse(FMath::VRand() * 1000.0f, NAME_None, true);
+		NewGib->Mesh->AddImpulse(dir + FVector(0, 0, 250.0f), NAME_None, true);
 		NewGib->BloodMat = BloodDecal;
 
 		Gibs[index].bActivated = true;			//make sure it only happens once
@@ -1129,7 +1200,7 @@ void AOrionCharacter::UpdateBloodDecals(float DeltaSeconds)
 
 	for (auto iter(BloodDecals.CreateIterator()); iter; iter++)
 	{
-		if (iter && iter->Mat->IsValidLowLevel())
+		if (iter)// && iter->Mat->IsValidLowLevel())
 		{
 			iter->TimeLeft = iter->TimeLeft - DeltaSeconds * 0.1f;
 			iter->Mat->SetScalarParameterValue("Time_M", FMath::Min(0.99f, 1.2f - iter->TimeLeft));
@@ -1495,6 +1566,7 @@ void AOrionCharacter::OnRep_ReplicatedAnimation()
 	Info.Pawn3P = ReplicatedAnimation.Mesh3PMontage;
 	Info.Weapon1P = ReplicatedAnimation.Weapon1PMontage;
 	Info.Weapon3P = ReplicatedAnimation.Weapon3PMontage;
+	Info.bHideWeapon = ReplicatedAnimation.bHideWeapon;
 
 	if (ReplicatedAnimation.bStopAllOtherAnims)
 		StopAllAnimMontages();
@@ -1520,6 +1592,7 @@ float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float I
 		ReplicatedAnimation.SectionName = StartSectionName;
 		ReplicatedAnimation.bReplicatedToOwner = bReplicateToOwner;
 		ReplicatedAnimation.bStopAllOtherAnims = bStopOtherAnims;
+		ReplicatedAnimation.bHideWeapon = Animation.bHideWeapon;
 	}
 
 	UAnimInstance * AnimInstance = (GetMesh()) ? GetMesh()->GetAnimInstance() : NULL;
@@ -1540,6 +1613,7 @@ float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float I
 			if (CurrentWeapon->GetWeaponMesh(false) && Animation.Weapon3P)
 				CurrentWeapon->GetWeaponMesh(false)->AnimScriptInstance->Montage_Play(Animation.Weapon3P, 1.0f);// / Animation.Weapon3P->RateScale;
 		}
+
 		//play 1p arms animation
 		if (Arms1PMesh && Arms1PMesh->AnimScriptInstance && Animation.Pawn1P)
 			Duration = Arms1PMesh->AnimScriptInstance->Montage_Play(Animation.Pawn1P, 1.0f) / Animation.Pawn1P->RateScale;// , 1.0);
@@ -1564,12 +1638,23 @@ float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float I
 				CurrentWeapon->GetWeaponMesh(false)->AnimScriptInstance->Montage_Stop(0.05, CurrentWeapon->ReloadAnim.Weapon3P);
 			}*/
 
+			if (CurrentWeapon && Animation.bHideWeapon)
+			{
+				CurrentWeapon->SetActorHiddenInGame(true);
+				GetWorldTimerManager().SetTimer(GrenadeHideTimer, this, &AOrionCharacter::UnhideWeapon, Duration * 0.9f, false);
+			}
 
 			return Duration;
 		}
 	}
 
 	return 0.f;
+}
+
+void AOrionCharacter::UnhideWeapon()
+{
+	if (CurrentWeapon)
+		CurrentWeapon->SetActorHiddenInGame(false);
 }
 
 void AOrionCharacter::EatFood(AOrionFood *Food)
@@ -1711,12 +1796,12 @@ void AOrionCharacter::PossessedBy(class AController* InController)
 		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 		if (PC)
 		{
-			AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+			/*AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
 			if (PRI && PRI->InventoryManager)
 			{
 				if (!PRI->PlayFabID.IsEmpty())
 					PRI->InventoryManager->EquipItems(this, ITEM_ANY);
-			}
+			}*/
 		}
 	}
 }
@@ -1846,6 +1931,22 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 
 	UpdateCooldowns(DeltaSeconds);
 
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC && !PC->bCinematicMode && !IsOnShip() && (bShoulderCamera || bShipCamera) && !GetWorldTimerManager().IsTimerActive(ExitShipTimer))
+	{
+		if (GetMovementComponent()->IsFalling() == false && GetMovementComponent()->IsFlying() == false)
+		{
+			bShoulderCamera = false;
+			bShipCamera = false;
+
+			FWeaponAnim Anim;
+			Anim.Pawn3P = LandAnim;
+
+			OrionPlayAnimMontage(Anim, 1.0f, TEXT(""), false, false, true);
+		}
+	}
+
 	//hax for now
 	//if (CurrentWeapon == NULL && Inventory.Num() > 0)
 	//	EquipWeapon(Inventory[0]);
@@ -1955,6 +2056,7 @@ void AOrionCharacter::TossGrenade()
 
 	FWeaponAnim GrenAnim;
 	GrenAnim.Pawn3P = GrenadeAnim;
+	GrenAnim.bHideWeapon = true;
 
 	float Len = OrionPlayAnimMontage(GrenAnim, 1.0f, TEXT(""), true, false, true);
 
@@ -1992,7 +2094,9 @@ void AOrionCharacter::ActuallyTossGrenade(FVector dir)
 
 			GetMesh()->GetSocketWorldLocationAndRotation(GrenadeSocket, pos, rot);
 
-			GetWorld()->SpawnActor<AOrionGrenade>(GrenadeClass, pos + FVector(0.0f, 0.0f, 25.0f) + dir * 75.0f, dir.Rotation(), SpawnInfo);
+			AOrionGrenade *Grenade = GetWorld()->SpawnActor<AOrionGrenade>(GrenadeClass, pos + FVector(0.0f, 0.0f, 25.0f) + dir.GetSafeNormal() * 75.0f, dir.Rotation(), SpawnInfo);
+			if (Grenade)
+				Grenade->Init(dir);
 		}
 	}
 }
@@ -2004,9 +2108,9 @@ void AOrionCharacter::DoGrenade()
 	dir = GetViewRotation().Vector();
 
 	if (Role < ROLE_Authority)
-		ServerTossGrenade(dir);
+		ServerTossGrenade(dir * 1000.0f);
 	else
-		ActuallyTossGrenade(dir);
+		ActuallyTossGrenade(dir * 1000.0f);
 }
 
 void AOrionCharacter::TryToActivateSkill()
@@ -2125,7 +2229,7 @@ void AOrionCharacter::BehindView()
 
 bool AOrionCharacter::ShouldIgnoreControls()
 {
-	return IsRolling() || bBlinking;
+	return IsRolling() || bBlinking || bShoulderCamera;
 }
 
 void AOrionCharacter::Duck()
@@ -2303,19 +2407,28 @@ void AOrionCharacter::Blink(FVector dir)
 					BlinkPos = EndPos;
 				}
 				else // teleport failed, need a better way to handle this
+				{
+					EndBlink();
 					return;
+				}
 				break;
 			}
 		}
 
 		if (BlinkPos == FVector(0, 0, 0))
+		{
+			EndBlink();
 			return;
+		}
 
 		bBlinking = true;
 		LastTeleportTime = GetWorld()->GetTimeSeconds();
 	}
 	else
+	{
+		EndBlink();
 		return;
+	}
 	
 	GetWorldTimerManager().SetTimer(TeleportTimer, this, &AOrionCharacter::ActuallyTeleport, 0.2f, false);
 }
@@ -2666,7 +2779,9 @@ bool AOrionCharacter::ShouldPlayWeaponAnim() const
 	return !bRun && CurrentWeapon && !bRolling
 		&& !GetMesh()->AnimScriptInstance->Montage_IsActive(CurrentWeapon->ReloadAnim.Pawn3P)
 		&& !GetMesh()->AnimScriptInstance->Montage_IsActive(CurrentWeapon->MeleeAnim.Pawn3P)
-		&& !GetMesh()->AnimScriptInstance->Montage_IsActive(CurrentWeapon->EquipAnim.Pawn3P);
+		&& !GetMesh()->AnimScriptInstance->Montage_IsActive(CurrentWeapon->EquipAnim.Pawn3P)
+		&& !GetMesh()->AnimScriptInstance->Montage_IsActive(CurrentWeapon->HolsterAnim.Pawn3P)
+		&& !GetMesh()->AnimScriptInstance->Montage_IsActive(ExitShipAnim);
 }
 
 int32 AOrionCharacter::GetWeaponIndex() const
