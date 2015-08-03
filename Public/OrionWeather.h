@@ -307,7 +307,7 @@ public:
 	bool bIsSnowing;
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Every Tick"))
-	virtual void EventUpdateWeather(float DeltaSeconds);
+		 void EventUpdateWeather(float DeltaSeconds);
 
 	virtual void PostLoad() override;
 	virtual void BeginPlay() override;

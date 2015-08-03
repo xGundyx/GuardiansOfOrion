@@ -22,13 +22,18 @@ public:
 
 	/** called when projectile hits something */
 	UFUNCTION()
-		void OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
+		virtual void OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 
 	//UPROPERTY(EditDefaultsOnly, Category = Effects)
 	//	UParticleSystem* TracerFX;
 
 	virtual void PostInitializeComponents() override;
-	void Init(UParticleSystem* PS, FVector StartPoint, FVector EndPoint);
+
+	UFUNCTION(BlueprintCallable, Category = Projectile)
+		void Init(UParticleSystem* PS, FVector StartPoint, FVector EndPoint);
+
+	virtual void ValidatePosition();
+
 
 	UPROPERTY()
 		UParticleSystemComponent* TracerPSC;

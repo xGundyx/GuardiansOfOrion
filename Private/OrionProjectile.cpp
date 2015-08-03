@@ -39,6 +39,11 @@ void AOrionProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	ValidatePosition();
+}
+
+void AOrionProjectile::ValidatePosition()
+{
 	if (FVector::DotProduct((TargetPos - GetActorLocation()).GetSafeNormal(), TargetDir) < 0.8f)
 	{
 		if (TracerPSC)

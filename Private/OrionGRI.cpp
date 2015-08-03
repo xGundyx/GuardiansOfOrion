@@ -47,8 +47,8 @@ void AOrionGRI::SetWeather(AOrionWeather *theWeather)
 
 bool AOrionGRI::OnSameTeam(AOrionPRI *Actor1, AOrionPRI *Actor2)
 {
-	if (!bTeamGame)
-		return false;
+	//if (!bTeamGame)
+	//	return false;
 
 	if (!Actor1 || !Actor2)
 		return false;
@@ -80,7 +80,7 @@ void AOrionGRI::BeginPlay()
 
 	//initialize our mapper
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 	Mapper = GetWorld()->SpawnActor<AOrionPlayFabInventoryMapper>(DefaultMapperClass, SpawnInfo);
 }

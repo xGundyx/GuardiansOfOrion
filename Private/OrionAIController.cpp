@@ -103,7 +103,8 @@ FVector AOrionAIController::GetNextDirectFlyLocation()
 		FVector vStart = GetPawn()->GetActorLocation();
 		FVector vEnd = myEnemy->GetActorLocation() + FVector(0.0f, 0.0f, 45.0f);
 
-		if (GetWorld()->LineTraceSingleByObjectType(Hit, vStart, vEnd, FCollisionObjectQueryParams::DefaultObjectQueryParam, TraceParams))
+		if (GetWorld()->LineTraceSingleByChannel(Hit, vStart, vEnd, ECC_Pawn, TraceParams))
+		//if (GetWorld()->LineTraceSingleByObjectType(Hit, vStart, vEnd, FCollisionObjectQueryParams::DefaultObjectQueryParam, TraceParams))
 		{
 			if (Hit.GetActor() != myEnemy)
 				bCanSeeEnemy = false;

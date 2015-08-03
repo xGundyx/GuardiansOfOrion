@@ -6,6 +6,8 @@
 #include "OrionGameMode.h"
 #include "OrionPlayerController.h"
 #include "OrionMovementComponent.h"
+#include "OrionAbility.h"
+#include "OrionBuff.h"
 //#include "OrionAIController.h"
 #include "OrionProjectile.h"
 #include "OrionShipPawn.h"
@@ -40,11 +42,11 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	ThirdPersonCameraComponent->AttachParent = GetCapsuleComponent();
 	ThirdPersonCameraComponent->RelativeLocation = FVector(0, 0, 0); // Position the camera
 
-	static ConstructorHelpers::FObjectFinder<UBlueprint> HealthBarObject(TEXT("/Game/UI/HUD/Widgets/HealthBar"));
-	if (HealthBarObject.Object != NULL)
-	{
-		DefaultHealthBarClass = (UClass*)HealthBarObject.Object->GeneratedClass;
-	}
+	//static ConstructorHelpers::FObjectFinder<UBlueprint> HealthBarObject(TEXT("/Game/UI/HUD/Widgets/HealthBar"));
+	//if (HealthBarObject.Object != NULL)
+	//{
+	//	DefaultHealthBarClass = (UClass*)HealthBarObject.Object->GeneratedClass;
+	//}
 
 	// Default offset from the character location for projectiles to spawn
 	GunOffset = FVector(100.0f, 30.0f, 10.0f);
@@ -502,7 +504,7 @@ void AOrionCharacter::SpawnDefaultAbilities()
 		if (AbilityClasses[i])
 		{
 			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.bNoCollisionFail = true;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			SpawnInfo.Owner = this;
 
 			CurrentSkill = GetWorld()->SpawnActor<AOrionAbility>(AbilityClasses[i], SpawnInfo);
@@ -525,7 +527,7 @@ void AOrionCharacter::SpawnDefaultInventory()
 		if (DefaultInventoryClasses[i])
 		{
 			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.bNoCollisionFail = true;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			SpawnInfo.Owner = this;
 			AOrionWeapon* NewWeapon = GetWorld()->SpawnActor<AOrionWeapon>(DefaultInventoryClasses[i], SpawnInfo);
 			AddWeapon(NewWeapon);
@@ -543,7 +545,7 @@ void AOrionCharacter::SpawnDefaultInventory()
 void AOrionCharacter::SpawnClassWeapons(int32 ClassIndex)
 {
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.Owner = this;
 
 	AOrionWeapon* NewWeapon = nullptr;
@@ -1101,7 +1103,7 @@ void AOrionCharacter::SpawnGibs(int32 index, FVector pos, FRotator rot, FVector 
 
 	//spawn the actual gib into the world
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.Owner = this;
 
 	AOrionGib *NewGib = GetWorld()->SpawnActor<AOrionGib>(Gibs[index].Gib, pos + FVector(0.0f, 0.0f, 20.0f), rot, SpawnInfo);
@@ -1224,6 +1226,14 @@ void AOrionCharacter::SetAbility(AOrionAbility *NewAbility)
 	CurrentSkill = NewAbility;
 }
 
+bool AOrionCharacter::IsOvercharging() const
+{
+	if (CurrentSkill && CurrentSkill->IsOvercharging())
+		return true;
+
+	return false;
+}
+
 float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser)
 {
 	//AOrionPlayerController* MyPC = Cast<AOrionPlayerController>(Controller);
@@ -1236,9 +1246,14 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 		return 0.f;
 	}
 
+	if (IsOvercharging())
+		Damage /= 2.0f;
+
 	// Modify based on game rules.
 	AOrionGameMode* const Game = GetWorld()->GetAuthGameMode<AOrionGameMode>();
-	Damage = Game ? Game->ModifyDamage(Damage, this, DamageEvent, EventInstigator, DamageCauser) : 0.f;
+
+	if (!Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject()) || !Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject())->bIgnoreModify)
+		Damage = Game ? Game->ModifyDamage(Damage, this, DamageEvent, EventInstigator, DamageCauser) : 0.f;
 
 	UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject());
 
@@ -1919,6 +1934,109 @@ class UPawnMovementComponent* AOrionCharacter::GetMovementComponent() const
 	return Super::GetMovementComponent();
 }
 
+void AOrionCharacter::Heal(int32 HealAmount)
+{
+
+}
+
+void AOrionCharacter::HandleBuffs(float DeltaSeconds)
+{
+	//only server does this
+	if (Role != ROLE_Authority)
+		return;
+
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	if (!GRI || !PRI)
+		return;
+
+	for (auto Itr(Buffs.CreateIterator()); Itr; ++Itr)
+	{
+		AOrionBuff *Buff = *Itr;
+
+		if (!Itr)
+			continue;
+
+		//check if we need to tick damage or anything
+		Buff->TickTimer -= DeltaSeconds;
+
+		if (Buff->TickTimer <= 0.0f)
+		{
+			//apply damage/heal or whatever
+			if (Buff->Damage > 0.0f)
+			{
+				FPointDamageEvent PointDmg;
+
+				PointDmg.DamageTypeClass = Buff->DamageType;
+				PointDmg.Damage = Buff->Damage;
+
+				AController *cOwner = Buff->ControllerOwner;
+
+				if (!cOwner || !cOwner->IsValidLowLevel())
+					cOwner = nullptr;
+
+				if (cOwner && !GRI->OnSameTeam(Cast<AOrionPRI>(cOwner->PlayerState), Cast<AOrionPRI>(PlayerState)))
+					TakeDamage(Buff->Damage, PointDmg, cOwner, cOwner ? cOwner->GetPawn() : nullptr);
+				else if (!cOwner && PRI->GetTeamIndex() != Buff->TeamIndex)
+					TakeDamage(Buff->Damage, PointDmg, Controller, this);
+			}
+			else if (Buff->Damage < 0.0f)
+				Heal(int32(-Buff->Damage));
+
+			//reset the ticker
+			Buff->TickTimer += Buff->TickInterval;
+		}
+
+		//check if the effect should wear off
+		if (GetWorld()->GetTimeSeconds() - Buff->LastRefreshedTime >= Buff->Duration)
+		{
+			bool bBuff = Buff->bIsBuff;
+
+			//remove any effects and status ailments
+			Buff->Destroy();
+
+			Buffs.Remove(Buff);
+
+			continue;
+		}
+	}
+}
+
+void AOrionCharacter::AddBuff(TSubclassOf<AOrionBuff> BuffClass, AController *cOwner, int32 TeamIndex)
+{
+	//only living players can be buffed/debuffed
+	if (Health <= 0)
+		return;
+
+	//first check if we already have this buff, if we do, add any stacks and refresh the timer
+	for (int32 i = 0; i < Buffs.Num(); i++)
+	{
+		if (Buffs[i]->GetClass() == BuffClass && TeamIndex == Buffs[i]->TeamIndex)
+		{
+			Buffs[i]->LastRefreshedTime = GetWorld()->GetTimeSeconds();
+			if (Buffs[i]->bStackable)
+				Buffs[i]->NumStacks = FMath::Min(Buffs[i]->StackLimit, Buffs[i]->NumStacks + 1);
+
+			return;
+		}
+	}
+
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	SpawnInfo.Owner = this;
+
+	AOrionBuff *Buff = GetWorld()->SpawnActor<AOrionBuff>(BuffClass, FVector(0.0f), FRotator(0), SpawnInfo);
+	if (Buff)
+	{
+		Buff->NumStacks = 1;
+		Buff->LastRefreshedTime = GetWorld()->GetTimeSeconds();
+		Buff->ControllerOwner = cOwner;
+		Buff->TeamIndex = TeamIndex;
+		Buffs.Add(Buff);
+	}
+}
+
 void AOrionCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -1930,6 +2048,8 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 	UpdateBloodDecals(DeltaSeconds);
 
 	UpdateCooldowns(DeltaSeconds);
+
+	HandleBuffs(DeltaSeconds);
 
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
@@ -2051,6 +2171,9 @@ void AOrionCharacter::SetupPlayerInputComponent(class UInputComponent* InputComp
 
 void AOrionCharacter::TossGrenade()
 {
+	if (ShouldIgnoreControls())
+		return;
+
 	if (GrenadeCooldown > 0.0f)
 		return;
 
@@ -2086,7 +2209,7 @@ void AOrionCharacter::ActuallyTossGrenade(FVector dir)
 		if (GrenadeClass)
 		{
 			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.bNoCollisionFail = true;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 			SpawnInfo.Owner = this;
 
 			FVector pos;
@@ -2115,6 +2238,9 @@ void AOrionCharacter::DoGrenade()
 
 void AOrionCharacter::TryToActivateSkill()
 {
+	if (ShouldIgnoreControls())
+		return;
+
 	if (Role < ROLE_Authority)
 		ServerActivateSkill();
 	else
@@ -2156,6 +2282,9 @@ void AOrionCharacter::ActivateSkill()
 
 void AOrionCharacter::OnNextWeapon()
 {
+	if (ShouldIgnoreControls())
+		return;
+
 	AOrionPlayerController* MyPC = Cast<AOrionPlayerController>(Controller);
 	if (MyPC)// && MyPC->IsGameInputAllowed())
 	{
@@ -2170,6 +2299,9 @@ void AOrionCharacter::OnNextWeapon()
 
 void AOrionCharacter::OnPrevWeapon()
 {
+	if (ShouldIgnoreControls())
+		return;
+
 	AOrionPlayerController* MyPC = Cast<AOrionPlayerController>(Controller);
 	if (MyPC)// && MyPC->IsGameInputAllowed())
 	{
@@ -2217,6 +2349,9 @@ void AOrionCharacter::ExitVehicle()
 
 void AOrionCharacter::Use()
 {
+	if (ShouldIgnoreControls())
+		return;
+
 	ServerUse();
 }
 

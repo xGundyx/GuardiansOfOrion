@@ -7,6 +7,8 @@
 #include "OrionArmor.h"
 #include "OrionInventoryArmor.h"
 #include "OrionLocalPlayer.h"
+#include "OrionGameUserSettings.h"
+#include "OrionGameSettingsManager.h"
 //#include "ClientConnector.h"
 #include "OrionInventoryItem.h"
 #include "OrionPRI.h"
@@ -166,7 +168,7 @@ void AOrionPlayerController::PostInitializeComponents()
 	if (IsLocalPlayerController())
 	{
 		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.bNoCollisionFail = true;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		ChatManager = GetWorld()->SpawnActor<AOrionChatManager>(AOrionChatManager::StaticClass(), SpawnInfo);
 		if (ChatManager)
 			ChatManager->pPlayerOwner = this;
@@ -553,7 +555,7 @@ bool AOrionPlayerController::CreateAndGiveInventoryItem(TSharedPtr<FJsonObject> 
 				if (ItemObj)
 				{
 					FActorSpawnParameters SpawnInfo;
-					SpawnInfo.bNoCollisionFail = true;
+					SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 					UOrionInventoryItem *Inv = Cast<UOrionInventoryItem>(ItemObj);
 					if (Inv)
 					{
@@ -604,27 +606,27 @@ TArray<FOptionsData> AOrionPlayerController::GetGameplayOptions()
 	FOptionsData NewOption;
 
 	NewOption.Options.Empty();
-	NewOption.Title = TEXT("GAMEPLAYOPTION 1");
+	NewOption.Title = TEXT("COMING SOON 1");
 	NewOption.Options.Add("DISABLED");
 	NewOption.Options.Add("ENABLED");
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("GAMEPLAYOPTION 2");
+	NewOption.Title = TEXT("COMING SOON 2");
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("GAMEPLAYOPTION 3");
+	NewOption.Title = TEXT("COMING SOON 3");
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("GAMEPLAYOPTION 4");
+	NewOption.Title = TEXT("COMING SOON 4");
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("GAMEPLAYOPTION 5");
+	NewOption.Title = TEXT("COMING SOON 5");
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("GAMEPLAYOPTION 6");
+	NewOption.Title = TEXT("COMING SOON 6");
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("GAMEPLAYOPTION 7");
+	NewOption.Title = TEXT("COMING SOON 7");
 	Options.Add(NewOption);
 
 	return Options;
@@ -661,26 +663,43 @@ TArray<FOptionsData> AOrionPlayerController::GetVideoOptions(bool Basic)
 	TArray<FOptionsData> Options;
 	FOptionsData NewOption;
 
+	UOrionGameUserSettings *Settings = nullptr;
+
+	if (GEngine && GEngine->GameUserSettings)
+		Settings = Cast<UOrionGameUserSettings>(GEngine->GameUserSettings);
+
+	if (!Settings)
+		return Options;
+
 	if (Basic)
 	{
+		FIntPoint Res = Settings->GetScreenResolution();
+
 		NewOption.Options.Empty();
 		NewOption.Title = TEXT("RESOLUTION");
-		NewOption.Options.Add("1920x1080");
-		NewOption.Options.Add("1280x1024");
+		NewOption.Options = Settings->GetSupportedResolutions();
+		NewOption.Value = FString::Printf(TEXT("%ix%i"), Res.X, Res.Y);
 		Options.Add(NewOption);
+
+		float Aspect = float(Res.X) / float(Res.Y);
 
 		NewOption.Options.Empty();
 		NewOption.Title = TEXT("ASPECT RATIO");
 		NewOption.Options.Add("16:10");
 		NewOption.Options.Add("16:9");
 		NewOption.Options.Add("4:3");
+		NewOption.Value = Aspect < 1.35f ? "4:3" : ( Aspect < 1.62f ? "16:10" : "16:9");
 		Options.Add(NewOption);
+
+		int32 Window = int32(Settings->GetFullscreenMode());
 
 		NewOption.Options.Empty();
 		NewOption.Title = TEXT("WINDOW MODE");
 		NewOption.Options.Add("FULLSCREEN");
 		NewOption.Options.Add("BORDERLESS WINDOW");
 		NewOption.Options.Add("WINDOWED");
+		NewOption.Options.Add("WINDOWED MIRROR");
+		NewOption.Value = Window == 0 ? "FULLSCREEN" : (Window == 1 ? "BORDERLESS WINDOW" : (Window == 2 ? "WINDOWED" : "WINDOWED MIRROR"));
 		Options.Add(NewOption);
 	}
 	else
@@ -690,24 +709,31 @@ TArray<FOptionsData> AOrionPlayerController::GetVideoOptions(bool Basic)
 		NewOption.Options.Add("DISABLED");
 
 		NewOption.Title = TEXT("VSYNC");
+		NewOption.Value = Settings->bUseVSync ? TEXT("ENABLED") : TEXT("DISABLED");
 		Options.Add(NewOption);
 
-		NewOption.Title = TEXT("BLOOM");
+		/*NewOption.Title = TEXT("BLOOM");
+		NewOption.Value = TEXT("ENABLED");
 		Options.Add(NewOption);
 
 		NewOption.Title = TEXT("DEPTH OF FIELD");
+		NewOption.Value = TEXT("ENABLED");
 		Options.Add(NewOption);
 
 		NewOption.Title = TEXT("MOTION BLUR");
+		NewOption.Value = TEXT("ENABLED");
 		Options.Add(NewOption);
 
 		NewOption.Title = TEXT("SPEEDTREE LEAVES");
+		NewOption.Value = TEXT("ENABLED");
 		Options.Add(NewOption);
 
 		NewOption.Title = TEXT("DYNAMIC LIGHTS");
+		NewOption.Value = TEXT("ENABLED");
 		Options.Add(NewOption);
 
 		NewOption.Title = TEXT("DYNAMIC SHADOWS");
+		NewOption.Value = TEXT("ENABLED");
 		Options.Add(NewOption);
 
 		NewOption.Options.Empty();
@@ -715,24 +741,50 @@ TArray<FOptionsData> AOrionPlayerController::GetVideoOptions(bool Basic)
 		NewOption.Options.Add("FXAA");
 		NewOption.Options.Add("TEMPORAL");
 		NewOption.Options.Add("OFF");
-		Options.Add(NewOption);
+		NewOption.Value = TEXT("FXAA");
+		Options.Add(NewOption);*/
 
 		NewOption.Options.Empty();
-		NewOption.Options.Add("HIGH");
-		NewOption.Options.Add("MEDIUM");
 		NewOption.Options.Add("LOW");
+		NewOption.Options.Add("MEDIUM");
+		NewOption.Options.Add("HIGH");
+		NewOption.Options.Add("SUPER HIGH");
+
+		NewOption.Title = TEXT("ANTI ALIASING QUALITY");
+		NewOption.Value = NewOption.Options[Settings->ScalabilityQuality.AntiAliasingQuality];
+		Options.Add(NewOption);
+
+		NewOption.Title = TEXT("EFFECTS QUALITY");
+		NewOption.Value = NewOption.Options[Settings->ScalabilityQuality.EffectsQuality];
+		Options.Add(NewOption);
+
+		NewOption.Title = TEXT("POST PROCESSING QUALITY");
+		NewOption.Value = NewOption.Options[Settings->ScalabilityQuality.PostProcessQuality];
+		Options.Add(NewOption);
+
+		NewOption.Title = TEXT("RESOLUTION QUALITY");
+		NewOption.Value = NewOption.Options[Settings->ScalabilityQuality.ResolutionQuality >= 100 ? 3 : (Settings->ScalabilityQuality.ResolutionQuality >= 90 ? 2 : (Settings->ScalabilityQuality.ResolutionQuality >= 75 ? 1 : 0))];
+		Options.Add(NewOption);
 
 		NewOption.Title = TEXT("SHADOW QUALITY");
+		NewOption.Value = NewOption.Options[Settings->ScalabilityQuality.ShadowQuality];
 		Options.Add(NewOption);
 
-		NewOption.Title = TEXT("FOLIAGE QUALITY");
+		NewOption.Title = TEXT("TEXTURE QUALITY");
+		NewOption.Value = NewOption.Options[Settings->ScalabilityQuality.TextureQuality];
 		Options.Add(NewOption);
 
-		NewOption.Title = TEXT("WORLD TEXTURES");
+		NewOption.Title = TEXT("VIEW DISTANCE QUALITY");
+		NewOption.Value = NewOption.Options[Settings->ScalabilityQuality.ViewDistanceQuality];
+		Options.Add(NewOption);
+
+		/*NewOption.Title = TEXT("WORLD TEXTURES");
+		NewOption.Value = TEXT("HIGH");
 		Options.Add(NewOption);
 
 		NewOption.Title = TEXT("CHARACTER TEXTURES");
-		Options.Add(NewOption);
+		NewOption.Value = TEXT("HIGH");
+		Options.Add(NewOption);*/
 	}
 
 	return Options;
@@ -772,90 +824,138 @@ TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
 	FKeyboardOptionsData NewOption;
 
 	NewOption.Title = TEXT("MOVE FORWARDS");
-	NewOption.Key = TEXT("W");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("MoveForward", true, 1.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("MOVE BACKWARDS");
-	NewOption.Key = TEXT("S");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("MoveForward", true, -1.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("MOVE LEFT");
-	NewOption.Key = TEXT("A");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("MoveRight", true, -1.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("MOVE RIGHT");
-	NewOption.Key = TEXT("D");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("MoveRight", true, 1.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("JUMP");
-	NewOption.Key = TEXT("Spacebar");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Jump", false, 0.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("SPRINT");
-	NewOption.Key = TEXT("Left Shift");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Run", false, 0.0f);
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("CROUCH/ROLL");
-	NewOption.Key = TEXT("C");
+	NewOption.Title = TEXT("ROLL/BLINK");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Duck", false, 0.0f);
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("GENERIC USE");
-	NewOption.Key = TEXT("E");
+	NewOption.Title = TEXT("USE");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Use", false, 0.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("FIRE WEAPON");
-	NewOption.Key = TEXT("Left Mouse Button");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Fire", false, 0.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("AIM WEAPON");
-	NewOption.Key = TEXT("Right Mouse Button");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Aim", false, 0.0f);
 	Options.Add(NewOption);
 	
 	NewOption.Title = TEXT("RELOAD");
-	NewOption.Key = TEXT("R");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Reload", false, 0.0f);
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("MELEE ATTACK");
-	NewOption.Key = TEXT("V");
+	NewOption.Title = TEXT("MELEE");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Melee", false, 0.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("USE ABILITY");
-	NewOption.Key = TEXT("Left Ctrl");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("ActivateSkill", false, 0.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("PRIMARY WEAPON");
-	NewOption.Key = TEXT("1");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("WeaponSlot1", false, 0.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("SECONDARY WEAPON");
-	NewOption.Key = TEXT("2");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("WeaponSlot2", false, 0.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("GADGET");
-	NewOption.Key = TEXT("3");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("WeaponSlot3", false, 0.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("LAST WEAPON");
-	NewOption.Key = TEXT("Q");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("LastWeapon", false, 0.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("GRENADE");
-	NewOption.Key = TEXT("G");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("ThrowGrenade", false, 0.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("GLOBAL SAY");
-	NewOption.Key = TEXT("Y");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Say", false, 0.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("TEAM SAY");
-	NewOption.Key = TEXT("U");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("TeamSay", false, 0.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("INVENTORY");
-	NewOption.Key = TEXT("I");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("OpenInventory", false, 0.0f);
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("NEXT WEAPON");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("NextWeapon", false, 0.0f);
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("PREV WEAPON");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("PrevWeapon", false, 0.0f);
 	Options.Add(NewOption);
 
 	return Options;
+}
+
+EControllerButton AOrionPlayerController::ConvertControllerButtonToIndex(FString ButtonName)
+{
+	EControllerButton Index = BUTTON_A;
+
+	if (ButtonName == TEXT("Gamepad_LeftThumbStick"))
+		Index = BUTTON_LEFTSTICK;
+	else if (ButtonName == TEXT("Gamepad_RightThumbStick"))
+		Index = BUTTON_RIGHTSTICK;
+	else if (ButtonName == TEXT("Gamepad_Special_Left"))
+		Index = BUTTON_HOME;
+	else if (ButtonName == TEXT("Gamepad_Special_Right"))
+		Index = BUTTON_START;
+	else if (ButtonName == TEXT("Gamepad_FaceButton_Bottom"))
+		Index = BUTTON_A;
+	else if (ButtonName == TEXT("Gamepad_FaceButton_Right"))
+		Index = BUTTON_B;
+	else if (ButtonName == TEXT("Gamepad_FaceButton_Left"))
+		Index = BUTTON_X;
+	else if (ButtonName == TEXT("Gamepad_FaceButton_Top"))
+		Index = BUTTON_Y;
+	else if (ButtonName == TEXT("Gamepad_LeftShoulder"))
+		Index = BUTTON_LEFTSHOULDER;
+	else if (ButtonName == TEXT("Gamepad_RightShoulder"))
+		Index = BUTTON_RIGHTSHOULDER;
+	else if (ButtonName == TEXT("Gamepad_LeftTrigger"))
+		Index = BUTTON_LEFTTRIGGER;
+	else if (ButtonName == TEXT("Gamepad_RightTrigger"))
+		Index = BUTTON_RIGHTTRIGGER;
+	else if (ButtonName == TEXT("Gamepad_DPad_Up"))
+		Index = BUTTON_UP;
+	else if (ButtonName == TEXT("Gamepad_DPad_Down"))
+		Index = BUTTON_DOWN;
+	else if (ButtonName == TEXT("Gamepad_DPad_Left"))
+		Index = BUTTON_LEFT;
+	else if (ButtonName == TEXT("Gamepad_DPad_Right"))
+		Index = BUTTON_RIGHT;
+
+	return Index;
 }
 
 TArray<FControllerOptionsData> AOrionPlayerController::GetControllerOptions()
@@ -864,60 +964,56 @@ TArray<FControllerOptionsData> AOrionPlayerController::GetControllerOptions()
 	FControllerOptionsData NewOption;
 
 	NewOption.Title = TEXT("JUMP");
-	NewOption.Button = BUTTON_A;
+	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Jump", false, 0.0f));
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("SPRINT");
-	NewOption.Button = BUTTON_LEFTSTICK;
+	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Run", false, 0.0f));
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("CROUCH/ROLL");
-	NewOption.Button = BUTTON_B;
+	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Duck", false, 0.0f));
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("GENERIC USE(HOLD)");
-	NewOption.Button = BUTTON_RIGHTSHOULDER;
+	NewOption.Title = TEXT("RELOAD/USE");
+	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Reload", false, 0.0f));
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("FIRE WEAPON");
-	NewOption.Button = BUTTON_RIGHTTRIGGER;
+	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Fire", false, 0.0f));
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("AIM WEAPON");
-	NewOption.Button = BUTTON_LEFTTRIGGER;
-	Options.Add(NewOption);
-
-	NewOption.Title = TEXT("RELOAD(TAP)");
-	NewOption.Button = BUTTON_RIGHTSHOULDER;
+	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Aim", false, 0.0f));
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("MELEE ATTACK");
-	NewOption.Button = BUTTON_RIGHTSTICK;
+	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Melee", false, 0.0f));
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("USE ABILITY");
-	NewOption.Button = BUTTON_LEFTSHOULDER;
+	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_ActivateSkill", false, 0.0f));
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("GADGET");
-	NewOption.Button = BUTTON_RIGHT;
+	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_WeaponSlot3", false, 0.0f));
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("LAST WEAPON");
-	NewOption.Button = BUTTON_Y;
+	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_LastWeapon", false, 0.0f));
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("GRENADE");
-	NewOption.Button = BUTTON_X;
+	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_ThrowGrenade", false, 0.0f));
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("INVENTORY");
-	NewOption.Button = BUTTON_UP;
+	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_OpenInventory", false, 0.0f));
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("OPEN MENU");
-	NewOption.Button = BUTTON_START;
-	Options.Add(NewOption);
+	//NewOption.Title = TEXT("OPEN MENU");
+	//NewOption.Button = BUTTON_HOME;
+	//Options.Add(NewOption);
 
 	return Options;
 }
@@ -1021,7 +1117,7 @@ void AOrionPlayerController::CreateInventory()
 	}
 
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.Owner = this;
 	PRI->InventoryManager = GetWorld()->SpawnActor<AOrionInventoryManager>(AOrionInventoryManager::StaticClass(), SpawnInfo);
 

@@ -35,6 +35,9 @@ struct FOptionsData
 
 	UPROPERTY(BlueprintReadOnly, Category = Option)
 		TArray<FString> Options;
+
+	UPROPERTY(BlueprintReadOnly, Category = Option)
+		FString Value;
 };
 
 USTRUCT(BlueprintType)
@@ -78,7 +81,8 @@ enum EControllerButton
 	BUTTON_LEFTTRIGGER,
 	BUTTON_RIGHTSHOULDER,
 	BUTTON_RIGHTTRIGGER,
-	BUTTON_START
+	BUTTON_START,
+	BUTTON_HOME
 };
 
 USTRUCT(BlueprintType)
@@ -347,6 +351,8 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Menu)
 		TArray<FControllerOptionsData> GetControllerOptions();
+
+	EControllerButton ConvertControllerButtonToIndex(FString ButtonName);
 
 	UFUNCTION(BlueprintCallable, Category = Menu)
 		TArray<FOptionsData> GetCreateCharacterOptions();

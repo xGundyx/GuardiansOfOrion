@@ -306,7 +306,7 @@ void AOrionInventoryManager::GiveMoney(int32 Amount)
 void AOrionInventoryManager::Init(AOrionPlayerController *PC)
 {
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.Owner = PC;
 
 	Grid = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);

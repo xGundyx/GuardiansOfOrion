@@ -43,7 +43,7 @@ void AOrionBotSpawner::SpawnBots()
 		if (Pawn && GetWorld() && GetWorld()->GetNavigationSystem())
 		{
 			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.bNoCollisionFail = false;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
 			FNavLocation Loc;
 
