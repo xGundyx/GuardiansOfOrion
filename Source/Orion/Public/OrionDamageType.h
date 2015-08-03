@@ -34,4 +34,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = Orion)
 		float KnockbackUpForce;
+
+	UPROPERTY(EditDefaultsOnly, Category = Orion)
+		bool bIgnoreModify;
 };

@@ -131,7 +131,7 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM])
 		for (int32 j = 0; j < TypesToSpawn[i]; j++)
 		{
 			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.bNoCollisionFail = false;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
 			FNavLocation Loc;
 
@@ -164,7 +164,7 @@ void AOrionRandomWaveSpawner::SpawnFailures()
 	for (int32 i = 0; i < FailedToSpawn.Num(); i++)
 	{
 		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.bNoCollisionFail = false;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
 		FNavLocation Loc;
 

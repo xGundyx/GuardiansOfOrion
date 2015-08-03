@@ -101,7 +101,7 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 	EncodedValue = EncodeItem(Decoder);
 
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	Inventory = GetWorld()->SpawnActor<AOrionInventory>(Inv->ItemClass, SpawnInfo);
 
 	if (Inventory)

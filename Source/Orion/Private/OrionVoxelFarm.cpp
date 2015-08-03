@@ -598,7 +598,7 @@ void AOrionVoxelFarm::BeginPlay()
 void AOrionVoxelFarm::InitializeTerrain()
 {
 	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.bNoCollisionFail = true;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 	VoxFarm = GetWorld()->SpawnActor<AOrionVoxelMain>(AOrionVoxelMain::StaticClass(), SpawnInfo);
 

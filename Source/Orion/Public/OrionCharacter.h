@@ -21,6 +21,7 @@ class AOrionShipPawn;
 class AOrionPlayerController;
 class AOrionAbility;
 class AOrionGrenade;
+class AOrionBuff;
 
 USTRUCT()
 struct FGibReplicate
@@ -752,6 +753,17 @@ public:
 	/** get mesh component */
 	USkeletalMeshComponent* GetPawnMesh() const;
 
+	UFUNCTION(BlueprintCallable, Category = Health)
+		void Heal(int32 Amount);
+
+	UPROPERTY(BlueprintReadWrite, Category = Buffs)
+		TArray<AOrionBuff*> Buffs;
+
+	UFUNCTION(BlueprintCallable, Category = Buffs)
+		void AddBuff(TSubclassOf<AOrionBuff> BuffClass, AController *cOwner, int32 TeamIndex);
+
+	void HandleBuffs(float DeltaSeconds);
+
 	void EquipWeapon(class AOrionWeapon* Weapon);
 	AOrionWeapon *GetWeaponFromType(EItemType Type);
 	void CheckWeaponEquipped();
@@ -797,6 +809,9 @@ public:
 	TArray<FDecalHelper> BloodDecals;
 	
 	void UpdateBloodDecals(float DeltaSeconds);
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
+		bool IsOvercharging() const;
 
 	void AddAimKick(FRotator Kick);
 	void ResetAimKick();

@@ -42,3 +42,25 @@ void AOrionDestructible::Tick( float DeltaTime )
 	Super::Tick( DeltaTime );
 
 }
+
+#if WITH_EDITOR
+void ADestructibleActor::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEvent)
+{
+	Super::PostEditChangeProperty(PropertyChangedEvent);
+
+	if (PropertyChangedEvent.Property && PropertyChangedEvent.Property->GetFName() == GET_MEMBER_NAME_CHECKED(ADestructibleActor, bAffectNavigation))
+	{
+		GetDestructibleComponent()->SetCanEverAffectNavigation(bAffectNavigation);
+	}
+}
+#endif // WITH_EDITOR
+
+void ADestructibleActor::PostLoad()
+{
+	Super::PostLoad();
+
+	if (GetDestructibleComponent())
+	{
+		GetDestructibleComponent()->bCanEverAffectNavigation = bAffectNavigation;
+	}
+}

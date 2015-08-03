@@ -5,7 +5,7 @@
 
 void UOrionEditableText::SetANewFont(FSlateFontInfo NewFontInfo)
 {
-	Font = NewFontInfo;
+	Font_DEPRECATED = NewFontInfo;
 	SynchronizeProperties();
 }
 

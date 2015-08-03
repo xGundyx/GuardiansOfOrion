@@ -24,10 +24,6 @@
 #include "OrionGRI.h"
 #include "OrionInventory.h"
 #include "OrionInventoryManager.h"
-#include "OrionOcTree.h"
-#include "OrionGeneratedMeshComponent.h"
-#include "OrionVoxelBase.h"
-#include "OrionDiamondSquare.h"
 #include "OrionImpactEffect.h"
 
 #define COLLISION_WEAPON		ECC_GameTraceChannel6

@@ -7,7 +7,7 @@
 UOrionDamageType::UOrionDamageType(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-
+	bIgnoreModify = false;
 }
 
 

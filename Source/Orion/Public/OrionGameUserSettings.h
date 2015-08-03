@@ -15,4 +15,8 @@ class ORION_API UOrionGameUserSettings : public UGameUserSettings
 
 public:
 	void ApplyNonResolutionSettings() override;
+
+	TArray<FString> GetSupportedResolutions();
+
+
 };

@@ -28,9 +28,9 @@ AOrionGrenade::AOrionGrenade(const FObjectInitializer& ObjectInitializer) : Supe
 	ProjectileMovement->bShouldBounce = true;
 	ProjectileMovement->ProjectileGravityScale = 1.0f;
 
-	Damage = 500;
-	DamageRadius = 750.0f;
-	LifeTime = 3.0f;
+	Damage = 1000;
+	DamageRadius = 1250.0f;
+	LifeTime = 2.5f;
 
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
@@ -66,7 +66,9 @@ void AOrionGrenade::Explode()
 	//play our explosion effect
 	if (ExplosionFX)
 	{
-		UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionFX, GetActorLocation());
+		UParticleSystemComponent *PSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionFX, GetActorLocation());
+		if (PSC)
+			PSC->SetWorldScale3D(FVector(2.0f));
 	}
 
 	//play the explosion sound

@@ -134,6 +134,10 @@ float UOrionMovementComponent::GetMaxSpeed() const
 				SpeedMod *= 0.4;
 			else
 				SpeedMod *= 0.75f;// 0.55f;
+
+			//move faster if overcharging
+			if (OrionCharacterOwner->IsOvercharging())
+				SpeedMod *= 1.25f;
 		}
 	}
 

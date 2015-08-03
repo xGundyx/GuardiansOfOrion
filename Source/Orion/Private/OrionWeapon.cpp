@@ -1101,7 +1101,11 @@ void AOrionWeapon::SpawnImpactEffects(const FHitResult& Impact)
 			UseImpact = Hit;
 		}
 
-		AOrionImpactEffect* EffectActor = GetWorld()->SpawnActorDeferred<AOrionImpactEffect>(ImpactTemplate, Impact.ImpactPoint, Impact.ImpactNormal.Rotation());
+		FTransform Trans;
+		Trans.SetLocation(Impact.ImpactPoint);
+		Trans.SetRotation(Impact.ImpactNormal.Rotation().Quaternion());
+
+		AOrionImpactEffect* EffectActor = GetWorld()->SpawnActorDeferred<AOrionImpactEffect>(ImpactTemplate, Trans, Instigator, Instigator, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 		if (EffectActor)
 		{
 			EffectActor->SurfaceHit = UseImpact;
@@ -1130,7 +1134,7 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 	{
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.Instigator = Instigator;
-		SpawnInfo.bNoCollisionFail = true;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 		AOrionProjectile *Proj = GetWorld()->SpawnActor<AOrionProjectile>(AOrionProjectile::StaticClass(), Origin, vDir.Rotation(), SpawnInfo);
 		if (Proj)
@@ -1194,7 +1198,7 @@ UAudioComponent* AOrionWeapon::PlayWeaponSound(USoundCue* Sound)
 	UAudioComponent* AC = NULL;
 	if (Sound && MyPawn)
 	{
-		AC = UGameplayStatics::PlaySoundAttached(Sound, MyPawn->GetRootComponent());
+		AC = UGameplayStatics::SpawnSoundAttached(Sound, MyPawn->GetRootComponent());
 	}
 
 	return AC;

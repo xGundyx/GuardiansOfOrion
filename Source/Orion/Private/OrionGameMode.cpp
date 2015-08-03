@@ -126,7 +126,7 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 	return Damage;
 }
 
-APlayerController* AOrionGameMode::Login(UPlayer* NewPlayer, ENetRole RemoteRole, const FString& Portal, const FString& Options, const TSharedPtr<FUniqueNetId>& UniqueId, FString& ErrorMessage)
+APlayerController* AOrionGameMode::Login(UPlayer* NewPlayer, ENetRole RemoteRole, const FString& Portal, const FString& Options, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& ErrorMessage)
 {
 	APlayerController *rPC = Super::Login(NewPlayer, RemoteRole, Portal, Options, UniqueId, ErrorMessage);
 
@@ -141,7 +141,20 @@ APlayerController* AOrionGameMode::Login(UPlayer* NewPlayer, ENetRole RemoteRole
 	}
 #endif
 
+	SetInitialTeam(rPC);
+
 	return rPC;
+}
+
+void AOrionGameMode::SetInitialTeam(APlayerController *PC)
+{
+	int32 index = 0;
+
+	AOrionGRI *GRI = Cast<AOrionGRI>(GameState);
+
+	//slap all players on the same team for now
+	if (GRI)
+		GRI->AddPlayerToTeam(Cast<AOrionPlayerController>(PC), index);
 }
 
 void AOrionGameMode::Logout(AController* Exiting)
@@ -157,7 +170,7 @@ void AOrionGameMode::SpawnItems(AActor *Spawner)
 	if (DefaultPickupClass)
 	{
 		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.bNoCollisionFail = true;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 		for (TActorIterator<AOrionPlayerController> ActorItr(GetWorld()); ActorItr; ++ActorItr)
 		{
