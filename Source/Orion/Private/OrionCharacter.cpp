@@ -14,6 +14,7 @@
 #include "OrionHoverVehicle.h"
 #include "OrionPRI.h"
 #include "OrionGrenade.h"
+#include "OrionSkeletalMeshComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AOrionCharacter
@@ -73,7 +74,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	//InvokerComponent = ObjectInitializer.CreateOptionalDefaultSubobject<UNavigationInvokerComponent>(this, TEXT("NavInvoker"));
 	//InvokerComponent->bAutoActivate = true;
 
-	Arms1PMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Arms1PMesh1P"));
+	Arms1PMesh = ObjectInitializer.CreateOptionalDefaultSubobject<UOrionSkeletalMeshComponent>(this, TEXT("Arms1PMesh1P"));
 	Arms1PMesh->AlwaysLoadOnClient = true;
 	Arms1PMesh->AlwaysLoadOnServer = false;
 	Arms1PMesh->bOwnerNoSee = false;
@@ -86,9 +87,10 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Arms1PMesh->AttachParent = FirstPersonCameraComponent;
 	Arms1PMesh->CastShadow = false;
 	Arms1PMesh->bPerBoneMotionBlur = false;
+	Arms1PMesh->WeaponFOV = 60.0f;
 	//Arms1PMesh->SetMasterPoseComponent(GetMesh());
 
-	Arms1PArmorMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Arms1PArmorMesh1P"));
+	Arms1PArmorMesh = ObjectInitializer.CreateOptionalDefaultSubobject<UOrionSkeletalMeshComponent>(this, TEXT("Arms1PArmorMesh1P"));
 	Arms1PArmorMesh->AlwaysLoadOnClient = true;
 	Arms1PArmorMesh->AlwaysLoadOnServer = false;
 	Arms1PArmorMesh->bOwnerNoSee = false;
@@ -102,6 +104,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Arms1PArmorMesh->CastShadow = false;
 	Arms1PArmorMesh->bPerBoneMotionBlur = false;
 	Arms1PArmorMesh->SetMasterPoseComponent(Arms1PMesh);
+	Arms1PArmorMesh->WeaponFOV = 60.0f;
 
 	/*Arms1PLegsMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("LegsMesh1P"));
 	Arms1PLegsMesh->AlwaysLoadOnClient = true;
@@ -214,6 +217,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 
 	RingMesh = ObjectInitializer.CreateOptionalDefaultSubobject<UStaticMeshComponent>(this, TEXT("Ring"));
 	RingMesh->AddLocalOffset(FVector(0.0f, 0.0f, -85.0f));
+	RingMesh->AttachParent = GetCapsuleComponent();
 
 	Health = 100.0;
 	HealthMax = 100.0;
@@ -340,6 +344,11 @@ void AOrionCharacter::ServerSetAimYaw_Implementation(float yaw, float pitch)
 	AimPitch = pitch;
 }
 
+void AOrionCharacter::AddHealth(int32 Amount)
+{
+	Health = FMath::Min(HealthMax, Health + Amount);
+}
+
 void AOrionCharacter::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 {
 	if (IsFirstPerson())
@@ -398,18 +407,26 @@ void AOrionCharacter::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 	if (GetMovementComponent() && GetMovementComponent()->IsFalling())
 		Speed2D = 0.0f;
 
+	if (IsRolling() || IsSprinting() || (CurrentSkill && CurrentSkill->IsJetpacking()))
+		Speed2D = 0.0f;
+
 	if (Speed2D < 10)
 		BobTime += 0.2 * FMath::Min(0.1f,DeltaTime);
 	else
-		BobTime += FMath::Min(0.1f, DeltaTime) * (0.3 + 0.7 * Speed2D / GetMovementComponent()->GetMaxSpeed());
+		BobTime += FMath::Min(0.1f, DeltaTime) * FMath::Min(1.0f, 0.3f + 0.7f * Speed2D / GetMovementComponent()->GetMaxSpeed());
 
 	//Bob = Lerp(Bob, (bIsWalking ? default.Bob : default.Bob*BobScaleWhenRunning), DeltaSeconds * 10);
 
-	WalkBob = Y * 0.01 * Speed2D * FMath::Sin(8.0f * BobTime);
-	WalkBob.Z = 0.01 * Speed2D * FMath::Sin(16.0f * BobTime);
+	float TimeDilation = 1.0f;
 
-	FirstPersonCameraComponent->SetRelativeLocation(FMath::Lerp(FirstPersonCameraComponent->RelativeLocation, FVector(0, 0, 64.0) + WalkBob, FMath::Min(0.5f,DeltaTime*10.0f)));
+	if (IsAiming())
+		TimeDilation = 0.4f;
 
+	WalkBob = Y * 0.01 * Speed2D * FMath::Sin(8.0f * BobTime * TimeDilation);
+	WalkBob.Z = 0.01 * Speed2D * FMath::Sin(16.0f * BobTime * TimeDilation);
+
+	//FirstPersonCameraComponent->SetRelativeLocation(FMath::Lerp(FirstPersonCameraComponent->RelativeLocation, FVector(0, 0, 64.0) + WalkBob, FMath::Min(0.5f,DeltaTime*10.0f)));
+	OutResult.Location += WalkBob * (IsAiming() ? 0.02f : 0.05f);
 	//add some aim kick
 	/*if (IsFirstPerson())
 	FirstPersonCameraComponent->SetRelativeRotation(AimKick);
@@ -1463,13 +1480,24 @@ void AOrionCharacter::StopAllAnimMontages()
 
 void AOrionCharacter::CreateHealthBar()
 {
-	MyHealthBar = CreateWidget<UOrionHealthBar>(GetWorld(), DefaultHealthBarClass);
+	if (!DefaultHealthBarClass || MyHealthBar || Health <= 0)
+		return;
+
+	//EventCreateHealthBar();
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
+
+	if (PC)
+		PC->EventCreateHealthBar(this);
+
+	/*MyHealthBar = CreateWidget<UOrionHealthBar>(GetWorld(), DefaultHealthBarClass);
 
 	if (MyHealthBar)
 	{
+		MyHealthBar->SetFlags(RF_RootSet);
 		MyHealthBar->AddToViewport(10);
 		MyHealthBar->OwningPawn = this;
-	}
+	}*/
 }
 
 void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& DamageEvent, class APawn* PawnInstigator, class AActor* DamageCauser)
@@ -1484,6 +1512,7 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 
 	if (MyHealthBar)
 	{
+		MyHealthBar->ConditionalBeginDestroy();
 		MyHealthBar->RemoveFromParent();
 		MyHealthBar = nullptr;
 	}
@@ -1623,9 +1652,9 @@ float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float I
 			if (CurrentWeapon->GetWeaponMesh(false) && !Animation.Weapon3P)
 				CurrentWeapon->GetWeaponMesh(false)->AnimScriptInstance->Montage_Stop(0.05);
 
-			if (CurrentWeapon->GetWeaponMesh(true) && Animation.Weapon1P)
+			if (CurrentWeapon->GetWeaponMesh(true) && Animation.Weapon1P && IsFirstPerson())
 				CurrentWeapon->GetWeaponMesh(true)->AnimScriptInstance->Montage_Play(Animation.Weapon1P, 1.0f);// / Animation.Weapon1P->RateScale;
-			if (CurrentWeapon->GetWeaponMesh(false) && Animation.Weapon3P)
+			if (CurrentWeapon->GetWeaponMesh(false) && Animation.Weapon3P && !IsFirstPerson())
 				CurrentWeapon->GetWeaponMesh(false)->AnimScriptInstance->Montage_Play(Animation.Weapon3P, 1.0f);// / Animation.Weapon3P->RateScale;
 		}
 
@@ -1634,8 +1663,12 @@ float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float I
 			Duration = Arms1PMesh->AnimScriptInstance->Montage_Play(Animation.Pawn1P, 1.0f) / Animation.Pawn1P->RateScale;// , 1.0);
 		//play 3p char animation
 		if (Animation.Pawn3P)
-			Duration = FMath::Max(Duration, AnimInstance->Montage_Play(Animation.Pawn3P, 1.0f) / Animation.Pawn3P->RateScale);
-
+		{
+			if (Duration < 0.05f)
+				Duration = FMath::Max(Duration, AnimInstance->Montage_Play(Animation.Pawn3P, 1.0f) / Animation.Pawn3P->RateScale);
+			else
+				AnimInstance->Montage_Play(Animation.Pawn3P, 1.0f);
+		}
 		if (Duration > 0.f)
 		{
 			// Start at a given Section.
@@ -2067,6 +2100,10 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 		}
 	}
 
+	//hax for health bars
+	if (MyHealthBar == nullptr)
+		CreateHealthBar();
+
 	//hax for now
 	//if (CurrentWeapon == NULL && Inventory.Num() > 0)
 	//	EquipWeapon(Inventory[0]);
@@ -2364,7 +2401,7 @@ void AOrionCharacter::BehindView()
 
 bool AOrionCharacter::ShouldIgnoreControls()
 {
-	return IsRolling() || bBlinking || bShoulderCamera;
+	return IsRolling() || bBlinking || bShoulderCamera || bShipCamera;
 }
 
 void AOrionCharacter::Duck()
@@ -2607,6 +2644,9 @@ void AOrionCharacter::DoBlinkEffect(bool bOn, FVector pos)
 			BlinkPSC->SetWorldScale3D(FVector(2.0f));
 		}
 	}
+
+	if (BlinkSound)
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), BlinkSound, GetActorLocation(), 1.0f, 1.0f);
 }
 
 bool AOrionCharacter::ServerDoRoll_Validate(ERollDir rDir, FRotator rRot)
@@ -2638,6 +2678,9 @@ void AOrionCharacter::ServerDoRoll_Implementation(ERollDir rDir, FRotator rRot)
 	};
 
 	SetActorRotation(rRot);
+
+	if (CurrentWeapon)
+		CurrentWeapon->StopReload();
 
 	StopAllAnimMontages();
 

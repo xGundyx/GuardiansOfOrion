@@ -96,7 +96,9 @@ void UOrionPathFollowingComponent::FollowPathSegment(float DeltaTime)
 				return;
 			}
 
-			if ((Pawn->GetActorLocation() - GetCurrentTargetFlyingLocation()).Size() < (Pawn->bLanding ? Pawn->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 10.0f : Pawn->FlyingOffset))
+			float dist = (Pawn->GetActorLocation() - GetCurrentTargetFlyingLocation()).Size();
+
+			if (dist < (Pawn->bLanding ? Pawn->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 10.0f : Pawn->FlyingOffset))
 			{
 				if (Pawn->bLanding)
 				{
@@ -112,6 +114,12 @@ void UOrionPathFollowingComponent::FollowPathSegment(float DeltaTime)
 						OnPathFinished(EPathFollowingResult::Success);
 					}
 				}
+			}
+			else if (Controller->FlightIndex + 1 >= Controller->FlightPath.Num() && dist < 2.5f * (Pawn->bLanding ? Pawn->GetCapsuleComponent()->GetScaledCapsuleHalfHeight() + 10.0f : Pawn->FlyingOffset)
+				&& (Controller->GetEnemy() == nullptr || (Controller->GetEnemy()->GetActorLocation() - Controller->FlightPath.Last()).Size() > 100.0f))
+			{
+				Controller->bFinishedPath = true;
+				OnPathFinished(EPathFollowingResult::Success);
 			}
 
 			CharacterMoveComp->SetMovementMode(MOVE_Flying);

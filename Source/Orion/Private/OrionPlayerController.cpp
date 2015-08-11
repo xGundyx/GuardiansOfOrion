@@ -14,6 +14,7 @@
 #include "OrionPRI.h"
 #include "OrionGameMode.h"
 #include "PhotonProxy.h"
+#include "PlayFabRequestProxy.h"
 
 AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -23,6 +24,7 @@ AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObjectI
 	//RainPSC = ObjectInitializer.CreateOptionalDefaultSubobject<UParticleSystemComponent>(this, TEXT("Rain"));
 
 	bHideWeapons = false;
+	bAuthenticated = false;
 }
 
 void AOrionPlayerController::AttemptLogin(FString UserName, FString Password)
@@ -82,7 +84,14 @@ void AOrionPlayerController::OpenInventory()
 
 void AOrionPlayerController::PreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel)
 {
-	Super::PreClientTravel(PendingURL, TravelType, bIsSeamlessTravel);
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	//add our playfab credentials to the url so the server can verify us
+	FString newURL;
+	if (PRI)
+		newURL = FString::Printf(TEXT("%s?PlayFabID=%s?PlayFabSession=%s"), *PendingURL, *PRI->PlayFabID,* PRI->SessionTicket);
+
+	Super::PreClientTravel(newURL, TravelType, bIsSeamlessTravel);
 }
 
 void AOrionPlayerController::CleanupGameViewport()
@@ -331,6 +340,22 @@ void AOrionPlayerController::AddDamageNumber(int32 Damage, FVector Pos)
 void AOrionPlayerController::ClientAddDamageNumber_Implementation(int32 Damage, FVector Pos)
 {
 	AddDamageNumber(Damage, Pos);
+}
+
+void AOrionPlayerController::AddXPNumber(int32 XP, FVector Pos)
+{
+	if (GetNetMode() == NM_DedicatedServer)
+	{
+		ClientAddXPNumber(XP, Pos);
+		return;
+	}
+
+	EventAddXPNumber(XP, Pos);
+}
+
+void AOrionPlayerController::ClientAddXPNumber_Implementation(int32 XP, FVector Pos)
+{
+	AddXPNumber(XP, Pos);
 }
 
 void AOrionPlayerController::PlayerTick(float DeltaTime)
@@ -1094,6 +1119,14 @@ void AOrionPlayerController::UpdateRotation(float DeltaTime)
 	{
 		P->FaceRotation(ViewRotation, DeltaTime);
 	}
+}
+
+void AOrionPlayerController::ValidatePlayFabInfo(FString pfID, FString pfSession)
+{
+	if (Role != ROLE_Authority)
+		return;
+
+	EventValidateSession(pfSession);
 }
 
 void AOrionPlayerController::CreateInventory()

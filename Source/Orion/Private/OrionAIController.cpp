@@ -50,6 +50,8 @@ void AOrionAIController::FlyToPoint(FVector Destination)
 {
 	if(GetPawn())
 	{
+		bFinishedPath = false;
+
 		FlightPath.Empty();
 		FlightPath.Add(Destination);
 		FlightIndex = 0;

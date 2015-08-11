@@ -4,6 +4,7 @@
 #include "OrionProjectile.h"
 #include "OrionAbility.h"
 #include "OrionWeapon.h"
+#include "OrionSkeletalMeshComponent.h"
 
 //auto rifle -3.0 30.0 -13.5
 //auto pistol -4.7, 12.65, -8.04
@@ -13,7 +14,7 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 	USceneComponent *SceneComponent = ObjectInitializer.CreateDefaultSubobject<USceneComponent>(this, TEXT("WeaponComponent"));
 	RootComponent = SceneComponent;
 
-	Mesh1P = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponMesh1P"));
+	Mesh1P = ObjectInitializer.CreateDefaultSubobject<UOrionSkeletalMeshComponent>(this, TEXT("WeaponMesh1P"));
 	//Mesh1P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
 	Mesh1P->bChartDistanceFactor = false;
 	Mesh1P->bReceivesDecals = false;
@@ -25,6 +26,7 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 	Mesh1P->AttachParent = SceneComponent;
 	Mesh1P->PrimaryComponentTick.TickGroup = TG_PrePhysics;
 	Mesh1P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
+	Mesh1P->WeaponFOV = 60.0f;
 	//RootComponent = Mesh1P;
 
 	Mesh3P = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponMesh3P"));
@@ -83,7 +85,7 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 	InstantConfig.TimeBetweenShots = 0.1;
 	InstantConfig.WeaponIndex = 0;
 	InstantConfig.WeaponRange = 20000.0f;
-	InstantConfig.WeaponScale = 1.0f;
+	InstantConfig.WeaponScale = 0.5f;
 
 	InventoryType = ITEM_PRIMARYWEAPON;
 }
@@ -99,7 +101,7 @@ void AOrionWeapon::PostInitializeComponents()
 
 	TargetFOV = 90.0;
 
-	Mesh1P->SetWorldScale3D(FVector(InstantConfig.WeaponScale));
+	//Mesh1P->SetWorldScale3D(FVector(InstantConfig.WeaponScale));
 	Mesh1P->UpdateBounds();
 
 	//PlayWeaponAnimation(IdleAnim);
@@ -147,6 +149,8 @@ void AOrionWeapon::AttachMeshToPawn()
 			if (PawnMesh1p && PawnMesh1p->SkeletalMesh)
 			{
 				PawnMesh1p->SetWorldScale3D(FVector(InstantConfig.WeaponScale));
+				//PawnMesh1p->SetWorldScale3D(FVector(1.0f, 0.6f, 1.0f)*InstantConfig.WeaponScale);
+				//Mesh1P->SetWorldScale3D(FVector(1.0f, 0.6f, 1.0f)*InstantConfig.WeaponScale);
 				PawnMesh1p->UpdateBounds();
 			}
 
@@ -647,7 +651,8 @@ void AOrionWeapon::UseAmmo()
 
 	AmmoInClip--;
 
-	Ammo--;
+	//infinite ammo for now
+	////Ammo--;
 }
 
 bool AOrionWeapon::CanReload()

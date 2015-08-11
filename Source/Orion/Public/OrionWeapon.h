@@ -438,10 +438,10 @@ public:
 	float EquipStartedTime;
 	float EquipDuration;
 
-	UPROPERTY(EditDefaultsOnly, Category = Aiming)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Aiming)
 		FVector ViewOffset;
 
-	UPROPERTY(EditDefaultsOnly, Category = Aiming)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Aiming)
 		FVector AimViewOffset;
 
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
@@ -492,7 +492,7 @@ protected:
 
 	/** weapon mesh: 1st person view */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		USkeletalMeshComponent* Mesh1P;
+		UOrionSkeletalMeshComponent* Mesh1P;
 
 	/** weapon mesh: 3rd person view */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)

@@ -311,16 +311,16 @@ public:
 
 	/** Pawn mesh: 1st person view (arms; seen only by self) */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		class USkeletalMeshComponent* Arms1PMesh;
+		class UOrionSkeletalMeshComponent* Arms1PMesh;
 
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
-		class USkeletalMeshComponent* Arms1PArmorMesh;
+		class UOrionSkeletalMeshComponent* Arms1PArmorMesh;
 
 	//UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 	//	UNavigationInvokerComponent* InvokerComponent;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Classes)
-		TSubclassOf<class UOrionHealthBar>  DefaultHealthBarClass;
+		TSubclassOf<class UUserWidget>  DefaultHealthBarClass;
 
 	//UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 		//class USkeletalMeshComponent* Arms1PLegsMesh;
@@ -588,6 +588,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Health)
 		float HealthMax;
 
+	UFUNCTION(BlueprintCallable, Category = Health)
+		void AddHealth(int32 Amount);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Health)
 		float Shield;
 
@@ -747,8 +750,11 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_Teleport)
 		FVector BlinkPos;
 
-	UPROPERTY(EditDefaultsOnly, Category = Effects)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Effects)
 		UParticleSystem* BlinkFX;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Effects)
+		USoundCue *BlinkSound;
 
 	/** get mesh component */
 	USkeletalMeshComponent* GetPawnMesh() const;
@@ -1162,10 +1168,7 @@ public:
 
 	//reference to health bar for us
 	UPROPERTY(BlueprintReadWrite, Category = HUD)
-		UOrionHealthBar *MyHealthBar;
-
-	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "CreateHealthBar"))
-		void EventCreateHealthBar();
+		UUserWidget *MyHealthBar;
 
 	void CreateHealthBar();
 };
