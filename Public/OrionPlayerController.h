@@ -382,6 +382,14 @@ public:
 
 	void AddDamageNumber(int32 Damage, FVector Pos);
 
+	UFUNCTION(client, reliable)
+		void ClientAddXPNumber(int32 Damage, FVector Pos);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SpawnXPNumber"))
+		void EventAddXPNumber(int32 Damage, FVector Pos);
+
+	void AddXPNumber(int32 Damage, FVector Pos);
+
 	UPROPERTY(BlueprintReadWrite, Category = MainMenu)
 		UCameraComponent *MenuCamera;
 
@@ -420,10 +428,23 @@ public:
 	virtual void BeginPlay();
 	virtual void StartFire(uint8 FireModeNum);
 
+	bool bAuthenticated;
+
 	bool InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad) override;
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "AuthenticatePF"))
+		void EventValidateSession(const FString &Session);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "OrionKeyPressed"))
 		void EventPressKey(FKey Key, bool Gamepad);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "OrionChat"))
+		void EventSay();
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "OrionTeamChat"))
+		void EventTeamSay();
+
+	void ValidatePlayFabInfo(FString pfID, FString pfSession);
 
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerSetPlayFabInfo(const FString &ID, const FString &SessionID, const FString &cID);
@@ -452,4 +473,7 @@ private:
 public:
 	UPROPERTY(BlueprintReadWrite, Category = Inventory)
 		TArray<FInventoryMapping> InventoryMapppings;
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "CreateHealthBar"))
+		void EventCreateHealthBar(class AOrionCharacter *PawnOwner);
 };

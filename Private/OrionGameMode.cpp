@@ -7,6 +7,7 @@
 #include "OrionCharacter.h"
 #include "OrionPRI.h"
 #include "OrionGRI.h"
+#include "OrionPickupOrb.h"
 
 AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -22,6 +23,12 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 	if (PickupObject.Object != NULL)
 	{
 		DefaultPickupClass = (UClass*)PickupObject.Object->GeneratedClass;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UBlueprint> PickupOrbObject(TEXT("/Game/Pickups/Blueprints/BasePickupOrb"));
+	if (PickupOrbObject.Object != NULL)
+	{
+		DefaultPickupOrbClass = (UClass*)PickupOrbObject.Object->GeneratedClass;
 	}
 
 	static ConstructorHelpers::FObjectFinder<UBlueprint> PlayerControllerObject(TEXT("/Game/Character/Blueprints/BasePlayerController"));
@@ -101,6 +108,7 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 			SpawnItems(Dino);
 
 		//award some experience to the team
+		PC->ClientAddXPNumber(FMath::RandRange(15, 50), KilledPawn->GetActorLocation());
 	}
 }
 
@@ -141,9 +149,43 @@ APlayerController* AOrionGameMode::Login(UPlayer* NewPlayer, ENetRole RemoteRole
 	}
 #endif
 
+	//retrieve player info, do not let them spawn until the data has been fully read in
+
 	SetInitialTeam(rPC);
 
 	return rPC;
+}
+
+void AOrionGameMode::PreLogin(const FString& Options, const FString& Address, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& ErrorMessage)
+{
+	Super::PreLogin(Options, Address, UniqueId, ErrorMessage);
+}
+
+FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerController, const TSharedPtr<const FUniqueNetId>& UniqueId, const FString& Options, const FString& Portal)
+{
+	FString ret = Super::InitNewPlayer(NewPlayerController, UniqueId, Options, Portal);
+
+	//grab the playfab info from the Options string and try to validate the player
+	FString pfID = UGameplayStatics::ParseOption(Options, TEXT("PlayFabID"));
+	FString pfSession = UGameplayStatics::ParseOption(Options, TEXT("PlayFabSession"));
+
+	//if this session and id aren't valid, kick the bitch
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(NewPlayerController);
+	if (PC)
+	{
+		PC->ValidatePlayFabInfo(pfID, pfSession);
+	}
+
+	return ret;
+}
+
+void AOrionGameMode::PlayerAuthed(class AOrionPlayerController *PC, bool bSuccess)
+{
+	if (!bSuccess)
+		GameSession->KickPlayer(PC, FText::FromString(TEXT("Playfab Authentication Failed.")));
+
+	//login was successfull, let the player spawn
+	PC->bAuthenticated = true;
 }
 
 void AOrionGameMode::SetInitialTeam(APlayerController *PC)
@@ -166,8 +208,8 @@ void AOrionGameMode::Logout(AController* Exiting)
 void AOrionGameMode::SpawnItems(AActor *Spawner)
 {
 	bool bSuccess = false;
-	//for testing purposes, just spawn random items
-	if (DefaultPickupClass)
+	//for testing purposes, just spawn random items (turn off for now!)
+	if (false && DefaultPickupClass)
 	{
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
@@ -193,6 +235,26 @@ void AOrionGameMode::SpawnItems(AActor *Spawner)
 
 				if (!bSuccess)
 					Pickup->Destroy();
+			}
+		}
+	}
+
+	//spawn some orbies, these are global and are awarded to all teammates in range
+	if (DefaultPickupOrbClass)
+	{
+		//10% chance to spawn an orb
+		int32 RandNum = FMath::RandRange(1, 100);
+
+		if (RandNum <= 10)
+		{
+			FActorSpawnParameters SpawnInfo;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+			AOrionPickupOrb *Pickup = GetWorld()->SpawnActor<AOrionPickupOrb>(DefaultPickupOrbClass, Spawner->GetActorLocation(), Spawner->GetActorRotation(), SpawnInfo);
+
+			if (Pickup)
+			{
+				Pickup->Init();
 			}
 		}
 	}

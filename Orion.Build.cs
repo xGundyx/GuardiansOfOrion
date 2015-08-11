@@ -22,12 +22,12 @@ public class Orion : ModuleRules
         if (Target.Type == TargetRules.TargetType.Editor)
         {
             PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "InputCore", "RHI", "RenderCore", "OnlineSubsystem", "ShaderCore", "Slate", "SlateCore", 
-                "UMG", "Sockets", "Networking", "Json", "JsonUtilities", "OrionVoxel", "UnrealEd", "ProceduralMeshComponent", "PlayFab", "PhotonClient" });
+                "UMG", "Sockets", "Networking", "Json", "JsonUtilities", "OrionVoxel", "UnrealEd", "ProceduralMeshComponent", "PlayFab", "PhotonClient", "OnlineSubsystemOrion" });
         }
         else
         {
             PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "InputCore", "RHI", "RenderCore", "OnlineSubsystem", "ShaderCore", "Slate", "SlateCore", 
-             "UMG", "Sockets", "Networking", "Json", "JsonUtilities", "OrionVoxel",/* "UnrealEd",*/ "ProceduralMeshComponent", "PlayFab", "PhotonClient" });
+             "UMG", "Sockets", "Networking", "Json", "JsonUtilities", "OrionVoxel",/* "UnrealEd",*/ "ProceduralMeshComponent", "PlayFab", "PhotonClient", "OnlineSubsystemOrion" });
         }
         LoadPlayFab(Target);
 	}

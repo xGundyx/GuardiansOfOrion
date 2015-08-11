@@ -44,7 +44,7 @@ TSubclassOf<AOrionCharacter> AOrionRandomWaveSpawner::GetBlueprintFromPath(FStri
 {
 	FStringAssetReference ref(path);
 
-	UObject* obj = ref.ResolveObject();
+	UObject* obj = ref.TryLoad();//.ResolveObject();
 
 	if (obj)
 	{
@@ -94,12 +94,12 @@ void AOrionRandomWaveSpawner::BeginPlay()
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Rham.bot_Rham'")));//rham
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//ptera
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//anky
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//kruger
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//jeckyl
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//namor
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Creatures/Blueprints/KrugerSpawn.KrugerSpawn'")));//kruger
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Creatures/Blueprints/JeckylBot.JeckylBot'")));//jeckyl
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Creatures/Blueprints/NamorBot.NamorBot'")));//namor
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//viper
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//orbdroid
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//bones
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Bots/Blueprints/OrbBot.OrbBot'")));//orbdroid
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Bots/Blueprints/BonesBot.BonesBot'")));//bones
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//assault
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//support
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//recon

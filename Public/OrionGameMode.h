@@ -16,13 +16,21 @@ public:
 
 	//virtual APlayerController* Login(UPlayer* NewPlayer, ENetRole RemoteRole, const FString& Portal, const FString& Options, const TSharedPtr<FUniqueNetId>& UniqueId, FString& ErrorMessage) override;
 	virtual APlayerController* Login(UPlayer* NewPlayer, ENetRole InRemoteRole, const FString& Portal, const FString& Options, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& ErrorMessage) override;
+	virtual void PreLogin(const FString& Options, const FString& Address, const TSharedPtr<const FUniqueNetId>& UniqueId, FString& ErrorMessage); 
 	virtual void Logout(AController* Exiting) override;
 	virtual void SetInitialTeam(APlayerController *PC);
+	virtual FString InitNewPlayer(class APlayerController* NewPlayerController, const TSharedPtr<const FUniqueNetId>& UniqueId, const FString& Options, const FString& Portal = TEXT(""));
+
+	UFUNCTION(BlueprintCallable, Category = Auth)
+		void PlayerAuthed(class AOrionPlayerController *PC, bool bSuccess);
 
 	void SpawnItems(AActor *Spawner);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Classes)
 		TSubclassOf<class AOrionPickup>  DefaultPickupClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Classes)
+		TSubclassOf<class AOrionPickupOrb>  DefaultPickupOrbClass;
 
 	UPROPERTY(BlueprintReadOnly, Category = Classes)
 		bool bAlwaysShowCursor;
