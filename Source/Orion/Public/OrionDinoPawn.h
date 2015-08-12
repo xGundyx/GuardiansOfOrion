@@ -27,28 +27,7 @@ public:
 	void InitMaterials() override {}
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UAnimMontage *Bite1Animation;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UAnimMontage *Bite2Animation;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UAnimMontage *NoseLiftAnimation;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		UAnimMontage *BlinkAnimation;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UAnimMontage *Tail1Animation;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UAnimMontage *Tail2Animation;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UAnimMontage *StompAnimation;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UAnimMontage *FeedAnimation;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		UAnimMontage *ShortRoarAnimation;
@@ -71,12 +50,6 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		UAnimMontage *TurnRight90Animation;
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UAnimMontage *LookLeftAnimation;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-		UAnimMontage *LookRightAnimation;
-
 	virtual FVector2D GetAim(float DeltaTime) override;
 	virtual void Tick(float DeltaTime) override;
 	void OrientToGround(float DeltaTime);
@@ -90,6 +63,14 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = GamePlay)
 		float RunningModifier;
+
+	//charging a big move
+	UPROPERTY(BlueprintReadWrite, Category = AI)
+		bool bChargingAttack;
+
+	//running at an enemy doing a charge attack
+	UPROPERTY(BlueprintReadWrite, Category = AI)
+		bool bChargeAttack;
 
 private:
 	FVector GroundNormal;
