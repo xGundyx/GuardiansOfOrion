@@ -34,9 +34,9 @@ void AOrionPickupOrb::Init()
 {
 	int32 RandNum = FMath::RandRange(1, 100);
 
-	if (RandNum > 10)//health
+	if (RandNum > 70)//health
 		OrbType = ORB_HEALTH;
-	else if (RandNum > 30)//shield
+	else if (RandNum > 20)//shield
 		OrbType = ORB_SHIELD;
 	else//exp boost
 		OrbType = ORB_EXP;

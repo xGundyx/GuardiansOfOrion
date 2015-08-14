@@ -382,6 +382,9 @@ public:
 
 	void AddDamageNumber(int32 Damage, FVector Pos);
 
+	//pointer to ragdoll for camera when we die
+	AOrionCharacter *Ragdoll;
+
 	UFUNCTION(client, reliable)
 		void ClientAddXPNumber(int32 Damage, FVector Pos);
 

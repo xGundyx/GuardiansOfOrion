@@ -591,6 +591,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Health)
 		void AddHealth(int32 Amount);
 
+	UFUNCTION(BlueprintCallable, Category = Health)
+		void AddShield(int32 Amount);
+
+	UFUNCTION(BlueprintCallable, Category = Health)
+		void AddExp(int32 Amount);
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Health)
 		float Shield;
 

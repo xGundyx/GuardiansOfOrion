@@ -349,6 +349,15 @@ void AOrionCharacter::AddHealth(int32 Amount)
 	Health = FMath::Min(HealthMax, Health + Amount);
 }
 
+void AOrionCharacter::AddShield(int32 Amount)
+{
+	Shield = FMath::Min(ShieldMax, Shield + Amount);
+}
+
+void AOrionCharacter::AddExp(int32 Amount)
+{
+}
+
 void AOrionCharacter::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 {
 	if (IsFirstPerson())
@@ -1550,6 +1559,11 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	if (RingMesh)
 		RingMesh->SetHiddenInGame(true);
 
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC)
+		PC->Ragdoll = this;
+
 	// switch back to 3rd person view
 	UpdatePawnMeshes();
 
@@ -1621,6 +1635,10 @@ void AOrionCharacter::OnRep_ReplicatedAnimation()
 //override this so we can add some replication to it
 float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float InPlayRate, FName StartSectionName, bool bShouldReplicate, bool bReplicateToOwner, bool bStopOtherAnims)
 {
+	//don't play any animations while rolling, looks funkeh
+	if (bRolling && Role == ROLE_Authority)
+		return 0.0f;
+
 	float Duration = 0.0f;
 
 	if (Role == ROLE_Authority && bShouldReplicate)
@@ -2101,7 +2119,7 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 	}
 
 	//hax for health bars
-	if (MyHealthBar == nullptr)
+	if (MyHealthBar == nullptr && GetNetMode() != NM_DedicatedServer)
 		CreateHealthBar();
 
 	//hax for now
@@ -2656,8 +2674,6 @@ bool AOrionCharacter::ServerDoRoll_Validate(ERollDir rDir, FRotator rRot)
 
 void AOrionCharacter::ServerDoRoll_Implementation(ERollDir rDir, FRotator rRot)
 {
-	bRolling = true;
-
 	FWeaponAnim Info;
 	switch (rDir)
 	{
@@ -2680,11 +2696,18 @@ void AOrionCharacter::ServerDoRoll_Implementation(ERollDir rDir, FRotator rRot)
 	SetActorRotation(rRot);
 
 	if (CurrentWeapon)
+	{
 		CurrentWeapon->StopReload();
+		CurrentWeapon->StopFire();
+	}
 
 	StopAllAnimMontages();
 
 	float Length = OrionPlayAnimMontage(Info, 1.0f, FName(""), true, false, true);
+
+	//set roll after anim
+	bRolling = true;
+
 	GetWorldTimerManager().SetTimer(RollTimer2, this, &AOrionCharacter::EndRoll, 0.9f*Length, false);
 }
 

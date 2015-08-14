@@ -451,6 +451,11 @@ int32 AOrionWeapon::GetCurrentAmmoInClip() const
 	return AmmoInClip;
 }
 
+int32 AOrionWeapon::GetClipSize() const
+{
+	return InstantConfig.ClipSize;
+}
+
 int32 AOrionWeapon::GetMaxAmmo() const
 {
 	return InstantConfig.MaxAmmo;
@@ -730,6 +735,9 @@ void AOrionWeapon::StopReload()
 
 	if (InstantConfig.bSingleShellReload)
 		PlayWeaponAnimation(ReloadEndAnim, Role == ROLE_Authority);
+
+	if (GetWorldTimerManager().IsTimerActive(ReloadTimer))
+		GetWorldTimerManager().ClearTimer(ReloadTimer);
 
 	//if (CurrentState == EWeaponState::Reloading)
 	//{

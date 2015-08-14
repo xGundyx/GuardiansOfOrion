@@ -386,6 +386,9 @@ public:
 		int32 GetCurrentAmmoInClip() const;
 
 	UFUNCTION(BlueprintCallable, Category = Weapon)
+		int32 GetClipSize() const;
+
+	UFUNCTION(BlueprintCallable, Category = Weapon)
 		int32 GetMaxAmmo() const;
 
 	UFUNCTION()
