@@ -203,6 +203,10 @@ void AOrionPlayerController::CalcCamera(float DeltaTime, struct FMinimalViewInfo
 		DropPod->SpawnCameraComponent->GetCameraView(DeltaTime, OutResult);
 	else if (MenuCamera)
 		MenuCamera->GetCameraView(DeltaTime, OutResult);
+	else if (Ragdoll && Ragdoll->IsValidLowLevel())
+	{
+		Ragdoll->CalcCamera(DeltaTime, OutResult);
+	}
 	else
 		Super::CalcCamera(DeltaTime, OutResult);
 }
@@ -266,6 +270,8 @@ void AOrionPlayerController::ChangeCamera(int32 TeamIndex)
 
 void AOrionPlayerController::Possess(APawn* aPawn)
 {
+	Ragdoll = nullptr;
+
 	Super::Possess(aPawn);
 
 	if (Role == ROLE_Authority)

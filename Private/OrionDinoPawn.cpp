@@ -22,6 +22,9 @@ FVector2D AOrionDinoPawn::GetAim(float DeltaTime)
 	FRotator rot;
 	APawn *Target;
 
+	if (bChargeAttack)
+		return FVector2D(0.0f, -0.5f);
+
 	if (!Controller)
 		return FVector2D(AimYaw, AimPitch);
 

@@ -60,7 +60,7 @@ void AOrionAOEVolume::BeginPlay()
 	//spawn the emitter at our locaion
 	if (AOEEffect)
 	{
-		AOEPSC = UGameplayStatics::SpawnEmitterAtLocation(this, AOEEffect, GetActorLocation(), GetActorRotation());
+		AOEPSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), AOEEffect, GetActorLocation(), GetActorRotation());
 
 		if (AOEPSC)
 		{
@@ -72,13 +72,17 @@ void AOrionAOEVolume::BeginPlay()
 	GetWorldTimerManager().SetTimer(DestroyHandle, this, &AOrionAOEVolume::DestroyAOE, Duration, false);
 
 	FTimerHandle Handle;
-	GetWorldTimerManager().SetTimer(Handle, this, &AOrionAOEVolume::ReTickPlayers, 1.5f, false);
+	GetWorldTimerManager().SetTimer(Handle, this, &AOrionAOEVolume::ReTickPlayers, 1.5f, true);
 }
 
 void AOrionAOEVolume::DestroyAOE()
 {
 	if (AOEPSC)
+	{
+		AOEPSC->DeactivateSystem();
 		AOEPSC->DestroyComponent();
+		AOEPSC = nullptr;
+	}
 
 	Destroy();
 }
