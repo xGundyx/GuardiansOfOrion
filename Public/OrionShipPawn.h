@@ -35,6 +35,12 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = Spawn)
 		int32 TeamIndex;
 
+	UPROPERTY(BlueprintReadOnly, Category = Spawn)
+		bool Coop;
+
+	UPROPERTY(BlueprintReadOnly, Category = Spawn)
+		bool PVP;
+
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Spawned"))
 		void EventSpawnShip(int32 Team);
 

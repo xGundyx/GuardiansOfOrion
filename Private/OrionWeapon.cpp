@@ -88,6 +88,8 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 	InstantConfig.WeaponScale = 0.5f;
 
 	InventoryType = ITEM_PRIMARYWEAPON;
+
+	LaserAimPSC = nullptr;
 }
 
 void AOrionWeapon::PostInitializeComponents()
@@ -254,6 +256,17 @@ void AOrionWeapon::StartAiming()
 	TargetFOV = InstantConfig.AimFOV;
 
 	//PlayWeaponAnimation(AimAnim);
+
+	if (LaserAimPSC == nullptr && LaserAimFX != nullptr)
+	{
+		LaserAimPSC = UGameplayStatics::SpawnEmitterAttached(LaserAimFX, GetWeaponMesh(MyPawn->IsFirstPerson()), "LaserAim");
+		if (LaserAimPSC)
+		{
+		}
+	}
+
+	if (LaserAimPSC)
+		LaserAimPSC->ActivateSystem();
 }
 
 void AOrionWeapon::StopAiming()
@@ -266,6 +279,13 @@ void AOrionWeapon::StopAiming()
 	TargetFOV = 90.0f;
 
 	//StopWeaponAnimation(AimAnim);
+
+	//have to destroy it since it's a beam, or could hide it maybe?
+	if (LaserAimPSC)
+	{
+		LaserAimPSC->DeactivateSystem();
+		LaserAimPSC = nullptr;
+	}
 }
 
 USkeletalMeshComponent* AOrionWeapon::GetWeaponMesh(bool bFirstPerson) const
@@ -283,6 +303,13 @@ USkeletalMeshComponent* AOrionWeapon::GetWeaponMesh(bool bFirstPerson) const
 
 void AOrionWeapon::DetachMeshFromPawn()
 {
+	//remove laser
+	if (LaserAimPSC)
+	{
+		LaserAimPSC->DeactivateSystem();
+		LaserAimPSC = nullptr;
+	}
+
 	////Mesh1P->DetachFromParent();
 	Mesh1P->SetHiddenInGame(true);
 
@@ -751,6 +778,9 @@ void AOrionWeapon::StopReload()
 			}
 		}*/
 	//}
+
+	if (MyPawn && MyPawn->bAim)
+		StartAiming();
 }
 
 void AOrionWeapon::ReloadWeapon()
@@ -761,6 +791,9 @@ void AOrionWeapon::ReloadWeapon()
 	{
 		AmmoInClip += ClipDelta;
 	}
+
+	if (MyPawn && MyPawn->bAim)
+		StartAiming();
 }
 
 void AOrionWeapon::StopWeaponAnimation(const FWeaponAnim& Animation)

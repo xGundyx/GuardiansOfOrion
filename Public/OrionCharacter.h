@@ -1058,7 +1058,7 @@ public:
 
 	void SpawnClassWeapons(int32 ClassIndex);
 
-	UPROPERTY(EditDefaultsOnly, Category = Inventory)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Inventory)
 		TSubclassOf<class AOrionGrenade> GrenadeClass;
 
 	UPROPERTY(BlueprintReadOnly, Category = Inventory)
