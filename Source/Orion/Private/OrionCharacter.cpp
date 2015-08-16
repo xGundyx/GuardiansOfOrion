@@ -1036,9 +1036,12 @@ void AOrionCharacter::PostInitializeComponents()
 	bShoulderCamera = FMath::RandRange(0, 1) == 1;
 	bShipCamera = !bShoulderCamera;
 
-	PawnSensor->OnSeePawn.AddDynamic(this, &AOrionCharacter::OnSeePawn);
-	PawnSensor->OnHearNoise.AddDynamic(this, &AOrionCharacter::OnHearNoise);
-
+	if (PawnSensor)
+	{
+		PawnSensor->OnSeePawn.AddDynamic(this, &AOrionCharacter::OnSeePawn);
+		PawnSensor->OnHearNoise.AddDynamic(this, &AOrionCharacter::OnHearNoise);
+	}
+	
 	InitMaterials();
 
 	if (Role == ROLE_Authority)
@@ -1937,6 +1940,9 @@ USkeletalMeshComponent* AOrionCharacter::GetMeshFromIndex(int32 index) const
 void AOrionCharacter::UpdatePawnMeshes()
 {
 	bool const bFirst = IsFirstPerson();
+
+	if (!GetMesh())
+		return;
 
 	//GetMesh()->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	GetMesh()->SetHiddenInGame(bFirst || bBlinking); //SetOwnerNoSee(bFirst);

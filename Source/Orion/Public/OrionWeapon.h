@@ -364,9 +364,15 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Effects)
 		TArray<UParticleSystem*> MuzzleFX;
 
+	UPROPERTY(EditDefaultsOnly, Category = Effects)
+		UParticleSystem* LaserAimFX;
+
 	/** spawned component for muzzle FX */
 	UPROPERTY(Transient)
 		TArray<UParticleSystemComponent*> MuzzlePSC;
+
+	UPROPERTY(Transient)
+		UParticleSystemComponent* LaserAimPSC;
 
 	void FireSpecial(FName SocketName, FVector Direction);
 

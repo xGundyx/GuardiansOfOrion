@@ -34,6 +34,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Grenade)
 		float LifeTime;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Grenade)
+		float ExplosionScale;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
 		class UProjectileMovementComponent* ProjectileMovement;
 
