@@ -892,6 +892,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Stats)
 		FCharacterStats GetCharacterStats();
 
+	UPROPERTY(BlueprintReadOnly, Category = AI)
+		FVector FocusArea;
+
 	void EnterVehicle();
 	void ExitVehicle();
 

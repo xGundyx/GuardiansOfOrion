@@ -396,6 +396,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = MainMenu)
 		UCameraComponent *MenuCamera;
 
+	UPROPERTY(BlueprintReadWrite, Category = MainMenu)
+		UCameraComponent *OverviewCamera;
+
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ResizeHUD"))
 		void EventResizeHUD();
 

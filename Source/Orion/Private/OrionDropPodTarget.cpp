@@ -3,6 +3,9 @@
 #include "Orion.h"
 #include "OrionDropPodTarget.h"
 
-
-
+AOrionDropPodTarget::AOrionDropPodTarget()
+{
+	Coop = true;
+	PVP = true;
+}
 

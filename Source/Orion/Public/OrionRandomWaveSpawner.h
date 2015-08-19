@@ -106,10 +106,12 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = RandomWave)
 		float SpawnRadius;
 
-	void SpawnWave(int32 TypesToSpawn[SPAWN_NUM]);
+	void SpawnWave(int32 TypesToSpawn[SPAWN_NUM], FVector FocusLocation);
 	void SpawnFailures();
 
 	int32 MaxToSpawnPerFrame;
+
+	FVector FocusArea;
 
 	static TArray< TSubclassOf<class AOrionCharacter> > SpawnClasses;
 

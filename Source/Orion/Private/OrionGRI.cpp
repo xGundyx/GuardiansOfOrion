@@ -2,6 +2,7 @@
 
 #include "Orion.h"
 #include "OrionGameMode.h"
+#include "OrionMusicManager.h"
 #include "OrionGRI.h"
 
 
@@ -29,6 +30,12 @@ void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionGRI, bTeamGame);
 	DOREPLIFETIME(AOrionGRI, Teams);
 	DOREPLIFETIME(AOrionGRI, Weather);
+	DOREPLIFETIME(AOrionGRI, WarmupTimeRemaining);
+	DOREPLIFETIME(AOrionGRI, MatchTimeRemaining);
+	DOREPLIFETIME(AOrionGRI, WaveNum);
+	DOREPLIFETIME(AOrionGRI, TotalWaves);
+	DOREPLIFETIME(AOrionGRI, DinosAliveInWave);
+	DOREPLIFETIME(AOrionGRI, MissionObjective);
 	/*DOREPLIFETIME(AShooterGameState, NumTeams);
 	DOREPLIFETIME(AShooterGameState, RemainingTime);
 	DOREPLIFETIME(AShooterGameState, bTimerPaused);
@@ -83,6 +90,16 @@ void AOrionGRI::BeginPlay()
 	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 	Mapper = GetWorld()->SpawnActor<AOrionPlayFabInventoryMapper>(DefaultMapperClass, SpawnInfo);
+
+	//spawn us a music manager, only do this client side
+	if (GetWorld()->GetNetMode() == ENetMode::NM_Client || GetWorld()->GetNetMode() == ENetMode::NM_ListenServer || GetWorld()->GetNetMode() == ENetMode::NM_Standalone)
+	{
+		AOrionGameMode *Game = Cast<AOrionGameMode>(AOrionGameMode::StaticClass()->GetDefaultObject());
+		if (Game)
+		{
+			MusicManager = GetWorld()->SpawnActor<AOrionMusicManager>(Game->DefaultMusicClass, SpawnInfo);
+		}
+	}
 }
 
 bool AOrionGRI::AddPlayerToTeam(AOrionPlayerController *PC, int32 Index)
@@ -142,5 +159,46 @@ void AOrionGRI::InitTeams()
 	//Random Dino Team
 	////newTeam.TeamIndex = 2;
 	////Teams.Add(newTeam);
+}
+
+FMissionInfo AOrionGRI::GetMission(int32 Index)
+{
+	FMissionInfo Info;
+
+	switch (Index)
+	{
+	//mission 1 is always the main objective you are currently on
+	case 1:
+		Info.Title = MissionObjective;
+		Info.Desc = TEXT("");
+		break;
+	//sub mission or wave counter
+	case 2:
+		if (DinosAliveInWave <= 0)
+		{
+			Info.Title = TEXT("");
+			Info.Desc = TEXT("");
+		}
+		else
+		{
+			Info.Title = TEXT("Wave");
+			Info.Desc = FString::Printf(TEXT("%i/%i"), WaveNum + 1, TotalWaves);
+		}
+		break;
+	case 3:
+		if (DinosAliveInWave <= 0)
+		{
+			Info.Title = TEXT("");
+			Info.Desc = TEXT("");
+		}
+		else
+		{
+			Info.Title = TEXT("Enemies Alive");
+			Info.Desc = FString::Printf(TEXT("%i"), DinosAliveInWave);
+		}
+		break;
+	}
+
+	return Info;
 }
 
