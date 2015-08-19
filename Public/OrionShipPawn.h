@@ -36,10 +36,7 @@ public:
 		int32 TeamIndex;
 
 	UPROPERTY(BlueprintReadOnly, Category = Spawn)
-		bool Coop;
-
-	UPROPERTY(BlueprintReadOnly, Category = Spawn)
-		bool PVP;
+		class AOrionDropPodTarget *PodTarget;
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Spawned"))
 		void EventSpawnShip(int32 Team);

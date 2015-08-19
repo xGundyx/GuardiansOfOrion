@@ -9,7 +9,7 @@
 *
 */
 UCLASS()
-class UOrionMovementComponent : public UCharacterMovementComponent
+class ORION_API UOrionMovementComponent : public UCharacterMovementComponent
 {
 	GENERATED_BODY()
 public:

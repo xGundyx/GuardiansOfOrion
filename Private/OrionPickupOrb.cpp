@@ -11,9 +11,12 @@ AOrionPickupOrb::AOrionPickupOrb(const FObjectInitializer& ObjectInitializer)
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	BoxCollision = ObjectInitializer.CreateOptionalDefaultSubobject<UBoxComponent>(this, TEXT("Box"));
+
 	SphereCollision = ObjectInitializer.CreateOptionalDefaultSubobject<USphereComponent>(this, TEXT("Sphere"));
+	SphereCollision->AttachParent = BoxCollision;
 	
-	RootComponent = SphereCollision;
+	RootComponent = BoxCollision;
 }
 
 // Called when the game starts or when spawned

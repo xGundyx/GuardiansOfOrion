@@ -1,4 +1,5 @@
 #include "Orion.h"
+#include "OrionGameMode.h"
 #include "OrionRandomWaveSpawner.h"
 
 TArray< TSubclassOf<class AOrionCharacter> > AOrionRandomWaveSpawner::SpawnClasses;
@@ -113,7 +114,7 @@ void AOrionRandomWaveSpawner::Tick( float DeltaTime )
 	Super::Tick( DeltaTime );
 }
 
-void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM])
+void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], FVector FocusLocation)
 {
 	if (Role != ROLE_Authority)
 		return;
@@ -121,7 +122,11 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM])
 	if (GetWorld() == nullptr || GetWorld()->GetNavigationSystem() == nullptr)
 		return;
 
+	FocusArea = FocusLocation;
+
 	FailedToSpawn.Empty();
+
+	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
 
 	for (int32 i = 0; i < SPAWN_NUM; i++)
 	{
@@ -140,6 +145,11 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM])
 			AOrionCharacter* NewPawn = GetWorld()->SpawnActor<AOrionCharacter>(SpawnClasses[i], Loc.Location + FVector(0, 0, 150.0f), GetActorRotation(), SpawnInfo);
 			if (NewPawn)
 			{
+				if (Game)
+					Game->AddActiveWaveEnemy(NewPawn);
+
+				NewPawn->bRun = true;
+				NewPawn->FocusArea = FocusLocation;
 				NewPawn->SpawnDefaultController();
 				NewPawn->SetAIType(AI_HUNTING);
 			}
@@ -161,6 +171,8 @@ void AOrionRandomWaveSpawner::SpawnFailures()
 {
 	TArray<int32> MoreFailures;
 
+	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
+
 	for (int32 i = 0; i < FailedToSpawn.Num(); i++)
 	{
 		FActorSpawnParameters SpawnInfo;
@@ -173,6 +185,11 @@ void AOrionRandomWaveSpawner::SpawnFailures()
 		AOrionCharacter* NewPawn = GetWorld()->SpawnActor<AOrionCharacter>(SpawnClasses[FailedToSpawn[i]], Loc.Location + FVector(0, 0, 150.0f), GetActorRotation(), SpawnInfo);
 		if (NewPawn)
 		{
+			if (Game)
+				Game->AddActiveWaveEnemy(NewPawn);
+
+			NewPawn->bRun = true;
+			NewPawn->FocusArea = FocusArea;
 			NewPawn->SpawnDefaultController();
 			NewPawn->SetAIType(AI_HUNTING);
 		}

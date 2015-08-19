@@ -9,6 +9,18 @@
 #include "OrionGRI.generated.h"
 
 USTRUCT(BlueprintType)
+struct FMissionInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = Mission)
+		FString Title;
+
+	UPROPERTY(BlueprintReadOnly, Category = Mission)
+		FString Desc;
+};
+
+USTRUCT(BlueprintType)
 struct FTeamInfo
 {
 	GENERATED_USTRUCT_BODY()
@@ -56,11 +68,35 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Game)
 		bool OnSameTeam(AOrionPRI *Actor1, AOrionPRI *Actor2);
 
+	UFUNCTION(BlueprintCallable, Category = Game)
+		FMissionInfo GetMission(int32 Index);
+
 	UPROPERTY(Replicated, BlueprintReadOnly)
 		bool bTeamGame;
 
 	UPROPERTY(Replicated, BlueprintReadOnly)
+		int32 WarmupTimeRemaining;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+		int32 MatchTimeRemaining;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
 		TArray<FTeamInfo> Teams;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+		int32 DinosAliveInWave;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+		int32 WaveNum;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+		int32 TotalWaves;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+		FString MissionObjective;
+
+	UPROPERTY()
+		class AOrionMusicManager *MusicManager;
 
 	bool AddPlayerToTeam(AOrionPlayerController *PC, int32 TeamIndex);
 	void RemovePlayerFromTeam(AOrionPlayerController *PC, int32 Index);

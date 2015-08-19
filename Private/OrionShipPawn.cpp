@@ -10,8 +10,6 @@
 AOrionShipPawn::AOrionShipPawn(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	Coop = true;
-	PVP = true;
 }
 
 // Called when the game starts or when spawned

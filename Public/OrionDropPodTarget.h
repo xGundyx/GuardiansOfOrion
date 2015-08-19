@@ -15,6 +15,14 @@ class ORION_API AOrionDropPodTarget : public AActor
 	
 public:
 
+	AOrionDropPodTarget();
+
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Spawn)
 		int32 TeamIndex;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Spawn)
+		bool Coop;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Spawn)
+		bool PVP;
 };

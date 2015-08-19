@@ -204,9 +204,9 @@ void AOrionPlayerController::CalcCamera(float DeltaTime, struct FMinimalViewInfo
 	else if (MenuCamera)
 		MenuCamera->GetCameraView(DeltaTime, OutResult);
 	else if (Ragdoll && Ragdoll->IsValidLowLevel())
-	{
 		Ragdoll->CalcCamera(DeltaTime, OutResult);
-	}
+	else if (OverviewCamera)
+		OverviewCamera->GetCameraView(DeltaTime, OutResult);
 	else
 		Super::CalcCamera(DeltaTime, OutResult);
 }

@@ -32,6 +32,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Classes)
 		TSubclassOf<class AOrionPickupOrb>  DefaultPickupOrbClass;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Classes)
+		TSubclassOf<class AOrionMusicManager>  DefaultMusicClass;
+
 	UPROPERTY(BlueprintReadOnly, Category = Classes)
 		bool bAlwaysShowCursor;
 
@@ -49,11 +52,34 @@ public:
 	float ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, struct FDamageEvent const& DamageEvent, class AController *EventInstigator, class AActor *DamageCauser);
 
 	void InitGRI();
+	void WarmupOver();
+	void StartMatch() override;
 
 	virtual void SpawnWave() {}
 
+	virtual void AddActiveWaveEnemy(AOrionCharacter *Enemy) {}
+
+	UFUNCTION(BlueprintCallable, Category = Generator)
+		virtual void FinishCurrentTask() {};
+
+	//how many seconds to wait for players to join before starting the match
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Spawn)
+		int32 WarmupTime;
+
+	//how many seconds does a match last
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Spawn)
+		int32 TimeLimit;
+
+	UPROPERTY(BlueprintReadOnly, Category = Spawn)
+		bool bWarmingUp;
+
+	//UFUNCTION(BlueprintNativeEvent, Category = "Game")
+		virtual bool ReadyToStartMatch_Implementation() override;
+
 private:
 	FTimerHandle GRITimer;
+	FTimerHandle WarmupTimer;
+	FTimerHandle MatchTimer;
 };
 
 

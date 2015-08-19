@@ -23,6 +23,9 @@ public:
 	AOrionPickupOrb(const FObjectInitializer& ObjectInitializer);
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
+		class UBoxComponent* BoxCollision;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
 		class USphereComponent* SphereCollision;
 
 	// Called when the game starts or when spawned

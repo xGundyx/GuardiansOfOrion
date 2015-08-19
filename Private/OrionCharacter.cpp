@@ -1217,6 +1217,8 @@ void AOrionCharacter::UpdateBloodDecals(float DeltaSeconds)
 
 							Dec->SetMaterial(0, NewDecal.Mat);
 
+							//Dec->SetRelativeScale3D(FVector(0.0f, 0.0f, 1.0f));
+
 							//Gibs.Remove(*giter);
 
 							BloodDecals.Add(NewDecal);
@@ -1518,6 +1520,9 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	{
 		return;
 	}
+
+	if (CurrentSkill)
+		CurrentSkill->DeactivateSkill();
 
 	if (CurrentWeapon)
 		CurrentWeapon->StopFire();

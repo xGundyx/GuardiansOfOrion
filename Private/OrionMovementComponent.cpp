@@ -175,4 +175,8 @@ void UOrionMovementComponent::CalcVelocity(float DeltaTime, float Friction, bool
 	}
 
 	Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
+
+	//rare crash
+	if (Velocity.ContainsNaN())
+		Velocity = FVector(0.0f);
 }

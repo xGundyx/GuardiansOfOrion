@@ -19,6 +19,12 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 		DefaultPawnClass = (UClass*)PlayerPawnObject.Object->GeneratedClass;
 	}
 
+	static ConstructorHelpers::FObjectFinder<UBlueprint> SpecObject(TEXT("/Game/Character/Blueprints/BaseSpectator"));
+	if (SpecObject.Object != NULL)
+	{
+		SpectatorClass = (UClass*)SpecObject.Object->GeneratedClass;
+	}
+
 	static ConstructorHelpers::FObjectFinder<UBlueprint> PickupObject(TEXT("/Game/Pickups/Blueprints/BasePickup"));
 	if (PickupObject.Object != NULL)
 	{
@@ -29,6 +35,12 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 	if (PickupOrbObject.Object != NULL)
 	{
 		DefaultPickupOrbClass = (UClass*)PickupOrbObject.Object->GeneratedClass;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UBlueprint>MusicObject(TEXT("/Game/Music/GOOMusic/GOOMusicManager"));
+	if (MusicObject.Object != NULL)
+	{
+		DefaultMusicClass = (UClass*)MusicObject.Object->GeneratedClass;
 	}
 
 	static ConstructorHelpers::FObjectFinder<UBlueprint> PlayerControllerObject(TEXT("/Game/Character/Blueprints/BasePlayerController"));
@@ -54,6 +66,13 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 
 	//no team means every player is on the same side
 	bTeamGame = false;
+
+	TimeLimit = 0;
+	WarmupTime = 0;
+	bWarmingUp = true;
+
+	// do this so the match doesn't accidently start on us
+	bDelayedStart = true;
 }
 
 void AOrionGameMode::BeginPlay()
@@ -65,6 +84,62 @@ void AOrionGameMode::BeginPlay()
 #endif
 
 	InitGRI();
+
+	if (WarmupTime > 0)
+	{
+		bWarmingUp = true;
+		GetWorldTimerManager().SetTimer(WarmupTimer, this, &AOrionGameMode::WarmupOver, WarmupTime, false);
+	}
+	else
+	{
+		bDelayedStart = false;
+		bWarmingUp = false;
+	}
+}
+
+void AOrionGameMode::WarmupOver()
+{
+	bDelayedStart = false;
+	bWarmingUp = false;
+}
+
+bool AOrionGameMode::ReadyToStartMatch_Implementation()
+{
+	// If bDelayed Start is set, wait for a manual match start
+	if (bDelayedStart)
+	{
+		return false;
+	}
+
+	// By default start when warmup is over and we have at leasst one player
+	if (GetMatchState() == MatchState::WaitingToStart)
+	{
+		if (!bWarmingUp && NumPlayers > 0)
+		{
+			return true;
+		}
+	}
+	return false;
+}
+
+void AOrionGameMode::StartMatch()
+{
+	if (HasMatchStarted())
+	{
+		// Already started
+		return;
+	}
+
+	//Let the game session override the StartMatch function, in case it wants to wait for arbitration
+	if (GameSession->HandleStartMatchRequest())
+	{
+		return;
+	}
+
+	SetMatchState(MatchState::InProgress);
+
+	if (TimeLimit > 0)
+		GetWorldTimerManager().SetTimer(MatchTimer, this, &AOrionGameMode::EndMatch, TimeLimit, false);
 }
 
 void AOrionGameMode::InitGRI()
