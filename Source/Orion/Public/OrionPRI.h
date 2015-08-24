@@ -30,6 +30,9 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Pawn)
 		bool bOnShip;
 
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Pawn)
+		class AOrionCharacter *ControlledPawn;
+
 	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
 		FString PlayFabID;
 	UPROPERTY(BlueprintReadWrite, Category = PlayFab)

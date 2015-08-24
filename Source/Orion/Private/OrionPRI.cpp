@@ -44,6 +44,7 @@ void AOrionPRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME_CONDITION(AOrionPRI, InventoryManager, COND_OwnerOnly);
 	DOREPLIFETIME(AOrionPRI, bOnShip);
 	DOREPLIFETIME(AOrionPRI, TeamIndex);
+	DOREPLIFETIME(AOrionPRI, ControlledPawn);
 }
 
 void AOrionPRI::OnRep_InventoryManager()

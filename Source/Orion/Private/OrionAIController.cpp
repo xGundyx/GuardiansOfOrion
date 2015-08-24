@@ -310,14 +310,17 @@ void AOrionAIController::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (GetPawn() && GetPawn()->GetVelocity().Size2D()>10.0f)
+	if (GetPawn() && GetPawn()->GetVelocity().Size2D() > 10.0f)
 		SetFocalPoint(GetPawn()->GetActorLocation() + GetPawn()->GetVelocity().GetSafeNormal() * 500.0f);
+	else if (myEnemy && myEnemy->IsValidLowLevel())
+		SetFocalPoint(myEnemy->GetActorLocation());
 }
 
 void AOrionAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn)
 {
 	// Look toward focus
 	FVector FocalPoint = GetFocalPoint();
+
 	if (!FocalPoint.IsZero() && GetPawn())
 	{
 		FVector Direction = FocalPoint - GetPawn()->GetActorLocation();

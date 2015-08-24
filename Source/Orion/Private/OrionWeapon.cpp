@@ -43,6 +43,17 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 	Mesh3P->AttachParent = SceneComponent; 
 	Mesh3P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 
+	KnifeMesh = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("KnifeMesh"));
+	//Mesh3P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
+	KnifeMesh->bChartDistanceFactor = true;
+	KnifeMesh->bReceivesDecals = false;
+	KnifeMesh->CastShadow = true;
+	KnifeMesh->SetCollisionObjectType(ECC_WorldDynamic);
+	KnifeMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+	KnifeMesh->AttachParent = SceneComponent;
+	KnifeMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
+	KnifeMesh->SetHiddenInGame(true); //hide knife until animation is needed
+
 	//bLoopedMuzzleFX = false;
 	//bLoopedFireAnim = false;
 	//bPlayingFireAnim = false;
@@ -143,6 +154,13 @@ void AOrionWeapon::AttachMeshToPawn()
 				AttachRootComponentTo(PawnMesh1p, AttachPoint);// , EAttachLocation::KeepWorldPosition);
 			if (Mesh3P && Mesh3P->SkeletalMesh)
 				Mesh3P->AttachTo(PawnMesh3p, AttachPoint);
+
+			//make sure knife is hidden
+			if (KnifeMesh && KnifeMesh->SkeletalMesh)
+			{
+				KnifeMesh->SetHiddenInGame(true);
+				KnifeMesh->AttachTo(PawnMesh3p, "KnifeSocket");
+			}
 
 			//add it to the outliner
 			if (MyPawn->PlayerState && !MyPawn->PlayerState->bIsABot)
@@ -346,6 +364,11 @@ float AOrionWeapon::DoMelee()
 	WeaponState = WEAP_MELEE;
 	float Len = PlayWeaponAnimation(MeleeAnim, Role == ROLE_Authority);
 
+	//hide weapon and show knife
+	bKnifing = true;
+	Mesh3P->SetHiddenInGame(true);
+	KnifeMesh->SetHiddenInGame(false);
+
 	if (Len < 0.1f)
 		Len = 0.1f;
 
@@ -357,6 +380,11 @@ float AOrionWeapon::DoMelee()
 void AOrionWeapon::ResetMelee()
 {
 	WeaponState = WEAP_IDLE;
+
+	//unhide weapon and hide knife
+	bKnifing = false;
+	Mesh3P->SetHiddenInGame(false);
+	KnifeMesh->SetHiddenInGame(true);
 }
 
 void AOrionWeapon::StartFire()
@@ -1095,19 +1123,21 @@ void AOrionWeapon::SimulateInstantHit(const FVector& ShotOrigin, int32 RandomSee
 
 void AOrionWeapon::DealDamage(const FHitResult& Impact, const FVector& ShootDir)
 {
+	float Variance = FMath::RandRange(-5, 5);
+
 	//FRadialDamageEvent PointDmg;
 	FPointDamageEvent PointDmg;
 
 	PointDmg.DamageTypeClass = InstantConfig.DamageType;
 	PointDmg.HitInfo = Impact;
 	PointDmg.ShotDirection = ShootDir;
-	PointDmg.Damage = InstantConfig.HitDamage;
+	PointDmg.Damage = InstantConfig.HitDamage + Variance;
 	////PointDmg.Params.BaseDamage = InstantConfig.HitDamage;
 	////PointDmg.Params.InnerRadius = 25.0f;
 	////PointDmg.Params.OuterRadius = 25.0f;
 	////PointDmg.Origin = Impact.Location;
 
-	Impact.GetActor()->TakeDamage(InstantConfig.HitDamage, PointDmg, MyPawn->Controller, this);
+	Impact.GetActor()->TakeDamage(InstantConfig.HitDamage + Variance, PointDmg, MyPawn->Controller, this);
 }
 
 bool AOrionWeapon::ServerNotifyMiss_Validate(FVector ShootDir, int32 RandomSeed, float ReticleSpread)
@@ -1275,7 +1305,9 @@ void AOrionWeapon::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutL
 	DOREPLIFETIME_CONDITION(AOrionWeapon, HitNotify, COND_SkipOwner);
 
 	DOREPLIFETIME_CONDITION(AOrionWeapon, Ammo, COND_OwnerOnly);
-	DOREPLIFETIME_CONDITION(AOrionWeapon, AmmoInClip, COND_OwnerOnly);
+	DOREPLIFETIME(AOrionWeapon, AmmoInClip);
+
+	DOREPLIFETIME_CONDITION(AOrionWeapon, bKnifing, COND_SkipOwner);
 
 	//DOREPLIFETIME_CONDITION(AOrionWeapon, BurstCounter, COND_SkipOwner);
 	//DOREPLIFETIME_CONDITION(AOrionWeapon, bPendingReload, COND_SkipOwner);
@@ -1422,6 +1454,12 @@ bool AOrionWeapon::ServerStopFire_Validate()
 void AOrionWeapon::ServerStopFire_Implementation()
 {
 	StopFire();
+}
+
+void AOrionWeapon::OnRep_Knifing()
+{
+	Mesh3P->SetHiddenInGame(bKnifing);
+	KnifeMesh->SetHiddenInGame(!bKnifing);
 }
 
 float AOrionWeapon::PlayWeaponAnimation(const FWeaponAnim& Animation, bool bReplicate)

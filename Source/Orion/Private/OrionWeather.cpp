@@ -72,9 +72,9 @@ void AOrionWeather::ChooseWeather()
 {
 	if (!bIsRaining)
 	{
-		float Len = 120.0f + FMath::FRand()*120.0f;
+		float Len = 240.0f + FMath::FRand()*240.0f;
 		GetWorldTimerManager().SetTimer(CloudTimer, this, &AOrionWeather::StartClouds, Len, false);
-		GetWorldTimerManager().SetTimer(RainTimer, this, &AOrionWeather::StartRaining, Len + 30.0f, false);
+		GetWorldTimerManager().SetTimer(RainTimer, this, &AOrionWeather::StartRaining, Len + 20.0f, false);
 	}
 	else
 		StopRaining();
@@ -128,7 +128,7 @@ void AOrionWeather::StartRaining()
 		RainTarget = 1.0f;
 	}
 
-	GetWorldTimerManager().SetTimer(WeatherTimer, this, &AOrionWeather::ChooseWeather, 120.0f + FMath::FRand()*120.0f, false);
+	GetWorldTimerManager().SetTimer(WeatherTimer, this, &AOrionWeather::ChooseWeather, 60.0f + FMath::FRand()*120.0f, false);
 }
 
 void AOrionWeather::StopRaining()

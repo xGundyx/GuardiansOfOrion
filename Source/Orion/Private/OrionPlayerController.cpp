@@ -9,6 +9,7 @@
 #include "OrionLocalPlayer.h"
 #include "OrionGameUserSettings.h"
 #include "OrionGameSettingsManager.h"
+#include "OrionSpectatorPawn.h"
 //#include "ClientConnector.h"
 #include "OrionInventoryItem.h"
 #include "OrionPRI.h"
@@ -91,7 +92,23 @@ void AOrionPlayerController::PreClientTravel(const FString& PendingURL, ETravelT
 	if (PRI)
 		newURL = FString::Printf(TEXT("%s?PlayFabID=%s?PlayFabSession=%s"), *PendingURL, *PRI->PlayFabID,* PRI->SessionTicket);
 
+	UE_LOG(LogPath, Log, TEXT("GundyTravel: %s"), *newURL);
+
 	Super::PreClientTravel(newURL, TravelType, bIsSeamlessTravel);
+}
+
+void AOrionPlayerController::ConnectToIP(FString IP)
+{
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	//add our playfab credentials to the url so the server can verify us
+	FString newURL;
+	if (PRI)
+		newURL = FString::Printf(TEXT("open %s?PlayFabID=%s?PlayFabSession=%s"), *IP, *PRI->PlayFabID, *PRI->SessionTicket);
+
+	UE_LOG(LogTemp, Log, TEXT("GundyReallyTravel: %s"), *newURL);
+
+	ConsoleCommand(newURL, true);
 }
 
 void AOrionPlayerController::CleanupGameViewport()
@@ -281,9 +298,16 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 		if (newPawn && PRI && PRI->InventoryManager)
 		{
 			////PRI->InventoryManager->EquipItems(newPawn, ITEM_ANY);
-			ChangeClass(1);
+			ChangeClass(FMath::RandRange(0, 2));// ClassIndex);
 		}
 	}
+}
+
+void AOrionPlayerController::ToggleHUD()
+{
+	bToggleHUD = !bToggleHUD;
+
+	EventToggleHUD();
 }
 
 bool AOrionPlayerController::InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad)
@@ -297,6 +321,9 @@ bool AOrionPlayerController::InputKey(FKey Key, EInputEvent EventType, float Amo
 
 void AOrionPlayerController::ChangeClass(int32 index)
 {
+	if (Role != ROLE_Authority)
+		return;
+
 	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
 
 	if (!P)
@@ -309,20 +336,20 @@ void AOrionPlayerController::ChangeClass(int32 index)
 	switch (index)
 	{
 	case 0: //assault
-		AllArmor(0);
+		P->SetClassArmor(0);
 		break;
 	case 1: //support
-		AllArmor(3);
+		P->SetClassArmor(1);
 		break;
 	case 2: //recon
-		AllArmor(5);
+		P->SetClassArmor(2);
 		break;
 	};
 
 	if (P)
 	{
 		P->InitMaterials();
-		if (P->GetWeapon() && index == 5)
+		if (P->GetWeapon() && index == 2)
 		{
 			P->GetWeapon()->InitMaterials();
 		}
@@ -334,6 +361,9 @@ void AOrionPlayerController::ChangeClass(int32 index)
 
 void AOrionPlayerController::AddDamageNumber(int32 Damage, FVector Pos)
 {
+	if (bToggleHUD)
+		return;
+
 	if (GetNetMode() == NM_DedicatedServer)
 	{
 		ClientAddDamageNumber(Damage, Pos);
@@ -345,11 +375,17 @@ void AOrionPlayerController::AddDamageNumber(int32 Damage, FVector Pos)
 
 void AOrionPlayerController::ClientAddDamageNumber_Implementation(int32 Damage, FVector Pos)
 {
+	if (bToggleHUD)
+		return;
+
 	AddDamageNumber(Damage, Pos);
 }
 
 void AOrionPlayerController::AddXPNumber(int32 XP, FVector Pos)
 {
+	if (bToggleHUD)
+		return;
+
 	if (GetNetMode() == NM_DedicatedServer)
 	{
 		ClientAddXPNumber(XP, Pos);
@@ -361,9 +397,24 @@ void AOrionPlayerController::AddXPNumber(int32 XP, FVector Pos)
 
 void AOrionPlayerController::ClientAddXPNumber_Implementation(int32 XP, FVector Pos)
 {
+	if (bToggleHUD)
+		return;
+
 	AddXPNumber(XP, Pos);
 }
 
+//only called by the server
+void AOrionPlayerController::ServerTick()
+{
+	if (Role == ROLE_Authority)
+	{
+		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+		if (PRI)
+			PRI->ControlledPawn = Cast<AOrionCharacter>(GetPawn());
+	}
+}
+
+//only gets called on the local controller
 void AOrionPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
@@ -396,29 +447,32 @@ void AOrionPlayerController::SpawnWave()
 	}
 }
 
+void AOrionPlayerController::DaveyCam()
+{
+	bDaveyCam = !bDaveyCam;
+
+	if (bDaveyCam)
+	{
+		SetCinematicMode(false, true, true);
+		bShowMouseCursor = false;
+	}
+
+	FRotator rot;
+	AOrionSpectatorPawn *P = Cast<AOrionSpectatorPawn>(GetPawn());
+	if (P)
+		PlayerCameraManager->GetCameraViewPoint(P->SpecCameraLocation, rot);
+
+	if (GetWorld()->GetNetMode() == NM_Client)
+		ServerSetDaveyCam(bDaveyCam);
+}
+
+//for various testing things
 void AOrionPlayerController::TestSettings()
 {
-	/*FString RenderSection = "/Script/Engine.RendererSettings";
+	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
 
-	GConfig->SetBool(
-		*RenderSection,
-		TEXT("r.DefaultFeature.Bloom"),
-		false,
-		GEngineIni
-		);
-
-	GConfig->SetInt(
-		*RenderSection,
-		TEXT("r.Streaming.Poolsize"),
-		1000,
-		GEngineIni);
-
-	GConfig->Flush(true, GEngineIni);*/
-
-	if (GEngine && GEngine->GameUserSettings)
-	{
-		GEngine->GameUserSettings->ApplySettings(true);
-	}
+	if (Game)
+		Game->EndMatch();
 }
 
 void AOrionPlayerController::HideWeapons()
@@ -625,9 +679,9 @@ bool AOrionPlayerController::CreateAndGiveInventoryItem(TSharedPtr<FJsonObject> 
 
 //this version is for the actual in game inventory, server version
 #if IS_SERVER
-void AOrionPlayerController::PopulateInventory(std::map<std::string, PlayFab::ServerModels::UserDataRecord> Data)
+/*void AOrionPlayerController::PopulateInventory(std::map<std::string, PlayFab::ServerModels::UserDataRecord> Data)
 {
-}
+}*/
 #else
 #endif
 
@@ -1218,6 +1272,9 @@ void AOrionPlayerController::BeginPlay()
 		//UOrionTCPLink::GetCharacterData(this);
 	}
 #endif
+
+	if (Role == ROLE_Authority)
+		GetWorldTimerManager().SetTimer(ServerTickTimer, this, &AOrionPlayerController::ServerTick, 0.35f, true);
 }
 
 void AOrionPlayerController::GetDefaultInventory()

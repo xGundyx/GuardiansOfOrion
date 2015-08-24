@@ -80,7 +80,7 @@ void AOrionGameMode::BeginPlay()
 	Super::BeginPlay();
 
 #if IS_SERVER
-	UOrionTCPLink::Init();
+	//UOrionTCPLink::Init();
 #endif
 
 	InitGRI();
@@ -162,7 +162,7 @@ void AOrionGameMode::Tick(float DeltaSeconds)
 	Super::Tick(DeltaSeconds);
 
 #if IS_SERVER
-	UOrionTCPLink::Update();
+	//UOrionTCPLink::Update();
 #endif
 }
 
@@ -206,6 +206,19 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 		Damage = 0.0f;
 	}
 
+	//adjust damage based on amount of players in game, mainly just for coop games:p
+	if (GRI && Cast<AOrionDinoPawn>(PawnToDamage))
+	{
+		int32 NumPlayers = GRI->PlayerList.Num();
+
+		if (NumPlayers >= 4)
+			Damage /= 2.5f;
+		else if (NumPlayers >= 3)
+			Damage /= 1.75f;
+		else if (NumPlayers >= 2)
+			Damage /= 1.35f;
+	}
+
 	return Damage;
 }
 
@@ -223,6 +236,12 @@ APlayerController* AOrionGameMode::Login(UPlayer* NewPlayer, ENetRole RemoteRole
 		PC->ReadStats();
 	}
 #endif
+
+	//update playerlist
+	AOrionGRI *GRI = Cast<AOrionGRI>(GameState);
+
+	if (GRI && rPC)
+		GRI->PlayerList.AddUnique(Cast<AOrionPRI>(rPC->PlayerState));
 
 	//retrieve player info, do not let them spawn until the data has been fully read in
 
@@ -256,8 +275,10 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 
 void AOrionGameMode::PlayerAuthed(class AOrionPlayerController *PC, bool bSuccess)
 {
+#if !WITH_EDITOR
 	if (!bSuccess)
 		GameSession->KickPlayer(PC, FText::FromString(TEXT("Playfab Authentication Failed.")));
+#endif
 
 	//login was successfull, let the player spawn
 	PC->bAuthenticated = true;
@@ -277,6 +298,12 @@ void AOrionGameMode::SetInitialTeam(APlayerController *PC)
 void AOrionGameMode::Logout(AController* Exiting)
 {
 	Super::Logout(Exiting);
+
+	//update playerlist
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetAuthGameMode());
+
+	if (GRI)
+		GRI->PlayerList.Remove(Cast<AOrionPRI>(Exiting->PlayerState));
 }
 
 //spawned from killing various types of enemies, vehicles, opening things, etc.

@@ -60,7 +60,7 @@ void AOrionAOEVolume::BeginPlay()
 	//spawn the emitter at our locaion
 	if (AOEEffect)
 	{
-		AOEPSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), AOEEffect, GetActorLocation(), GetActorRotation());
+		//AOEPSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), AOEEffect, GetActorLocation(), GetActorRotation());
 
 		if (AOEPSC)
 		{

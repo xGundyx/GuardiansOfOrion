@@ -36,10 +36,30 @@ void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionGRI, TotalWaves);
 	DOREPLIFETIME(AOrionGRI, DinosAliveInWave);
 	DOREPLIFETIME(AOrionGRI, MissionObjective);
+	DOREPLIFETIME(AOrionGRI, bSideMission);
+	DOREPLIFETIME(AOrionGRI, bBossMission);
+	DOREPLIFETIME(AOrionGRI, MissionLocation);
+	DOREPLIFETIME(AOrionGRI, PlayerList);
+	DOREPLIFETIME(AOrionGRI, bVictory);
+	DOREPLIFETIME(AOrionGRI, bDefeat);
 	/*DOREPLIFETIME(AShooterGameState, NumTeams);
 	DOREPLIFETIME(AShooterGameState, RemainingTime);
 	DOREPLIFETIME(AShooterGameState, bTimerPaused);
 	DOREPLIFETIME(AShooterGameState, TeamScores);*/
+}
+
+void AOrionGRI::HandleVictoryDefeat()
+{
+	//get the local player controller and handle any messages
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
+
+	if (PC)
+	{
+		if (bVictory)
+			PC->ShowVictoryMessage();
+		else if (bDefeat)
+			PC->ShowDefeatedMessage();
+	}
 }
 
 bool AOrionGRI::IsTopDownGame()
@@ -84,6 +104,9 @@ FTimeOfDay AOrionGRI::GetWorldTime() const
 void AOrionGRI::BeginPlay()
 {
 	Super::BeginPlay();
+
+	bVictory = false;
+	bDefeat = false;
 
 	//initialize our mapper
 	FActorSpawnParameters SpawnInfo;
@@ -174,7 +197,7 @@ FMissionInfo AOrionGRI::GetMission(int32 Index)
 		break;
 	//sub mission or wave counter
 	case 2:
-		if (DinosAliveInWave <= 0)
+		if (DinosAliveInWave <= 0 || bSideMission)
 		{
 			Info.Title = TEXT("");
 			Info.Desc = TEXT("");
@@ -186,7 +209,7 @@ FMissionInfo AOrionGRI::GetMission(int32 Index)
 		}
 		break;
 	case 3:
-		if (DinosAliveInWave <= 0)
+		if (DinosAliveInWave <= 0 || bSideMission)
 		{
 			Info.Title = TEXT("");
 			Info.Desc = TEXT("");

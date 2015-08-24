@@ -1,7 +1,8 @@
 #pragma once
-
 #include "GameFramework/Actor.h"
+#if WITH_EDITOR
 #include "OrionVoxelMain.h"
+#endif
 #include "ProceduralMeshComponent.h"
 #include "OrionVoxelFarm.generated.h"
 
@@ -57,6 +58,13 @@ class ORION_API AOrionVoxelFarm : public AActor
 public:
 	AOrionVoxelFarm(const FObjectInitializer& ObjectInitializer);
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "AddMesh"))
+		void EventAddMesh(const TArray<FVector> &Vertices, const TArray<FVector> &Normals, const TArray<int32> &Indices, const TArray<FColor> &Colors, const TArray<FVector2D> &UVs, FProceduralHelper &Comp);
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Voxel)
+		int32 RandomSeed;
+
+#if WITH_EDITOR
 	void Tick(float DeltaSeconds) override;
 	void BeginPlay() override;
 	void BeginDestroy() override;
@@ -71,12 +79,6 @@ public:
 	void CleanupSeams();
 
 	void UpdateCells(float DeltaTime);
-
-	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Voxel)
-		int32 RandomSeed;
-
-	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "AddMesh"))
-		void EventAddMesh(const TArray<FVector> &Vertices, const TArray<FVector> &Normals, const TArray<int32> &Indices, const TArray<FColor> &Colors, const TArray<FVector2D> &UVs, FProceduralHelper &Comp);
 
 	//UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "DeleteMesh"))
 	//	void EventDeleteMesh(int32 MeshIndex);
@@ -93,4 +95,5 @@ public:
 private:
 
 	AOrionVoxelMain *VoxFarm;
+#endif
 };

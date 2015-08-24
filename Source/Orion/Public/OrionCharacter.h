@@ -24,6 +24,24 @@ class AOrionGrenade;
 class AOrionBuff;
 
 USTRUCT()
+struct FArmorHelper
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = DELETEME)
+		TSubclassOf<class AOrionArmor> HeadArmor;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = DELETEME)
+		TSubclassOf<class AOrionArmor> BodyArmor;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = DELETEME)
+		TSubclassOf<class AOrionArmor> LegsArmor;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = DELETEME)
+		TSubclassOf<class AOrionArmor> ArmsArmor;
+};
+
+USTRUCT()
 struct FGibReplicate
 {
 	GENERATED_USTRUCT_BODY()
@@ -409,10 +427,22 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Grenade)
 		float GrenadeCooldown;
 
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Grenade)
+		float BlinkCooldown;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Grenade)
+		float RollCooldown;
+
 	void UpdateCooldowns(float DeltaTime);
 
 	void EquipArmor(AOrionArmor *Armor);
 	void UnEquipArmor(EItemType Slot);
+
+	//set the actual armor and not just the mesh
+	void SetClassArmor(int32 Index);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = DELETEME)
+		TArray<FArmorHelper> ArmorList;
 
 	UFUNCTION()
 		void OnRep_HelmetArmor();
@@ -877,6 +907,11 @@ public:
 
 	void StopAnimMontage(class UAnimMontage* AnimMontage) override;
 
+	UFUNCTION(server, reliable, WithValidation)
+		void ServerPlayAnimMontage(const FWeaponAnim Animation, float InPlayRate = 1.0f, FName StartSectionName = FName(""), bool bShouldReplicate = true, bool bReplicateToOwner = false, bool bStopOtherAnims = false);
+		bool ServerPlayAnimMontage_Validate(const FWeaponAnim Animation, float InPlayRate = 1.0f, FName StartSectionName = FName(""), bool bShouldReplicate = true, bool bReplicateToOwner = false, bool bStopOtherAnims = false);
+		void ServerPlayAnimMontage_Implementation(const FWeaponAnim Animation, float InPlayRate = 1.0f, FName StartSectionName = FName(""), bool bShouldReplicate = true, bool bReplicateToOwner = false, bool bStopOtherAnims = false);
+
 	UFUNCTION()
 		void OnRep_ReplicatedAnimation();
 
@@ -1120,10 +1155,10 @@ public:
 	UFUNCTION()
 		void OnRep_NextWeapon();
 
-	UPROPERTY(BlueprintReadOnly, Category = Spawn)
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Spawn)
 		bool bShoulderCamera;
 
-	UPROPERTY(BlueprintReadOnly, Category = Spawn)
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Spawn)
 		bool bShipCamera;
 
 	/** currently equipped weapon */
@@ -1137,7 +1172,8 @@ protected:
 	UPROPERTY(ReplicatedUsing = OnRep_ShipPawn)
 		AOrionShipPawn *CurrentShip;
 
-	AOrionShipPawn *CameraShip;
+	UPROPERTY(Replicated)
+		AOrionShipPawn *CameraShip;
 
 	virtual void AttachToShip();
 	virtual void DetachFromShip();

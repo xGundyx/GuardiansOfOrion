@@ -202,6 +202,24 @@ public:
 	AOrionWeather* TheSun;
 	bool bHideWeapons;
 
+	//server hacks for now
+	UFUNCTION(exec)
+		void SlowMotion(float Value) { ServerSlowMotion(Value); }
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerSlowMotion(float Value);
+		bool ServerSlowMotion_Validate(float Value) { return true; }
+		void ServerSlowMotion_Implementation(float Value) { ConsoleCommand(FString::Printf(TEXT("SlowMotion %f"), Value)); }
+
+	UFUNCTION(exec)
+		void ToggleHUD();
+
+	UPROPERTY(BlueprintReadOnly, Category = HUD)
+		bool bToggleHUD;
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ToggleHUD"))
+		void EventToggleHUD();
+
 	//0 = assault, 1 = support, 2 = recon
 	UFUNCTION(exec)
 		virtual void ChangeClass(int32 index);
@@ -391,6 +409,12 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SpawnXPNumber"))
 		void EventAddXPNumber(int32 Damage, FVector Pos);
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "VictoryMessage"))
+		void ShowVictoryMessage();
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "DefeatMessage"))
+		void ShowDefeatedMessage();
+
 	void AddXPNumber(int32 Damage, FVector Pos);
 
 	UPROPERTY(BlueprintReadWrite, Category = MainMenu)
@@ -421,7 +445,20 @@ public:
 	UFUNCTION(exec)
 		void SpawnWave();
 
+	UFUNCTION(exec)
+		void DaveyCam();
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerSetDaveyCam(bool bOn);
+		bool ServerSetDaveyCam_Validate(bool bOn) { return true; }
+		void ServerSetDaveyCam_Implementation(bool bOn) { bDaveyCam = bOn; }
+
+	bool bDaveyCam;
+
 	virtual void Destroyed() override;
+
+	UFUNCTION(Blueprintcallable, Category = Playfab)
+		void ConnectToIP(FString IP);
 
 	void UpdateRotation(float DeltaTime) override;
 
@@ -429,6 +466,9 @@ public:
 		void ServerAllArmor(int32 index);
 		bool ServerAllArmor_Validate(int32 index);
 		void ServerAllArmor_Implementation(int32 index);
+
+	UPROPERTY(BlueprintReadWrite, Category = Playfab)
+		int32 ClassIndex;
 
 public:
 	virtual void BeginPlay();
@@ -463,11 +503,12 @@ public:
 	std::map<std::string,std::string> GetInventoryData();
 	void PopulateInventory(TSharedPtr<FJsonObject> Data);
 #if IS_SERVER
-	void PopulateInventory(std::map<std::string, PlayFab::ServerModels::UserDataRecord> Data);
+	////void PopulateInventory(std::map<std::string, PlayFab::ServerModels::UserDataRecord> Data);
 #else
 #endif
 
 private:
+	FTimerHandle ServerTickTimer;
 	UOrionQuestManager *QuestManager;
 	UOrionStats *Stats;
 	UOrionAchievements *Achievements;
@@ -482,4 +523,7 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "CreateHealthBar"))
 		void EventCreateHealthBar(class AOrionCharacter *PawnOwner);
+
+	UFUNCTION()
+		void ServerTick();
 };

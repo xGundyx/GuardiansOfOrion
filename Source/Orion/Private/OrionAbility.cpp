@@ -25,6 +25,11 @@ AOrionAbility::AOrionAbility(const FObjectInitializer& ObjectInitializer)
 	bIsJetpacking = false;
 	bIsCloaking = false;
 	bIsOvercharging = false;
+
+	SetRemoteRoleForBackwardsCompat(ROLE_SimulatedProxy);
+	bReplicates = true;
+	//bReplicateInstigator = true;
+	bNetUseOwnerRelevancy = true;
 }
 
 void AOrionAbility::Tick(float DeltaSeconds)
@@ -101,7 +106,10 @@ void AOrionAbility::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & Out
 
 	// everyone
 	DOREPLIFETIME(AOrionAbility, bIsSkillActive);
-	DOREPLIFETIME_CONDITION(AOrionAbility, Energy, COND_OwnerOnly);
+	DOREPLIFETIME(AOrionAbility, Energy);
+	DOREPLIFETIME(AOrionAbility, bIsJetpacking);
+	DOREPLIFETIME(AOrionAbility, bIsCloaking);
+	DOREPLIFETIME(AOrionAbility, bIsOvercharging);
 }
 
 void AOrionAbility::DoSkillAbility(float DeltaSeconds)

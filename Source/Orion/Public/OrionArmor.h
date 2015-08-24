@@ -20,5 +20,8 @@ public:
 		USkeletalMesh *Mesh;
 
 	UPROPERTY(Replicated, EditAnywhere, Category = Inventory)
+		USkeletalMesh *ExtraMesh;
+
+	UPROPERTY(Replicated, EditAnywhere, Category = Inventory)
 		USkeletalMesh *Mesh1P;
 };

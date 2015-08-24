@@ -14,7 +14,12 @@ class ORION_API AOrionGameMenu : public AOrionGameMode
 	
 public:
 	AOrionGameMenu(const FObjectInitializer& ObjectInitializer);
-	
+
+	void BeginPlay() override;
+
 	UPROPERTY(BlueprintReadWrite, Category = Placer)
 		TArray<AOrionMenuCharacter*> CharacterPlacers;
+
+	UFUNCTION(BlueprintCallable, Category = Placer)
+		void AddPlacer(int32 index, AOrionMenuCharacter *Picker);
 };

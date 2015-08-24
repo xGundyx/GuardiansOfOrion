@@ -45,6 +45,68 @@ struct FDecalHelper
 	bool operator==(const FDecalHelper Other) const { return Mat == Other.Mat; }
 };
 
+USTRUCT(BlueprintType)
+struct FSpawnNumbers
+{
+	GENERATED_USTRUCT_BODY()
+
+		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumRaptor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumCompy;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumDilo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumTRex;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumTrike;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumRham;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumPtera;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumAnky;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumKruger;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumJeckyl;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumNamor;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumViper;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumOrb;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumBones;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumAssault;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumSupport;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumRecon;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumDemo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumTech;
+};
 
 USTRUCT()
 struct FDecalData

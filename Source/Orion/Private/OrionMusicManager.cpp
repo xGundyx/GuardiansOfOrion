@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Orion.h"
+#include "OrionGameMenu.h"
 #include "OrionMusicManager.h"
 
 
@@ -15,6 +16,11 @@ AOrionMusicManager::AOrionMusicManager(const FObjectInitializer& ObjectInitializ
 	MusicComponent->bIsMusic = true;
 
 	LastMusicType = MUSIC_NONE;
+
+	//bFadingIn = false;
+	//bFadingOut = false;
+	NextSong = nullptr;
+	CurrentSong = nullptr;
 }
 
 // Called when the game starts or when spawned
@@ -29,6 +35,29 @@ void AOrionMusicManager::BeginPlay()
 void AOrionMusicManager::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
+
+	//handle fade in/out
+	/*if (bFadingOut)
+	{
+		MusicComponent->VolumeMultiplier = FMath::Max(0.0f, MusicComponent->VolumeMultiplier - DeltaTime * 0.5f);
+
+		if (MusicComponent->VolumeMultiplier <= 0.0f)
+		{
+			bFadingOut = false;
+			PlaySong(NextSong);
+			bFadingIn = true;
+		}
+	}
+	else if (bFadingIn)
+	{
+		MusicComponent->VolumeMultiplier = FMath::Min(VolumeMax, MusicComponent->VolumeMultiplier + DeltaTime * 0.5f);
+
+		if (MusicComponent->VolumeMultiplier >= VolumeMax)
+		{
+			bFadingOut = false;
+			bFadingIn = false;
+		}
+	}*/
 }
 
 void AOrionMusicManager::TickMusic()
@@ -47,8 +76,15 @@ void AOrionMusicManager::TickMusic()
 		float VolumeMultiplier = 1.0f;
 
 		//only change music if a gameplay type has change, or if the previous song has ended
-		if (GRI->DinosAliveInWave > 0)
-			Type = MUSIC_GAMEPLAY;
+		if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
+			Type = MUSIC_MENU;
+		else if (GRI->DinosAliveInWave > 0)
+		{
+			if (GRI->bSideMission)
+				Type = GRI->bBossMission ? MUSIC_BOSS : MUSIC_MISSION;
+			else
+				Type = MUSIC_GAMEPLAY;
+		}
 		else
 			Type = MUSIC_AMBIENT;
 
@@ -60,11 +96,16 @@ void AOrionMusicManager::TickMusic()
 		switch (Type)
 		{
 		case MUSIC_GAMEPLAY:
+		case MUSIC_MISSION:
+		case MUSIC_BOSS:
 			SoundWave = GameplayMusic;
 			VolumeMultiplier = 1.0f;
 			break;
 
 		case MUSIC_AMBIENT:
+		case MUSIC_CREDITS:
+		case MUSIC_LOADING:
+		case MUSIC_MENU:
 			SoundWave = AmbientMusic;
 			VolumeMultiplier = 0.1f;
 			break;
@@ -76,15 +117,40 @@ void AOrionMusicManager::TickMusic()
 		int32 index = FMath::RandRange(0, SoundWave.Num() - 1);
 
 		bPlayingMusic = true;
-		
-		MusicComponent->SetSound(SoundWave[index]);
-		MusicComponent->VolumeMultiplier = VolumeMultiplier;
-		MusicComponent->Play(0.0f);
 
-		GetWorldTimerManager().SetTimer(MusicTimer, this, &AOrionMusicManager::ResetMusic, SoundWave[index]->Duration, true);
+		VolumeMax = VolumeMultiplier;
+
+		//make sure we don't play the same song back to back
+		if (CurrentSong == SoundWave[index])
+		{
+			index++;
+			if (index >= SoundWave.Num())
+				index = 0;
+		}
+
+		NextSong = SoundWave[index];
+		MusicComponent->FadeOut(2.0f, 0.0f);
+
+		GetWorldTimerManager().SetTimer(MusicTimer, this, &AOrionMusicManager::PlaySong, 2.0f, false);
 
 		LastMusicType = Type;
 	}
+}
+
+void AOrionMusicManager::PlaySong()
+{
+	if (!NextSong)
+	{
+		ResetMusic();
+		return;
+	}
+
+	MusicComponent->SetSound(NextSong);
+	MusicComponent->FadeIn(2.0f, VolumeMax);
+
+	CurrentSong = NextSong;
+
+	GetWorldTimerManager().SetTimer(MusicTimer, this, &AOrionMusicManager::ResetMusic, FMath::Max(1.0f, NextSong->Duration - 2.0f), false);
 }
 
 void AOrionMusicManager::ResetMusic()
