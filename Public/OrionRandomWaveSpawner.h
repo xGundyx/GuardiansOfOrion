@@ -109,11 +109,14 @@ public:
 	void SpawnWave(int32 TypesToSpawn[SPAWN_NUM], FVector FocusLocation);
 	void SpawnFailures();
 
-	int32 MaxToSpawnPerFrame;
+	UPROPERTY()
+		int32 MaxToSpawnPerFrame;
 
-	FVector FocusArea;
+	UPROPERTY()
+		FVector FocusArea;
 
-	static TArray< TSubclassOf<class AOrionCharacter> > SpawnClasses;
+	UPROPERTY()
+		TArray< TSubclassOf<class AOrionCharacter> > SpawnClasses;
 
 	TSubclassOf<class AOrionCharacter> GetBlueprintFromPath(FString path);
 

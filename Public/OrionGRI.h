@@ -95,6 +95,28 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly)
 		FString MissionObjective;
 
+	UPROPERTY(Replicated, BlueprintReadOnly)
+		bool bSideMission;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+		bool bBossMission;
+
+	UFUNCTION()
+		void HandleVictoryDefeat();
+
+	UPROPERTY(ReplicatedUsing = HandleVictoryDefeat, BlueprintReadOnly)
+		bool bVictory;
+
+	UPROPERTY(ReplicatedUsing = HandleVictoryDefeat, BlueprintReadOnly)
+		bool bDefeat;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
+		FVector MissionLocation;
+
+	//list of connected players for easy access
+	UPROPERTY(Replicated, BlueprintReadOnly)
+		TArray<AOrionPRI*> PlayerList;
+
 	UPROPERTY()
 		class AOrionMusicManager *MusicManager;
 

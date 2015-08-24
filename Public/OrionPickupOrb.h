@@ -35,8 +35,11 @@ public:
 	virtual void Tick( float DeltaSeconds ) override;
 
 	void Init();
+
+	UFUNCTION()
+		void OnRep_OrbType();
 	
-	UPROPERTY(BlueprintReadOnly, Category = Spawn)
+	UPROPERTY(ReplicatedUsing = OnRep_OrbType, BlueprintReadOnly, Category = Spawn)
 		TEnumAsByte<EOrbType> OrbType;
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Orb)

@@ -294,6 +294,12 @@ public:
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_HitNotify)
 		FInstantHitInfo HitNotify;
 
+	UFUNCTION()
+		void OnRep_Knifing();
+
+	UPROPERTY(Transient, ReplicatedUsing = OnRep_Knifing)
+		bool bKnifing;
+
 	/** server notified of hit from client to verify */
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerNotifyHit(const FHitResult Impact, FVector ShootDir, int32 RandomSeed, float ReticleSpread);
@@ -506,6 +512,9 @@ protected:
 	/** weapon mesh: 3rd person view */
 	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 		USkeletalMeshComponent* Mesh3P;
+
+	UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
+		USkeletalMeshComponent* KnifeMesh;
 
 	float TargetFOV;
 	float TargetViewOffset;

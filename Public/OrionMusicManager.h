@@ -61,6 +61,13 @@ public:
 	bool bPlayingMusic;
 	void ResetMusic();
 
+	void PlaySong();
+
+	USoundWave *CurrentSong;
+	USoundWave *NextSong;
+
+	float VolumeMax;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Music)
 		class UAudioComponent *MusicComponent;
 

@@ -734,7 +734,8 @@ void AOrionCharacter::DestroyInventory()
 		{
 			RemoveWeapon(Weapon);
 			//don't destroy it, it will still exist inside the inventory manager!
-			////Weapon->Destroy();
+			//remove this once playfab is fully setup
+			Weapon->Destroy();
 		}
 	}
 }
@@ -844,6 +845,8 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, BlinkPos);
 	DOREPLIFETIME(AOrionCharacter, Level);
 
+	DOREPLIFETIME_CONDITION(AOrionCharacter, CameraShip, COND_OwnerOnly);
+
 	DOREPLIFETIME_CONDITION(AOrionCharacter, LastTakeHitInfo, COND_Custom);
 
 	//DOREPLIFETIME(AOrionCharacter, CurrentWeapon);
@@ -865,10 +868,15 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME_CONDITION(AOrionCharacter, bAim, COND_SkipOwner);
 	DOREPLIFETIME_CONDITION(AOrionCharacter, bDuck, COND_SkipOwner);
 
-	DOREPLIFETIME_CONDITION(AOrionCharacter, GrenadeCooldown, COND_OwnerOnly);
+	DOREPLIFETIME(AOrionCharacter, GrenadeCooldown);
+	DOREPLIFETIME(AOrionCharacter, BlinkCooldown);
+	DOREPLIFETIME(AOrionCharacter, RollCooldown);
 
 	DOREPLIFETIME(AOrionCharacter, DrivenVehicle);
 	DOREPLIFETIME(AOrionCharacter, CurrentSkill);
+
+	DOREPLIFETIME(AOrionCharacter, bShoulderCamera);
+	DOREPLIFETIME(AOrionCharacter, bShipCamera);
 }
 
 void AOrionCharacter::Destroyed()
@@ -927,7 +935,7 @@ void AOrionCharacter::DetachFromShip()
 {
 	FWeaponAnim Info;
 	Info.Pawn3P = ExitShipAnim;
-	float length = OrionPlayAnimMontage(Info);
+	float length = OrionPlayAnimMontage(Info, 1.0f, TEXT(""), true, true, false);
 
 	DetachRootComponentFromParent(true);
 	GetCharacterMovement()->SetMovementMode(MOVE_Flying);
@@ -1033,8 +1041,11 @@ void AOrionCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	bShoulderCamera = FMath::RandRange(0, 1) == 1;
-	bShipCamera = !bShoulderCamera;
+	if (Role == ROLE_Authority)
+	{
+		bShoulderCamera = FMath::RandRange(0, 1) == 1;
+		bShipCamera = !bShoulderCamera;
+	}
 
 	if (PawnSensor)
 	{
@@ -1280,6 +1291,9 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	if (IsOvercharging())
 		Damage /= 2.0f;
 
+	//this is the number that damage numbers will see
+	float OriginalDamage = Damage;
+
 	// Modify based on game rules.
 	AOrionGameMode* const Game = GetWorld()->GetAuthGameMode<AOrionGameMode>();
 
@@ -1334,7 +1348,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 			const FPointDamageEvent *RealEvent = (FPointDamageEvent*)&DamageEvent;
 			if (RealEvent)
 			{
-				Damager->AddDamageNumber(ActualDamage, RealEvent->HitInfo.ImpactPoint);
+				Damager->AddDamageNumber(OriginalDamage, RealEvent->HitInfo.ImpactPoint);
 			}
 		}
 
@@ -1463,6 +1477,17 @@ void AOrionCharacter::ReplicateHit(float Damage, struct FDamageEvent const& Dama
 	LastTakeHitTimeTimeout = TimeoutTime;
 }
 
+void AOrionCharacter::SetClassArmor(int32 index)
+{
+	if (ArmorList.Num() > index)
+	{
+		EquipArmor(ArmorList[index].HeadArmor.GetDefaultObject());
+		EquipArmor(ArmorList[index].BodyArmor.GetDefaultObject());
+		EquipArmor(ArmorList[index].LegsArmor.GetDefaultObject());
+		EquipArmor(ArmorList[index].ArmsArmor.GetDefaultObject());
+	}
+}
+
 void AOrionCharacter::SetArmor(int32 index)
 {
 	ArmorIndex = index;
@@ -1520,6 +1545,15 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	{
 		return;
 	}
+
+	//remove outline
+	GetMesh()->SetRenderCustomDepth(false);
+	BodyMesh->SetRenderCustomDepth(false);
+	HelmetMesh->SetRenderCustomDepth(false);
+	ArmsMesh->SetRenderCustomDepth(false);
+	LegsMesh->SetRenderCustomDepth(false);
+	Flight1Mesh->SetRenderCustomDepth(false);
+	Flight2Mesh->SetRenderCustomDepth(false);
 
 	if (CurrentSkill)
 		CurrentSkill->DeactivateSkill();
@@ -1838,7 +1872,7 @@ void AOrionCharacter::UpdatePlayerRingColor()
 			else if (GRI->OnSameTeam(PRI, Cast<AOrionPRI>(PlayerState)))
 			{
 				col.R = 0.0f;
-				col.G = 0.0f;
+				col.G = 2.0f;
 				col.B = 5.0f;
 				col.A = 1.0f;
 			}
@@ -1864,6 +1898,11 @@ void AOrionCharacter::PossessedBy(class AController* InController)
 	//UpdatePlayerRingColor();
 
 	UpdatePawnMeshes();
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC)
+		PC->Ragdoll = this;
 
 	if (Role == ROLE_Authority)
 	{
@@ -2125,7 +2164,7 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 			FWeaponAnim Anim;
 			Anim.Pawn3P = LandAnim;
 
-			OrionPlayAnimMontage(Anim, 1.0f, TEXT(""), false, false, true);
+			OrionPlayAnimMontage(Anim, 1.0f, TEXT(""), true, false, true);
 		}
 	}
 
@@ -2141,7 +2180,11 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 void AOrionCharacter::UpdateCooldowns(float DeltaTime)
 {
 	if (Role == ROLE_Authority)
+	{
 		GrenadeCooldown = FMath::Max(0.0f, GrenadeCooldown - DeltaTime);
+		BlinkCooldown = FMath::Max(0.0f, BlinkCooldown - DeltaTime);
+		RollCooldown = FMath::Max(0.0f, RollCooldown - DeltaTime);
+	}
 }
 
 void AOrionCharacter::UpdateAimKick(float DeltaSeconds)
@@ -2237,6 +2280,10 @@ void AOrionCharacter::SetupPlayerInputComponent(class UInputComponent* InputComp
 
 void AOrionCharacter::TossGrenade()
 {
+	//ignore if the anim is already playing
+	if (GetWorldTimerManager().IsTimerActive(GrenadeTimer))
+		return;
+
 	if (ShouldIgnoreControls())
 		return;
 
@@ -2248,6 +2295,9 @@ void AOrionCharacter::TossGrenade()
 	GrenAnim.bHideWeapon = true;
 
 	float Len = OrionPlayAnimMontage(GrenAnim, 1.0f, TEXT(""), true, false, true);
+
+	if (Role < ROLE_Authority)
+		ServerPlayAnimMontage(GrenAnim, 1.0f, TEXT(""), true, false, true);
 
 	GetWorldTimerManager().SetTimer(GrenadeTimer, this, &AOrionCharacter::DoGrenade, Len*0.6f, false);
 }
@@ -2300,6 +2350,16 @@ void AOrionCharacter::DoGrenade()
 		ServerTossGrenade(dir * 1000.0f);
 	else
 		ActuallyTossGrenade(dir * 1000.0f);
+}
+
+bool AOrionCharacter::ServerPlayAnimMontage_Validate(const FWeaponAnim Animation, float InPlayRate, FName StartSectionName, bool bShouldReplicate, bool bReplicateToOwner, bool bStopOtherAnims)
+{
+	return true;
+}
+
+void AOrionCharacter::ServerPlayAnimMontage_Implementation(const FWeaponAnim Animation, float InPlayRate, FName StartSectionName, bool bShouldReplicate, bool bReplicateToOwner, bool bStopOtherAnims)
+{
+	OrionPlayAnimMontage(Animation, InPlayRate, StartSectionName, bShouldReplicate, bReplicateToOwner, bStopOtherAnims);
 }
 
 void AOrionCharacter::TryToActivateSkill()
@@ -2577,6 +2637,7 @@ void AOrionCharacter::OnRep_Teleport()
 
 void AOrionCharacter::Blink(FVector dir)
 {
+	BlinkCooldown = 5.0f;
 	if (Role < ROLE_Authority)
 	{
 		ServerBlink(dir);
@@ -2706,6 +2767,8 @@ void AOrionCharacter::ServerDoRoll_Implementation(ERollDir rDir, FRotator rRot)
 
 	SetActorRotation(rRot);
 
+	RollCooldown = 1.0f;
+
 	if (CurrentWeapon)
 	{
 		CurrentWeapon->StopReload();
@@ -2728,6 +2791,9 @@ void AOrionCharacter::DoRoll()
 	//return;
 
 	if (GetWorldTimerManager().IsTimerActive(RollTimer2))
+		return;
+
+	if (RollCooldown > 0.0f)
 		return;
 
 	float Length = 1.0f;
@@ -2795,6 +2861,8 @@ void AOrionCharacter::DoRoll()
 	}
 
 	bRolling = true;
+
+	RollCooldown = 1.0f;
 
 	if (Role < ROLE_Authority)
 		ServerDoRoll(RollDir, newRot);
@@ -3186,6 +3254,7 @@ void AOrionCharacter::EquipArmor(AOrionArmor *Armor)
 	case ITEM_CHEST:
 		BodyArmor = Armor;
 		SetBodyMesh(Armor->Mesh);
+		SetFlight1Mesh(Armor->ExtraMesh);
 		break;
 	case ITEM_HANDS:
 		ArmsArmor = Armor;
@@ -3197,6 +3266,8 @@ void AOrionCharacter::EquipArmor(AOrionArmor *Armor)
 		SetLegsMesh(Armor->Mesh);
 		break;
 	};
+
+	InitMaterials();
 }
 
 void AOrionCharacter::UnEquipArmor(EItemType Slot)

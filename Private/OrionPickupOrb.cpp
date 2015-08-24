@@ -17,6 +17,8 @@ AOrionPickupOrb::AOrionPickupOrb(const FObjectInitializer& ObjectInitializer)
 	SphereCollision->AttachParent = BoxCollision;
 	
 	RootComponent = BoxCollision;
+
+	bReplicates = true;
 }
 
 // Called when the game starts or when spawned
@@ -31,6 +33,19 @@ void AOrionPickupOrb::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
 
+}
+
+void AOrionPickupOrb::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	// everyone
+	DOREPLIFETIME(AOrionPickupOrb, OrbType);
+}
+
+void AOrionPickupOrb::OnRep_OrbType()
+{
+	EventInitOrb();
 }
 
 void AOrionPickupOrb::Init()

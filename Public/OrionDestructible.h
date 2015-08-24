@@ -24,6 +24,9 @@ public:
 
 	virtual void PostInitializeComponents() override;
 
+	//override this so we can make bullets and grenades to a little more damage to them
+	virtual float TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser) override;
+
 	//virtual void EditorReplacedActor(AActor * OldActor) override;
 
 	//USkeletalMesh *Skel;

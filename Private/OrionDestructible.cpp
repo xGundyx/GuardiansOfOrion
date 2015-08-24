@@ -42,3 +42,11 @@ void AOrionDestructible::Tick( float DeltaTime )
 	Super::Tick( DeltaTime );
 
 }
+
+float AOrionDestructible::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser)
+{
+	if (Cast<AOrionPlayerController>(EventInstigator))
+		Damage *= 4.0f;
+
+	return Super::TakeDamage(Damage, DamageEvent, EventInstigator, DamageCauser);
+}

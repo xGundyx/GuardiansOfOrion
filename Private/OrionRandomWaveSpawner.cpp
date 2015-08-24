@@ -2,7 +2,7 @@
 #include "OrionGameMode.h"
 #include "OrionRandomWaveSpawner.h"
 
-TArray< TSubclassOf<class AOrionCharacter> > AOrionRandomWaveSpawner::SpawnClasses;
+////TArray< TSubclassOf<class AOrionCharacter> > AOrionRandomWaveSpawner::SpawnClasses;
 
 // Sets default values
 AOrionRandomWaveSpawner::AOrionRandomWaveSpawner(const FObjectInitializer& ObjectInitializer)
@@ -84,9 +84,11 @@ void AOrionRandomWaveSpawner::BeginPlay()
 	ClassEnabled.Add(bTech);
 	ClassEnabled.Add(bDemo);
 
+	SpawnClasses.Empty();
+
 	//this must match EAISpawnType enum
-	if (SpawnClasses.Num() == 0)
-	{
+	//if (SpawnClasses.Num() == 0)
+	//{
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//raptor
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Compy.bot_Compy'")));//compy
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Dilo.bot_Dilo'")));//dilo
@@ -94,7 +96,7 @@ void AOrionRandomWaveSpawner::BeginPlay()
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Triceratops.bot_Triceratops'")));//trike
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Rham.bot_Rham'")));//rham
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//ptera
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//anky
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Anky.bot_Anky'")));//anky
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Creatures/Blueprints/KrugerSpawn.KrugerSpawn'")));//kruger
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Creatures/Blueprints/JeckylBot.JeckylBot'")));//jeckyl
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Creatures/Blueprints/NamorBot.NamorBot'")));//namor
@@ -106,7 +108,7 @@ void AOrionRandomWaveSpawner::BeginPlay()
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//recon
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//tech
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//demo
-	}
+	//}
 }
 
 void AOrionRandomWaveSpawner::Tick( float DeltaTime )
@@ -130,8 +132,8 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], FVector F
 
 	for (int32 i = 0; i < SPAWN_NUM; i++)
 	{
-		if (!ClassEnabled[i])
-			continue;
+		////if (!ClassEnabled[i])
+		////	continue;
 
 		for (int32 j = 0; j < TypesToSpawn[i]; j++)
 		{

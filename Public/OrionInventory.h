@@ -45,7 +45,7 @@ public:
 	//UPROPERTY(BlueprintReadWrite, Category = Inventory)
 	//	UObject *MyWidget;
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
+	UPROPERTY(Replicated, EditDefaultsOnly, BlueprintReadOnly, Category = Inventory)
 		TEnumAsByte<EItemType> InventoryType;
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)

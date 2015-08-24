@@ -86,7 +86,10 @@ private:
 	UPROPERTY(Replicated)
 		float Energy;
 
-	bool bIsJetpacking;
-	bool bIsCloaking;
-	bool bIsOvercharging;
+	UPROPERTY(Replicated)
+		bool bIsJetpacking;
+	UPROPERTY(Replicated)
+		bool bIsCloaking;
+	UPROPERTY(Replicated)
+		bool bIsOvercharging;
 };

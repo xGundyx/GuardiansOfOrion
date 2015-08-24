@@ -82,8 +82,8 @@ void AOrionDinoPawn::Tick(float DeltaTime)
 
 	if (Health > 0)
 	{
-		OrientToGround(DeltaTime);
-		HandleFootPlacement(DeltaTime);
+		////OrientToGround(DeltaTime);
+		////HandleFootPlacement(DeltaTime);
 	}
 
 	if (IsPlayingRootMotion())

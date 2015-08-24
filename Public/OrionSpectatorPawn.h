@@ -16,5 +16,20 @@ class ORION_API AOrionSpectatorPawn : public ASpectatorPawn
 public:
 	void CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult) override;
 	
-	
+	void Say();
+	void TeamSay();
+
+	void MoveRight(float Value);
+	void MoveForward(float Value);
+
+	void TurnAtRate(float Rate);
+	void LookUpAtRate(float Rate);
+
+	FVector SpecCameraLocation;
+
+protected:
+	// APawn interface
+	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
+
+	FVector CameraOffset;
 };

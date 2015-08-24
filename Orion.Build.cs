@@ -17,7 +17,7 @@ public class Orion : ModuleRules
 
 	public Orion(TargetInfo Target)
 	{
-        Definitions.Add("ORIONONLINESUBSYSTEMPLAYFAB_PACKAGE=1");
+       // Definitions.Add("ORIONONLINESUBSYSTEMPLAYFAB_PACKAGE=1");
 
         if (Target.Type == TargetRules.TargetType.Editor)
         {
@@ -26,8 +26,8 @@ public class Orion : ModuleRules
         }
         else
         {
-            PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "InputCore", "RHI", "RenderCore", "OnlineSubsystem", "ShaderCore", "Slate", "SlateCore", 
-             "UMG", "Sockets", "Networking", "Json", "JsonUtilities", "OrionVoxel",/* "UnrealEd",*/ "ProceduralMeshComponent", "PlayFab", "PhotonClient", "OnlineSubsystemOrion", "Landscape" });
+            PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "InputCore", /*"RHI", "RenderCore",*/ "OnlineSubsystem", "ShaderCore", /*"Slate", "SlateCore", */
+             "UMG", /*"Sockets", "Networking",*/ "Json", "JsonUtilities", /*"OrionVoxel",*//* "UnrealEd",*/ "ProceduralMeshComponent", "PlayFab", "PhotonClient",/* "OnlineSubsystemOrion", "Landscape"*/ });
         }
         LoadPlayFab(Target);
 	}
@@ -68,7 +68,7 @@ public class Orion : ModuleRules
         //boost asio
       //  PublicAdditionalLibraries.Add(Path.Combine(ThirdPartyPath, "Boost", "stage", "lib", "PlayFabClientAPI.lib"));
 
-        PublicIncludePaths.Add(Path.Combine(ThirdPartyPath, "Boost"));
+       // PublicIncludePaths.Add(Path.Combine(ThirdPartyPath, "Boost"));
         return true;
     }
 
