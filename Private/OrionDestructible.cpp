@@ -11,36 +11,24 @@
 AOrionDestructible::AOrionDestructible(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	//DestructibleComponent = ObjectInitializer.CreateOptionalDefaultSubobject<UDestructibleComponent>(this, TEXT("Destructible"));
-
- 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
-	PrimaryActorTick.bCanEverTick = true;
+	PrimaryActorTick.bCanEverTick = false;
 }
 
 void AOrionDestructible::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
-
-	if (GetDestructibleComponent())
-	{
-		//GetDestructibleComponent()->DestructibleMesh->DefaultDestructibleParameters.Flags.bDebrisTimeout = true;
-		//GetDestructibleComponent()->DestructibleMesh->DefaultDestructibleParameters.SpecialHierarchyDepths.bEnableDebris = true;
-		//GetDestructibleComponent()->DestructibleMesh->DefaultDestructibleParameters.SpecialHierarchyDepths.DebrisDepth = 1;
-	}
 }
 
 // Called when the game starts or when spawned
 void AOrionDestructible::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
 void AOrionDestructible::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
-
 }
 
 float AOrionDestructible::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser)

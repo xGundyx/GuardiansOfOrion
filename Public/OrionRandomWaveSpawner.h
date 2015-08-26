@@ -120,6 +120,9 @@ public:
 
 	TSubclassOf<class AOrionCharacter> GetBlueprintFromPath(FString path);
 
+	UPROPERTY(EditDefaultsOnly, Category = Spawn)
+		TSubclassOf<class UNavigationQueryFilter> DefaultFilterClass;
+
 private:
 	TArray<bool> ClassEnabled;
 	TArray<int32> FailedToSpawn;

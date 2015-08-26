@@ -13,4 +13,5 @@ AOrionBuff::AOrionBuff(const FObjectInitializer& ObjectInitializer)
 	StackLimit = 1;
 	NumStacks = 0;
 	bIsBuff = false;
+	bBlockSight = false;
 }

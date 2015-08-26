@@ -39,6 +39,12 @@ AOrionRandomWaveSpawner::AOrionRandomWaveSpawner(const FObjectInitializer& Objec
 
 	SpawnRadius = 5000.0f;
 	MaxToSpawnPerFrame = 10;
+
+	static ConstructorHelpers::FObjectFinder<UBlueprint> FilterObject(TEXT("/Game/AI/Blueprints/NavFilter_LargeDino.NavFilter_LargeDino"));
+	if (FilterObject.Object != NULL)
+	{
+		DefaultFilterClass = (UClass*)FilterObject.Object->GeneratedClass;
+	}
 }
 
 TSubclassOf<AOrionCharacter> AOrionRandomWaveSpawner::GetBlueprintFromPath(FString path)
@@ -140,11 +146,11 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], FVector F
 			FActorSpawnParameters SpawnInfo;
 			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
-			FNavLocation Loc;
+			FVector Loc;
 
-			GetWorld()->GetNavigationSystem()->GetRandomReachablePointInRadius(GetActorLocation(), SpawnRadius, Loc);
+			Loc = GetWorld()->GetNavigationSystem()->GetRandomReachablePointInRadius(GetWorld(), GetActorLocation(), SpawnRadius, (ANavigationData*)0, DefaultFilterClass);
 
-			AOrionCharacter* NewPawn = GetWorld()->SpawnActor<AOrionCharacter>(SpawnClasses[i], Loc.Location + FVector(0, 0, 150.0f), GetActorRotation(), SpawnInfo);
+			AOrionCharacter* NewPawn = GetWorld()->SpawnActor<AOrionCharacter>(SpawnClasses[i], Loc + FVector(0, 0, 150.0f), GetActorRotation(), SpawnInfo);
 			if (NewPawn)
 			{
 				if (Game)
@@ -180,11 +186,11 @@ void AOrionRandomWaveSpawner::SpawnFailures()
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AdjustIfPossibleButDontSpawnIfColliding;
 
-		FNavLocation Loc;
+		FVector Loc;
 
-		GetWorld()->GetNavigationSystem()->GetRandomReachablePointInRadius(GetActorLocation(), SpawnRadius, Loc);
+		Loc = GetWorld()->GetNavigationSystem()->GetRandomReachablePointInRadius(GetWorld(), GetActorLocation(), SpawnRadius, (ANavigationData*)0, DefaultFilterClass);
 
-		AOrionCharacter* NewPawn = GetWorld()->SpawnActor<AOrionCharacter>(SpawnClasses[FailedToSpawn[i]], Loc.Location + FVector(0, 0, 150.0f), GetActorRotation(), SpawnInfo);
+		AOrionCharacter* NewPawn = GetWorld()->SpawnActor<AOrionCharacter>(SpawnClasses[FailedToSpawn[i]], Loc + FVector(0, 0, 150.0f), GetActorRotation(), SpawnInfo);
 		if (NewPawn)
 		{
 			if (Game)

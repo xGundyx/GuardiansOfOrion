@@ -115,6 +115,9 @@ struct FInstantWeaponData
 	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
 		int32 NumPellets;
 
+	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+		FVector AimAdjustment;
+
 	//this is needed to make the left hand match up for third person animations
 	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
 		FVector LeftHandOffset;

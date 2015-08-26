@@ -66,6 +66,7 @@ void AOrionWeather::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & Out
 	DOREPLIFETIME(AOrionWeather, RainTarget);
 	DOREPLIFETIME(AOrionWeather, CloudTarget);
 	DOREPLIFETIME(AOrionWeather, TheTime);
+	DOREPLIFETIME(AOrionWeather, bIsRaining);
 }
 
 void AOrionWeather::ChooseWeather()
@@ -95,6 +96,14 @@ void AOrionWeather::ClearNight()
 	GetWorldTimerManager().SetTimer(WeatherTimer, this, &AOrionWeather::ChooseWeather, 120.0f + FMath::FRand()*120.0f, false);
 }
 
+void AOrionWeather::OnRep_Raining()
+{
+	if (bIsRaining)
+		StartRaining();
+	else
+		StopRaining();
+}
+
 void AOrionWeather::StartRaining()
 {
 	ClearWeatherTimers();
@@ -118,17 +127,16 @@ void AOrionWeather::StartRaining()
 	
 	if (PC && PC->RainPSC)
 	{
-		//FVector Origin = GetWeatherLocation();
-		//FRotator Dir(0, 0, 0);
-		
 		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->ActivateSystem();
-
-		//RainPSC->SetWorldLocation(Origin);
-		bIsRaining = true;
-		RainTarget = 1.0f;
 	}
 
-	GetWorldTimerManager().SetTimer(WeatherTimer, this, &AOrionWeather::ChooseWeather, 60.0f + FMath::FRand()*120.0f, false);
+	if (Role == ROLE_Authority)
+	{
+		bIsRaining = true;
+		RainTarget = 1.0f;
+
+		GetWorldTimerManager().SetTimer(WeatherTimer, this, &AOrionWeather::ChooseWeather, 60.0f + FMath::FRand()*120.0f, false);
+	}
 }
 
 void AOrionWeather::StopRaining()
@@ -137,17 +145,20 @@ void AOrionWeather::StopRaining()
 
 	if (PC && PC->RainPSC)
 	{
-		bIsRaining = false;
 		//if (RainPSC->Template)
 		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC->DeactivateSystem();
 		//RainPSC->SetHiddenInGame(true);
-		RainTarget = 0.0f;
 		Cast<AOrionPlayerController>(PlayerOwner)->RainPSC = NULL;
 	}
 
-	StopClouds();
+	if (Role == ROLE_Authority)
+	{
+		bIsRaining = false;
+		StopClouds();
+		RainTarget = 0.0f;
 
-	GetWorldTimerManager().SetTimer(WeatherTimer, this, &AOrionWeather::ChooseWeather, 60.0f, false);
+		GetWorldTimerManager().SetTimer(WeatherTimer, this, &AOrionWeather::ChooseWeather, 60.0f, false);
+	}
 }
 
 void AOrionWeather::StartSnowing()

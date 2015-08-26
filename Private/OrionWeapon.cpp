@@ -41,6 +41,7 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 	Mesh3P->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 	Mesh3P->SetCollisionResponseToChannel(COLLISION_PROJECTILE, ECR_Block);
 	Mesh3P->AttachParent = SceneComponent; 
+	Mesh3P->BoundsScale = 2.0f;
 	Mesh3P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 
 	KnifeMesh = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("KnifeMesh"));
