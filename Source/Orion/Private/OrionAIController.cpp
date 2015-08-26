@@ -400,12 +400,20 @@ void AOrionAIController::CheckEnemyStatus()
 	bool bRemoveEnemy = false;
 
 	AOrionCharacter *pEnemy = Cast<AOrionCharacter>(myEnemy);
+	AOrionCharacter *pPawn = Cast<AOrionCharacter>(GetPawn());
 
-	if (pEnemy && pEnemy->CurrentSkill && pEnemy->CurrentSkill->IsCloaking())
-		bRemoveEnemy = true;
-	//ignore dead players
-	else if (Cast<AOrionCharacter>(myEnemy) && Cast<AOrionCharacter>(myEnemy)->Health <= 0)
-		bRemoveEnemy = true;
+	if (pEnemy && pPawn)
+	{
+		//can't see cloaked assholes
+		if (pEnemy->CurrentSkill && pEnemy->CurrentSkill->IsCloaking())
+			bRemoveEnemy = true;
+		//ignore dead players
+		else if (pEnemy->Health <= 0)
+			bRemoveEnemy = true;
+		//can't see players inside smoke
+		else if (pEnemy->bIsHiddenFromView || pPawn->bIsHiddenFromView)
+			bRemoveEnemy = true;
+	}
 
 	if (bRemoveEnemy)
 		RemoveEnemy();
@@ -491,6 +499,10 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 	if (GetEnemy())
 		return;
 
+	//if we're inside a blocking volume like smoke, ignore things we see
+	if (bIsHiddenFromView)
+		return;
+
 	//for now just ignore other bots and go straight for humans
 	if (SeenPawn && SeenPawn->PlayerState && SeenPawn->PlayerState->bIsABot)
 		return;
@@ -504,6 +516,9 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 	if (pPawn)
 	{
 		if (pPawn->CurrentSkill && pPawn->CurrentSkill->IsCloaking())
+			return;
+
+		if (pPawn->bIsHiddenFromView)
 			return;
 
 		if (!pPawn->IsOnShip() && pPawn->Health > 0)

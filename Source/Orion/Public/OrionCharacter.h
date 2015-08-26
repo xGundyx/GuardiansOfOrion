@@ -24,6 +24,30 @@ class AOrionGrenade;
 class AOrionBuff;
 
 USTRUCT()
+struct FBlinkHelper
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		FVector Start;
+
+	UPROPERTY()
+		FVector End;
+};
+
+USTRUCT()
+struct FShipHelper
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		AOrionShipPawn *Ship;
+
+	UPROPERTY()
+		FString Socket;
+};
+
+USTRUCT()
 struct FArmorHelper
 {
 	GENERATED_USTRUCT_BODY()
@@ -412,6 +436,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "AI")
 		TEnumAsByte<EAIType> AIType;
 
+	UPROPERTY(BlueprintReadOnly, Category = "AI")
+		bool bIsHiddenFromView;
+
 	void SetAIType(EAIType type) { AIType = type; }
 
 	virtual void DoGrenade();
@@ -784,7 +811,7 @@ public:
 		void OnRep_Teleport();
 
 	UPROPERTY(ReplicatedUsing = OnRep_Teleport)
-		FVector BlinkPos;
+		FBlinkHelper BlinkPos;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Effects)
 		UParticleSystem* BlinkFX;
@@ -1170,7 +1197,7 @@ protected:
 		void OnRep_ShipPawn();
 
 	UPROPERTY(ReplicatedUsing = OnRep_ShipPawn)
-		AOrionShipPawn *CurrentShip;
+		FShipHelper CurrentShip;
 
 	UPROPERTY(Replicated)
 		AOrionShipPawn *CameraShip;

@@ -300,7 +300,7 @@ void AOrionGameMode::Logout(AController* Exiting)
 	Super::Logout(Exiting);
 
 	//update playerlist
-	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetAuthGameMode());
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
 
 	if (GRI)
 		GRI->PlayerList.Remove(Cast<AOrionPRI>(Exiting->PlayerState));

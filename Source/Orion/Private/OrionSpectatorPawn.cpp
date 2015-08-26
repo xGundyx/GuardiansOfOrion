@@ -3,6 +3,12 @@
 #include "Orion.h"
 #include "OrionSpectatorPawn.h"
 
+AOrionSpectatorPawn::AOrionSpectatorPawn()
+{
+	CameraFOV = 90.0f;
+	CameraSpeed = 750.0f;
+}
+
 void AOrionSpectatorPawn::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 {
 	//for now, just view through the playercontroller's camera
@@ -28,6 +34,8 @@ void AOrionSpectatorPawn::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResul
 		OutResult.Location = SpecCameraLocation;
 
 		CameraOffset = FVector(0.0f);
+
+		OutResult.FOV = CameraFOV;
 	}
 }
 
@@ -49,28 +57,136 @@ void AOrionSpectatorPawn::SetupPlayerInputComponent(class UInputComponent* Input
 	InputComponent->BindAxis("TurnRate", this, &AOrionSpectatorPawn::TurnAtRate);
 	InputComponent->BindAxis("LookUp", this, &APawn::AddControllerPitchInput);
 	InputComponent->BindAxis("LookUpRate", this, &AOrionSpectatorPawn::LookUpAtRate);
+
+	InputComponent->BindAction("Fire", IE_Pressed, this, &AOrionSpectatorPawn::OnFire);
+	InputComponent->BindAction("Aim", IE_Pressed, this, &AOrionSpectatorPawn::OnAim);
+	InputComponent->BindAction("Reload", IE_Pressed, this, &AOrionSpectatorPawn::OnReload);
+	InputComponent->BindAction("ActivateSkill", IE_Pressed, this, &AOrionSpectatorPawn::OnAbility);
+
+	InputComponent->BindAction("Gamepad_Fire", IE_Pressed, this, &AOrionSpectatorPawn::OnFire);
+	InputComponent->BindAction("Gamepad_Aim", IE_Pressed, this, &AOrionSpectatorPawn::OnAim);
+	InputComponent->BindAction("Gamepad_Reload", IE_Pressed, this, &AOrionSpectatorPawn::OnReload);
+	InputComponent->BindAction("Gamepad_ActivateSkill", IE_Pressed, this, &AOrionSpectatorPawn::OnAbility);
+}
+
+void AOrionSpectatorPawn::OnFire()
+{
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC)
+	{
+		if (PC->bDaveyCam)
+		{
+			//increase camera speed
+			CameraSpeed = FMath::Min(3000.0f, CameraSpeed += 250.0f);
+		}
+		//spec next player
+		else
+		{
+
+		}
+	}
+}
+
+void AOrionSpectatorPawn::OnAim()
+{
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC)
+	{
+		if (PC->bDaveyCam)
+		{
+			//decrease camera speed
+			CameraSpeed = FMath::Max(250.0f, CameraSpeed -= 250.0f);
+		}
+		//spec prev player
+		else
+		{
+
+		}
+	}
+}
+
+void AOrionSpectatorPawn::OnReload()
+{
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC)
+	{
+		if (PC->bDaveyCam)
+		{
+			//zoom in
+			CameraFOV = FMath::Min(100.0f, CameraFOV + 5.0f);
+		}
+	}
+}
+
+void AOrionSpectatorPawn::OnAbility()
+{
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC)
+	{
+		if (PC->bDaveyCam)
+		{
+			//zoom out
+			CameraFOV = FMath::Max(20.0f, CameraFOV - 5.0f);
+		}
+	}
 }
 
 void AOrionSpectatorPawn::TurnAtRate(float Rate)
 {
-	// calculate delta for this frame from the rate information
-	AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC)
+	{
+		if (PC->bDaveyCam)
+		{
+			// calculate delta for this frame from the rate information
+			AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
+		}
+	}
 }
 
 void AOrionSpectatorPawn::LookUpAtRate(float Rate)
 {
-	// calculate delta for this frame from the rate information
-	AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC)
+	{
+		if (PC->bDaveyCam)
+		{
+			// calculate delta for this frame from the rate information
+			AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+		}
+	}
 }
 
 void AOrionSpectatorPawn::MoveForward(float Value)
 {
-	CameraOffset.X += Value * GetWorld()->DeltaTimeSeconds * 500.0f;
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC)
+	{
+		if (PC->bDaveyCam)
+		{
+			CameraOffset.X += Value * GetWorld()->DeltaTimeSeconds * CameraSpeed;
+		}
+	}
 }
 
 void AOrionSpectatorPawn::MoveRight(float Value)
 {
-	CameraOffset.Y += Value * GetWorld()->DeltaTimeSeconds * 500.0f;
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC)
+	{
+		if (PC->bDaveyCam)
+		{
+			CameraOffset.Y += Value * GetWorld()->DeltaTimeSeconds * CameraSpeed;
+		}
+	}
 }
 
 void AOrionSpectatorPawn::Say()

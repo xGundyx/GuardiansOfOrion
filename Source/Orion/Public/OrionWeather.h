@@ -278,6 +278,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Weather)
 		bool IsNightTime() const;
 
+	UFUNCTION()
+		void OnRep_Raining();
+
 	UFUNCTION(BlueprintCallable, Category = Weather)
 		bool IsRaining() const;
 
@@ -303,7 +306,9 @@ public:
 	void StartClouds();
 	void StopClouds();
 
-	bool bIsRaining;
+	UPROPERTY(ReplicatedUsing = OnRep_Raining, BlueprintReadOnly, Category = Weather)
+		bool bIsRaining;
+
 	bool bIsSnowing;
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Every Tick"))

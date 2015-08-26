@@ -47,6 +47,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Buff)
 		bool bIsBuff;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Buff)
+		bool bBlockSight;
+
 	UPROPERTY(BlueprintReadOnly, Category = Buff)
 		float LastRefreshedTime;
 

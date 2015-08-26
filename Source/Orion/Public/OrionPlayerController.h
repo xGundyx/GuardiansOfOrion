@@ -209,7 +209,7 @@ public:
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerSlowMotion(float Value);
 		bool ServerSlowMotion_Validate(float Value) { return true; }
-		void ServerSlowMotion_Implementation(float Value) { ConsoleCommand(FString::Printf(TEXT("SlowMotion %f"), Value)); }
+		void ServerSlowMotion_Implementation(float Value) { ConsoleCommand(FString::Printf(TEXT("slomo %f"), Value)); }
 
 	UFUNCTION(exec)
 		void ToggleHUD();

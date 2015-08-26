@@ -70,6 +70,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 	GetMesh()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	GetMesh()->StreamingDistanceMultiplier = 10.0f;
+	GetMesh()->LDMaxDrawDistance = 7500.0f;
 
 	//InvokerComponent = ObjectInitializer.CreateOptionalDefaultSubobject<UNavigationInvokerComponent>(this, TEXT("NavInvoker"));
 	//InvokerComponent->bAutoActivate = true;
@@ -812,9 +813,9 @@ void AOrionCharacter::OnRep_ArmorIndex()
 
 void AOrionCharacter::OnRep_ShipPawn()
 {
-	if (CurrentShip)
+	if (CurrentShip.Ship)
 	{
-		CameraShip = CurrentShip;
+		CameraShip = CurrentShip.Ship;
 		AttachToShip();
 	}
 	else
@@ -926,8 +927,8 @@ void AOrionCharacter::AttachToShip()
 	GetCharacterMovement()->bEnablePhysicsInteraction = false;
 	GetCharacterMovement()->SetComponentTickEnabled(false);
 
-	FString Socket = FString::Printf(TEXT("Spawn%i"), CurrentShip->GetNumPassengers() + 1);
-	AttachRootComponentTo(CurrentShip->GetMesh(), FName(*Socket), EAttachLocation::SnapToTarget, true);
+	//FString Socket = FString::Printf(TEXT("Spawn%i"), CurrentShip->GetNumPassengers() + 1);
+	AttachRootComponentTo(CurrentShip.Ship->GetMesh(), FName(*CurrentShip.Socket), EAttachLocation::SnapToTarget, true);
 	SetActorEnableCollision(false);
 }
 
@@ -950,7 +951,7 @@ void AOrionCharacter::DetachFromShip()
 //this is a server only function
 bool AOrionCharacter::SetShip(AOrionPlayerController *PC, AOrionShipPawn *Ship)
 {
-	CurrentShip = Ship;
+	CurrentShip.Ship = Ship;
 	if (Ship != nullptr)
 		CameraShip = Ship;
 
@@ -962,7 +963,7 @@ bool AOrionCharacter::SetShip(AOrionPlayerController *PC, AOrionShipPawn *Ship)
 	if (!PC || !PRI)
 		return false;
 
-	if (CurrentShip == nullptr)
+	if (CurrentShip.Ship == nullptr)
 	{
 		if (PRI)
 			PRI->bOnShip = false;
@@ -975,6 +976,7 @@ bool AOrionCharacter::SetShip(AOrionPlayerController *PC, AOrionShipPawn *Ship)
 	if (PRI)
 		PRI->bOnShip = true;
 
+	CurrentShip.Socket = FString::Printf(TEXT("Spawn%i"), CurrentShip.Ship->GetNumPassengers() + 1);
 	AttachToShip();
 
 	if (PC)
@@ -2052,12 +2054,18 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 	if (!GRI || !PRI)
 		return;
 
+	bool bHiddenFromView = false;
+
 	for (auto Itr(Buffs.CreateIterator()); Itr; ++Itr)
 	{
 		AOrionBuff *Buff = *Itr;
 
 		if (!Itr)
 			continue;
+
+		//see if we're hidden from enemy AI view
+		if (Buff->bBlockSight)
+			bHiddenFromView = true;
 
 		//check if we need to tick damage or anything
 		Buff->TickTimer -= DeltaSeconds;
@@ -2102,6 +2110,8 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 			continue;
 		}
 	}
+
+	bIsHiddenFromView = bHiddenFromView;
 }
 
 void AOrionCharacter::AddBuff(TSubclassOf<AOrionBuff> BuffClass, AController *cOwner, int32 TeamIndex)
@@ -2620,15 +2630,15 @@ void AOrionCharacter::ServerBlink_Implementation(FVector Dir)
 
 void AOrionCharacter::OnRep_Teleport()
 {
-	if (BlinkPos == FVector(0, 0, 0))
+	if (BlinkPos.End == FVector(0, 0, 0))
 	{
 		bBlinking = false;
-		DoBlinkEffect(false, GetActorLocation());
+		DoBlinkEffect(false, BlinkPos.Start);
 	}
 	else
 	{
 		bBlinking = true;
-		DoBlinkEffect(true, BlinkPos);
+		DoBlinkEffect(true, BlinkPos.Start);
 		LastTeleportTime = GetWorld()->GetTimeSeconds();
 	}
 
@@ -2651,7 +2661,7 @@ void AOrionCharacter::Blink(FVector dir)
 		props.AgentHeight = 150.0f;
 		props.AgentRadius = 150.0f;
 
-		BlinkPos = GetActorLocation();
+		BlinkPos.Start = GetActorLocation();
 
 		for (int32 i = 0; i < 4; i++)
 		{
@@ -2666,7 +2676,7 @@ void AOrionCharacter::Blink(FVector dir)
 					if (GetNetMode() != NM_DedicatedServer)
 						DoBlinkEffect(true, StartPos);
 
-					BlinkPos = EndPos;
+					BlinkPos.End = EndPos;
 				}
 				else // teleport failed, need a better way to handle this
 				{
@@ -2677,7 +2687,7 @@ void AOrionCharacter::Blink(FVector dir)
 			}
 		}
 
-		if (BlinkPos == FVector(0, 0, 0))
+		if (BlinkPos.End == FVector(0, 0, 0))
 		{
 			EndBlink();
 			return;
@@ -2707,7 +2717,10 @@ void AOrionCharacter::EndBlink()
 	bBlinking = false;
 
 	if (Role == ROLE_Authority)
-		BlinkPos = FVector(0, 0, 0);
+	{
+		BlinkPos.Start = GetActorLocation();
+		BlinkPos.End = FVector(0, 0, 0);
+	}
 
 	//become visible again
 	if (GetNetMode() != NM_DedicatedServer)
