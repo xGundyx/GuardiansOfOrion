@@ -262,11 +262,22 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 	//grab the playfab info from the Options string and try to validate the player
 	FString pfID = UGameplayStatics::ParseOption(Options, TEXT("PlayFabID"));
 	FString pfSession = UGameplayStatics::ParseOption(Options, TEXT("PlayFabSession"));
+	FString pfChar = UGameplayStatics::ParseOption(Options, TEXT("PlayFabCharacter"));
+	FString pfName = UGameplayStatics::ParseOption(Options, TEXT("PlayFabName"));
 
 	//if this session and id aren't valid, kick the bitch
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(NewPlayerController);
 	if (PC)
 	{
+		AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+		if (PRI)
+		{
+			PRI->PlayFabID = pfID;
+			PRI->SessionTicket = pfSession;
+			PRI->CharacterID = pfChar;
+			PRI->PlayFabName = pfName;
+		}
+
 		PC->ValidatePlayFabInfo(pfID, pfSession);
 	}
 

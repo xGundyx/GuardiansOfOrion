@@ -499,10 +499,6 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 	if (GetEnemy())
 		return;
 
-	//if we're inside a blocking volume like smoke, ignore things we see
-	if (bIsHiddenFromView)
-		return;
-
 	//for now just ignore other bots and go straight for humans
 	if (SeenPawn && SeenPawn->PlayerState && SeenPawn->PlayerState->bIsABot)
 		return;
@@ -515,6 +511,10 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 
 	if (pPawn)
 	{
+		//if we're inside a blocking volume like smoke, ignore things we see
+		if (pPawn->bIsHiddenFromView)
+			return;
+
 		if (pPawn->CurrentSkill && pPawn->CurrentSkill->IsCloaking())
 			return;
 

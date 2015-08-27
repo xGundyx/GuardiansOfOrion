@@ -104,7 +104,7 @@ void AOrionPlayerController::ConnectToIP(FString IP)
 	//add our playfab credentials to the url so the server can verify us
 	FString newURL;
 	if (PRI)
-		newURL = FString::Printf(TEXT("open %s?PlayFabID=%s?PlayFabSession=%s"), *IP, *PRI->PlayFabID, *PRI->SessionTicket);
+		newURL = FString::Printf(TEXT("open %s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s"), *IP, *PRI->PlayFabID, *PRI->SessionTicket, *PRI->CharacterID, *PRI->PlayFabName);
 
 	UE_LOG(LogTemp, Log, TEXT("GundyReallyTravel: %s"), *newURL);
 
@@ -298,7 +298,10 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 		if (newPawn && PRI && PRI->InventoryManager)
 		{
 			////PRI->InventoryManager->EquipItems(newPawn, ITEM_ANY);
-			ChangeClass(FMath::RandRange(0, 2));// ClassIndex);
+			if (ClassIndex < 0)
+				ChangeClass(FMath::RandRange(0, 2));
+			else
+				ChangeClass(ClassIndex);
 		}
 	}
 }

@@ -33,13 +33,13 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Pawn)
 		class AOrionCharacter *ControlledPawn;
 
-	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		FString PlayFabID;
-	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		FString SessionTicket;
-	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		FString CharacterID;
-	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		FString PlayFabName;
 
 	UFUNCTION(BlueprintCallable, Category = Team)
