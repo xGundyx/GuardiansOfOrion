@@ -45,6 +45,12 @@ void AOrionPRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionPRI, bOnShip);
 	DOREPLIFETIME(AOrionPRI, TeamIndex);
 	DOREPLIFETIME(AOrionPRI, ControlledPawn);
+
+	//playfab ids and stuff
+	DOREPLIFETIME(AOrionPRI, PlayFabID);
+	DOREPLIFETIME(AOrionPRI, SessionTicket);
+	DOREPLIFETIME(AOrionPRI, CharacterID);
+	DOREPLIFETIME(AOrionPRI, PlayFabName);
 }
 
 void AOrionPRI::OnRep_InventoryManager()
