@@ -5,6 +5,8 @@
 #include "OrionSquad.h"
 #include "OrionAIController.h"
 #include "OrionAbility.h"
+#include "OrionDinoPawn.h"
+#include "OrionDroidPawn.h"
 #include "OrionPathFollowingComponent.h"
 
 AOrionAIController::AOrionAIController(const FObjectInitializer& ObjectInitializer)
@@ -24,6 +26,20 @@ void AOrionAIController::Possess(APawn* aPawn)
 
 	if (Cast<UOrionPathFollowingComponent>(GetPathFollowingComponent()))
 		Cast<UOrionPathFollowingComponent>(GetPathFollowingComponent())->Controller = this;
+
+	AOrionDinoPawn *DinoPawn = Cast<AOrionDinoPawn>(aPawn);
+	AOrionDroidPawn *DroidPawn = Cast<AOrionDroidPawn>(aPawn);
+
+	if (DinoPawn)
+	{
+		bIsElite = DinoPawn->bIsElite;
+		AIName = DinoPawn->DinoName;
+	}
+	else if (DroidPawn)
+	{
+		bIsElite = DroidPawn->bIsElite;
+		AIName = DroidPawn->DroidName;
+	}
 }
 
 void AOrionAIController::FindFlightPath(FVector Destination)
@@ -321,7 +337,7 @@ void AOrionAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn
 	// Look toward focus
 	FVector FocalPoint = GetFocalPoint();
 
-	if (!FocalPoint.IsZero() && GetPawn())
+	if (!FocalPoint.IsZero() && GetPawn() && GetPawn()->GetVelocity().SizeSquared2D() > 10.0f)
 	{
 		FVector Direction = FocalPoint - GetPawn()->GetActorLocation();
 		
@@ -372,6 +388,8 @@ void AOrionAIController::SetEnemy(APawn *pEnemy)
 		return;
 	}
 
+	LastEnemyTime = GetWorld()->GetTimeSeconds();
+
 	//for now we'll force the ai to enter a run state when we have an enemy
 	if (Cast<AOrionCharacter>(GetPawn()))
 		Cast<AOrionCharacter>(GetPawn())->bRun = true;
@@ -404,6 +422,13 @@ void AOrionAIController::CheckEnemyStatus()
 
 	if (pEnemy && pPawn)
 	{
+		//don't lose our enemy if we're in the middle of finishing them off
+		if (pPawn->bFinishingMove)
+			return;
+
+		//ignore pawns getting fatalitied
+		if (pEnemy->bFatality)
+			bRemoveEnemy = true;
 		//can't see cloaked assholes
 		if (pEnemy->CurrentSkill && pEnemy->CurrentSkill->IsCloaking())
 			bRemoveEnemy = true;
@@ -421,8 +446,12 @@ void AOrionAIController::CheckEnemyStatus()
 
 void AOrionAIController::RemoveEnemy()
 {
-	if (Cast<AOrionCharacter>(GetPawn()))
-		Cast<AOrionCharacter>(GetPawn())->bRun = false;
+	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
+	if (P)
+	{
+		P->bRun = false;
+		P->bFinishingMove = false;
+	}
 
 	myEnemy = nullptr;
 
@@ -495,8 +524,12 @@ void AOrionAIController::OnHearNoise(APawn *HeardPawn, const FVector &Location, 
 
 void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 {
+	//if we see our current enemy
+	if (SeenPawn == GetEnemy())
+		return;
+
 	//if we already have an enemy, just ignore for now
-	if (GetEnemy())
+	if (GetEnemy() && GetWorld()->GetTimeSeconds() - LastEnemyTime < 5.0f)
 		return;
 
 	//for now just ignore other bots and go straight for humans
@@ -507,10 +540,23 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 	if (Cast<AOrionShipPawn>(SeenPawn))
 		return;
 
+	//if we have an enemy already, only attack if this target is a better choice
+	if (myEnemy && myEnemy->IsValidLowLevel())
+	{
+		float dist1 = (SeenPawn->GetActorLocation() - GetPawn()->GetActorLocation()).SizeSquared2D();
+		float dist2 = (myEnemy->GetActorLocation() - GetPawn()->GetActorLocation()).SizeSquared2D();
+
+		if (dist2 < dist1)
+			return;
+	}
+
 	AOrionCharacter *pPawn = Cast<AOrionCharacter>(SeenPawn);
 
 	if (pPawn)
 	{
+		if (pPawn->bFatality)
+			return;
+
 		//if we're inside a blocking volume like smoke, ignore things we see
 		if (pPawn->bIsHiddenFromView)
 			return;

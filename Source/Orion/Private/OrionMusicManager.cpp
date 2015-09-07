@@ -96,18 +96,38 @@ void AOrionMusicManager::TickMusic()
 		switch (Type)
 		{
 		case MUSIC_GAMEPLAY:
-		case MUSIC_MISSION:
-		case MUSIC_BOSS:
 			SoundWave = GameplayMusic;
 			VolumeMultiplier = 1.0f;
 			break;
 
+		case MUSIC_MISSION:
+			SoundWave = MissionMusic;
+			VolumeMultiplier = 1.0f;
+			break;
+
+		case MUSIC_BOSS:
+			SoundWave = BossMusic;
+			VolumeMultiplier = 1.0f;
+			break;
+
 		case MUSIC_AMBIENT:
-		case MUSIC_CREDITS:
-		case MUSIC_LOADING:
-		case MUSIC_MENU:
 			SoundWave = AmbientMusic;
-			VolumeMultiplier = 0.1f;
+			VolumeMultiplier = 1.0f;
+			break;
+
+		case MUSIC_CREDITS:
+			SoundWave = CreditsMusic;
+			VolumeMultiplier = 1.0f;
+			break;
+
+		case MUSIC_LOADING:
+			SoundWave = LoadingMusic;
+			VolumeMultiplier = 1.0f;
+			break;
+
+		case MUSIC_MENU:
+			SoundWave = MenuMusic;
+			VolumeMultiplier = 1.0f;
 			break;
 		}
 

@@ -37,4 +37,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = Orion)
 		bool bIgnoreModify;
+
+	UPROPERTY(EditDefaultsOnly, Category = Orion)
+		bool bGibAll;
 };

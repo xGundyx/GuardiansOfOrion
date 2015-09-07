@@ -10,12 +10,17 @@
 #include "OrionGameUserSettings.h"
 #include "OrionGameSettingsManager.h"
 #include "OrionSpectatorPawn.h"
+#include "OrionGameInstance.h"
+#include "AudioDevice.h"
+#include "Animation/SkeletalMeshActor.h"
 //#include "ClientConnector.h"
 #include "OrionInventoryItem.h"
 #include "OrionPRI.h"
 #include "OrionGameMode.h"
 #include "PhotonProxy.h"
 #include "PlayFabRequestProxy.h"
+
+class AOrionDinoPawn;
 
 AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -75,6 +80,10 @@ void AOrionPlayerController::SetupInputComponent()
 	Super::SetupInputComponent();
 
 	InputComponent->BindAction("OpenInventory", IE_Pressed, this, &AOrionPlayerController::OpenInventory);
+
+	//voice chat
+	InputComponent->BindAction("StartVoiceChat", IE_Pressed, this, &APlayerController::StartTalking);
+	InputComponent->BindAction("StartVoiceChat", IE_Released, this, &APlayerController::StopTalking);
 }
 
 //tell the blueprint to open the inventory
@@ -85,26 +94,40 @@ void AOrionPlayerController::OpenInventory()
 
 void AOrionPlayerController::PreClientTravel(const FString& PendingURL, ETravelType TravelType, bool bIsSeamlessTravel)
 {
-	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+	UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetGameInstance());
 
 	//add our playfab credentials to the url so the server can verify us
 	FString newURL;
-	if (PRI)
-		newURL = FString::Printf(TEXT("%s?PlayFabID=%s?PlayFabSession=%s"), *PendingURL, *PRI->PlayFabID,* PRI->SessionTicket);
+	if (GI)
+		newURL = FString::Printf(TEXT("%s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s"), *PendingURL, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName);
 
 	UE_LOG(LogPath, Log, TEXT("GundyTravel: %s"), *newURL);
 
 	Super::PreClientTravel(newURL, TravelType, bIsSeamlessTravel);
 }
 
-void AOrionPlayerController::ConnectToIP(FString IP)
+void AOrionPlayerController::StartSoloMap(FString MapName)
 {
-	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+	UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetGameInstance());
 
 	//add our playfab credentials to the url so the server can verify us
 	FString newURL;
-	if (PRI)
-		newURL = FString::Printf(TEXT("open %s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s"), *IP, *PRI->PlayFabID, *PRI->SessionTicket, *PRI->CharacterID, *PRI->PlayFabName);
+
+	if (GI)
+		newURL = FString::Printf(TEXT("open %s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s"), *MapName, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName);
+
+	ConsoleCommand(newURL, true);
+}
+
+void AOrionPlayerController::ConnectToIP(FString IP)
+{
+	UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetGameInstance());
+
+	//add our playfab credentials to the url so the server can verify us
+	FString newURL;
+
+	if (GI)
+		newURL = FString::Printf(TEXT("open %s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s"), *IP, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName);
 
 	UE_LOG(LogTemp, Log, TEXT("GundyReallyTravel: %s"), *newURL);
 
@@ -207,6 +230,9 @@ void AOrionPlayerController::PostInitializeComponents()
 
 	//create our quests
 	InitQuestManager();
+
+	//read in our stats and achievements
+	InitStatsAndAchievements();
 }
 
 void AOrionPlayerController::SetDropPod(AOrionDropPod *Pod)
@@ -283,6 +309,34 @@ void AOrionPlayerController::ChangeCamera(int32 TeamIndex)
 
 	if (MyPawn)
 		MyPawn->CameraIndex = TeamIndex;
+}
+
+void AOrionPlayerController::ClientSetAuthed_Implementation(bool bAuthed)
+{
+	bAuthenticated = bAuthed;
+}
+
+void AOrionPlayerController::ServerSetWeather_Implementation(int32 index)
+{
+	if (GetWorld())
+	{
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+		if (GRI && GRI->Weather)
+		{
+			switch (index)
+			{
+			case 0:
+				GRI->Weather->PerfectDay();
+				break;
+			case 1:
+				GRI->Weather->HeavyRain();
+				break;
+			case 2:
+				GRI->Weather->ClearNight();
+				break;
+			}
+		}
+	}
 }
 
 void AOrionPlayerController::Possess(APawn* aPawn)
@@ -417,6 +471,15 @@ void AOrionPlayerController::ServerTick()
 	}
 }
 
+void AOrionPlayerController::ClientSetDeathSpectate_Implementation(APawn *DeadPawn)
+{
+	Ragdoll = Cast<AOrionCharacter>(DeadPawn);
+
+	PlayerState->bIsSpectator = true;
+	bPlayerIsWaiting = true;
+	ChangeState(NAME_Spectating);
+}
+
 //only gets called on the local controller
 void AOrionPlayerController::PlayerTick(float DeltaTime)
 {
@@ -490,6 +553,12 @@ void AOrionPlayerController::ShowWeapons()
 
 void AOrionPlayerController::PerfectDay()
 {
+	if (Role < ROLE_Authority)
+	{
+		ServerSetWeather(0);
+		return;
+	}
+
 	if (GetWorld())
 	{
 		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
@@ -500,6 +569,13 @@ void AOrionPlayerController::PerfectDay()
 
 void AOrionPlayerController::HeavyRain()
 {
+	if (Role < ROLE_Authority)
+	{
+		ServerSetWeather(1);
+		return;
+	}
+
+
 	if (GetWorld())
 	{
 		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
@@ -510,6 +586,12 @@ void AOrionPlayerController::HeavyRain()
 
 void AOrionPlayerController::ClearNight()
 {
+	if (Role < ROLE_Authority)
+	{
+		ServerSetWeather(2);
+		return;
+	}
+
 	if (GetWorld())
 	{
 		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
@@ -678,6 +760,69 @@ bool AOrionPlayerController::CreateAndGiveInventoryItem(TSharedPtr<FJsonObject> 
 	}
 
 	return false;
+}
+
+void AOrionPlayerController::SpawnSkeletalActor(FName Type, int32 Index)
+{
+	for (int32 i = 0; i < AnimationTests.Num(); i++)
+	{
+		if (AnimationTests[i].Type == Type)
+		{
+			if (AnimationTests[i].Animations.Num() <= Index)
+				return;
+
+			FActorSpawnParameters SpawnInfo;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			SpawnInfo.Owner = this;
+
+			if (TestActor)
+			{
+				TestActor->Destroy();
+				TestActor = nullptr;
+			}
+
+			FVector pos;
+			FRotator rot;
+
+			AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
+
+			if (P)
+			{
+				pos = P->GetActorLocation() + P->GetActorRotation().Vector() * 1500.0f;
+				rot = (pos - P->GetActorLocation()).Rotation();
+			}
+			else if(PlayerCameraManager)
+			{
+				PlayerCameraManager->GetCameraViewPoint(pos, rot);
+				pos = pos + rot.Vector() * 1500.0f;
+			}
+
+			rot.Pitch = 0.0f;
+			rot.Roll = 0.0f;
+
+			//try to slap pos to the ground
+			FCollisionQueryParams TraceParams("Feet", false, this);
+			TraceParams.bTraceAsyncScene = false;
+			TraceParams.bReturnPhysicalMaterial = false;
+
+			FHitResult Hit;
+
+			if (GetWorld()->SweepSingleByChannel(Hit, pos + FVector(0.0f, 0.0f, 100.0f), pos - FVector(0.0f, 0.0f, 1250.0f), FQuat::Identity, ECC_Visibility, FCollisionShape::MakeSphere(10.0f), TraceParams))
+			{
+				pos = Hit.ImpactPoint;
+			}
+
+			TestActor = GetWorld()->SpawnActor<ASkeletalMeshActor>(ASkeletalMeshActor::StaticClass(), pos, rot, SpawnInfo);
+
+			if (TestActor && TestActor->GetSkeletalMeshComponent())
+			{
+				TestActor->GetSkeletalMeshComponent()->SetSkeletalMesh(AnimationTests[i].Mesh);
+				TestActor->GetSkeletalMeshComponent()->PlayAnimation(AnimationTests[i].Animations[Index], true);
+			}
+
+			return;
+		}
+	}
 }
 
 //this version is for the actual in game inventory, server version
@@ -891,19 +1036,43 @@ TArray<FOptionsValueData> AOrionPlayerController::GetSoundOptions()
 	NewOption.Value = 1.0f;
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("WEAPONS");
+	NewOption.Title = TEXT("WEAPON");
 	NewOption.Value = 1.0f;
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("CREATURES/DINOS");
+	NewOption.Title = TEXT("CREATURE");
 	NewOption.Value = 1.0f;
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("VOICES");
+	NewOption.Title = TEXT("VOICE");
+	NewOption.Value = 1.0f;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("DIALOGUE");
 	NewOption.Value = 1.0f;
 	Options.Add(NewOption);
 
 	return Options;
+}
+
+void AOrionPlayerController::SaveSoundOptions(FString ClassName, float Volume)
+{
+	FAudioDevice* Device = GEngine->GetMainAudioDevice();
+	if (!Device)
+	{
+		return;
+	}
+
+	for (TMap<USoundClass*, FSoundClassProperties>::TIterator It(Device->SoundClasses); It; ++It)
+	{
+		USoundClass* SoundClass = It.Key();
+
+		if (SoundClass && SoundClass->GetFullName().Find(ClassName) != INDEX_NONE)
+		{
+			SoundClass->Properties.Volume = Volume;
+			return;
+		}
+	}
 }
 
 TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
@@ -927,16 +1096,16 @@ TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("MoveRight", true, 1.0f);
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("JUMP");
-	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Jump", false, 0.0f);
+	NewOption.Title = TEXT("ROLL");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Roll", false, 0.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("SPRINT");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Run", false, 0.0f);
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("ROLL/BLINK");
-	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Duck", false, 0.0f);
+	NewOption.Title = TEXT("BLINK");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Blink", false, 0.0f);
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("USE");
@@ -1003,6 +1172,10 @@ TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("PrevWeapon", false, 0.0f);
 	Options.Add(NewOption);
 
+	NewOption.Title = TEXT("VOICE");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("StartVoiceChat", false, 0.0f);
+	Options.Add(NewOption);
+
 	return Options;
 }
 
@@ -1051,16 +1224,16 @@ TArray<FControllerOptionsData> AOrionPlayerController::GetControllerOptions()
 	TArray<FControllerOptionsData> Options;
 	FControllerOptionsData NewOption;
 
-	NewOption.Title = TEXT("JUMP");
-	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Jump", false, 0.0f));
+	NewOption.Title = TEXT("ROLL");
+	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Roll", false, 0.0f));
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("SPRINT");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Run", false, 0.0f));
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("CROUCH/ROLL");
-	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Duck", false, 0.0f));
+	NewOption.Title = TEXT("BLINK");
+	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Blink", false, 0.0f));
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("RELOAD/USE");
@@ -1291,8 +1464,37 @@ void AOrionPlayerController::GetDefaultInventory()
 
 void AOrionPlayerController::InitStatsAndAchievements()
 {
-	//Stats = NewObject<UOrionStats>(this, UOrionStats::StaticClass());
-	//Achievements = NewObject<UOrionAchievements>(this, UOrionAchievements::StaticClass());
+	if (StatsClass)
+	{
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		SpawnInfo.Owner = this;
+
+		Stats = GetWorld()->SpawnActor<AOrionStats>(StatsClass, SpawnInfo);
+
+		if (Stats)
+			Stats->ReadPlayerStats(this);
+	}
+}
+
+void AOrionPlayerController::IceAge()
+{
+	ServerIceAge();
+}
+
+void AOrionPlayerController::ServerIceAge_Implementation()
+{
+	TArray<AActor*> Dinos;
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionDinoPawn::StaticClass(), Dinos);
+
+	for (int32 i = 0; i < Dinos.Num(); i++)
+	{
+		AOrionDinoPawn *Dino = Cast<AOrionDinoPawn>(Dinos[i]);
+		if (Dino)
+		{
+			Dino->Die(500000.0f, FDamageEvent::FDamageEvent(), nullptr, Dino);
+		}
+	}
 }
 
 void AOrionPlayerController::ReadStats()
@@ -1308,35 +1510,6 @@ void AOrionPlayerController::SaveStats()
 #if IS_SERVER
 	Stats->FlushPlayerStats(this);
 #endif
-}
-
-void AOrionPlayerController::IncreaseStatValue(FStatID id, int32 iAmount, int32 fAmount)
-{
-	if (!Stats || Role != ROLE_Authority)
-		return;
-
-	int32 i = int32(id) - 1;
-
-	if (Stats->aStats[i].StatType == STATTYPE_INT)
-		Stats->aStats[i].StatValueInt += iAmount;
-	else if (Stats->aStats[i].StatType == STATTYPE_FLOAT)
-		Stats->aStats[i].StatValueFloat += iAmount;
-
-	//for testing purposes only, save here
-	SaveStats();
-}
-
-void AOrionPlayerController::SetStatValue(FStatID id, int32 iAmount, int32 fAmount)
-{
-	if (!Stats || Role != ROLE_Authority)
-		return;
-
-	int32 i = int32(id) - 1;
-
-	if (Stats->aStats[i].StatType == STATTYPE_INT)
-		Stats->aStats[i].StatValueInt = iAmount;
-	else if (Stats->aStats[i].StatType == STATTYPE_FLOAT)
-		Stats->aStats[i].StatValueFloat = iAmount;
 }
 
 void AOrionPlayerController::InitQuestManager()

@@ -166,12 +166,12 @@ void UOrionPathFollowingComponent::FollowPathSegment(float DeltaTime)
 
 bool UOrionPathFollowingComponent::HandleRotation()
 {
-	return false;
+	//return false;
 
 	if (Controller && Controller->GetPawn())
 	{
 		AOrionDinoPawn *Pawn = Cast<AOrionDinoPawn>(Controller->GetPawn());
-		if (Pawn && Pawn->TurnLeft90Animation)
+		if (Pawn && Pawn->TurnLeft90Animation && Pawn->bIsBigDino)
 		{
 			const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
 			const FVector CurrentTarget = GetCurrentTargetLocation();
@@ -180,13 +180,21 @@ bool UOrionPathFollowingComponent::HandleRotation()
 
 			float DotResult = FVector::DotProduct((CurrentTarget - CurrentLocation).GetSafeNormal(), CurrentDirection.GetSafeNormal());
 
-			if (DotResult < 0.707)
+			FWeaponAnim Anim;
+			Anim.Pawn3P = Pawn->TurnLeft90Animation;
+
+			if (DotResult < 0.25)
 			{
+				FVector CurrentDirection2 = Pawn->GetActorRightVector();
+
+				float DotResult2 = FVector::DotProduct((CurrentTarget - CurrentLocation).GetSafeNormal(), CurrentDirection2.GetSafeNormal());
+
+				if (DotResult2 > 0.1)
+					Anim.Pawn3P = Pawn->TurnRight90Animation;
+
 				MovementComp->Velocity = FVector(0, 0, 0);
 				if (Pawn->GetCurrentMontage() == nullptr)
 				{
-					FWeaponAnim Anim;
-					Anim.Pawn3P = Pawn->TurnLeft90Animation;
 					float Len = Pawn->OrionPlayAnimMontage(Anim);
 
 					//if (!Pawn->GetWorld()->GetTimerManager().IsTimerActive(RotationTimer))

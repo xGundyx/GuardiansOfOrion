@@ -7,6 +7,8 @@
 #include "OrionCharacter.h"
 #include "OrionPRI.h"
 #include "OrionGRI.h"
+#include "OrionStats.h"
+#include "OrionAIController.h"
 #include "OrionPickupOrb.h"
 
 AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
@@ -170,11 +172,7 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 {
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Killer);
 
-	if (PC)
-	{
-		//make sure to update this player's stats
-		//PC->IncreaseStatValue(STAT_RAPTORKILL, 1, 0.0f);
-	}
+	HandleStats(Killer, KilledPlayer, KilledPawn, DamageType);
 	
 	if (PC)
 	{
@@ -184,6 +182,105 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 
 		//award some experience to the team
 		PC->ClientAddXPNumber(FMath::RandRange(15, 50), KilledPawn->GetActorLocation());
+	}
+}
+
+EStatID AOrionGameMode::GetStatID(AController *KilledController, bool bVictim)
+{
+	AOrionAIController *AI = Cast<AOrionAIController>(KilledController);
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(KilledController);
+
+	if (AI)
+	{
+		if (AI->AIName == TEXT("Raptor"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITERAPTORDEATH : STAT_RAPTORDEATH) : (AI->bIsElite ? STAT_ELITERAPTORKILL : STAT_RAPTORKILL);
+		else if (AI->AIName == TEXT("Compy"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITECOMPYDEATH : STAT_COMPYDEATH) : (AI->bIsElite ? STAT_ELITECOMPYKILL : STAT_COMPYKILL);
+		else if (AI->AIName == TEXT("Dilo"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITEDILODEATH : STAT_DILODEATH) : (AI->bIsElite ? STAT_ELITEDILOKILL : STAT_DILOKILL);
+		else if (AI->AIName == TEXT("Rham"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITERHAMDEATH : STAT_RHAMDEATH) : (AI->bIsElite ? STAT_ELITERHAMKILL : STAT_RHAMKILL);
+		else if (AI->AIName == TEXT("Ptera"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITEPTERADEATH : STAT_PTERADEATH) : (AI->bIsElite ? STAT_ELITEPTERAKILL : STAT_PTERAKILL);
+		else if (AI->AIName == TEXT("Trike"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITETRIKEDEATH : STAT_TRIKEDEATH) : (AI->bIsElite ? STAT_ELITETRIKEKILL : STAT_TRIKEKILL);
+		else if (AI->AIName == TEXT("Steggo"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITESTEGDEATH : STAT_STEGDEATH) : (AI->bIsElite ? STAT_ELITESTEGKILL : STAT_STEGKILL);
+		else if (AI->AIName == TEXT("Anky"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITEANKYDEATH : STAT_ANKYDEATH) : (AI->bIsElite ? STAT_ELITEANKYKILL : STAT_ANKYKILL);
+		else if (AI->AIName == TEXT("Allo"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITEALLODEATH : STAT_ALLODEATH) : (AI->bIsElite ? STAT_ELITEALLOKILL : STAT_ALLOKILL);
+		else if (AI->AIName == TEXT("Para"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITEPARADEATH : STAT_PARADEATH) : (AI->bIsElite ? STAT_ELITEPARAKILL : STAT_PARAKILL);
+		else if (AI->AIName == TEXT("TRex"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITETREXDEATH : STAT_TREXDEATH) : (AI->bIsElite ? STAT_ELITETREXKILL : STAT_TREXKILL);
+		else if (AI->AIName == TEXT("Jeckyl"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITEJECKYLDEATH : STAT_JECKYLDEATH) : (AI->bIsElite ? STAT_ELITEJECKYLKILL : STAT_JECKYLKILL);
+		else if (AI->AIName == TEXT("Kruger"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITEKRUGERDEATH : STAT_KRUGERDEATH) : (AI->bIsElite ? STAT_ELITEKRUGERKILL : STAT_KRUGERKILL);
+		else if (AI->AIName == TEXT("Namor"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITENAMORDEATH : STAT_NAMORDEATH) : (AI->bIsElite ? STAT_ELITENAMORKILL : STAT_NAMORKILL);
+		else if (AI->AIName == TEXT("Viper"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITEVIPERDEATH : STAT_VIPERDEATH) : (AI->bIsElite ? STAT_ELITEVIPERKILL : STAT_VIPERKILL);
+		else if (AI->AIName == TEXT("Bones"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITEBONESDEATH : STAT_BONESDEATH) : (AI->bIsElite ? STAT_ELITEBONESKILL : STAT_BONESKILL);
+		else if (AI->AIName == TEXT("Orb"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITEORBDEATH : STAT_ORBDEATH) : (AI->bIsElite ? STAT_ELITEORBKILL : STAT_ORBKILL);
+		else if (AI->AIName == TEXT("Grumps"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITEGRUMPSDEATH : STAT_GRUMPSDEATH) : (AI->bIsElite ? STAT_ELITEGRUMPSKILL : STAT_GRUMPSKILL);
+		else if (AI->AIName == TEXT("Spider"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITESPIDERDEATH : STAT_SPIDERDEATH) : (AI->bIsElite ? STAT_ELITESPIDERKILL : STAT_SPIDERKILL);
+		else if (AI->AIName == TEXT("Assault"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITEASSAULTDEATH : STAT_ASSAULTDEATH) : (AI->bIsElite ? STAT_ELITEASSAULTKILL : STAT_ASSAULTKILL);
+		else if (AI->AIName == TEXT("Support"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITESUPPORTDEATH : STAT_SUPPORTDEATH) : (AI->bIsElite ? STAT_ELITESUPPORTKILL : STAT_SUPPORTKILL);
+		else if (AI->AIName == TEXT("Recon"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITERECONDEATH : STAT_RECONDEATH) : (AI->bIsElite ? STAT_ELITERECONKILL : STAT_RECONKILL);
+	}
+
+	return STAT_ERROR;
+}
+
+void AOrionGameMode::SaveAllUsersStats()
+{
+	TArray<AActor*> Controllers;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controllers[i]);
+		if (PC)
+			PC->GetStats()->FlushPlayerStats(PC);
+	}
+}
+
+void AOrionGameMode::HandleStats(AController* Killer, AController* KilledPlayer, APawn* KilledPawn, const UDamageType* DamageType)
+{
+	AOrionPlayerController *KillerPC = Cast<AOrionPlayerController>(Killer);
+	AOrionPlayerController *KilledPC = Cast<AOrionPlayerController>(KilledPlayer);
+
+	EStatID KilledStatID = GetStatID(KilledPlayer, false);
+	EStatID KillerStatID = GetStatID(Killer, true);
+
+	if (KillerPC)
+	{
+		AOrionStats *Stats = KillerPC->GetStats();
+
+		if (Stats)
+		{
+			Stats->AddStatValue(KilledStatID, 1);
+		}
+	}
+
+	if (KilledPC)
+	{
+		AOrionStats *Stats = KilledPC->GetStats();
+
+		if (Stats)
+		{
+			Stats->AddStatValue(KillerStatID, 1);
+		}
 	}
 }
 
@@ -308,6 +405,8 @@ void AOrionGameMode::SetInitialTeam(APlayerController *PC)
 
 void AOrionGameMode::Logout(AController* Exiting)
 {
+	SaveAllUsersStats();
+
 	Super::Logout(Exiting);
 
 	//update playerlist

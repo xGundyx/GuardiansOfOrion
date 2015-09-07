@@ -28,6 +28,9 @@ public:
 
 	void HandleSpecialWeaponFire(FName SocketName);
 	virtual FVector2D GetAim(float DeltaTime) override;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Eco)
+		FName DroidName;
 	
 private:
 	float FinsRotation;

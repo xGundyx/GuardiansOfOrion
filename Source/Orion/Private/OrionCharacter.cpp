@@ -70,7 +70,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 	GetMesh()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	GetMesh()->StreamingDistanceMultiplier = 10.0f;
-	GetMesh()->LDMaxDrawDistance = 7500.0f;
+	GetMesh()->LDMaxDrawDistance = 12500.0f;
 
 	//InvokerComponent = ObjectInitializer.CreateOptionalDefaultSubobject<UNavigationInvokerComponent>(this, TEXT("NavInvoker"));
 	//InvokerComponent->bAutoActivate = true;
@@ -846,6 +846,10 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, BlinkPos);
 	DOREPLIFETIME(AOrionCharacter, Level);
 
+	DOREPLIFETIME(AOrionCharacter, bFatality);
+	DOREPLIFETIME(AOrionCharacter, FatalityAnim);
+	DOREPLIFETIME(AOrionCharacter, GibCenter);
+
 	DOREPLIFETIME_CONDITION(AOrionCharacter, CameraShip, COND_OwnerOnly);
 
 	DOREPLIFETIME_CONDITION(AOrionCharacter, LastTakeHitInfo, COND_Custom);
@@ -1074,6 +1078,38 @@ void AOrionCharacter::PostInitializeComponents()
 	UpdatePlayerRingColor();
 }
 
+void AOrionCharacter::OnRep_GibAll()
+{
+	GibAll(GibCenter);
+}
+
+void AOrionCharacter::GibAll(FVector Center)
+{
+	for (int32 i = 0; i < Gibs.Num(); i++)
+	{
+		if (Gibs[i].bActivated)
+			continue;
+
+		AOrionGib *Gib = Cast<AOrionGib>(Gibs[i].Gib.GetDefaultObject());
+
+		if (Gib && Gib->Mesh)
+		{
+			//TargetBone = GetMesh()->GetSocketBoneName(Gib->SocketName);
+			FVector loc = GetMesh()->GetSocketLocation(Gib->SocketName);
+
+			FVector vel = (loc - Center).GetSafeNormal() * FMath::FRandRange(500.0, 1500.0f);
+			//do gib action
+			FVector pos;
+			FRotator rot;
+			GetMesh()->GetSocketWorldLocationAndRotation(Gib->SocketName, pos, rot);
+			SpawnGibs(i, pos, rot, vel);
+		}
+	}
+
+	if (Role == ROLE_Authority)
+		GibCenter = Center;
+}
+
 void AOrionCharacter::HandleGibs(float damage, FDamageEvent const& DamageEvent)
 {
 	const FPointDamageEvent *RealEvent = (FPointDamageEvent*)&DamageEvent;
@@ -1280,12 +1316,18 @@ bool AOrionCharacter::IsOvercharging() const
 
 float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser)
 {
-	//AOrionPlayerController* MyPC = Cast<AOrionPlayerController>(Controller);
+	UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject());
 
 	if (Health <= 0.f)
 	{
+		if (DamageType && DamageType->bGibAll)
+		{
+			const FPointDamageEvent *RealEvent = (FPointDamageEvent*)&DamageEvent;
+			GibAll(RealEvent->HitInfo.ImpactPoint);
+		}
 		//see if we want to blow some body pieces off
-		HandleGibs(Damage, DamageEvent);
+		else
+			HandleGibs(Damage, DamageEvent);
 
 		return 0.f;
 	}
@@ -1299,12 +1341,10 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	// Modify based on game rules.
 	AOrionGameMode* const Game = GetWorld()->GetAuthGameMode<AOrionGameMode>();
 
-	if (!Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject()) || !Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject())->bIgnoreModify)
+	if (!DamageType || !DamageType->bIgnoreModify)
 		Damage = Game ? Game->ModifyDamage(Damage, this, DamageEvent, EventInstigator, DamageCauser) : 0.f;
 
-	UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject());
-
-	if (DamageType && DamageType->bKnockBack)
+	if (DamageType && DamageType->bKnockBack && (!CurrentSkill || !CurrentSkill->IsJetpacking()))
 	{
 		//ignore damage to self
 		if (EventInstigator != Controller && GetMovementComponent())
@@ -1354,12 +1394,22 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 			}
 		}
 
+		//don't let dinos die while doing a fatality
+		if (bFinishingMove)
+			Health = FMath::Max(1.0f, Health);
+
 		if (Health <= 0)
 		{
 			Die(ActualDamage, DamageEvent, EventInstigator, DamageCauser);
 
+			if (DamageType && DamageType->bGibAll)
+			{
+				const FPointDamageEvent *RealEvent = (FPointDamageEvent*)&DamageEvent;
+				GibAll(RealEvent->HitInfo.ImpactPoint);
+			}
 			//see if we want to blow some body pieces off
-			HandleGibs(Damage, DamageEvent);
+			else
+				HandleGibs(Damage, DamageEvent);
 		}
 		else
 		{
@@ -1605,8 +1655,15 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
-	if (PC)
-		PC->Ragdoll = this;
+	if (PC)// && PC->IsLocalPlayerController())
+	{
+		PC->PlayerState->bIsSpectator = true;
+		PC->bPlayerIsWaiting = true;
+		PC->ChangeState(NAME_Spectating);
+
+		if (!PC->IsLocalPlayerController())
+			PC->ClientSetDeathSpectate(bFatality? nullptr : this);
+	}
 
 	// switch back to 3rd person view
 	UpdatePawnMeshes();
@@ -1623,6 +1680,13 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	{
 	RunLoopAC->Stop();
 	}*/
+
+	//remove us completely if we got eaten
+	if (bFatality)
+	{
+		Destroy();
+		return;
+	}
 
 	// disable collisions on capsule
 	GetCapsuleComponent()->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -2148,6 +2212,60 @@ void AOrionCharacter::AddBuff(TSubclassOf<AOrionBuff> BuffClass, AController *cO
 	}
 }
 
+void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAnim, AOrionCharacter *TheVictim)
+{
+	if (Role == ROLE_Authority)
+	{
+		FatalityAnim.AttackerAnim = Anim;
+		FatalityAnim.VictimAnim = EnemyAnim;
+		FatalityAnim.Victim = TheVictim;
+		FatalityAnim.bToggle = !FatalityAnim.bToggle;
+
+		//make the victim lose control over themselves
+		if (TheVictim)
+			TheVictim->bFatality = true;
+	}
+
+	bFinishingMove = true;
+
+	//attach the victim to the attacker for now
+	if (TheVictim)
+	{
+		FWeaponAnim vAnim;
+		vAnim.Pawn3P = EnemyAnim;
+
+		TheVictim->OrionPlayAnimMontage(vAnim, 1.0f, TEXT(""), false, false, true);
+
+		TheVictim->GetMesh()->AttachTo(GetMesh(), "Swallow");
+
+		//hide weapon
+		if (TheVictim->CurrentWeapon)
+			TheVictim->CurrentWeapon->SetActorHiddenInGame(true);
+
+		//remove outline if needed
+		TheVictim->GetMesh()->SetRenderCustomDepth(false);
+		TheVictim->BodyMesh->SetRenderCustomDepth(false);
+		TheVictim->HelmetMesh->SetRenderCustomDepth(false);
+		TheVictim->ArmsMesh->SetRenderCustomDepth(false);
+		TheVictim->LegsMesh->SetRenderCustomDepth(false);
+		TheVictim->Flight1Mesh->SetRenderCustomDepth(false);
+		TheVictim->Flight2Mesh->SetRenderCustomDepth(false);
+
+		TheVictim->Finisher = this;
+	}
+
+	FWeaponAnim aAnim;
+	aAnim.Pawn3P = Anim;
+
+	OrionPlayAnimMontage(aAnim, 1.0f, TEXT(""), false, false, true);
+}
+
+void AOrionCharacter::OnRep_Fatality()
+{
+	//play the animations on both us and the victim
+	PerformFatality(FatalityAnim.AttackerAnim, FatalityAnim.VictimAnim, FatalityAnim.Victim);
+}
+
 void AOrionCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
@@ -2330,7 +2448,7 @@ void AOrionCharacter::ActuallyTossGrenade(FVector dir)
 
 	if (Role == ROLE_Authority)
 	{
-		GrenadeCooldown = 5.0f;
+		GrenadeCooldown = 20.0f;
 
 		if (GrenadeClass)
 		{
@@ -2500,7 +2618,7 @@ void AOrionCharacter::BehindView()
 
 bool AOrionCharacter::ShouldIgnoreControls()
 {
-	return IsRolling() || bBlinking || bShoulderCamera || bShipCamera;
+	return IsRolling() || bBlinking || bShoulderCamera || bShipCamera || bFatality || bFinishingMove;
 }
 
 void AOrionCharacter::Duck()
@@ -2800,9 +2918,6 @@ void AOrionCharacter::ServerDoRoll_Implementation(ERollDir rDir, FRotator rRot)
 
 void AOrionCharacter::DoRoll()
 {
-	//remove roll for now
-	//return;
-
 	if (GetWorldTimerManager().IsTimerActive(RollTimer2))
 		return;
 
@@ -2829,6 +2944,7 @@ void AOrionCharacter::DoRoll()
 			}
 
 			//prevent upper body from doing wacky things
+			OnStopFire();
 			StopAllAnimMontages();
 
 			FVector AimDirWS = GetVelocity();
@@ -2960,6 +3076,16 @@ void AOrionCharacter::EndRoll()
 	
 	bRolling = false;
 	TargetYaw = 0.0f;
+}
+
+void AOrionCharacter::GamepadSprint()
+{
+	bRun = !bRun;
+
+	if (bRun)
+		Sprint();
+	else
+		StopSprint();
 }
 
 void AOrionCharacter::Sprint()

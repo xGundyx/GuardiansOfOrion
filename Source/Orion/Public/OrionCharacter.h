@@ -156,6 +156,24 @@ struct FCharacterStats
 };
 
 USTRUCT(BlueprintType)
+struct FFatalityAnim
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		UAnimMontage* AttackerAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		UAnimMontage* VictimAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		AOrionCharacter *Victim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		bool bToggle;
+};
+
+USTRUCT(BlueprintType)
 struct FWeaponAnim
 {
 	GENERATED_USTRUCT_BODY()
@@ -497,6 +515,23 @@ public:
 		UMaterialInstanceDynamic *RingMat;
 
 	void UpdatePlayerRingColor();
+
+	UFUNCTION(BlueprintCallable, Category = AI)
+		void PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAnim, AOrionCharacter *TheVictim);
+
+	UFUNCTION()
+		void OnRep_Fatality();
+
+	UPROPERTY(ReplicatedUsing = OnRep_Fatality)
+		FFatalityAnim FatalityAnim;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Fatality)
+		bool bFatality;
+
+	bool bFinishingMove;
+
+	//pointer to the enemy that is finishing us (mainly for camera work)
+	AOrionCharacter *Finisher;
 
 	//modular pieces
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
@@ -858,6 +893,14 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gibs)
 		TArray<FGibHelper> Gibs;
 
+	UFUNCTION()
+		void OnRep_GibAll();
+
+	void GibAll(FVector Center);
+
+	UPROPERTY(ReplicatedUsing = OnRep_GibAll)
+		FVector GibCenter;
+
 	void HandleGibs(float damage, FDamageEvent const& DamageEvent);
 
 	//UFUNCTION(unreliable, client, Category = Gibs)
@@ -1026,12 +1069,16 @@ public:
 	void UnDuck();
 	void StopDucking();
 
+	void GamepadSprint();
 	void Sprint();
 	void StopSprint();
 
 	void Reload();
 
 	void BehindView();
+
+	UPROPERTY(BlueprintReadOnly, Category = AI)
+		bool bIsElite;
 
 	UPROPERTY(Replicated)
 		FVector AimPos;
@@ -1086,6 +1133,9 @@ public:
 		void ServerSetAimPos_Implementation(FVector pos);
 
 	bool ShouldIgnoreControls();
+
+	UPROPERTY(BlueprintReadWrite, Category = Projectile)
+		class AOrionProjectile *SpecialProjectile;
 
 	// generic use keybind
 	void Use();

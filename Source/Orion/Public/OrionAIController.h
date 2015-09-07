@@ -98,6 +98,12 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = Navigation)
 		TEnumAsByte<AIMoveType> MoveType;
 
+	UPROPERTY(BlueprintReadOnly, Category = AI)
+		FName AIName;
+
+	UPROPERTY(BlueprintReadOnly, Category = AI)
+		bool bIsElite;
+
 	EPathFollowingRequestResult::Type MoveFlyToLocation(const FVector& Dest, float AcceptanceRadius, bool bStopOnOverlap, bool bUsePathfinding, bool bProjectDestinationToNavigation, bool bCanStrafe, TSubclassOf<UNavigationQueryFilter> FilterClass);
 	EPathFollowingRequestResult::Type MoveDirectFlyToLocation(const FVector& Dest, float AcceptanceRadius, TSubclassOf<UNavigationQueryFilter> FilterClass);
 
@@ -110,6 +116,9 @@ private:
 public:
 	TArray<FVector> FlightPath;
 	int32 FlightIndex;
+
+	//timestamp of last time we got a new enemy, after 5 seconds of chasing someone, we can switch to a better target if desired
+	float LastEnemyTime;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Navigation)
 		bool bFinishedPath;

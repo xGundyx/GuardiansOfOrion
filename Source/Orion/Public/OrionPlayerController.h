@@ -26,6 +26,21 @@
 */
 
 USTRUCT(BlueprintType)
+struct FAnimTester
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Anim)
+		USkeletalMesh *Mesh;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Anim)
+		TArray<class UAnimationAsset*> Animations;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Anim)
+		FName Type;
+};
+
+USTRUCT(BlueprintType)
 struct FOptionsData
 {
 	GENERATED_USTRUCT_BODY()
@@ -202,6 +217,21 @@ public:
 	AOrionWeather* TheSun;
 	bool bHideWeapons;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation)
+		TArray<FAnimTester> AnimationTests;
+
+	//
+	UFUNCTION(exec)
+		void SpawnSkeletalActor(FName Type, int32 Index);
+
+	UFUNCTION(exec)
+		void IceAge();
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerIceAge();
+		bool ServerIceAge_Validate() { return true; }
+		void ServerIceAge_Implementation();
+
 	//server hacks for now
 	UFUNCTION(exec)
 		void SlowMotion(float Value) { ServerSlowMotion(Value); }
@@ -209,7 +239,7 @@ public:
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerSlowMotion(float Value);
 		bool ServerSlowMotion_Validate(float Value) { return true; }
-		void ServerSlowMotion_Implementation(float Value) { ConsoleCommand(FString::Printf(TEXT("slomo %f"), Value)); }
+		void ServerSlowMotion_Implementation(float Value) { GetWorldSettings()->TimeDilation =  Value; }
 
 	UFUNCTION(exec)
 		void ToggleHUD();
@@ -241,6 +271,11 @@ public:
 
 	UFUNCTION(exec)
 		virtual void ClearNight();
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerSetWeather(int32 index);
+		bool ServerSetWeather_Validate(int32 index) { return true; }
+		void ServerSetWeather_Implementation(int32 index);
 
 	UFUNCTION(exec)
 		virtual void AllArmor(int32 index);
@@ -274,6 +309,9 @@ public:
 
 	//retrieve our quest info and set it for the game to use
 	void InitQuestManager();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = PlayFab)
+		TSubclassOf<class AOrionStats> StatsClass;
 	
 	//stats and achievements
 	UFUNCTION(BlueprintCallable, Category = PlayFab)
@@ -284,9 +322,6 @@ public:
 
 	//only the server can actually save stats
 	void SaveStats();
-
-	void SetStatValue(FStatID id, int32 iAmount, int32 fAmount);
-	void IncreaseStatValue(FStatID id, int32 iAmount, int32 fAmount);
 
 	AOrionDroidPawn *DroidBuddy;
 
@@ -393,6 +428,9 @@ public:
 	void GetAudioListenerPosition(FVector& OutLocation, FVector& OutFrontDir, FVector& OutRightDir) override;
 
 	UFUNCTION(client, reliable)
+		void ClientSetDeathSpectate(APawn *DeadPawn);
+
+	UFUNCTION(client, reliable)
 		void ClientAddDamageNumber(int32 Damage, FVector Pos);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SpawnDamageNumber"))
@@ -460,6 +498,12 @@ public:
 	UFUNCTION(Blueprintcallable, Category = Playfab)
 		void ConnectToIP(FString IP);
 
+	UFUNCTION(Blueprintcallable, Category = Playfab)
+		void StartSoloMap(FString MapName);
+
+	UFUNCTION(Blueprintcallable, Category = Audio)
+		void SaveSoundOptions(FString ClassName, float Volume);
+
 	void UpdateRotation(float DeltaTime) override;
 
 	UFUNCTION(Reliable, server, WithValidation)
@@ -474,7 +518,13 @@ public:
 	virtual void BeginPlay();
 	virtual void StartFire(uint8 FireModeNum);
 
-	bool bAuthenticated;
+	AOrionStats *GetStats() { return Stats; }
+
+	UPROPERTY(BlueprintReadOnly, Category = PlayFab)
+		bool bAuthenticated;
+
+	UFUNCTION(client, reliable)
+		void ClientSetAuthed(bool bAuthed);
 
 	bool InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad) override;
 
@@ -508,9 +558,12 @@ public:
 #endif
 
 private:
+	//for animation testing
+	class ASkeletalMeshActor *TestActor;
+
 	FTimerHandle ServerTickTimer;
 	UOrionQuestManager *QuestManager;
-	UOrionStats *Stats;
+	AOrionStats *Stats;
 	UOrionAchievements *Achievements;
 
 	AOrionChatManager *ChatManager;

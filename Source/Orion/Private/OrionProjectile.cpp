@@ -28,6 +28,8 @@ AOrionProjectile::AOrionProjectile(const FObjectInitializer& ObjectInitializer)
 	InitialLifeSpan = 3.0f;
 
 	PrimaryActorTick.bCanEverTick = true;
+
+	bReplicates = true;
 }
 
 void AOrionProjectile::PostInitializeComponents()
@@ -44,6 +46,9 @@ void AOrionProjectile::Tick(float DeltaTime)
 
 void AOrionProjectile::ValidatePosition()
 {
+	if (TargetDir.SizeSquared() <= 0.1f)
+		return;
+
 	if (FVector::DotProduct((TargetPos - GetActorLocation()).GetSafeNormal(), TargetDir) < 0.8f)
 	{
 		if (TracerPSC)
@@ -92,5 +97,23 @@ void AOrionProjectile::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp,
 		TracerPSC = nullptr;
 	}
 
+	EventHandleImpact();
+
 	Destroy();
+}
+
+void AOrionProjectile::OnRep_Velocity()
+{
+	if (ProjectileMovement)
+	{
+		ProjectileMovement->Velocity = NewVelocity;
+	}
+}
+
+void AOrionProjectile::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	// everyone
+	DOREPLIFETIME(AOrionProjectile, NewVelocity);
 }
