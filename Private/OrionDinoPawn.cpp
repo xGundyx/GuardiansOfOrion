@@ -25,6 +25,9 @@ FVector2D AOrionDinoPawn::GetAim(float DeltaTime)
 	if (bChargeAttack)
 		return FVector2D(0.0f, -0.5f);
 
+	if (bFinishingMove)
+		return FVector2D(0.0f, 0.0f);
+
 	if (!Controller)
 		return FVector2D(AimYaw, AimPitch);
 

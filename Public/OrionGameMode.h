@@ -25,6 +25,10 @@ public:
 		void PlayerAuthed(class AOrionPlayerController *PC, bool bSuccess);
 
 	void SpawnItems(AActor *Spawner);
+	void SaveAllUsersStats();
+
+	enum EStatID GetStatID(AController *KilledController, bool bVictim);
+	void HandleStats(AController* Killer, AController* KilledPlayer, APawn* KilledPawn, const UDamageType* DamageType);
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Classes)
 		TSubclassOf<class AOrionPickup>  DefaultPickupClass;

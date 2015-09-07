@@ -34,6 +34,7 @@ void AOrionPRI::CopyProperties(class APlayerState* PlayerState)
 		PRI->PlayFabID = PlayFabID;
 		PRI->SessionTicket = SessionTicket;
 		PRI->CharacterID = CharacterID;
+		PRI->PlayFabName = PlayFabName;
 	}
 }
 

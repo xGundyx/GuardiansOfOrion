@@ -33,6 +33,9 @@ public:
 	void OnReload();
 	void OnAbility();
 
+	void CameraUp();
+	void CameraDown();
+
 	FVector SpecCameraLocation;
 
 	float GetCameraFOV() { return CameraFOV; }

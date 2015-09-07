@@ -18,5 +18,21 @@ public:
 
 	TArray<FString> GetSupportedResolutions();
 
+	UPROPERTY(config)
+		float MasterVolume;
 
+	UPROPERTY(config)
+		float MusicVolume;
+
+	UPROPERTY(config)
+		float VoiceVolume;
+
+	UPROPERTY(config)
+		float WeaponVolume;
+
+	UPROPERTY(config)
+		float CreatureVolume;
+
+	UPROPERTY(config)
+		float DialogueVolume;
 };

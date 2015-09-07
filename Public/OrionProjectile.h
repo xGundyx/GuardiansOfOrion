@@ -34,6 +34,14 @@ public:
 
 	virtual void ValidatePosition();
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "HandleImpact"))
+		void EventHandleImpact();
+
+	UFUNCTION()
+		void OnRep_Velocity();
+
+	UPROPERTY(ReplicatedUsing = OnRep_Velocity, BlueprintReadWrite, Category = Movement)
+		FVector NewVelocity;
 
 	UPROPERTY()
 		UParticleSystemComponent* TracerPSC;

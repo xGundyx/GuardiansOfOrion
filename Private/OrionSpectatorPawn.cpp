@@ -30,7 +30,7 @@ void AOrionSpectatorPawn::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResul
 		FVector Z = FVector(0.0f, 0.0f, 1.0f);
 		FVector Y = FVector::CrossProduct(Z, X).GetSafeNormal();
 
-		SpecCameraLocation += X * CameraOffset.X + Y * CameraOffset.Y;
+		SpecCameraLocation += X * CameraOffset.X + Y * CameraOffset.Y += FVector(0.0f, 0.0f, 1.0f) * CameraOffset.Z;
 		OutResult.Location = SpecCameraLocation;
 
 		CameraOffset = FVector(0.0f);
@@ -67,6 +67,9 @@ void AOrionSpectatorPawn::SetupPlayerInputComponent(class UInputComponent* Input
 	InputComponent->BindAction("Gamepad_Aim", IE_Pressed, this, &AOrionSpectatorPawn::OnAim);
 	InputComponent->BindAction("Gamepad_Reload", IE_Pressed, this, &AOrionSpectatorPawn::OnReload);
 	InputComponent->BindAction("Gamepad_ActivateSkill", IE_Pressed, this, &AOrionSpectatorPawn::OnAbility);
+
+	InputComponent->BindAction("Gamepad_Roll", IE_Pressed, this, &AOrionSpectatorPawn::CameraUp);
+	InputComponent->BindAction("Gamepad_Blink", IE_Pressed, this, &AOrionSpectatorPawn::CameraDown);
 }
 
 void AOrionSpectatorPawn::OnFire()
@@ -185,6 +188,32 @@ void AOrionSpectatorPawn::MoveRight(float Value)
 		if (PC->bDaveyCam)
 		{
 			CameraOffset.Y += Value * GetWorld()->DeltaTimeSeconds * CameraSpeed;
+		}
+	}
+}
+
+void AOrionSpectatorPawn::CameraUp()
+{
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC)
+	{
+		if (PC->bDaveyCam)
+		{
+			CameraOffset.Z += GetWorld()->DeltaTimeSeconds * CameraSpeed;
+		}
+	}
+}
+
+void AOrionSpectatorPawn::CameraDown()
+{
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC)
+	{
+		if (PC->bDaveyCam)
+		{
+			CameraOffset.Z -= GetWorld()->DeltaTimeSeconds * CameraSpeed;
 		}
 	}
 }

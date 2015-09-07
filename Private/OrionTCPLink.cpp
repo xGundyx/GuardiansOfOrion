@@ -94,7 +94,7 @@ void UOrionTCPLink::OnGetCharacterDataError(PlayFabError& error, void* userData)
 {
 }
 
-void UOrionTCPLink::SavePlayerStatistics(FString PlayerID, UOrionStats *Stats)
+void UOrionTCPLink::SavePlayerStatistics(FString PlayerID, AOrionStats *Stats)
 {
 	ServerModels::UpdateUserStatisticsRequest request;
 
@@ -155,7 +155,7 @@ void UOrionTCPLink::OnSaveCharacterDataError(PlayFabError& error, void* userData
 
 void UOrionTCPLink::OnGetStats(ServerModels::GetUserStatisticsResult& result, void* userData)
 {
-	UOrionStats *Stats = static_cast<UOrionStats*>(userData);
+	AOrionStats *Stats = static_cast<AOrionStats*>(userData);
 
 	if(Stats)
 	{
@@ -185,7 +185,7 @@ void UOrionTCPLink::OnGetStats(ServerModels::GetUserStatisticsResult& result, vo
 
 void UOrionTCPLink::OnGetStatsFailed(PlayFabError& error, void* userData)
 {
-	UOrionStats *Stats = static_cast<UOrionStats*>(userData);
+	AOrionStats *Stats = static_cast<AOrionStats*>(userData);
 
 	if(Stats)
 	{
@@ -453,7 +453,7 @@ void UOrionTCPLink::GetPlayerStats(void *Stats)
 
 void UOrionTCPLink::OnGetStats(ClientModels::GetUserStatisticsResult& result, void* userData)
 {
-	UOrionStats *Stats = static_cast<UOrionStats*>(userData);
+	AOrionStats *Stats = static_cast<AOrionStats*>(userData);
 
 	if(Stats)
 	{
@@ -466,7 +466,7 @@ void UOrionTCPLink::OnGetStats(ClientModels::GetUserStatisticsResult& result, vo
 
 void UOrionTCPLink::OnGetStatsFailed(PlayFabError& error, void* userData)
 {
-	UOrionStats *Stats = static_cast<UOrionStats*>(userData);
+	AOrionStats *Stats = static_cast<AOrionStats*>(userData);
 
 	if(Stats)
 	{

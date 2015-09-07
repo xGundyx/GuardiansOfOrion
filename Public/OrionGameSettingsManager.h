@@ -60,6 +60,35 @@ struct FScreenSettings
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FOrionAudioSettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio Settings")
+		float MasterVolume;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio Settings")
+		float MusicVolume;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio Settings")
+		float VoiceVolume;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio Settings")
+		float WeaponVolume;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio Settings")
+		float CreatureVolume;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio Settings")
+		float DialogueVolume;
+
+	FOrionAudioSettings()
+	{
+
+	}
+};
+
 UCLASS()
 class ORION_API UOrionGameSettingsManager : public UBlueprintFunctionLibrary
 {
@@ -115,4 +144,11 @@ public:
 	/** Create a key from name */
 	UFUNCTION(BlueprintCallable, Category = "Settings")
 		static FKey GetKeyFromString(FName KeyName) { return FKey(KeyName); }
+
+	//audio settings
+	UFUNCTION(BlueprintCallable, Category = "Audio Settings")
+		static FOrionAudioSettings GetAudioLevels();
+
+	UFUNCTION(BlueprintCallable, Category = "Audio Settings")
+		static void SetAudioLevels(FOrionAudioSettings InSettings);
 };

@@ -15,4 +15,14 @@ class ORION_API UOrionGameInstance : public UGameInstance
 public:
 	UOrionGameInstance(const FObjectInitializer& ObjectInitializer);
 	
+	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
+		FString PlayFabID;
+	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
+		FString SessionTicket;
+	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
+		FString CharacterID;
+	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
+		FString PlayFabName;
+	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
+		FString ChatToken;
 };

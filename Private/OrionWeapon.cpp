@@ -215,7 +215,7 @@ void AOrionWeapon::Tick(float DeltaSeconds)
 			CurrentFiringSpread = FMath::Max(0.0f, CurrentFiringSpread - DeltaSeconds*20.0f*InstantConfig.FiringSpreadIncrement);
 
 		//if we need to reload, try to start it automatically
-		if (AmmoInClip == 0 && WeaponState != WEAP_RELOADING&&Ammo > 0)
+		if (AmmoInClip == 0 && WeaponState != WEAP_RELOADING&&Ammo > 0 && CanReload())
 			StartReload();
 	}
 }
@@ -718,7 +718,10 @@ void AOrionWeapon::UseAmmo()
 
 bool AOrionWeapon::CanReload()
 {
-	return AmmoInClip<InstantConfig.ClipSize && Ammo > 0 && WeaponState != WEAP_EQUIPPING && WeaponState != WEAP_PUTTINGDOWN && WeaponState != WEAP_MELEE;
+	if (MyPawn)
+		return AmmoInClip < InstantConfig.ClipSize && Ammo > 0 && WeaponState != WEAP_EQUIPPING && WeaponState != WEAP_PUTTINGDOWN && WeaponState != WEAP_MELEE && !MyPawn->IsRolling();
+	else
+		return false;
 }
 
 void AOrionWeapon::StartReload(bool bFromReplication)
@@ -773,7 +776,7 @@ void AOrionWeapon::StartShellReload()
 		AnimDuration = 1.0;// WeaponConfig.NoAnimReloadDuration;
 	}
 
-	if (AmmoInClip < InstantConfig.ClipSize && Ammo > AmmoInClip)
+	if (AmmoInClip < InstantConfig.ClipSize && Ammo > AmmoInClip && CanReload())
 		GetWorldTimerManager().SetTimer(ReloadTimer, this, &AOrionWeapon::ReloadNextShell, AnimDuration, false);
 	else
 		StopReload();

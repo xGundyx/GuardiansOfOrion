@@ -54,6 +54,35 @@ void UOrionGameSettingsManager::SetQualityLevels(FQualitySettings InSettings)
 	Settings->ScalabilityQuality.ViewDistanceQuality = InSettings.ViewDistanceQuality;
 }
 
+FOrionAudioSettings UOrionGameSettingsManager::GetAudioLevels()
+{
+	if (!Settings)
+		InitSettings();
+
+	FOrionAudioSettings OutAudio;
+
+	OutAudio.MasterVolume = Settings->MasterVolume;
+	OutAudio.MusicVolume = Settings->MusicVolume;
+	OutAudio.VoiceVolume = Settings->VoiceVolume;
+	OutAudio.DialogueVolume = Settings->DialogueVolume;
+	OutAudio.WeaponVolume = Settings->WeaponVolume;
+	OutAudio.CreatureVolume = Settings->CreatureVolume;
+
+	return OutAudio;
+}
+
+void UOrionGameSettingsManager::SetAudioLevels(FOrionAudioSettings InSettings)
+{
+	if (!Settings)
+		InitSettings();
+
+	Settings->MasterVolume = InSettings.MasterVolume;
+	Settings->MusicVolume = InSettings.MusicVolume;
+	Settings->VoiceVolume = InSettings.VoiceVolume;
+	Settings->DialogueVolume = InSettings.DialogueVolume;
+	Settings->WeaponVolume = InSettings.WeaponVolume;
+	Settings->CreatureVolume = InSettings.CreatureVolume;
+}
 
 FScreenSettings UOrionGameSettingsManager::GetScreenSettings()
 {
