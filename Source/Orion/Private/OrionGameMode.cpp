@@ -60,7 +60,7 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 	HUDClass = AOrionHUD::StaticClass();
 
 	//this will keep players connected and keep their data persistent across map changes
-	bUseSeamlessTravel = true; 
+	bUseSeamlessTravel = true;
 
 	bAlwaysShowCursor = false;
 
@@ -284,6 +284,27 @@ void AOrionGameMode::HandleStats(AController* Killer, AController* KilledPlayer,
 	}
 }
 
+void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
+{
+	Super::InitGame(MapName, Options, ErrorMessage);
+
+	//read in our desired difficulty
+	FString Diff = UGameplayStatics::ParseOption(Options, TEXT("Difficulty"));
+
+	if (Diff.ToLower() == "easy")
+		Difficulty = DIFF_EASY;
+	else if (Diff.ToLower() == "medium")
+		Difficulty = DIFF_MEDIUM;
+	else if (Diff.ToLower() == "hard")
+		Difficulty = DIFF_HARD;
+	else if (Diff.ToLower() == "insane")
+		Difficulty = DIFF_INSANE;
+	else if (Diff.ToLower() == "redikulous")
+		Difficulty = DIFF_REDIKULOUS;
+	else
+		Difficulty = DIFF_MEDIUM;
+}
+
 float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, struct FDamageEvent const& DamageEvent, class AController *EventInstigator, class AActor *DamageCauser)
 {
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
@@ -390,6 +411,7 @@ void AOrionGameMode::PlayerAuthed(class AOrionPlayerController *PC, bool bSucces
 
 	//login was successfull, let the player spawn
 	PC->bAuthenticated = true;
+	PC->ClientSetAuthed(true);
 }
 
 void AOrionGameMode::SetInitialTeam(APlayerController *PC)

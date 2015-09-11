@@ -401,6 +401,11 @@ void AOrionWeapon::StartFire()
 	{
 		ServerStartFire();
 	}
+	else
+	{
+		if (MyPawn && MyPawn->CurrentSkill && MyPawn->CurrentSkill->IsCloaking())
+			MyPawn->CurrentSkill->DepleteEnergy();
+	}
 
 	/*if (!bWantsToFire)
 	{

@@ -40,4 +40,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = Orion)
 		bool bGibAll;
+
+	UPROPERTY(EditDefaultsOnly, Category = Orion)
+		bool bIsKnife;
 };

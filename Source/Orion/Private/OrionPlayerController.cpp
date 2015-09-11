@@ -311,6 +311,38 @@ void AOrionPlayerController::ChangeCamera(int32 TeamIndex)
 		MyPawn->CameraIndex = TeamIndex;
 }
 
+void AOrionPlayerController::ChangeDifficulty(int32 Index)
+{
+	ServerChangeDifficulty(Index);
+}
+
+void AOrionPlayerController::ServerChangeDifficulty_Implementation(int32 Index)
+{
+	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
+
+	if (!Game)
+		return;
+
+	switch (Index)
+	{
+	case 0:
+		Game->Difficulty = DIFF_EASY;
+		break;
+	case 1:
+		Game->Difficulty = DIFF_MEDIUM;
+		break;
+	case 2:
+		Game->Difficulty = DIFF_HARD;
+		break;
+	case 3:
+		Game->Difficulty = DIFF_INSANE;
+		break;
+	case 4:
+		Game->Difficulty = DIFF_REDIKULOUS;
+		break;
+	}
+}
+
 void AOrionPlayerController::ClientSetAuthed_Implementation(bool bAuthed)
 {
 	bAuthenticated = bAuthed;

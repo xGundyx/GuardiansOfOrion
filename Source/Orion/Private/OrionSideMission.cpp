@@ -40,6 +40,9 @@ void AOrionSideMission::SpawnMissionEnemies(FSpawnNumbers TypesToSpawn, FVector 
 {
 	int32 Types[SPAWN_NUM];
 
+	for (int32 i = 0; i < SPAWN_NUM; i++)
+		Types[i] = 0;
+
 	Types[SPAWN_RAPTOR] = TypesToSpawn.NumRaptor; 
 	Types[SPAWN_COMPY] = TypesToSpawn.NumCompy;
 	Types[SPAWN_DILO] = TypesToSpawn.NumDilo;
@@ -59,6 +62,10 @@ void AOrionSideMission::SpawnMissionEnemies(FSpawnNumbers TypesToSpawn, FVector 
 	Types[SPAWN_RECON] = TypesToSpawn.NumRecon;
 	Types[SPAWN_DEMO] = TypesToSpawn.NumDemo;
 	Types[SPAWN_TECH] = TypesToSpawn.NumTech;
+	//Types[SPAWN_GRUMPS] = TypesToSpawn.NumTech;
+	Types[SPAWN_ALLO] = TypesToSpawn.NumAllo;
+	Types[SPAWN_PARA] = TypesToSpawn.NumPara;
+	Types[SPAWN_STEG] = TypesToSpawn.NumSteg;
 
 	SpawnWave(Types, TargetLocation);
 }

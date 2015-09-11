@@ -24,6 +24,45 @@ enum EGibType
 	GIB_RIGHTLEG
 };
 
+UENUM()
+enum EAISpawnType
+{
+	SPAWN_RAPTOR,
+	SPAWN_COMPY,
+	SPAWN_DILO,
+	SPAWN_TREX,
+	SPAWN_TRIKE,
+	SPAWN_RHAM,
+	SPAWN_PTERA,
+	SPAWN_ANKY,
+	SPAWN_KRUGER,
+	SPAWN_JECKYL,
+	SPAWN_NAMOR,
+	SPAWN_VIPER,
+	SPAWN_ORBDROID,
+	SPAWN_BONES,
+	SPAWN_ASSAULT,
+	SPAWN_SUPPORT,
+	SPAWN_RECON,
+	SPAWN_DEMO,
+	SPAWN_TECH,
+	SPAWN_ALLO,
+	SPAWN_PARA,
+	SPAWN_STEG,
+
+	SPAWN_NUM
+};
+
+UENUM(BlueprintType)
+enum EGameDifficulty
+{
+	DIFF_EASY,
+	DIFF_MEDIUM,
+	DIFF_HARD,
+	DIFF_INSANE,
+	DIFF_REDIKULOUS
+};
+
 UENUM(BlueprintType)
 enum EAIType
 {
@@ -50,7 +89,7 @@ struct FSpawnNumbers
 {
 	GENERATED_USTRUCT_BODY()
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
 		int32 NumRaptor;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
@@ -106,6 +145,15 @@ struct FSpawnNumbers
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
 		int32 NumTech;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumAllo;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumPara;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumSteg;
 };
 
 USTRUCT()
