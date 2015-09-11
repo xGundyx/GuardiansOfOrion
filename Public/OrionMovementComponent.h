@@ -18,6 +18,7 @@ public:
 	virtual float GetMaxSpeed() const override;
 	virtual bool IsCrouching() const override;
 	virtual void CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration);
+	virtual void PerformMovement(float DeltaSeconds) override;
 
 	//virtual void ServerMove_Implementation(float TimeStamp, FVector_NetQuantize10 InAccel, FVector_NetQuantize100 ClientLoc, uint8 CompressedMoveFlags, uint8 ClientRoll, uint32 View, UPrimitiveComponent* ClientMovementBase, FName ClientBaseBoneName, uint8 ClientMovementMode);
 	/*virtual void ServerMove_Implementation(

@@ -337,7 +337,9 @@ void AOrionAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn
 	// Look toward focus
 	FVector FocalPoint = GetFocalPoint();
 
-	if (!FocalPoint.IsZero() && GetPawn() && GetPawn()->GetVelocity().SizeSquared2D() > 10.0f)
+	AOrionCharacter *Pawn = Cast<AOrionCharacter>(GetPawn());
+
+	if (!FocalPoint.IsZero() && Pawn && (Pawn->GetVelocity().SizeSquared2D() > 10.0f || Pawn->bAlwaysRotate))
 	{
 		FVector Direction = FocalPoint - GetPawn()->GetActorLocation();
 		
@@ -554,7 +556,7 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 
 	if (pPawn)
 	{
-		if (pPawn->bFatality)
+		if (pPawn->bFatality || pPawn->bFinishingMove)
 			return;
 
 		//if we're inside a blocking volume like smoke, ignore things we see

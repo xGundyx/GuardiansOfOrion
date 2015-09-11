@@ -27,6 +27,9 @@ public:
 	void SpawnItems(AActor *Spawner);
 	void SaveAllUsersStats();
 
+	UPROPERTY(BlueprintReadWrite, Category = Gameplay)
+		TEnumAsByte<EGameDifficulty> Difficulty;
+
 	enum EStatID GetStatID(AController *KilledController, bool bVictim);
 	void HandleStats(AController* Killer, AController* KilledPlayer, APawn* KilledPawn, const UDamageType* DamageType);
 
@@ -54,6 +57,8 @@ public:
 		bool bTopDown;
 
 	float ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, struct FDamageEvent const& DamageEvent, class AController *EventInstigator, class AActor *DamageCauser);
+
+	void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 
 	void InitGRI();
 	void WarmupOver();

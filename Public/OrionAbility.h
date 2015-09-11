@@ -73,6 +73,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Skill)
 		float RechargeDelay;
 
+	void DepleteEnergy() { Energy = 0.0f; }
+
 private:
 	void DoActivateEffects();
 	void DoDeactivateEffects();

@@ -49,6 +49,10 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	//	DefaultHealthBarClass = (UClass*)HealthBarObject.Object->GeneratedClass;
 	//}
 
+	static ConstructorHelpers::FObjectFinder<USoundCue> KnifeHit(TEXT("SoundCue'/Game/Weapons/Knife/Sound/KnifeHitCue.KnifeHitCue'"));
+	if (KnifeHit.Object)
+		KnifeHitSound = Cast<USoundCue>(KnifeHit.Object);
+
 	// Default offset from the character location for projectiles to spawn
 	GunOffset = FVector(100.0f, 30.0f, 10.0f);
 
@@ -59,6 +63,18 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Mesh1P->RelativeLocation = FVector(0.f, 0.f, -150.f);
 	Mesh1P->bCastDynamicShadow = false;
 	Mesh1P->CastShadow = false;*/
+
+	//effect gained from being shielded by an elite shielder
+	ShieldFX = ObjectInitializer.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("ShieldFX"));
+	ShieldFX->AttachParent = GetMesh();
+	ShieldFX->RelativeLocation = FVector(0, 0, 0);
+	ShieldFX->bAutoActivate = false;
+
+	//any effects given to this pawn when they are an elite
+	EliteFX = ObjectInitializer.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("EliteFX"));
+	EliteFX->AttachParent = GetMesh();
+	EliteFX->RelativeLocation = FVector(0, 0, 0);
+	EliteFX->bAutoActivate = false;
 
 	GetMesh()->bOnlyOwnerSee = false;
 	GetMesh()->bOwnerNoSee = false;// true;
@@ -238,6 +254,36 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	UpdatePawnMeshes();
 
 	FlyingOffset = 100.0f;
+}
+
+void AOrionCharacter::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (bIsElite && EliteFX)
+	{
+		ShowEliteFX(true);
+	}
+
+	//spawn our health bar hud element
+	if (GetNetMode() != NM_DedicatedServer)
+		CreateHealthBar();
+}
+
+void AOrionCharacter::OnRep_IsElite()
+{
+	ShowEliteFX(bIsElite);
+}
+
+void AOrionCharacter::ShowEliteFX(bool bShow)
+{
+	if (EliteFX)
+	{
+		if (bIsElite)
+			EliteFX->ActivateSystem();// > SetHiddenInGame(!bShow);
+		else
+			EliteFX->DeactivateSystem();
+	}
 }
 
 void AOrionCharacter::OnHearNoise(APawn *HeardPawn, const FVector &Location, float Volume)
@@ -831,6 +877,7 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, Health);
 	DOREPLIFETIME(AOrionCharacter, ShieldMax);
 	DOREPLIFETIME(AOrionCharacter, Shield);
+	DOREPLIFETIME(AOrionCharacter, bIsElite);
 
 	DOREPLIFETIME(AOrionCharacter, GibRep);
 
@@ -1070,10 +1117,6 @@ void AOrionCharacter::PostInitializeComponents()
 
 	// set initial mesh visibility (3rd person view)
 	UpdatePawnMeshes();
-
-	//spawn our health bar hud element
-	if (GetNetMode() != NM_DedicatedServer)
-		CreateHealthBar();
 
 	UpdatePlayerRingColor();
 }
@@ -1376,6 +1419,8 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 	if (ActualDamage > 0.f)
 	{
+		LastTakeHitTime = GetWorld()->TimeSeconds;
+
 		//take off shield damage first
 		float TotalDamage = ActualDamage;
 
@@ -1469,6 +1514,16 @@ void AOrionCharacter::PlayHit(float DamageTaken, struct FDamageEvent const& Dama
 	if (DamageTaken > 0.f)
 	{
 		ApplyDamageMomentum(DamageTaken, DamageEvent, PawnInstigator, DamageCauser);
+
+		UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass->GetDefaultObject());
+		if (DamageType && DamageType->bIsKnife)
+		{
+			FHitResult HitInfo;
+			FVector ImpulseDir;
+			DamageEvent.GetBestHitInfo(this, PawnInstigator, HitInfo, ImpulseDir);
+
+			UGameplayStatics::PlaySoundAtLocation(GetWorld(), KnifeHitSound, HitInfo.ImpactPoint);
+		}
 	}
 
 	/*AOrionPlayerController* MyPC = Cast<AOrionPlayerController>(Controller);
@@ -1596,6 +1651,16 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	if (bIsDying)
 	{
 		return;
+	}
+
+	UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass->GetDefaultObject());
+	if (DamageType && DamageType->bIsKnife)
+	{
+		FHitResult HitInfo;
+		FVector ImpulseDir;
+		DamageEvent.GetBestHitInfo(this, PawnInstigator, HitInfo, ImpulseDir);
+
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), KnifeHitSound, HitInfo.ImpactPoint);
 	}
 
 	//remove outline
@@ -2297,8 +2362,17 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 	}
 
 	//hax for health bars
-	if (MyHealthBar == nullptr && GetNetMode() != NM_DedicatedServer)
+	if (MyHealthBar == nullptr && GetNetMode() != NM_DedicatedServer && Health > 0 && PlayerState != NULL)
 		CreateHealthBar();
+
+	//recharge shields
+	if (Role == ROLE_Authority)
+	{
+		if (Shield < ShieldMax && GetWorld()->TimeSeconds - LastTakeHitTime >= 10.0f)
+		{
+			Shield = FMath::Min(ShieldMax, Shield + DeltaSeconds * (ShieldMax / 10.0f));
+		}
+	}
 
 	//hax for now
 	//if (CurrentWeapon == NULL && Inventory.Num() > 0)
@@ -2866,8 +2940,10 @@ void AOrionCharacter::DoBlinkEffect(bool bOn, FVector pos)
 		}
 	}
 
-	if (BlinkSound)
-		UGameplayStatics::PlaySoundAtLocation(GetWorld(), BlinkSound, GetActorLocation(), 1.0f, 1.0f);
+	if (BlinkStartSound && bOn)
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), BlinkStartSound, GetActorLocation(), 1.0f, 1.0f);
+	else if (BlinkStopSound && !bOn)
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), BlinkStopSound, GetActorLocation(), 1.0f, 1.0f);
 }
 
 bool AOrionCharacter::ServerDoRoll_Validate(ERollDir rDir, FRotator rRot)

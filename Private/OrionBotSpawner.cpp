@@ -54,6 +54,7 @@ void AOrionBotSpawner::SpawnBots()
 			{
 				NewPawn->SpawnDefaultController();
 				NewPawn->SetAIType(AIType);
+				//NewPawn->Controller->InitPlayerState();
 			}
 			else
 				continue;

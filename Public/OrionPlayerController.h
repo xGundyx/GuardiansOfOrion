@@ -225,6 +225,14 @@ public:
 		void SpawnSkeletalActor(FName Type, int32 Index);
 
 	UFUNCTION(exec)
+		void ChangeDifficulty(int32 Index);
+
+	UFUNCTION(Reliable, server, WithValidation)
+	void ServerChangeDifficulty(int32 Index);
+	bool ServerChangeDifficulty_Validate(int32 Index) { return true; }
+	void ServerChangeDifficulty_Implementation(int32 Index);
+
+	UFUNCTION(exec)
 		void IceAge();
 
 	UFUNCTION(Reliable, server, WithValidation)

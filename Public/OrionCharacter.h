@@ -516,6 +516,9 @@ public:
 
 	void UpdatePlayerRingColor();
 
+	//for recharging shields
+	float LastTakeHitTime;
+
 	UFUNCTION(BlueprintCallable, Category = AI)
 		void PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAnim, AOrionCharacter *TheVictim);
 
@@ -532,6 +535,19 @@ public:
 
 	//pointer to the enemy that is finishing us (mainly for camera work)
 	AOrionCharacter *Finisher;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
+		class UParticleSystemComponent* ShieldFX;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
+		class UParticleSystemComponent* EliteFX;
+
+	void ShowEliteFX(bool bShow);
+
+	UFUNCTION()
+		void OnRep_IsElite();
+
+	void BeginPlay() override;
 
 	//modular pieces
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
@@ -852,7 +868,17 @@ public:
 		UParticleSystem* BlinkFX;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Effects)
-		USoundCue *BlinkSound;
+		USoundCue *BlinkStartSound;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Effects)
+		USoundCue *BlinkStopSound;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Effects)
+		USoundCue *KnifeHitSound;
+
+	//rotate to face target even if standing still, good for flying enemies
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Rotation)
+		bool bAlwaysRotate;
 
 	/** get mesh component */
 	USkeletalMeshComponent* GetPawnMesh() const;
@@ -1077,7 +1103,7 @@ public:
 
 	void BehindView();
 
-	UPROPERTY(BlueprintReadOnly, Category = AI)
+	UPROPERTY(ReplicatedUsing = OnRep_IsElite, BlueprintReadOnly, Category = AI)
 		bool bIsElite;
 
 	UPROPERTY(Replicated)

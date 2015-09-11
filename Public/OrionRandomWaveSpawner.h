@@ -3,33 +3,8 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
+#include "OrionTypes.h"
 #include "OrionRandomWaveSpawner.generated.h"
-
-UENUM()
-enum EAISpawnType
-{
-	SPAWN_RAPTOR,
-	SPAWN_COMPY,
-	SPAWN_DILO,
-	SPAWN_TREX,
-	SPAWN_TRIKE,
-	SPAWN_RHAM,
-	SPAWN_PTERA,
-	SPAWN_ANKY,
-	SPAWN_KRUGER,
-	SPAWN_JECKYL,
-	SPAWN_NAMOR,
-	SPAWN_VIPER,
-	SPAWN_ORBDROID,
-	SPAWN_BONES,
-	SPAWN_ASSAULT,
-	SPAWN_SUPPORT,
-	SPAWN_RECON,
-	SPAWN_DEMO,
-	SPAWN_TECH,
-
-	SPAWN_NUM
-};
 
 UCLASS()
 class ORION_API AOrionRandomWaveSpawner : public AActor
