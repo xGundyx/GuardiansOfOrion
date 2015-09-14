@@ -325,7 +325,7 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 	}
 
 	//adjust damage based on amount of players in game, mainly just for coop games:p
-	if (GRI && Cast<AOrionDinoPawn>(PawnToDamage))
+	if (GRI && PawnToDamage->PlayerState && PawnToDamage->PlayerState->bIsABot)
 	{
 		int32 NumPlayers = GRI->PlayerList.Num();
 
@@ -335,6 +335,42 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 			Damage /= 1.75f;
 		else if (NumPlayers >= 2)
 			Damage /= 1.35f;
+
+		//also adjust based on game difficulty
+		if (Difficulty == DIFF_EASY)
+			Damage *= 2.0f;
+		else if (Difficulty == DIFF_MEDIUM)
+			Damage *= 1.0f;
+		else if (Difficulty == DIFF_HARD)
+			Damage *= 0.8f;
+		else if (Difficulty == DIFF_INSANE)
+			Damage *= 0.6f;
+		else if (Difficulty == DIFF_REDIKULOUS)
+			Damage *= 0.4f;
+	}
+	else
+	{
+		//adjust damage to humans
+		int32 NumPlayers = GRI->PlayerList.Num();
+
+		if (NumPlayers >= 4)
+			Damage *= 1.5f;
+		else if (NumPlayers >= 3)
+			Damage *= 1.25f;
+		else if (NumPlayers >= 2)
+			Damage *= 1.15f;
+
+		//also adjust based on game difficulty
+		if (Difficulty == DIFF_EASY)
+			Damage /= 2.0f;
+		else if (Difficulty == DIFF_MEDIUM)
+			Damage /= 1.0f;
+		else if (Difficulty == DIFF_HARD)
+			Damage *= 1.1f;
+		else if (Difficulty == DIFF_INSANE)
+			Damage *= 1.3f;
+		else if (Difficulty == DIFF_REDIKULOUS)
+			Damage *= 1.5f;
 	}
 
 	return Damage;

@@ -42,6 +42,9 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		FString PlayFabName;
 
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
+		int32 CharacterXP;
+
 	UFUNCTION(BlueprintCallable, Category = Team)
 		int32 GetTeamIndex();
 

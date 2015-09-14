@@ -20,6 +20,8 @@ public:
 	FVector GetBarrelLocation(FName SocketName) override;
 	void StartFire() override;
 	void StopFire() override;
+	//void FireSpecial(FName SocketName, FVector Direction) override;
+	//void FireWeapon() override;
 
 	USkeletalMeshComponent* GetWeaponMesh(bool bFirstPerson) const;
 

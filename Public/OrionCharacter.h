@@ -1160,8 +1160,14 @@ public:
 
 	bool ShouldIgnoreControls();
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AI)
+		bool bIsBigDino;
+
 	UPROPERTY(BlueprintReadWrite, Category = Projectile)
 		class AOrionProjectile *SpecialProjectile;
+
+	UPROPERTY(BlueprintReadWrite, Category = AI)
+		FVector RockTarget;
 
 	// generic use keybind
 	void Use();
