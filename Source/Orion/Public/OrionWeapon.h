@@ -383,7 +383,7 @@ public:
 	UPROPERTY(Transient)
 		UParticleSystemComponent* LaserAimPSC;
 
-	void FireSpecial(FName SocketName, FVector Direction);
+	virtual void FireSpecial(FName SocketName, FVector Direction);
 
 	virtual FVector GetBarrelLocation(FName SocketName);
 

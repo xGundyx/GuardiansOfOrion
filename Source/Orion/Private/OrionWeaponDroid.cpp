@@ -80,7 +80,10 @@ void AOrionWeaponDroid::StartFire()
 {
 	if (MyPawn && MyPawn->GetCurrentMontage() != FireAnim.Pawn3P)
 	{
-		MyPawn->PlayAnimMontage(FireAnim.Pawn3P);
+		FWeaponAnim Anim;
+		Anim.Pawn3P = FireAnim.Pawn3P;
+
+		MyPawn->OrionPlayAnimMontage(Anim, 1.0f, "", true, true, true);// PlayAnimMontage(FireAnim.Pawn3P);
 	}
 }
 
@@ -91,5 +94,44 @@ void AOrionWeaponDroid::StopFire()
 		MyPawn->StopAnimMontage(FireAnim.Pawn3P);
 	}
 }
+
+/*void AOrionWeaponDroid::FireSpecial()
+{
+	FireWeapon();
+}
+
+void AOrionWeaponDroid::FireWeapon()
+{
+	if (!CanFire())
+		return;
+
+	if (InstantConfig.bAutomatic)
+		GetWorldTimerManager().SetTimer(FireTimer, this, &AOrionWeapon::FireWeapon, InstantConfig.TimeBetweenShots, false);
+
+	LastFireTime = GetWorld()->GetTimeSeconds();
+
+	UseAmmo();
+
+	for (int32 i = 0; i < InstantConfig.NumPellets; i++)
+	{
+		const int32 RandomSeed = FMath::Rand();
+		FRandomStream WeaponRandomStream(RandomSeed);
+		const float CurrentSpread = GetCurrentSpread();
+		const float ConeHalfAngle = FMath::DegreesToRadians(CurrentSpread * 0.5f);
+
+		const FVector AimDir = GetAdjustedAim();
+		const FVector StartTrace = GetBarrelLocation(SocketName); //GetCameraDamageStartLocation(AimDir);
+		const FVector ShootDir = WeaponRandomStream.VRandCone(AimDir, ConeHalfAngle, ConeHalfAngle);
+		const FVector EndTrace = StartTrace + ShootDir * InstantConfig.WeaponRange;
+
+		const FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
+		ProcessInstantHit(Impact, StartTrace, ShootDir, RandomSeed, CurrentSpread);
+	}
+
+	CurrentFiringSpread = FMath::Min(InstantConfig.FiringSpreadMax, CurrentFiringSpread + InstantConfig.FiringSpreadIncrement) * GetSpreadModifier();
+
+	if (MyPawn)
+		MyPawn->AddAimKick(FRotator(FMath::FRandRange(1.0f, 2.0f), FMath::FRandRange(-1.0f, 1.0f), 0.0f));
+}*/
 
 

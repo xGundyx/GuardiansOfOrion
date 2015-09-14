@@ -52,6 +52,9 @@ void AOrionPRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionPRI, SessionTicket);
 	DOREPLIFETIME(AOrionPRI, CharacterID);
 	DOREPLIFETIME(AOrionPRI, PlayFabName);
+
+	//exp
+	DOREPLIFETIME(AOrionPRI, CharacterXP);
 }
 
 void AOrionPRI::OnRep_InventoryManager()

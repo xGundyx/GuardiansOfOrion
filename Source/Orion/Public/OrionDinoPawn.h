@@ -72,9 +72,6 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = AI)
 		bool bChargeAttack;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AI)
-		bool bIsBigDino;
-
 private:
 	FVector GroundNormal;
 };
