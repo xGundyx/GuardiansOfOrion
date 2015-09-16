@@ -42,6 +42,7 @@ void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionGRI, PlayerList);
 	DOREPLIFETIME(AOrionGRI, bVictory);
 	DOREPLIFETIME(AOrionGRI, bDefeat);
+	DOREPLIFETIME(AOrionGRI, GlobalMessage);
 	/*DOREPLIFETIME(AShooterGameState, NumTeams);
 	DOREPLIFETIME(AShooterGameState, RemainingTime);
 	DOREPLIFETIME(AShooterGameState, bTimerPaused);
@@ -56,10 +57,28 @@ void AOrionGRI::HandleVictoryDefeat()
 	if (PC)
 	{
 		if (bVictory)
-			PC->ShowVictoryMessage();
+			PC->ShowGlobalMessage(TEXT("VICTORY"));
 		else if (bDefeat)
-			PC->ShowDefeatedMessage();
+			PC->ShowGlobalMessage(TEXT("DEFEAT"));
 	}
+}
+
+void AOrionGRI::OnRep_GlobalMessage()
+{
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
+
+	if (PC)
+		PC->ShowGlobalMessage(GlobalMessage);
+}
+
+void AOrionGRI::SetGlobalMessage(FString msg)
+{
+	GlobalMessage = msg;
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
+
+	if (PC)
+		PC->ShowGlobalMessage(GlobalMessage);
 }
 
 bool AOrionGRI::IsTopDownGame()
@@ -192,20 +211,25 @@ FMissionInfo AOrionGRI::GetMission(int32 Index)
 	{
 	//mission 1 is always the main objective you are currently on
 	case 1:
-		Info.Title = MissionObjective;
-		Info.Desc = TEXT("");
+		Info.Title = MissionObjective != TEXT("") ? (bSideMission ? TEXT("SIDE OBJECTIVE") : TEXT("MAIN OBJECTIVE")) : TEXT("");
+		Info.Desc = MissionObjective;
 		break;
 	//sub mission or wave counter
 	case 2:
-		if (DinosAliveInWave <= 0 || bSideMission)
+		if (bSideMission)
+		{
+			Info.Title = TEXT("SIDE OBJECTIVE");
+			Info.Desc = FString::Printf(TEXT("ENEMIES - %i"), DinosAliveInWave);
+		}
+		else if (DinosAliveInWave <= 0)
 		{
 			Info.Title = TEXT("");
 			Info.Desc = TEXT("");
 		}
 		else
 		{
-			Info.Title = TEXT("Wave");
-			Info.Desc = FString::Printf(TEXT("%i/%i"), WaveNum + 1, TotalWaves);
+			Info.Title = FString::Printf(TEXT("Wave %i"), WaveNum);
+			Info.Desc = Info.Desc = FString::Printf(TEXT("%i ENEMIES"), DinosAliveInWave);
 		}
 		break;
 	case 3:

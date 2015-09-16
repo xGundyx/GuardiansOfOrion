@@ -120,6 +120,14 @@ public:
 	UPROPERTY()
 		class AOrionMusicManager *MusicManager;
 
+	UFUNCTION()
+		void OnRep_GlobalMessage();
+
+	UPROPERTY(ReplicatedUsing = OnRep_GlobalMessage)
+		FString GlobalMessage;
+
+	void SetGlobalMessage(FString msg);
+
 	bool AddPlayerToTeam(AOrionPlayerController *PC, int32 TeamIndex);
 	void RemovePlayerFromTeam(AOrionPlayerController *PC, int32 Index);
 
