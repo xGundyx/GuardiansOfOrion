@@ -16,15 +16,12 @@ AOrionShipPawn::AOrionShipPawn(const FObjectInitializer& ObjectInitializer)
 void AOrionShipPawn::BeginPlay()
 {
 	Super::BeginPlay();
-	
 }
 
 // Called every frame
 void AOrionShipPawn::Tick( float DeltaTime )
 {
 	Super::Tick( DeltaTime );
-
-
 }
 
 // Called to bind functionality to input

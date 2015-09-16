@@ -455,11 +455,8 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SpawnXPNumber"))
 		void EventAddXPNumber(int32 Damage, FVector Pos);
 
-	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "VictoryMessage"))
-		void ShowVictoryMessage();
-
-	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "DefeatMessage"))
-		void ShowDefeatedMessage();
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "GlobalMessage"))
+		void ShowGlobalMessage(const FString &Msg);
 
 	void AddXPNumber(int32 Damage, FVector Pos);
 
