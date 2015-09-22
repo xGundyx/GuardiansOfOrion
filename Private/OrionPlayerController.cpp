@@ -855,6 +855,12 @@ void AOrionPlayerController::SpawnSkeletalActor(FName Type, int32 Index)
 				TestActor = nullptr;
 			}
 
+			if (TestActor2)
+			{
+				TestActor2->Destroy();
+				TestActor2 = nullptr;
+			}
+
 			FVector pos;
 			FRotator rot;
 
@@ -862,16 +868,17 @@ void AOrionPlayerController::SpawnSkeletalActor(FName Type, int32 Index)
 
 			if (P)
 			{
-				pos = P->GetActorLocation() + P->GetActorRotation().Vector() * 1500.0f;
-				rot = (pos - P->GetActorLocation()).Rotation();
+				pos = P->GetActorLocation();// +P->GetActorRotation().Vector() * AnimationTests[i].Dist;
+				rot = P->GetActorRotation();// (pos - P->GetActorLocation()).Rotation();
 			}
 			else if(PlayerCameraManager)
 			{
 				PlayerCameraManager->GetCameraViewPoint(pos, rot);
-				pos = pos + rot.Vector() * 1500.0f;
+				//pos = pos + rot.Vector() * AnimationTests[i].Dist;
+				rot = ControlRotation;// GetControlRotation();
 			}
 
-			rot.Pitch = 0.0f;
+			//rot.Pitch = 0.0f;
 			rot.Roll = 0.0f;
 
 			//try to slap pos to the ground
@@ -881,10 +888,15 @@ void AOrionPlayerController::SpawnSkeletalActor(FName Type, int32 Index)
 
 			FHitResult Hit;
 
-			if (GetWorld()->SweepSingleByChannel(Hit, pos + FVector(0.0f, 0.0f, 100.0f), pos - FVector(0.0f, 0.0f, 1250.0f), FQuat::Identity, ECC_Visibility, FCollisionShape::MakeSphere(10.0f), TraceParams))
+			//if (GetWorld()->SweepSingleByChannel(Hit, pos + FVector(0.0f, 0.0f, 100.0f), pos - FVector(0.0f, 0.0f, 1250.0f), FQuat::Identity, ECC_Visibility, FCollisionShape::MakeSphere(10.0f), TraceParams))
+			if (GetWorld()->SweepSingleByChannel(Hit, pos, pos + rot.Vector() * AnimationTests[i].Dist, FQuat::Identity, ECC_Visibility, FCollisionShape::MakeSphere(10.0f), TraceParams))
 			{
 				pos = Hit.ImpactPoint;
 			}
+			else
+				pos = pos + rot.Vector() * AnimationTests[i].Dist;
+
+			rot.Pitch = 0.0f;
 
 			TestActor = GetWorld()->SpawnActor<ASkeletalMeshActor>(ASkeletalMeshActor::StaticClass(), pos, rot, SpawnInfo);
 
@@ -892,6 +904,18 @@ void AOrionPlayerController::SpawnSkeletalActor(FName Type, int32 Index)
 			{
 				TestActor->GetSkeletalMeshComponent()->SetSkeletalMesh(AnimationTests[i].Mesh);
 				TestActor->GetSkeletalMeshComponent()->PlayAnimation(AnimationTests[i].Animations[Index], true);
+
+				if (AnimationTests[i].ExtraMesh)
+				{
+					TestActor2 = GetWorld()->SpawnActor<ASkeletalMeshActor>(ASkeletalMeshActor::StaticClass(), FVector(0.0f), FRotator(0.0f), SpawnInfo);
+
+					if (TestActor2 && TestActor2->GetSkeletalMeshComponent())
+					{
+						TestActor2->GetSkeletalMeshComponent()->SetSkeletalMesh(AnimationTests[i].ExtraMesh);
+						TestActor2->GetSkeletalMeshComponent()->AttachTo(TestActor->GetSkeletalMeshComponent(), NAME_None, EAttachLocation::KeepRelativeOffset);
+						TestActor2->GetSkeletalMeshComponent()->SetMasterPoseComponent(TestActor->GetSkeletalMeshComponent());
+					}
+				}
 			}
 
 			return;

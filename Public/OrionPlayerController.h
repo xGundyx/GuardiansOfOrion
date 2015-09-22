@@ -34,10 +34,21 @@ struct FAnimTester
 		USkeletalMesh *Mesh;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Anim)
+		USkeletalMesh *ExtraMesh;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Anim)
 		TArray<class UAnimationAsset*> Animations;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Anim)
 		FName Type;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Anim)
+		float Dist;
+
+	FAnimTester()
+	{
+		Dist = 1500.0f;
+	}
 };
 
 USTRUCT(BlueprintType)
@@ -579,6 +590,7 @@ public:
 private:
 	//for animation testing
 	class ASkeletalMeshActor *TestActor;
+	class ASkeletalMeshActor *TestActor2;
 
 	FTimerHandle ServerTickTimer;
 	UOrionQuestManager *QuestManager;
