@@ -31,6 +31,8 @@ AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObjectI
 
 	bHideWeapons = false;
 	bAuthenticated = false;
+
+	bForceFeedbackEnabled = true;
 }
 
 void AOrionPlayerController::AttemptLogin(FString UserName, FString Password)
