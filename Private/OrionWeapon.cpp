@@ -267,6 +267,9 @@ int32 AOrionWeapon::GetWeaponIndex()
 
 void AOrionWeapon::StartAiming()
 {
+	if (MyPawn && ZoomInSound)
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), ZoomInSound, MyPawn->GetActorLocation());
+
 	bAiming = true;
 	LastAimTime = GetWorld()->TimeSeconds;
 	//Mesh1P->SetRelativeLocation(AimViewOffset);
@@ -290,6 +293,9 @@ void AOrionWeapon::StartAiming()
 
 void AOrionWeapon::StopAiming()
 {
+	if (bAiming && MyPawn && ZoomOutSound)
+		UGameplayStatics::PlaySoundAtLocation(GetWorld(), ZoomOutSound, MyPawn->GetActorLocation());
+
 	bAiming = false;
 	LastAimTime = GetWorld()->TimeSeconds;
 	//Mesh1P->SetRelativeLocation(ViewOffset);

@@ -18,6 +18,8 @@ AOrionGRI::AOrionGRI(const FObjectInitializer& ObjectInitializer)
 	PrimaryActorTick.bCanEverTick = true;
 	bAlwaysShowCursor = false;
 	bTeamGame = false;
+
+	GameOverCountDown = -1;
 }
 
 void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
@@ -40,9 +42,10 @@ void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionGRI, bBossMission);
 	DOREPLIFETIME(AOrionGRI, MissionLocation);
 	DOREPLIFETIME(AOrionGRI, PlayerList);
-	DOREPLIFETIME(AOrionGRI, bVictory);
-	DOREPLIFETIME(AOrionGRI, bDefeat);
+	DOREPLIFETIME(AOrionGRI, GameOverMessage);
 	DOREPLIFETIME(AOrionGRI, GlobalMessage);
+	DOREPLIFETIME(AOrionGRI, HeaderMessage);
+	DOREPLIFETIME(AOrionGRI, GameOverCountDown);
 	/*DOREPLIFETIME(AShooterGameState, NumTeams);
 	DOREPLIFETIME(AShooterGameState, RemainingTime);
 	DOREPLIFETIME(AShooterGameState, bTimerPaused);
@@ -56,10 +59,7 @@ void AOrionGRI::HandleVictoryDefeat()
 
 	if (PC)
 	{
-		if (bVictory)
-			PC->ShowGlobalMessage(TEXT("VICTORY"));
-		else if (bDefeat)
-			PC->ShowGlobalMessage(TEXT("DEFEAT"));
+		PC->ShowGlobalMessage(GameOverMessage);
 	}
 }
 
@@ -79,6 +79,25 @@ void AOrionGRI::SetGlobalMessage(FString msg)
 
 	if (PC)
 		PC->ShowGlobalMessage(GlobalMessage);
+}
+
+void AOrionGRI::OnRep_HeaderMessage()
+{
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
+
+	if (PC)
+		PC->ShowGlobalMessageHeader(HeaderMessage.Title, HeaderMessage.Desc);
+}
+
+void AOrionGRI::SetHeaderMessage(FString Title, FString Desc)
+{
+	HeaderMessage.Title = Title;
+	HeaderMessage.Desc = Desc;
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
+
+	if (PC)
+		PC->ShowGlobalMessageHeader(HeaderMessage.Title, HeaderMessage.Desc);
 }
 
 bool AOrionGRI::IsTopDownGame()
@@ -123,9 +142,6 @@ FTimeOfDay AOrionGRI::GetWorldTime() const
 void AOrionGRI::BeginPlay()
 {
 	Super::BeginPlay();
-
-	bVictory = false;
-	bDefeat = false;
 
 	//initialize our mapper
 	FActorSpawnParameters SpawnInfo;

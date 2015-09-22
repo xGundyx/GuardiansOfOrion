@@ -382,6 +382,26 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Classes)
 		TSubclassOf<class UUserWidget>  DefaultHealthBarClass;
 
+	UPROPERTY(BlueprintReadOnly, Category = Health)
+		bool bIsHealableMachine;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Health)
+		bool bCanAttackGenerator;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Generator)
+		bool bPowered;
+
+	UPROPERTY(Replicated)
+		bool bSelfHealing;
+
+	UPROPERTY(Replicated)
+		float HealTarget;
+
+	float HealAmount;
+	float LastHealTime;
+
+	void HandleHealEffects(float DeltaSeconds);
+
 	//UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 		//class USkeletalMeshComponent* Arms1PLegsMesh;
 

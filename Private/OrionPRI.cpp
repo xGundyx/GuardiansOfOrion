@@ -8,6 +8,10 @@ AOrionPRI::AOrionPRI(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
 	TeamIndex = -1;
+
+	Kills = 0;
+	Assists = 0;
+	Deaths = 0;
 }
 
 void AOrionPRI::SeamlessTravelTo(APlayerState * NewPlayerState)
@@ -52,6 +56,12 @@ void AOrionPRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionPRI, SessionTicket);
 	DOREPLIFETIME(AOrionPRI, CharacterID);
 	DOREPLIFETIME(AOrionPRI, PlayFabName);
+
+	//scores
+	DOREPLIFETIME(AOrionPRI, Kills);
+	DOREPLIFETIME(AOrionPRI, Assists);
+	DOREPLIFETIME(AOrionPRI, Deaths);
+	DOREPLIFETIME(AOrionPRI, ClassType);
 
 	//exp
 	DOREPLIFETIME(AOrionPRI, CharacterXP);

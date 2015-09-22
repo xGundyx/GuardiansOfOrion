@@ -428,8 +428,11 @@ void AOrionAIController::CheckEnemyStatus()
 		if (pPawn->bFinishingMove)
 			return;
 
+		//ignored downed generators
+		if (pEnemy->bIsHealableMachine && !pEnemy->bPowered)
+			bRemoveEnemy = true;
 		//ignore pawns getting fatalitied
-		if (pEnemy->bFatality)
+		else if (pEnemy->bFatality)
 			bRemoveEnemy = true;
 		//can't see cloaked assholes
 		if (pEnemy->CurrentSkill && pEnemy->CurrentSkill->IsCloaking())
@@ -534,6 +537,23 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 	if (GetEnemy() && GetWorld()->GetTimeSeconds() - LastEnemyTime < 5.0f)
 		return;
 
+	//if we are capable of attacking the generator and this is a generator, attack it!
+	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
+	AOrionCharacter *pPawn = Cast<AOrionCharacter>(SeenPawn);
+	if (pPawn && P && pPawn->bIsHealableMachine)
+	{
+		if (GetEnemy())
+			return;
+
+		if (!P->IsValidLowLevel() || !P->bCanAttackGenerator)
+			return;
+
+		if (!pPawn->bPowered)
+			return;
+
+		SetEnemy(SeenPawn);
+	}
+
 	//for now just ignore other bots and go straight for humans
 	if (SeenPawn && SeenPawn->PlayerState && SeenPawn->PlayerState->bIsABot)
 		return;
@@ -551,8 +571,6 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 		if (dist2 < dist1)
 			return;
 	}
-
-	AOrionCharacter *pPawn = Cast<AOrionCharacter>(SeenPawn);
 
 	if (pPawn)
 	{

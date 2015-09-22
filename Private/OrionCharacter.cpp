@@ -19,6 +19,8 @@
 //////////////////////////////////////////////////////////////////////////
 // AOrionCharacter
 
+class AOrionWeaponLink;
+
 AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer.SetDefaultSubobjectClass<UOrionMovementComponent>(ACharacter::CharacterMovementComponentName))
 {
@@ -243,6 +245,8 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	ShieldMax = 500.0;
 
 	GrenadeCooldown = 0.0f;
+
+	bIsHealableMachine = false;
 
 	HeadScale = 1.0f;
 	LeftLegScale = 1.0f;
@@ -879,6 +883,12 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, Shield);
 	DOREPLIFETIME(AOrionCharacter, bIsElite);
 
+	//healing material stuff
+	DOREPLIFETIME(AOrionCharacter, HealTarget);
+	DOREPLIFETIME(AOrionCharacter, bSelfHealing);
+
+	DOREPLIFETIME(AOrionCharacter, bPowered);
+
 	DOREPLIFETIME(AOrionCharacter, GibRep);
 
 	DOREPLIFETIME(AOrionCharacter, HelmetArmor);
@@ -1424,8 +1434,17 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 		//take off shield damage first
 		float TotalDamage = ActualDamage;
 
+		bool bShield = Shield > 0.0;
+
 		TotalDamage = FMath::Max(0.0f, TotalDamage - Shield);
 		Shield = FMath::Max(0.0f, Shield - ActualDamage);
+
+		if (bShield && Shield <= 0.0f)
+		{
+			AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+			if (PC)
+				PC->PlayShieldEffect(false);
+		}
 
 		Health -= TotalDamage;
 
@@ -1515,15 +1534,18 @@ void AOrionCharacter::PlayHit(float DamageTaken, struct FDamageEvent const& Dama
 	{
 		ApplyDamageMomentum(DamageTaken, DamageEvent, PawnInstigator, DamageCauser);
 
-		UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass->GetDefaultObject());
-		if (DamageType && DamageType->bIsKnife)
-		{
-			FHitResult HitInfo;
-			FVector ImpulseDir;
-			DamageEvent.GetBestHitInfo(this, PawnInstigator, HitInfo, ImpulseDir);
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
+		FHitResult HitInfo;
+		FVector ImpulseDir;
+		DamageEvent.GetBestHitInfo(this, PawnInstigator, HitInfo, ImpulseDir);
+
+		//play some kind of hit effect from bites and stuff, so the player can see when they're hit
+
+		UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass->GetDefaultObject());
+
+		if (DamageType && DamageType->bIsKnife)
 			UGameplayStatics::PlaySoundAtLocation(GetWorld(), KnifeHitSound, HitInfo.ImpactPoint);
-		}
 	}
 
 	/*AOrionPlayerController* MyPC = Cast<AOrionPlayerController>(Controller);
@@ -2345,6 +2367,8 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 
 	HandleBuffs(DeltaSeconds);
 
+	HandleHealEffects(DeltaSeconds);
+
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
 	if (PC && !PC->bCinematicMode && !IsOnShip() && (bShoulderCamera || bShipCamera) && !GetWorldTimerManager().IsTimerActive(ExitShipTimer))
@@ -2371,12 +2395,41 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 		if (Shield < ShieldMax && GetWorld()->TimeSeconds - LastTakeHitTime >= 10.0f)
 		{
 			Shield = FMath::Min(ShieldMax, Shield + DeltaSeconds * (ShieldMax / 10.0f));
+
+			if (PC && Shield >= ShieldMax)
+				PC->PlayShieldEffect(true);
 		}
 	}
 
 	//hax for now
 	//if (CurrentWeapon == NULL && Inventory.Num() > 0)
 	//	EquipWeapon(Inventory[0]);
+}
+
+void AOrionCharacter::HandleHealEffects(float DeltaTime)
+{
+	if (Role = ROLE_Authority)
+	{
+		if (GetWorld()->GetTimeSeconds() - LastHealTime > 1.0f)
+			HealTarget = 0.0f;
+	}
+
+	if (HealTarget != HealAmount)
+	{
+		if (HealTarget > HealAmount)
+			HealAmount = FMath::Min(HealTarget, HealAmount + 5.0f * DeltaTime);
+		else if (HealTarget < HealAmount)
+			HealAmount = FMath::Max(HealTarget, HealAmount - 5.0f * DeltaTime);
+
+		//update our materials
+		for (int32 i = 0; i < CharacterMats.Num(); i++)
+		{
+			if (CharacterMats[i])
+			{
+				CharacterMats[i]->SetScalarParameterValue("HealAmount", HealAmount);
+			}
+		}
+	}
 }
 
 void AOrionCharacter::UpdateCooldowns(float DeltaTime)
@@ -2619,7 +2672,28 @@ void AOrionCharacter::OnNextWeapon()
 		if (Inventory.Num() >= 2 && (CurrentWeapon == NULL || true))//CurrentWeapon->GetCurrentState() != EWeaponState::Equipping))
 		{
 			const int32 CurrentWeaponIdx = Inventory.IndexOfByKey(CurrentWeapon);
-			AOrionWeapon* NWeapon = Inventory[(CurrentWeaponIdx + 1) % Inventory.Num()];
+
+			int32 nIndex = CurrentWeaponIdx + 1;
+
+			if (nIndex >= Inventory.Num())
+				nIndex = 0;
+
+			while (nIndex != CurrentWeaponIdx)
+			{
+				if (!Cast<AOrionWeaponLink>(Inventory[nIndex]))
+					break;
+
+				nIndex++;
+
+				if (nIndex >= Inventory.Num())
+					nIndex = 0;
+			}
+
+			AOrionWeapon* NWeapon = Inventory[nIndex % Inventory.Num()];
+
+			if (NWeapon == CurrentWeapon)
+				return;
+
 			EquipWeapon(NWeapon);
 		}
 	}
@@ -2636,7 +2710,28 @@ void AOrionCharacter::OnPrevWeapon()
 		if (Inventory.Num() >= 2 && (CurrentWeapon == NULL || true))//CurrentWeapon->GetCurrentState() != EWeaponState::Equipping))
 		{
 			const int32 CurrentWeaponIdx = Inventory.IndexOfByKey(CurrentWeapon);
-			AOrionWeapon* PrevWeapon = Inventory[(CurrentWeaponIdx - 1 + Inventory.Num()) % Inventory.Num()];
+
+			int32 nIndex = CurrentWeaponIdx - 1;
+
+			if (nIndex < 0)
+				nIndex = Inventory.Num() - 1;
+
+			while (nIndex != CurrentWeaponIdx)
+			{
+				if (!Cast<AOrionWeaponLink>(Inventory[nIndex]))
+					break;
+
+				nIndex--;
+
+				if (nIndex < 0)
+					nIndex = Inventory.Num() - 1;
+			}
+
+			AOrionWeapon* PrevWeapon = Inventory[nIndex % Inventory.Num()];
+
+			if (PrevWeapon == CurrentWeapon)
+				return;
+
 			EquipWeapon(PrevWeapon);
 		}
 	}
@@ -3016,7 +3111,7 @@ void AOrionCharacter::DoRoll()
 		{
 			if (CurrentWeapon && CurrentWeapon->WeaponState == WEAP_RELOADING)
 			{
-				//CurrentWeapon->StopReload();
+				CurrentWeapon->StopReload();
 			}
 
 			//prevent upper body from doing wacky things
@@ -3264,7 +3359,9 @@ void AOrionCharacter::StopAiming()
 
 	if (CurrentWeapon)
 	{
-		bAim = false;
+		if (Cast<AOrionWeaponLink>(CurrentWeapon) == nullptr)
+			bAim = false;
+
 		CurrentWeapon->StopAiming();
 	}
 }
@@ -3321,7 +3418,8 @@ void AOrionCharacter::StartAiming()
 
 	if (CurrentWeapon)
 	{
-		bAim = true;
+		if (Cast<AOrionWeaponLink>(CurrentWeapon) == nullptr)
+			bAim = true;
 		CurrentWeapon->StartAiming();
 	}
 }
