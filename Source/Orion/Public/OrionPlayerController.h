@@ -458,6 +458,20 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "GlobalMessage"))
 		void ShowGlobalMessage(const FString &Msg);
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "GlobalMessageHeader"))
+		void ShowGlobalMessageHeader(const FString &Title, const FString &Desc);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ShowScoreScreen"))
+		void ShowScoreScreen(bool bShow);
+
+	void ShowScores();
+	void HideScores();
+
+	void PlayShieldEffect(bool bFull);
+
+	UFUNCTION(client, reliable)
+		void ClientPlayShieldEffect(bool bFull);
+
 	void AddXPNumber(int32 Damage, FVector Pos);
 
 	UPROPERTY(BlueprintReadWrite, Category = MainMenu)
@@ -581,6 +595,9 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "CreateHealthBar"))
 		void EventCreateHealthBar(class AOrionCharacter *PawnOwner);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Take Hit"))
+		void EventTakeHit(bool bFull);
 
 	UFUNCTION()
 		void ServerTick();

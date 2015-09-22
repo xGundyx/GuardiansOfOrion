@@ -81,9 +81,22 @@ void AOrionPlayerController::SetupInputComponent()
 
 	InputComponent->BindAction("OpenInventory", IE_Pressed, this, &AOrionPlayerController::OpenInventory);
 
+	InputComponent->BindAction("OpenScores", IE_Pressed, this, &AOrionPlayerController::ShowScores);
+	InputComponent->BindAction("OpenScores", IE_Released, this, &AOrionPlayerController::HideScores);
+
 	//voice chat
 	InputComponent->BindAction("StartVoiceChat", IE_Pressed, this, &APlayerController::StartTalking);
 	InputComponent->BindAction("StartVoiceChat", IE_Released, this, &APlayerController::StopTalking);
+}
+
+void AOrionPlayerController::ShowScores()
+{
+	ShowScoreScreen(true);
+}
+
+void AOrionPlayerController::HideScores()
+{
+	ShowScoreScreen(false);
 }
 
 //tell the blueprint to open the inventory
@@ -385,9 +398,25 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 		{
 			////PRI->InventoryManager->EquipItems(newPawn, ITEM_ANY);
 			if (ClassIndex < 0)
-				ChangeClass(FMath::RandRange(0, 2));
-			else
-				ChangeClass(ClassIndex);
+				ClassIndex = FMath::RandRange(0, 2);
+			
+			ChangeClass(ClassIndex);
+
+			switch (ClassIndex)
+			{
+			case 0:
+				PRI->ClassType = TEXT("ASSAULT");
+				break;
+			case 1:
+				PRI->ClassType = TEXT("SUPPORT");
+				break;
+			case 2:
+				PRI->ClassType = TEXT("RECON");
+				break;
+			default:
+				PRI->ClassType = TEXT("NONE");
+				break;
+			}
 		}
 	}
 }
@@ -490,6 +519,19 @@ void AOrionPlayerController::ClientAddXPNumber_Implementation(int32 XP, FVector 
 		return;
 
 	AddXPNumber(XP, Pos);
+}
+
+void AOrionPlayerController::PlayShieldEffect(bool bFull)
+{
+	if (IsLocalPlayerController())
+		EventTakeHit(bFull);
+	else
+		ClientPlayShieldEffect(bFull);
+}
+
+void AOrionPlayerController::ClientPlayShieldEffect_Implementation(bool bFull)
+{
+	EventTakeHit(bFull);
 }
 
 //only called by the server
@@ -1206,6 +1248,10 @@ TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
 
 	NewOption.Title = TEXT("VOICE");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("StartVoiceChat", false, 0.0f);
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("SHOW SCORES");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("OpenScores", false, 0.0f);
 	Options.Add(NewOption);
 
 	return Options;

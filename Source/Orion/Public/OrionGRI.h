@@ -105,10 +105,7 @@ public:
 		void HandleVictoryDefeat();
 
 	UPROPERTY(ReplicatedUsing = HandleVictoryDefeat, BlueprintReadOnly)
-		bool bVictory;
-
-	UPROPERTY(ReplicatedUsing = HandleVictoryDefeat, BlueprintReadOnly)
-		bool bDefeat;
+		FString GameOverMessage;
 
 	UPROPERTY(Replicated, BlueprintReadOnly)
 		FVector MissionLocation;
@@ -127,6 +124,17 @@ public:
 		FString GlobalMessage;
 
 	void SetGlobalMessage(FString msg);
+
+	UFUNCTION()
+		void OnRep_HeaderMessage();
+
+	UPROPERTY(ReplicatedUsing = OnRep_HeaderMessage)
+		FMissionInfo HeaderMessage;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Generator)
+		int32 GameOverCountDown;
+
+	void SetHeaderMessage(FString Title, FString Desc);
 
 	bool AddPlayerToTeam(AOrionPlayerController *PC, int32 TeamIndex);
 	void RemovePlayerFromTeam(AOrionPlayerController *PC, int32 Index);

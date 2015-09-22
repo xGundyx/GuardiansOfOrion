@@ -282,6 +282,17 @@ void AOrionGameMode::HandleStats(AController* Killer, AController* KilledPlayer,
 			Stats->AddStatValue(KillerStatID, 1);
 		}
 	}
+
+	if (Killer && KilledPlayer)
+	{
+		AOrionPRI *KillerPRI = Cast<AOrionPRI>(Killer->PlayerState);
+		AOrionPRI *KilledPRI = Cast<AOrionPRI>(KilledPlayer->PlayerState);
+
+		if (KillerPRI)
+			KillerPRI->Kills++;
+		else if (KilledPRI)
+			KilledPRI->Deaths++;
+	}
 }
 
 void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
@@ -342,11 +353,11 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 		else if (Difficulty == DIFF_MEDIUM)
 			Damage *= 1.0f;
 		else if (Difficulty == DIFF_HARD)
-			Damage *= 0.8f;
+			Damage *= 0.9f;
 		else if (Difficulty == DIFF_INSANE)
-			Damage *= 0.6f;
+			Damage *= 0.8f;
 		else if (Difficulty == DIFF_REDIKULOUS)
-			Damage *= 0.4f;
+			Damage *= 0.7f;
 	}
 	else
 	{
@@ -366,11 +377,11 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 		else if (Difficulty == DIFF_MEDIUM)
 			Damage /= 1.0f;
 		else if (Difficulty == DIFF_HARD)
-			Damage *= 1.1f;
-		else if (Difficulty == DIFF_INSANE)
 			Damage *= 1.3f;
+		else if (Difficulty == DIFF_INSANE)
+			Damage *= 1.75f;
 		else if (Difficulty == DIFF_REDIKULOUS)
-			Damage *= 1.5f;
+			Damage *= 2.5f;
 	}
 
 	return Damage;

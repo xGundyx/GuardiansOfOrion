@@ -42,6 +42,18 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		FString PlayFabName;
 
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Score)
+		int32 Kills;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Score)
+		int32 Assists;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Score)
+		int32 Deaths;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Score)
+		FString ClassType;
+
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		int32 CharacterXP;
 

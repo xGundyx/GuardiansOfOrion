@@ -75,6 +75,9 @@ public:
 
 	void DepleteEnergy() { Energy = 0.0f; }
 
+	void SetEnergy(float NewEnergy) { Energy = NewEnergy; }
+	float GetEnergy() { return Energy; }
+
 private:
 	void DoActivateEffects();
 	void DoDeactivateEffects();

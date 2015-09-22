@@ -104,6 +104,9 @@ struct FInstantWeaponData
 		int32 WeaponIndex;
 
 	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+		int32 WeaponSlot;
+
+	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
 		float RecoilScale;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Accuracy)
@@ -445,8 +448,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Weapon)
 		virtual UAnimMontage* GetFireMontage();
 
-	void StartAiming();
-	void StopAiming();
+	virtual void StartAiming();
+	virtual void StopAiming();
 
 	bool IsEquipped() const;
 
@@ -473,6 +476,12 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 		USoundCue* HolsterSound;
+
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+		USoundCue* ZoomInSound;
+
+	UPROPERTY(EditDefaultsOnly, Category = Sound)
+		USoundCue* ZoomOutSound;
 
 	/** play weapon sounds */
 	UAudioComponent* PlayWeaponSound(USoundCue* Sound);
