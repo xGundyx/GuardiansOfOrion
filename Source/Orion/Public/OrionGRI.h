@@ -146,4 +146,11 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, Category = Inventory)
 		AOrionPlayFabInventoryMapper *Mapper;
+
+	//keep track of active ragdolls and remove the oldest ones as we overflow
+	TArray<AOrionCharacter*> ActiveRagdolls;
+
+	void AddRagdoll(AOrionCharacter *Ragdoll);
+	void RemoveRagdoll(AOrionCharacter *Ragdoll);
+	void ValidateRagdollArray();
 };

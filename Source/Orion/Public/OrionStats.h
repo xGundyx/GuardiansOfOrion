@@ -174,6 +174,25 @@ enum EStatID// : uint8
 	STAT_KILLSASASSAULT,
 	STAT_KILLSASSUPPORT,
 	STAT_KILLSASRECON,
+	STAT_DEATHSASASSAULT,
+	STAT_DEATHSASSUPPORT,
+	STAT_DEATHSASRECON,
+
+	//difficulty win/loss
+	STAT_EASYWINS,
+	STAT_EASYLOSSES,
+	STAT_NORMALWINS,
+	STAT_NORMALLOSSES,
+	STAT_HARDWINS,
+	STAT_HARDLOSSES,
+	STAT_INSANEWINS,
+	STAT_INSANELOSSES,
+	STAT_REDIKULOUSWINS,
+	STAT_REDIKULOUSLOSSES,
+
+	//generator
+	STAT_GENERATORHEALINGDONE,
+	STAT_GENERATORSREPAIRED,
 
 	STAT_MAX,
 	STAT_ERROR
@@ -208,6 +227,8 @@ struct FPlayerStats
 		StatName = sName;
 		bDirty = false;
 	}
+
+	bool operator==(const FPlayerStats Other) const { return StatName == Other.StatName; }
 };
 
 UCLASS()
@@ -236,6 +257,9 @@ public:
 		TArray<FPlayerStats> aStats;
 
 	void AddStatValue(EStatID ID, int32 Value);
+
+	UFUNCTION(BlueprintCallable, Category = Stats)
+		void SetStatValues(TArray<FPlayerStats> StatsRead);
 	
 private:
 	bool bInitialized;

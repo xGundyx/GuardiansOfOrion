@@ -153,6 +153,11 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], FVector F
 
 			Loc = GetWorld()->GetNavigationSystem()->GetRandomReachablePointInRadius(GetWorld(), GetActorLocation(), SpawnRadius, (ANavigationData*)0, DefaultFilterClass);
 
+			TSharedPtr<const FNavigationQueryFilter> QueryFilter = UNavigationQueryFilter::GetQueryFilter(GetWorld()->GetNavigationSystem()->MainNavData, DefaultFilterClass);
+
+			if (!GetWorld()->GetNavigationSystem()->TestPathSync(FPathFindingQuery(nullptr, GetWorld()->GetNavigationSystem()->MainNavData, GetActorLocation(), Loc, QueryFilter)))
+				continue;
+
 			AOrionCharacter* NewPawn = GetWorld()->SpawnActor<AOrionCharacter>(SpawnClasses[i], Loc + FVector(0, 0, 150.0f), GetActorRotation(), SpawnInfo);
 			if (NewPawn)
 			{

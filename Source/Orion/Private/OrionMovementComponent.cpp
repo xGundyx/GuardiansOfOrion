@@ -10,7 +10,7 @@
 UOrionMovementComponent::UOrionMovementComponent(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
-	
+	//bReplicates = true;
 }
 
 /*void UOrionMovementComponent::ServerMove_Implementation(

@@ -5,6 +5,7 @@
 #include "OrionMusicManager.h"
 #include "OrionGRI.h"
 
+#define MAX_RAGDOLLS 1
 
 AOrionGRI::AOrionGRI(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -20,6 +21,35 @@ AOrionGRI::AOrionGRI(const FObjectInitializer& ObjectInitializer)
 	bTeamGame = false;
 
 	GameOverCountDown = -1;
+}
+
+void AOrionGRI::AddRagdoll(AOrionCharacter *Ragdoll)
+{
+	ActiveRagdolls.AddUnique(Ragdoll);
+
+	ValidateRagdollArray();
+
+	if (ActiveRagdolls.Num() > MAX_RAGDOLLS)
+	{
+		ActiveRagdolls[0]->Destroy();
+		ActiveRagdolls.RemoveAt(0);
+	}
+}
+
+void AOrionGRI::ValidateRagdollArray()
+{
+	for (auto Itr(ActiveRagdolls.CreateIterator()); Itr; ++Itr)
+	{
+		AOrionCharacter *rag = *Itr;
+
+		if (!rag || !rag->IsValidLowLevel())
+			ActiveRagdolls.Remove(rag);
+	}
+}
+
+void AOrionGRI::RemoveRagdoll(AOrionCharacter *Ragdoll)
+{
+	ActiveRagdolls.Remove(Ragdoll);
 }
 
 void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const

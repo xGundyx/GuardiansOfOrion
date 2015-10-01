@@ -30,6 +30,7 @@ AOrionProjectile::AOrionProjectile(const FObjectInitializer& ObjectInitializer)
 	PrimaryActorTick.bCanEverTick = true;
 
 	bReplicates = true;
+	bAlwaysMoving = true;
 }
 
 void AOrionProjectile::PostInitializeComponents()
@@ -41,23 +42,34 @@ void AOrionProjectile::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
+	//if (Role == ROLE_Authority)
 	ValidatePosition();
 }
 
 void AOrionProjectile::ValidatePosition()
 {
-	if (TargetDir.SizeSquared() <= 0.1f)
+	if (!bAlwaysMoving && TargetDir.SizeSquared() <= 0.1f)
 		return;
 
-	if (FVector::DotProduct((TargetPos - GetActorLocation()).GetSafeNormal(), TargetDir) < 0.8f)
+	if ((ProjectileMovement->Velocity.Size() < 1.0f && bAlwaysMoving) || FVector::DotProduct((TargetPos - GetActorLocation()).GetSafeNormal(), TargetDir) < 0.8f)
 	{
-		if (TracerPSC)
+		/*if (TracerPSC)
 		{
 			TracerPSC->DestroyComponent();
 			TracerPSC = nullptr;
-		}
+		}*/
 
 		Destroy();
+	}
+}
+
+void AOrionProjectile::Destroyed()
+{
+	if (TracerPSC)
+	{
+		TracerPSC->DeactivateSystem();
+		//TracerPSC->DestroyComponent();
+		TracerPSC = nullptr;
 	}
 }
 
@@ -91,11 +103,11 @@ void AOrionProjectile::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp,
 		Destroy();
 	}*/
 	
-	if (TracerPSC)
+	/*if (TracerPSC)
 	{
 		TracerPSC->DestroyComponent();
 		TracerPSC = nullptr;
-	}
+	}*/
 
 	EventHandleImpact();
 

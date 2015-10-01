@@ -40,8 +40,13 @@ public:
 	UFUNCTION()
 		void OnRep_Velocity();
 
+	void Destroyed() override;
+
 	UPROPERTY(ReplicatedUsing = OnRep_Velocity, BlueprintReadWrite, Category = Movement)
 		FVector NewVelocity;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Projectile)
+		bool bAlwaysMoving;
 
 	UPROPERTY()
 		UParticleSystemComponent* TracerPSC;

@@ -154,6 +154,23 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 	aStats.Add(FPlayerStats(STAT_KILLSASASSAULT, TEXT("KillsAsAssault")));
 	aStats.Add(FPlayerStats(STAT_KILLSASSUPPORT, TEXT("KillsAsSupport")));
 	aStats.Add(FPlayerStats(STAT_KILLSASRECON, TEXT("KillsAsRecon")));
+	aStats.Add(FPlayerStats(STAT_DEATHSASASSAULT, TEXT("DeathsAsAssault")));
+	aStats.Add(FPlayerStats(STAT_DEATHSASSUPPORT, TEXT("DeathsAsSupport")));
+	aStats.Add(FPlayerStats(STAT_DEATHSASRECON, TEXT("DeathsAsRecon")));
+
+	aStats.Add(FPlayerStats(STAT_EASYWINS, TEXT("EasyWins")));
+	aStats.Add(FPlayerStats(STAT_EASYLOSSES, TEXT("EasyLosses")));
+	aStats.Add(FPlayerStats(STAT_NORMALWINS, TEXT("NormalWins")));
+	aStats.Add(FPlayerStats(STAT_NORMALLOSSES, TEXT("NormalLosses")));
+	aStats.Add(FPlayerStats(STAT_HARDWINS, TEXT("HardWins")));
+	aStats.Add(FPlayerStats(STAT_HARDLOSSES, TEXT("HardLosses")));
+	aStats.Add(FPlayerStats(STAT_INSANEWINS, TEXT("InsaneWins")));
+	aStats.Add(FPlayerStats(STAT_INSANELOSSES, TEXT("InsaneLosses")));
+	aStats.Add(FPlayerStats(STAT_REDIKULOUSWINS, TEXT("RedikulousWins")));
+	aStats.Add(FPlayerStats(STAT_REDIKULOUSLOSSES, TEXT("RedikulousLosses")));
+
+	aStats.Add(FPlayerStats(STAT_GENERATORHEALINGDONE, TEXT("GeneratorHealingDone")));
+	aStats.Add(FPlayerStats(STAT_GENERATORSREPAIRED, TEXT("GeneratorsRepaired")));
 
 	bInitialized = false;
 
@@ -188,11 +205,14 @@ void AOrionStats::AddStatValue(EStatID ID, int32 Value)
 void AOrionStats::FlushPlayerStats(AOrionPlayerController* PC)
 {
 #if IS_SERVER
-	EventSavePlayerStats(PC);
+	if(bInitialized)
+	{
+		EventSavePlayerStats(PC);
 
-	//reset all stat values to non dirty
-	for (int32 i = 0; i < aStats.Num(); i++)
-		aStats[i].bDirty = false;
+		//reset all stat values to non dirty
+		for (int32 i = 0; i < aStats.Num(); i++)
+			aStats[i].bDirty = false;
+	}
 #endif
 }
 
@@ -208,3 +228,16 @@ void AOrionStats::FlushPlayerStats(AOrionPlayerController* PC)
 
 	return Map;
 }*/
+
+void AOrionStats::SetStatValues(TArray<FPlayerStats> StatsRead)
+{
+	for (int32 i = 0; i < StatsRead.Num(); i++)
+	{
+		int32 index = aStats.Find(StatsRead[i]);
+
+		if (index != INDEX_NONE)
+		{
+			aStats[index].StatValue = StatsRead[i].StatValue;
+		}
+	}
+}

@@ -16,6 +16,8 @@ void AOrionSpectatorPawn::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResul
 
 	if (PC && PC->OverviewCamera)
 		PC->OverviewCamera->GetCameraView(DeltaTime, OutResult);
+	else if (SpecViewTarget && SpecViewTarget->ControlledPawn)
+		return SpecViewTarget->ControlledPawn->CalcCamera(DeltaTime, OutResult);
 	else if (PC && PC->Ragdoll && PC->Ragdoll->IsValidLowLevel())
 		PC->Ragdoll->CalcCamera(DeltaTime, OutResult);
 	else
@@ -85,9 +87,8 @@ void AOrionSpectatorPawn::OnFire()
 		}
 		//spec next player
 		else
-		{
+			GetNextSpecTarget(true);
 
-		}
 	}
 }
 
@@ -104,8 +105,46 @@ void AOrionSpectatorPawn::OnAim()
 		}
 		//spec prev player
 		else
-		{
+			GetNextSpecTarget(false);
+	}
+}
 
+void AOrionSpectatorPawn::GetNextSpecTarget(bool bForwards)
+{
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+	if (GRI)
+	{
+		int32 CurrentIndex = 0;
+
+		for (int32 i = 0; i < GRI->PlayerList.Num(); i++)
+		{
+			if (GRI->PlayerList[i] == PlayerState)
+				continue;
+
+			if (SpecViewTarget == GRI->PlayerList[i])
+			{
+				CurrentIndex = i;
+				break;
+			}
+		}
+
+		for (int32 i = CurrentIndex + (bForwards ? 1 : -1); i < GRI->PlayerList.Num() && i >= 0; (bForwards ? i++ : i--))
+		{
+			if (GRI->PlayerList[i] && GRI->PlayerList[i]->IsValidLowLevel() && GRI->PlayerList[i]->ControlledPawn)
+			{
+				SpecViewTarget = GRI->PlayerList[i];
+				return;
+			}
+		}
+
+		for (int32 i = (bForwards ? 0 : GRI->PlayerList.Num() - 1); i < CurrentIndex; (bForwards ? i++ : i--))
+		{
+			if (GRI->PlayerList[i] && GRI->PlayerList[i]->IsValidLowLevel() && GRI->PlayerList[i]->ControlledPawn)
+			{
+				SpecViewTarget = GRI->PlayerList[i];
+				return;
+			}
 		}
 	}
 }

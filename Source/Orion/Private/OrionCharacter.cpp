@@ -945,6 +945,10 @@ void AOrionCharacter::Destroyed()
 {
 	Super::Destroyed();
 	////DestroyInventory();
+
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+	if (GRI)
+		GRI->RemoveRagdoll(this);
 }
 
 void AOrionCharacter::FinishExitingShip()
@@ -1439,12 +1443,16 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 		TotalDamage = FMath::Max(0.0f, TotalDamage - Shield);
 		Shield = FMath::Max(0.0f, Shield - ActualDamage);
 
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
 		if (bShield && Shield <= 0.0f)
 		{
-			AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 			if (PC)
 				PC->PlayShieldEffect(false);
 		}
+
+		if (PC)
+			PC->PlayHUDHit();
 
 		Health -= TotalDamage;
 
@@ -1976,6 +1984,10 @@ void AOrionCharacter::SetRagdollPhysics()
 	}
 	else
 	{
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+		if (GRI)
+			GRI->AddRagdoll(this);
+
 		SetLifeSpan(45.0f);
 	}
 }
@@ -2408,7 +2420,7 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 
 void AOrionCharacter::HandleHealEffects(float DeltaTime)
 {
-	if (Role = ROLE_Authority)
+	if (Role == ROLE_Authority)
 	{
 		if (GetWorld()->GetTimeSeconds() - LastHealTime > 1.0f)
 			HealTarget = 0.0f;
@@ -2941,6 +2953,9 @@ void AOrionCharacter::Blink(FVector dir)
 		return;
 	}
 
+	if (!DefaultFilterClass)
+		return;
+
 	if (GetWorld() && GetWorld()->GetNavigationSystem())
 	{
 		FNavLocation loc;
@@ -2955,7 +2970,18 @@ void AOrionCharacter::Blink(FVector dir)
 			//find our blink end direction
 			FVector EndPos = GetActorLocation() + dir * (4 - i) * 250.0f;
 			if (GetWorld()->GetNavigationSystem()->ProjectPointToNavigation(EndPos, loc, FVector(125.0f, 125.0f, 1000.0f), GetWorld()->GetNavigationSystem()->GetNavDataForProps(props)))
+			//if (GetWorld()->GetNavigationSystem()->->GetRandomReachablePointInRadius(GetWorld(), EndPos, 100.0f))
 			{
+				//make sure this point is reachable
+				//FPathFindingQuery Query;
+				//Query.StartLocation = GetActorLocation();
+				//Query.EndLocation = loc.Location;
+
+				TSharedPtr<const FNavigationQueryFilter> QueryFilter = UNavigationQueryFilter::GetQueryFilter(GetWorld()->GetNavigationSystem()->MainNavData, DefaultFilterClass);
+
+				if (!GetWorld()->GetNavigationSystem()->TestPathSync(FPathFindingQuery(nullptr, GetWorld()->GetNavigationSystem()->MainNavData, GetActorLocation(), loc.Location, QueryFilter)))
+					continue;
+
 				FVector StartPos = GetActorLocation();
 				EndPos = loc.Location + GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 				if (TeleportTo(EndPos, GetActorRotation()))

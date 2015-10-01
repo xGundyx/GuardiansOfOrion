@@ -57,6 +57,10 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		int32 CharacterXP;
 
+	void AddXP(int32 Value);
+	void DoLevelUp();
+	int32 CalculateLevel(int32 XP);
+
 	UFUNCTION(BlueprintCallable, Category = Team)
 		int32 GetTeamIndex();
 
