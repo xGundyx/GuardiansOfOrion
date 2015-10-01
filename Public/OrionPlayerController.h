@@ -276,6 +276,18 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ChangeClass"))
 		void EventChangeClass(int32 index);
 
+	UFUNCTION(client, reliable)
+		void PlayLevelUpEffect();
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ShowLevelUpEffect"))
+		void EventPlayLevelUpEffect();
+
+	UFUNCTION(client, reliable)
+		void ShowLevelUpMessage();
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ShowLevelUpMessage"))
+		void EventShowLevelUpMessage();
+
 	UFUNCTION(exec)
 		virtual void HideWeapons();
 
@@ -483,6 +495,11 @@ public:
 	UFUNCTION(client, reliable)
 		void ClientPlayShieldEffect(bool bFull);
 
+	void PlayHUDHit();
+
+	UFUNCTION(client, reliable)
+		void ClientPlayHUDHit();
+
 	void AddXPNumber(int32 Damage, FVector Pos);
 
 	UPROPERTY(BlueprintReadWrite, Category = MainMenu)
@@ -610,6 +627,9 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Take Hit"))
 		void EventTakeHit(bool bFull);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Take HUD Hit"))
+		void EventPlayHUDHit();
 
 	UFUNCTION()
 		void ServerTick();

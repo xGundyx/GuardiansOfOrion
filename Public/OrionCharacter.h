@@ -722,8 +722,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Health)
 		void AddShield(int32 Amount);
 
-	UFUNCTION(BlueprintCallable, Category = Health)
+	UFUNCTION(BlueprintCallable, Category = RPG)
 		void AddExp(int32 Amount);
+
+	UPROPERTY(EditDefaultsOnly, Category = Spawn)
+		TSubclassOf<class UNavigationQueryFilter> DefaultFilterClass;
+
+	//how much base xp to award for killing
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = RPG)
+		int32 ExpValue;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = Health)
 		float Shield;

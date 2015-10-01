@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameFramework/SpectatorPawn.h"
+#include "OrionPRI.h"
 #include "OrionSpectatorPawn.generated.h"
 
 /**
@@ -39,6 +40,9 @@ public:
 	FVector SpecCameraLocation;
 
 	float GetCameraFOV() { return CameraFOV; }
+
+	void GetNextSpecTarget(bool bForwards);
+	AOrionPRI *SpecViewTarget;
 
 protected:
 	// APawn interface

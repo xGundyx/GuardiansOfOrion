@@ -227,6 +227,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Animation)
 		FWeaponAnim HolsterAnim;
 
+	UPROPERTY(EditDefaultsOnly, Category = Controller)
+		UForceFeedbackEffect *FireRumbleEffect;
+
 	//UPROPERTY(EditDefaultsOnly, Category = Animation)
 	//	FWeaponAnim AimAnim;
 

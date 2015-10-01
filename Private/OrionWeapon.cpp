@@ -55,6 +55,10 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 	KnifeMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	KnifeMesh->SetHiddenInGame(true); //hide knife until animation is needed
 
+	static ConstructorHelpers::FObjectFinder<UForceFeedbackEffect> FireRumble(TEXT("ForceFeedbackEffect'/Game/DamageTypes/ControllerRumbles/SmallBite.SmallBite'"));
+	if (FireRumble.Object)
+		FireRumbleEffect = Cast<UForceFeedbackEffect>(FireRumble.Object);
+
 	//bLoopedMuzzleFX = false;
 	//bLoopedFireAnim = false;
 	//bPlayingFireAnim = false;
@@ -190,6 +194,13 @@ void AOrionWeapon::AttachMeshToPawn()
 				UseWeaponMesh->SetHiddenInGame(false || MyPawn->bBlinking);
 			}
 
+			//make sure knife is hidden
+			if (KnifeMesh && UsePawnMesh && KnifeMesh->SkeletalMesh)
+			{
+				KnifeMesh->SetHiddenInGame(true);
+				KnifeMesh->AttachTo(UsePawnMesh, "KnifeSocket");
+			}
+
 			//make sure it's not in the outliner
 			Mesh3P->SetRenderCustomDepth(false);
 		}
@@ -215,7 +226,7 @@ void AOrionWeapon::Tick(float DeltaSeconds)
 			CurrentFiringSpread = FMath::Max(0.0f, CurrentFiringSpread - DeltaSeconds*20.0f*InstantConfig.FiringSpreadIncrement);
 
 		//if we need to reload, try to start it automatically
-		if (AmmoInClip == 0 && WeaponState != WEAP_RELOADING&&Ammo > 0 && CanReload())
+		if (AmmoInClip == 0 && WeaponState != WEAP_RELOADING && Ammo > 0 && CanReload())
 			StartReload();
 	}
 }
@@ -497,7 +508,18 @@ void AOrionWeapon::FireWeapon()
 	CurrentFiringSpread = FMath::Min(InstantConfig.FiringSpreadMax, CurrentFiringSpread + InstantConfig.FiringSpreadIncrement) * GetSpreadModifier();
 
 	if (MyPawn)
+	{
 		MyPawn->AddAimKick(FRotator(FMath::FRandRange(1.0f, 2.0f), FMath::FRandRange(-1.0f, 1.0f), 0.0f));
+
+		APlayerController* PC = Cast<APlayerController>(MyPawn->Controller);
+		if (PC && PC->IsLocalPlayerController())
+		{
+			if (FireRumbleEffect)
+			{
+				PC->ClientPlayForceFeedback(FireRumbleEffect, false, "Fired");
+			}
+		}
+	}
 
 	//if we hit a voxel, deform it!
 	/*if (Impact.GetActor())
@@ -1229,7 +1251,11 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 
 		AOrionProjectile *Proj = GetWorld()->SpawnActor<AOrionProjectile>(AOrionProjectile::StaticClass(), Origin, vDir.Rotation(), SpawnInfo);
 		if (Proj)
+		{
+			Proj->SetReplicates(false);
 			Proj->Init(TracerFX, Origin, EndPoint);
+			Proj->ProjectileMovement->Velocity = (EndPoint - Origin).GetSafeNormal() * 10000.0f;
+		}
 		/*UParticleSystemComponent* TracerPSC = UGameplayStatics::SpawnEmitterAtLocation(this, TracerFX, Origin, vDir.Rotation());
 		if (TracerPSC)
 		{

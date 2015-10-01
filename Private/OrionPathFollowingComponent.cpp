@@ -27,7 +27,7 @@ void UOrionPathFollowingComponent::SetMoveSegment(int32 SegmentStartIndex)
 
 	Super::SetMoveSegment(SegmentStartIndex);
 
-	if (CharacterMoveComp != NULL)
+	if (CharacterMoveComp != NULL && Path.IsValid())
 	{
 		const FNavPathPoint& SegmentStart = Path->GetPathPoints()[MoveSegmentStartIndex];
 

@@ -247,7 +247,7 @@ void AOrionPlayerController::PostInitializeComponents()
 	InitQuestManager();
 
 	//read in our stats and achievements
-	InitStatsAndAchievements();
+	////InitStatsAndAchievements();
 }
 
 void AOrionPlayerController::SetDropPod(AOrionDropPod *Pod)
@@ -534,6 +534,19 @@ void AOrionPlayerController::PlayShieldEffect(bool bFull)
 void AOrionPlayerController::ClientPlayShieldEffect_Implementation(bool bFull)
 {
 	EventTakeHit(bFull);
+}
+
+void AOrionPlayerController::PlayHUDHit()
+{
+	if (IsLocalPlayerController())
+		EventPlayHUDHit();
+	else
+		ClientPlayHUDHit();
+}
+
+void AOrionPlayerController::ClientPlayHUDHit_Implementation()
+{
+	EventPlayHUDHit();
 }
 
 //only called by the server
@@ -1586,17 +1599,35 @@ void AOrionPlayerController::IceAge()
 	ServerIceAge();
 }
 
+void AOrionPlayerController::PlayLevelUpEffect_Implementation()
+{
+	EventPlayLevelUpEffect();
+}
+
+void AOrionPlayerController::ShowLevelUpMessage_Implementation()
+{
+	EventShowLevelUpMessage();
+}
+
 void AOrionPlayerController::ServerIceAge_Implementation()
 {
 	TArray<AActor*> Dinos;
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionDinoPawn::StaticClass(), Dinos);
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionCharacter::StaticClass(), Dinos);
 
 	for (int32 i = 0; i < Dinos.Num(); i++)
 	{
 		AOrionDinoPawn *Dino = Cast<AOrionDinoPawn>(Dinos[i]);
 		if (Dino)
 		{
-			Dino->Die(500000.0f, FDamageEvent::FDamageEvent(), nullptr, Dino);
+			AOrionPRI *PRI = Cast<AOrionPRI>(Dino->PlayerState);
+
+			if (PRI && !PRI->bIsABot)
+				continue;
+
+			FDamageEvent dEvent = FDamageEvent::FDamageEvent();
+			dEvent.DamageTypeClass = UOrionDamageType::StaticClass();
+
+			Dino->Die(500000.0f, dEvent, nullptr, Dino);
 		}
 	}
 }

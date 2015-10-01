@@ -1,8 +1,8 @@
-
-
 #include "Orion.h"
 #include "OrionPRI.h"
 
+#define BASEXP 10000
+#define XPINCREASE 2500
 
 AOrionPRI::AOrionPRI(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -20,6 +20,56 @@ void AOrionPRI::SeamlessTravelTo(APlayerState * NewPlayerState)
 
 	//we want to copy all playfab data over so we don't have to redownload it
 
+}
+
+void AOrionPRI::AddXP(int32 Value)
+{
+	if (Value > 0)
+	{
+		int32 OldLevel = CalculateLevel(CharacterXP);
+
+		CharacterXP += Value;
+
+		//check for level up
+		if (OldLevel < CalculateLevel(CharacterXP))
+		{
+			DoLevelUp();
+		}
+	}
+}
+
+int32 AOrionPRI::CalculateLevel(int32 XP)
+{
+	int32 XPRemaining = XP - BASEXP;
+	int32 Level = 1;
+
+	while (XPRemaining >= 0)
+	{
+		Level++;
+		XPRemaining -= XPINCREASE;
+	}
+
+	return Level;
+}
+
+void AOrionPRI::DoLevelUp()
+{
+	//spawn some effects
+	TArray<AActor*> Controllers;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controllers[i]);
+		if (PC)
+		{
+			if (PC->PlayerState == this)
+				PC->PlayLevelUpEffect(); //display message to the player who leveled up
+			else
+				PC->ShowLevelUpMessage(); //text message to show others that this player has leveled up
+		}
+	}
 }
 
 bool AOrionPRI::IsOnShip()

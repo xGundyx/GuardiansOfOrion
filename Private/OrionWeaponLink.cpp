@@ -87,7 +87,7 @@ void AOrionWeaponLink::StartFire()
 				continue;
 
 			//ignore enemies for now, possible upgrade
-			if (!Current->PlayerState || Current->PlayerState->bIsABot)
+			if ((!Current->PlayerState || Current->PlayerState->bIsABot) && !Current->bIsHealableMachine)
 				continue;
 
 			if (!CanLink(Cast<ACharacter>(Pawns[i])))
@@ -328,7 +328,7 @@ void AOrionWeaponLink::HandleTarget(float DeltaSeconds)
 	if (P && P->bIsHealableMachine)
 	{
 		if (P && P->Health < P->HealthMax)
-			P->Health += DeltaSeconds * P->HealthMax / 30.0f;
+			P->Health += DeltaSeconds * P->HealthMax / 20.0f;
 	}
 	//if the target is a teammate, heal them up
 	else if (GRI && GRI->OnSameTeam(PRI1, PRI2))

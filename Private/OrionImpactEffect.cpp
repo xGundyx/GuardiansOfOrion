@@ -27,6 +27,9 @@ void AOrionImpactEffect::PostInitializeComponents()
 	if (Droid)
 		HitSurfaceType = ORION_SURFACE_Shield;
 
+	if (Pawn && Pawn->bIsHealableMachine)
+		HitSurfaceType = ORION_SURFACE_Shield;
+
 	// show particles
 	UParticleSystem* ImpactFX = GetImpactFX(HitSurfaceType);
 	if (ImpactFX)

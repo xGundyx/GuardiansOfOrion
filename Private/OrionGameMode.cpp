@@ -178,10 +178,30 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 	{
 		AOrionDinoPawn *Dino = Cast<AOrionDinoPawn>(KilledPawn);
 		if (Dino)
+		{
 			SpawnItems(Dino);
 
-		//award some experience to the team
-		PC->ClientAddXPNumber(FMath::RandRange(15, 50), KilledPawn->GetActorLocation());
+			//award some experience to the team
+			if (Dino->ExpValue > 0)
+				PC->ClientAddXPNumber(Dino->ExpValue, KilledPawn->GetActorLocation());
+
+			//all players on the team receive the same xp
+			TArray<AActor*> Controllers;
+
+			UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+			for (int32 i = 0; i < Controllers.Num(); i++)
+			{
+				AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
+				if (C)
+				{
+					AOrionPRI *PRI = Cast<AOrionPRI>(C->PlayerState);
+
+					if (PRI)
+						PRI->AddXP(Dino->ExpValue);
+				}
+			}
+		}
 	}
 }
 
@@ -392,14 +412,14 @@ APlayerController* AOrionGameMode::Login(UPlayer* NewPlayer, ENetRole RemoteRole
 	APlayerController *rPC = Super::Login(NewPlayer, RemoteRole, Portal, Options, UniqueId, ErrorMessage);
 
 #if IS_SERVER
-	AOrionPlayerController *PC = Cast<AOrionPlayerController>(NewPlayer);
+	/*AOrionPlayerController *PC = Cast<AOrionPlayerController>(NewPlayer);
 
 	//setup a stats object for this player
 	if (PC)
 	{
 		PC->InitStatsAndAchievements();
 		PC->ReadStats();
-	}
+	}*/
 #endif
 
 	//update playerlist
@@ -451,14 +471,18 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 
 void AOrionGameMode::PlayerAuthed(class AOrionPlayerController *PC, bool bSuccess)
 {
-#if !WITH_EDITOR
+#if !WITH_EDITOR && IS_SERVER
 	if (!bSuccess)
+	{
 		GameSession->KickPlayer(PC, FText::FromString(TEXT("Playfab Authentication Failed.")));
+		return;
+	}
 #endif
 
 	//login was successfull, let the player spawn
 	PC->bAuthenticated = true;
 	PC->ClientSetAuthed(true);
+	PC->InitStatsAndAchievements();
 }
 
 void AOrionGameMode::SetInitialTeam(APlayerController *PC)

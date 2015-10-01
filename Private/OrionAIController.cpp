@@ -540,6 +540,15 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 	//if we are capable of attacking the generator and this is a generator, attack it!
 	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
 	AOrionCharacter *pPawn = Cast<AOrionCharacter>(SeenPawn);
+
+	//if we're inside a blocking volume like smoke, ignore things we see
+	if (P && P->bIsHiddenFromView)
+		return;
+
+	//ignore stuff inside smoke
+	if (pPawn && pPawn->bIsHiddenFromView)
+		return;
+
 	if (pPawn && P && pPawn->bIsHealableMachine)
 	{
 		if (GetEnemy())
@@ -575,10 +584,6 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 	if (pPawn)
 	{
 		if (pPawn->bFatality || pPawn->bFinishingMove)
-			return;
-
-		//if we're inside a blocking volume like smoke, ignore things we see
-		if (pPawn->bIsHiddenFromView)
 			return;
 
 		if (pPawn->CurrentSkill && pPawn->CurrentSkill->IsCloaking())
