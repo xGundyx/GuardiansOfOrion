@@ -26,6 +26,24 @@
 */
 
 USTRUCT(BlueprintType)
+struct FLobbyPlayer
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+		int32 PlayerNumber;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+		FString PlayerName;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+		FString PlayerClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+		FString PlayerLevel;
+};
+
+USTRUCT(BlueprintType)
 struct FAnimTester
 {
 	GENERATED_USTRUCT_BODY()
@@ -436,7 +454,22 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Menu)
 		TArray<FControllerOptionsData> GetControllerOptions();
 
+	UFUNCTION(BlueprintCallable, Category = Menu)
+		FString GetBuildVersion();
+
 	EControllerButton ConvertControllerButtonToIndex(FString ButtonName);
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
+		TArray<FString> GetDifficultySettings();
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
+		TArray<FString> GetGameModeSettings();
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
+		TArray<FString> GetPrivacySettings();
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
+		TArray<FString> GetCharacters();
 
 	UFUNCTION(BlueprintCallable, Category = Menu)
 		TArray<FOptionsData> GetCreateCharacterOptions();
@@ -455,6 +488,21 @@ public:
 
 	UPROPERTY()
 		AOrionDropPod *DropPod;
+
+	UFUNCTION(BlueprintCallable, Category = Photon)
+		void OpenLobby(FString MapName, FString MapDifficulty, FString Gamemode, FString Privacy);
+
+	UFUNCTION(BlueprintCallable, Category = Photon)
+		void LeaveLobby();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = Photon)
+		void UpdateLobbySettings(const FString& MapName, const FString& Difficulty, const FString& Gamemode, const FString& Privacy);
+
+	UFUNCTION(BlueprintCallable, Category = Photon)
+		void FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy);
+
+	UFUNCTION(BlueprintCallable, Category = Photon)
+		bool IsLobbyLeader();
 
 	void GetAudioListenerPosition(FVector& OutLocation, FVector& OutFrontDir, FVector& OutRightDir) override;
 
@@ -561,11 +609,41 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = Playfab)
 		int32 ClassIndex;
 
+	UPROPERTY(BlueprintReadWrite, Category = Lobby)
+		TArray<FLobbyPlayer> LobbyPlayers;
+
+	void ResetLobbyPlayers() { LobbyPlayers.Empty(); }
+	void AddLobbyPlayer(int32 pNumber, FString pName, FString pClass, FString pLevel);
+	
+	//redraw the lobby player info
+	UFUNCTION(BlueprintImplementableEvent, Category = Lobby)
+		void FlushLobbyPlayers();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = Lobby)
+		void JoinLobbyFailed(int32 ErrorCode, const FString &Reason);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = Lobby)
+		void LobbyCreationFailed(int32 ErrorCode, const FString &Reason);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = Lobby)
+		void EventJoinLobbySuccess();
+
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		int32 LobbyPlayerNumber;
+
+	void JoinLobbySuccess(int32 PlayerNumber);
+
+	UFUNCTION(BlueprintCallable, Category = Photon)
+		void SendPlayerInfoToPhoton();
+
+	void TickPhoton();
+
 public:
 	virtual void BeginPlay();
 	virtual void StartFire(uint8 FireModeNum);
 
-	AOrionStats *GetStats() { return Stats; }
+	UFUNCTION(BlueprintCallable, Category = Stats)
+		AOrionStats *GetStats() { return Stats; }
 
 	UPROPERTY(BlueprintReadOnly, Category = PlayFab)
 		bool bAuthenticated;

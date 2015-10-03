@@ -13,6 +13,10 @@
 #include "OrionGameInstance.h"
 #include "AudioDevice.h"
 #include "Animation/SkeletalMeshActor.h"
+#if !IS_SERVER
+#include "PhotonProxy.h"
+#include "LoadBalancing.h"
+#endif
 //#include "ClientConnector.h"
 #include "OrionInventoryItem.h"
 #include "OrionPRI.h"
@@ -114,7 +118,7 @@ void AOrionPlayerController::PreClientTravel(const FString& PendingURL, ETravelT
 	//add our playfab credentials to the url so the server can verify us
 	FString newURL;
 	if (GI)
-		newURL = FString::Printf(TEXT("%s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s"), *PendingURL, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName);
+		newURL = FString::Printf(TEXT("%s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s?LobbyID=%s?CharacterClass=%s"), *PendingURL, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName, *GI->LobbyID, *GI->CharacterClass);
 
 	UE_LOG(LogPath, Log, TEXT("GundyTravel: %s"), *newURL);
 
@@ -129,7 +133,7 @@ void AOrionPlayerController::StartSoloMap(FString MapName)
 	FString newURL;
 
 	if (GI)
-		newURL = FString::Printf(TEXT("open %s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s"), *MapName, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName);
+		newURL = FString::Printf(TEXT("open %s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s?LobbyID=%s?CharacterClass=%s"), *MapName, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName, *GI->LobbyID, *GI->CharacterClass);
 
 	ConsoleCommand(newURL, true);
 }
@@ -142,7 +146,7 @@ void AOrionPlayerController::ConnectToIP(FString IP)
 	FString newURL;
 
 	if (GI)
-		newURL = FString::Printf(TEXT("open %s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s"), *IP, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName);
+		newURL = FString::Printf(TEXT("open %s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s?LobbyID=%s?CharacterClass=%s"), *IP, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName, *GI->LobbyID, *GI->CharacterClass);
 
 	UE_LOG(LogTemp, Log, TEXT("GundyReallyTravel: %s"), *newURL);
 
@@ -233,7 +237,9 @@ void AOrionPlayerController::PostInitializeComponents()
 	{
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
 		ChatManager = GetWorld()->SpawnActor<AOrionChatManager>(AOrionChatManager::StaticClass(), SpawnInfo);
+
 		if (ChatManager)
 			ChatManager->pPlayerOwner = this;
 	}
@@ -590,6 +596,58 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 	}
 #else
 #endif
+}
+
+void AOrionPlayerController::JoinLobbySuccess(int32 PlayerNumber)
+{
+	LobbyPlayerNumber = PlayerNumber;
+
+	//send our player info the the lobby
+	SendPlayerInfoToPhoton();
+
+	EventJoinLobbySuccess();
+}
+
+bool AOrionPlayerController::IsLobbyLeader()
+{
+#if !IS_SERVER
+	if (UPhotonProxy::GetListener())
+	{
+		int32 Leader = UPhotonProxy::GetListener()->GetRoomLeader();
+
+		return Leader == LobbyPlayerNumber && Leader > 0;
+	}
+#endif
+
+	return false;
+}
+
+void AOrionPlayerController::SendPlayerInfoToPhoton()
+{
+#if !IS_SERVER
+	if (UPhotonProxy::GetListener())
+	{
+		UPhotonProxy::GetListener()->PCOwner = this;
+
+		UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetGameInstance());
+
+		if (GI)
+			UPhotonProxy::GetListener()->SetPlayerSettings(LobbyPlayerNumber, TCHAR_TO_UTF8(*GI->PlayFabName), TCHAR_TO_UTF8(*GI->CharacterClass), "1");
+	}
+#endif
+}
+
+void AOrionPlayerController::AddLobbyPlayer(int32 pNumber, FString pName, FString pClass, FString pLevel)
+{
+	FLobbyPlayer Player;
+
+	Player.PlayerNumber = pNumber;
+	//need to trim the " from the start and end
+	Player.PlayerName = pName.Mid(1, pName.Len() - 2);
+	Player.PlayerClass = pClass.Mid(1, pClass.Len() - 2);
+	Player.PlayerLevel = pLevel.Mid(1, pLevel.Len() - 2);
+
+	LobbyPlayers.Add(Player);
 }
 
 void AOrionPlayerController::SpawnWave()
@@ -1188,6 +1246,55 @@ void AOrionPlayerController::SaveSoundOptions(FString ClassName, float Volume)
 	}
 }
 
+TArray<FString> AOrionPlayerController::GetDifficultySettings()
+{
+	TArray<FString> Difficulties;
+
+	Difficulties.Add(TEXT("DIFFICULTY - EASY"));
+	Difficulties.Add(TEXT("DIFFICULTY - NORMAL"));
+	Difficulties.Add(TEXT("DIFFICULTY - HARD"));
+	Difficulties.Add(TEXT("DIFFICULTY - INSANE"));
+	Difficulties.Add(TEXT("DIFFICULTY - REDIKULOUS"));
+
+	return Difficulties;
+}
+
+//must match the class index
+TArray<FString> AOrionPlayerController::GetCharacters()
+{
+	TArray<FString> Characters;
+
+	Characters.Add(TEXT("ASSAULT"));
+	Characters.Add(TEXT("SUPPORT"));
+	Characters.Add(TEXT("RECON"));
+
+	return Characters;
+}
+
+TArray<FString> AOrionPlayerController::GetGameModeSettings()
+{
+	TArray<FString> GameModes;
+
+	GameModes.Add(TEXT("MODE - SURVIVAL"));
+
+	return GameModes;
+}
+
+TArray<FString> AOrionPlayerController::GetPrivacySettings()
+{
+	TArray<FString> PrivacySettings;
+
+	PrivacySettings.Add(TEXT("PRIVACY - PRIVATE"));
+	PrivacySettings.Add(TEXT("DIFFICULTY - PUBLIC"));
+
+	return PrivacySettings;
+}
+
+FString AOrionPlayerController::GetBuildVersion()
+{
+	return TEXT("0.1");
+}
+
 TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
 {
 	TArray<FKeyboardOptionsData> Options;
@@ -1444,6 +1551,42 @@ FOptionsValueData AOrionPlayerController::GetMouseSmooth()
 	return Data;
 }
 
+//let photon handle this, so players can join and talk before a match actually starts, will allow multiple platforms to mingle
+void AOrionPlayerController::OpenLobby(FString MapName, FString MapDifficulty, FString Gamemode, FString Privacy)
+{
+#if !IS_SERVER
+	if (UPhotonProxy::GetListener())
+	{
+		UPhotonProxy::GetListener()->PCOwner = this;
+
+		//create a new room that other players can join
+		UPhotonProxy::GetListener()->createRoom("Gundy's Game", TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*MapDifficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy));
+	}
+#endif
+}
+
+//leave the lobby
+void AOrionPlayerController::LeaveLobby()
+{
+#if !IS_SERVER
+	if (UPhotonProxy::GetListener())
+	{
+		//create a new room that other players can join
+		UPhotonProxy::GetListener()->leave();
+	}
+#endif
+}
+
+void AOrionPlayerController::FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy)
+{
+#if !IS_SERVER
+	if (UPhotonProxy::GetListener())
+	{
+		UPhotonProxy::GetListener()->SetLobbySettings(TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*Difficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy));
+	}
+#endif
+}
+
 void AOrionPlayerController::UpdateRotation(float DeltaTime)
 {
 	// Calculate Delta to be applied on ViewRotation
@@ -1563,11 +1706,25 @@ void AOrionPlayerController::BeginPlay()
 		}
 
 		//UOrionTCPLink::GetCharacterData(this);
+
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, this, &AOrionPlayerController::TickPhoton, 0.5f, true);
 	}
 #endif
 
 	if (Role == ROLE_Authority)
 		GetWorldTimerManager().SetTimer(ServerTickTimer, this, &AOrionPlayerController::ServerTick, 0.35f, true);
+}
+
+void AOrionPlayerController::TickPhoton()
+{
+#if !IS_SERVER
+	if (UPhotonProxy::GetListener())
+	{
+		UPhotonProxy::GetListener()->PCOwner = this;
+		UPhotonProxy::GetListener()->UpdatePlayerSettings();
+	}
+#endif
 }
 
 void AOrionPlayerController::GetDefaultInventory()

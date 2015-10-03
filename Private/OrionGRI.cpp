@@ -5,7 +5,7 @@
 #include "OrionMusicManager.h"
 #include "OrionGRI.h"
 
-#define MAX_RAGDOLLS 1
+#define MAX_RAGDOLLS 7
 
 AOrionGRI::AOrionGRI(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -31,7 +31,10 @@ void AOrionGRI::AddRagdoll(AOrionCharacter *Ragdoll)
 
 	if (ActiveRagdolls.Num() > MAX_RAGDOLLS)
 	{
-		ActiveRagdolls[0]->Destroy();
+		//if(ActiveRagdolls[0]->Destroy())
+		ActiveRagdolls[0]->TurnOff();
+		ActiveRagdolls[0]->SetActorHiddenInGame(true);
+		ActiveRagdolls[0]->SetLifeSpan(1.0f);
 		ActiveRagdolls.RemoveAt(0);
 	}
 }
