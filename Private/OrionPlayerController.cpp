@@ -1727,6 +1727,17 @@ void AOrionPlayerController::TickPhoton()
 #endif
 }
 
+void AOrionPlayerController::RefreshLobbyList()
+{
+#if !IS_SERVER
+	if (UPhotonProxy::GetListener())
+	{
+		UPhotonProxy::GetListener()->PCOwner = this;
+		UPhotonProxy::GetListener()->RefreshRoomList();
+	}
+#endif
+}
+
 void AOrionPlayerController::GetDefaultInventory()
 {
 	//just hack it for now!
