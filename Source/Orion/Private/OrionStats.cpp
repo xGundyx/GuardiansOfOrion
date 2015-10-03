@@ -77,7 +77,7 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 	aStats.Add(FPlayerStats(STAT_RELICLOSSES, TEXT("RelicLosses")));
 	aStats.Add(FPlayerStats(STAT_RELICWINS, TEXT("RelicWins")));
 
-	aStats.Add(FPlayerStats(STAT_SUPPORTEXP, TEXT("SupperExp")));
+	aStats.Add(FPlayerStats(STAT_SUPPORTEXP, TEXT("SupportExp")));
 	aStats.Add(FPlayerStats(STAT_ASSAULTEXP, TEXT("AssaultExp")));
 	aStats.Add(FPlayerStats(STAT_RECONEXP, TEXT("ReconExp")));
 	aStats.Add(FPlayerStats(STAT_EXPEARNED, TEXT("ExpEarned")));

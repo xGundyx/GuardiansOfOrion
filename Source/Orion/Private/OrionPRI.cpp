@@ -26,9 +26,16 @@ void AOrionPRI::AddXP(int32 Value)
 {
 	if (Value > 0)
 	{
-		int32 OldLevel = CalculateLevel(CharacterXP);
+		int32 CharacterXP = 0;
 
-		CharacterXP += Value;
+		if (CharacterClass == "ASSAULT")
+			AssaultXP += Value;
+		else if (CharacterClass == "SUPPORT")
+			SupportXP += Value;
+		else if (CharacterClass == "RECON")
+			ReconXP += Value;
+		
+		int32 OldLevel = CalculateLevel(CharacterXP);
 
 		//check for level up
 		if (OldLevel < CalculateLevel(CharacterXP))
@@ -114,7 +121,9 @@ void AOrionPRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionPRI, ClassType);
 
 	//exp
-	DOREPLIFETIME(AOrionPRI, CharacterXP);
+	DOREPLIFETIME(AOrionPRI, AssaultXP);
+	DOREPLIFETIME(AOrionPRI, SupportXP);
+	DOREPLIFETIME(AOrionPRI, ReconXP);
 }
 
 void AOrionPRI::OnRep_InventoryManager()

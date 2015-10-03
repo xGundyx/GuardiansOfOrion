@@ -8,6 +8,7 @@
 #include "OrionPRI.h"
 #include "OrionGRI.h"
 #include "OrionStats.h"
+#include "PlayFabRequestProxy.h"
 #include "OrionAIController.h"
 #include "OrionPickupOrb.h"
 
@@ -449,6 +450,8 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 	FString pfSession = UGameplayStatics::ParseOption(Options, TEXT("PlayFabSession"));
 	FString pfChar = UGameplayStatics::ParseOption(Options, TEXT("PlayFabCharacter"));
 	FString pfName = UGameplayStatics::ParseOption(Options, TEXT("PlayFabName"));
+	FString pfLobby = UGameplayStatics::ParseOption(Options, TEXT("LobbyID"));
+	FString pfClass = UGameplayStatics::ParseOption(Options, TEXT("PlayFabCharacterClass"));
 
 	//if this session and id aren't valid, kick the bitch
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(NewPlayerController);
@@ -461,6 +464,8 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 			PRI->SessionTicket = pfSession;
 			PRI->CharacterID = pfChar;
 			PRI->PlayFabName = pfName;
+			PRI->LobbyID = pfLobby;
+			PRI->CharacterClass = pfClass;
 		}
 
 		PC->ValidatePlayFabInfo(pfID, pfSession);
@@ -476,6 +481,14 @@ void AOrionGameMode::PlayerAuthed(class AOrionPlayerController *PC, bool bSucces
 	{
 		GameSession->KickPlayer(PC, FText::FromString(TEXT("Playfab Authentication Failed.")));
 		return;
+	}
+
+	//tell the playfab matchmaker that this player has joined this lobby server
+	AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+
+	if (PRI)
+	{
+		UPlayFabRequestProxy::ServerPlayerJoined(PRI->PlayFabId, PRI->LobbyID);
 	}
 #endif
 
@@ -507,6 +520,16 @@ void AOrionGameMode::Logout(AController* Exiting)
 
 	if (GRI)
 		GRI->PlayerList.Remove(Cast<AOrionPRI>(Exiting->PlayerState));
+
+#if IS_SERVER
+	//tell the playfab matchmaker that this player is leaving (needed for proper dedicated server shutdown)
+	AOrionPRI *PRI = Cast<AOrionPRI>(Exiting->PlayerState);
+
+	if (PRI)
+	{
+		UPlayFabRequestProxy::ServerNotifyMatchmakerPlayerLeft(PRI->PlayFabId, PRI->LobbyID);
+	}
+#endif
 }
 
 //spawned from killing various types of enemies, vehicles, opening things, etc.

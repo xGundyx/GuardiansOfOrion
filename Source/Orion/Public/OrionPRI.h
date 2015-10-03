@@ -41,6 +41,10 @@ public:
 		FString CharacterID;
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		FString PlayFabName;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
+		FString LobbyID;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
+		FString CharacterClass;
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = Score)
 		int32 Kills;
@@ -55,7 +59,11 @@ public:
 		FString ClassType;
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
-		int32 CharacterXP;
+		int32 AssaultXP;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
+		int32 SupportXP;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
+		int32 ReconXP;
 
 	void AddXP(int32 Value);
 	void DoLevelUp();
