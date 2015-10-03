@@ -44,6 +44,30 @@ struct FLobbyPlayer
 };
 
 USTRUCT(BlueprintType)
+struct FLobbyData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+		FString ServerName;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+		FString Difficulty;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+		FString MapName;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+		FString PlayerCount;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+		FString Progress;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+		FString Ping;
+};
+
+USTRUCT(BlueprintType)
 struct FAnimTester
 {
 	GENERATED_USTRUCT_BODY()
@@ -635,6 +659,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
 		void SendPlayerInfoToPhoton();
+
+	UFUNCTION(BlueprintCallable, Category = Photon)
+		void RefreshLobbyList();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = Photon)
+		void EventUpdateLobbyList();
+
+	//list of visible lobbies for us to choose from
+	UPROPERTY(BlueprintReadWrite, Category = Photon)
+		TArray<FLobbyData> Lobbies;
 
 	void TickPhoton();
 
