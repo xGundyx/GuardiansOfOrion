@@ -1051,7 +1051,7 @@ public:
 		FCharacterStats GetCharacterStats();
 
 	UPROPERTY(BlueprintReadOnly, Category = AI)
-		FVector FocusArea;
+		AActor *FocusActor;
 
 	void EnterVehicle();
 	void ExitVehicle();

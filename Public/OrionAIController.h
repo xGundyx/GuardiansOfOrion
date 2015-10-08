@@ -46,6 +46,10 @@ public:
 	UFUNCTION()
 		void OnSeePawn(APawn *SeenPawn);
 
+	//set this to trigger a roar/taunt in the anim tree
+	UPROPERTY(BlueprintReadWrite, Category = AI)
+		bool bShouldRoar;
+
 	UBlackboardComponent *GetBlackboard();
 
 	UFUNCTION(BlueprintCallable, Category = Target)

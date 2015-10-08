@@ -40,6 +40,9 @@ void AOrionAIController::Possess(APawn* aPawn)
 		bIsElite = DroidPawn->bIsElite;
 		AIName = DroidPawn->DroidName;
 	}
+
+	if (Cast<AOrionCharacter>(aPawn))
+		Cast<AOrionCharacter>(aPawn)->bRun = true;
 }
 
 void AOrionAIController::FindFlightPath(FVector Destination)
@@ -330,6 +333,8 @@ void AOrionAIController::Tick(float DeltaSeconds)
 		SetFocalPoint(GetPawn()->GetActorLocation() + GetPawn()->GetVelocity().GetSafeNormal() * 500.0f);
 	else if (myEnemy && myEnemy->IsValidLowLevel())
 		SetFocalPoint(myEnemy->GetActorLocation());
+
+	CheckEnemyStatus();
 }
 
 void AOrionAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn)
@@ -529,6 +534,10 @@ void AOrionAIController::OnHearNoise(APawn *HeardPawn, const FVector &Location, 
 
 void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 {
+	//for damage taken bugs
+	if (SeenPawn == nullptr || !SeenPawn->IsValidLowLevel())
+		return;
+
 	//if we see our current enemy
 	if (SeenPawn == GetEnemy())
 		return;

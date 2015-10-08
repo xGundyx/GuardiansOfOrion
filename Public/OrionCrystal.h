@@ -14,6 +14,12 @@ public:
 	// Sets default values for this actor's properties
 	AOrionCrystal();
 
+	UFUNCTION()
+		void OnRep_Active();
+
+	UPROPERTY(ReplicatedUsing = OnRep_Active)
+		bool bActive;
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 	

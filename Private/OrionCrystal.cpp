@@ -11,6 +11,19 @@ AOrionCrystal::AOrionCrystal()
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
+	SetActorHiddenInGame(true);
+}
+
+void AOrionCrystal::OnRep_Active()
+{
+	SetActorHiddenInGame(!bActive);
+}
+
+void AOrionCrystal::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AOrionCrystal, bActive);
 }
 
 // Called when the game starts or when spawned

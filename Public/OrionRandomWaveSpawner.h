@@ -18,8 +18,8 @@ public:
 	
 	virtual void Tick(float DeltaSeconds) override;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
-		class USkeletalMeshComponent* PreviewMesh;
+	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
+	//	class USkeletalMeshComponent* PreviewMesh;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = RandomWave)
 		bool bRaptor;
@@ -81,14 +81,14 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = RandomWave)
 		float SpawnRadius;
 
-	void SpawnWave(int32 TypesToSpawn[SPAWN_NUM], FVector FocusLocation);
+	void SpawnWave(int32 TypesToSpawn[SPAWN_NUM], AActor *Focus);
 	void SpawnFailures();
 
 	UPROPERTY()
 		int32 MaxToSpawnPerFrame;
 
 	UPROPERTY()
-		FVector FocusArea;
+		AActor* FocusActor;
 
 	UPROPERTY()
 		TArray< TSubclassOf<class AOrionCharacter> > SpawnClasses;

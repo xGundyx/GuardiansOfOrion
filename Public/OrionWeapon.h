@@ -21,6 +21,9 @@ struct FInstantHitInfo
 
 	UPROPERTY()
 		int32 RandomSeed;
+
+	UPROPERTY()
+		FName Socket;
 };
 
 UENUM()
@@ -176,6 +179,12 @@ public:
 		bool ClientStartReload_Validate();
 		void ClientStartReload_Implementation();
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Projectile)
+		bool bProjectile;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Projectile)
+		TSubclassOf<class AActor> ProjectileClass;
+
 	/** play weapon animations */
 	virtual float PlayWeaponAnimation(const FWeaponAnim& Animation, bool bReplicate);
 
@@ -184,6 +193,8 @@ public:
 
 	/** check if weapon can be reloaded */
 	bool CanReload() const;
+
+	FName SpecialSocketName;
 
 	UPROPERTY(BlueprintReadOnly, Category = Skill)
 		TArray<UMaterialInstanceDynamic*> WeaponMats;
@@ -391,6 +402,8 @@ public:
 
 	virtual void FireSpecial(FName SocketName, FVector Direction);
 
+	virtual void FireProjectile(FName SocketName, FVector Direction);
+
 	virtual FVector GetBarrelLocation(FName SocketName);
 
 	FVector GetAdjustedAim() const;
@@ -416,7 +429,7 @@ public:
 		void OnRep_HitNotify();
 
 	/** called in network play to do the cosmetic fx  */
-	void SimulateInstantHit(const FVector& Origin, int32 RandomSeed, float ReticleSpread);
+	void SimulateInstantHit(const FVector& Origin, int32 RandomSeed, float ReticleSpread, FName Socket);
 
 	UPROPERTY(EditDefaultsOnly, Category = Aiming)
 		bool bAiming;

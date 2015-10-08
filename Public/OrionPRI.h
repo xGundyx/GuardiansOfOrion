@@ -42,7 +42,7 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		FString PlayFabName;
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
-		FString LobbyID;
+		FString LobbyTicket;
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		FString CharacterClass;
 

@@ -29,9 +29,30 @@ void AOrionDroidPawn::HandleSpecialWeaponFire(FName SocketName)
 	if (GetMesh() && CurrentWeapon)
 	{
 		FVector pos;
+		FVector dir;
 		FRotator rot;
-		GetMesh()->GetSocketWorldLocationAndRotation(SocketName, pos, rot);
-		CurrentWeapon->FireSpecial(SocketName, rot.Vector());
+
+		if (CurrentWeapon->bProjectile)
+		{
+			AOrionAIController *C = Cast<AOrionAIController>(Controller);
+
+			GetMesh()->GetSocketWorldLocationAndRotation(SocketName, pos, rot);
+
+			if (C && C->GetEnemy())
+			{
+				FVector TossVelocity;
+				if (UGameplayStatics::SuggestProjectileVelocity(GetWorld(), TossVelocity, pos + GetActorRotation().Vector() * 50.0f, C->GetEnemy()->GetActorLocation(), 2000.0f, false))
+					dir = TossVelocity;
+				else
+					dir = (GetActorRotation().Vector() + FVector(0.0f, 0.0f, 0.5f)).GetSafeNormal() * 2000.0f;
+			}
+			else
+				dir = (GetActorRotation().Vector() + FVector(0.0f, 0.0f, 0.5f)).GetSafeNormal() * 2000.0f;
+		}
+		else
+			dir = rot.Vector();
+
+		CurrentWeapon->FireSpecial(SocketName, dir);
 	}
 }
 
@@ -113,4 +134,11 @@ FVector2D AOrionDroidPawn::GetAim(float DeltaTime)
 	AimPitch = CurrentAim2D.Y;
 
 	return CurrentAim2D;
+}
+
+void AOrionDroidPawn::BeginPlay()
+{
+	Super::BeginPlay();
+
+	DoBlinkEffect(true, GetActorLocation());
 }

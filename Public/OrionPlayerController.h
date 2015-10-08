@@ -520,10 +520,10 @@ public:
 		void LeaveLobby();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Photon)
-		void UpdateLobbySettings(const FString& MapName, const FString& Difficulty, const FString& Gamemode, const FString& Privacy);
+		void UpdateLobbySettings(const FString& MapName, const FString& Difficulty, const FString& Gamemode, const FString& Privacy, const FString& IP, const FString& Ticket);
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
-		void FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy);
+		void FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket);
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
 		bool IsLobbyLeader();
@@ -561,6 +561,11 @@ public:
 
 	void ShowScores();
 	void HideScores();
+
+	void ShowCharacterSelect();
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Show Character Select"))
+		void EventShowCharacterSelect();
 
 	void PlayShieldEffect(bool bFull);
 
@@ -639,6 +644,9 @@ public:
 	void ResetLobbyPlayers() { LobbyPlayers.Empty(); }
 	void AddLobbyPlayer(int32 pNumber, FString pName, FString pClass, FString pLevel);
 	
+	UFUNCTION(BlueprintImplementableEvent, Category = Camera)
+		void EventHUDSpawn(bool bStart);
+
 	//redraw the lobby player info
 	UFUNCTION(BlueprintImplementableEvent, Category = Lobby)
 		void FlushLobbyPlayers();
@@ -666,6 +674,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = Photon)
 		void EventUpdateLobbyList();
 
+	UFUNCTION(BlueprintCallable, Category = Photon)
+		void JoinLobby(FString ServerName);
+
 	//list of visible lobbies for us to choose from
 	UPROPERTY(BlueprintReadWrite, Category = Photon)
 		TArray<FLobbyData> Lobbies;
@@ -685,10 +696,23 @@ public:
 	UFUNCTION(client, reliable)
 		void ClientSetAuthed(bool bAuthed);
 
+	UFUNCTION(BlueprintCallable, Category = PlayFab)
+		void SetCharacterClass(int32 Index);
+
+	UFUNCTION(server, reliable, WithValidation)
+		void ServerSetCharacterClass(int32 Index);
+		bool ServerSetCharacterClass_Validate(int32 Index);
+		void ServerSetCharacterClass_Implementation(int32 Index);
+
+	int32 NextSpawnClass;
+
 	bool InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad) override;
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "AuthenticatePF"))
 		void EventValidateSession(const FString &Session);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "AuthenticateTicket"))
+		void EventValidateTicket(const FString &LobbyID, const FString &Ticket);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "OrionKeyPressed"))
 		void EventPressKey(FKey Key, bool Gamepad);
@@ -700,6 +724,7 @@ public:
 		void EventTeamSay();
 
 	void ValidatePlayFabInfo(FString pfID, FString pfSession);
+	void ValidateLobbyTicket(FString LobbyID, FString pfTicket);
 
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerSetPlayFabInfo(const FString &ID, const FString &SessionID, const FString &cID);
