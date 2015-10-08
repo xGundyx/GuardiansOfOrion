@@ -20,6 +20,8 @@
 // AOrionCharacter
 
 class AOrionWeaponLink;
+class AOrionDinoPawn;
+class AOrionAIController;
 
 AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer.SetDefaultSubobjectClass<UOrionMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -1401,10 +1403,28 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	if (!DamageType || !DamageType->bIgnoreModify)
 		Damage = Game ? Game->ModifyDamage(Damage, this, DamageEvent, EventInstigator, DamageCauser) : 0.f;
 
-	if (DamageType && DamageType->bKnockBack && (!CurrentSkill || !CurrentSkill->IsJetpacking()))
+	if (!bIsHealableMachine && DamageType && DamageType->bKnockBack && (!CurrentSkill || !CurrentSkill->IsJetpacking()))
 	{
+		//if this is a big dino doing the knockback, kill any small dinos caught in the area, and do no knockbacks to other dinos
+		AOrionDinoPawn *EnemyDino = Cast<AOrionDinoPawn>(DamageCauser);
+		AOrionDinoPawn *Dino = Cast<AOrionDinoPawn>(this);
+		bool bDoKnockback = true;
+
+		if (EnemyDino && EnemyDino->bIsBigDino)
+		{
+			if (PlayerState && PlayerState->bIsABot)
+			{
+				bDoKnockback = false;
+
+				if (!Dino || !Dino->bIsBigDino)
+				{
+					Damage = 10000000.0f;
+				}
+			}
+		}
+
 		//ignore damage to self
-		if (EventInstigator != Controller && GetMovementComponent())
+		if (bDoKnockback && EventInstigator != Controller && GetMovementComponent())
 		{
 			AOrionCharacter *Damager = Cast<AOrionCharacter>(DamageCauser);
 			if (Damager && Damager->GetMesh())
@@ -1433,6 +1453,10 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 	if (ActualDamage > 0.f)
 	{
+		//if we're an ai, tell us about this bastard
+		if (Cast<AOrionAIController>(Controller))
+			Cast<AOrionAIController>(Controller)->OnSeePawn(Cast<APawn>(DamageCauser));
+
 		LastTakeHitTime = GetWorld()->TimeSeconds;
 
 		//take off shield damage first
@@ -2394,6 +2418,8 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 			Anim.Pawn3P = LandAnim;
 
 			OrionPlayAnimMontage(Anim, 1.0f, TEXT(""), true, false, true);
+
+			PC->EventHUDSpawn(false);
 		}
 	}
 

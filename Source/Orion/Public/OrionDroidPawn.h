@@ -16,6 +16,7 @@ public:
 	AOrionDroidPawn(const FObjectInitializer& ObjectInitializer);
 
 	void InitMaterials() override {}
+	void BeginPlay() override;
 
 	UFUNCTION(BlueprintCallable, Category = Hover)
 		virtual float GetFinRotation(float DeltaTime);

@@ -10,12 +10,12 @@ AOrionRandomWaveSpawner::AOrionRandomWaveSpawner(const FObjectInitializer& Objec
 {
 	PrimaryActorTick.bCanEverTick = true;
 
-	PreviewMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Preview"));
-	PreviewMesh->AlwaysLoadOnClient = false;
-	PreviewMesh->AlwaysLoadOnServer = true;
-	PreviewMesh->bHiddenInGame = true;
+	//PreviewMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Preview"));
+	//PreviewMesh->AlwaysLoadOnClient = true;
+	//PreviewMesh->AlwaysLoadOnServer = true;
+	//PreviewMesh->bHiddenInGame = true;
 
-	RootComponent = PreviewMesh;
+	//RootComponent = PreviewMesh;
 
 	bRaptor = true;
 	bCompy = true;
@@ -39,6 +39,8 @@ AOrionRandomWaveSpawner::AOrionRandomWaveSpawner(const FObjectInitializer& Objec
 
 	SpawnRadius = 5000.0f;
 	MaxToSpawnPerFrame = 10;
+
+	SetActorHiddenInGame(true);
 
 	static ConstructorHelpers::FObjectFinder<UBlueprint> FilterObject(TEXT("/Game/AI/Blueprints/NavFilter_LargeDino.NavFilter_LargeDino"));
 	if (FilterObject.Object != NULL)
@@ -125,7 +127,7 @@ void AOrionRandomWaveSpawner::Tick( float DeltaTime )
 	Super::Tick( DeltaTime );
 }
 
-void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], FVector FocusLocation)
+void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], AActor *Focus)
 {
 	if (Role != ROLE_Authority)
 		return;
@@ -133,7 +135,7 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], FVector F
 	if (GetWorld() == nullptr || GetWorld()->GetNavigationSystem() == nullptr)
 		return;
 
-	FocusArea = FocusLocation;
+	FocusActor = Focus;
 
 	FailedToSpawn.Empty();
 
@@ -165,7 +167,8 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], FVector F
 					Game->AddActiveWaveEnemy(NewPawn);
 
 				NewPawn->bRun = true;
-				NewPawn->FocusArea = FocusLocation;
+				//NewPawn->FocusArea = FocusLocation;
+				NewPawn->FocusActor = FocusActor;
 				NewPawn->SpawnDefaultController();
 				NewPawn->SetAIType(AI_HUNTING);
 			}
@@ -205,7 +208,7 @@ void AOrionRandomWaveSpawner::SpawnFailures()
 				Game->AddActiveWaveEnemy(NewPawn);
 
 			NewPawn->bRun = true;
-			NewPawn->FocusArea = FocusArea;
+			NewPawn->FocusActor = FocusActor;
 			NewPawn->SpawnDefaultController();
 			NewPawn->SetAIType(AI_HUNTING);
 		}

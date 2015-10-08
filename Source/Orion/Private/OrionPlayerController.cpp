@@ -25,6 +25,7 @@
 #include "PlayFabRequestProxy.h"
 
 class AOrionDinoPawn;
+class AOrionGameMenu;
 
 AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -37,6 +38,8 @@ AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObjectI
 	bAuthenticated = false;
 
 	bForceFeedbackEnabled = true;
+
+	NextSpawnClass = -1;
 }
 
 void AOrionPlayerController::AttemptLogin(FString UserName, FString Password)
@@ -93,6 +96,40 @@ void AOrionPlayerController::SetupInputComponent()
 	//voice chat
 	InputComponent->BindAction("StartVoiceChat", IE_Pressed, this, &APlayerController::StartTalking);
 	InputComponent->BindAction("StartVoiceChat", IE_Released, this, &APlayerController::StopTalking);
+
+	//escape
+	InputComponent->BindAction("OpenCharacterSelect", IE_Pressed, this, &AOrionPlayerController::ShowCharacterSelect);
+	InputComponent->BindAction("Gamepad_OpenCharacterSelect", IE_Pressed, this, &AOrionPlayerController::ShowCharacterSelect);
+}
+
+void AOrionPlayerController::ShowCharacterSelect()
+{
+	//don't show in main menu
+	if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
+		return;
+
+	EventShowCharacterSelect();
+}
+
+void AOrionPlayerController::SetCharacterClass(int32 Index)
+{
+	if (Role < ROLE_Authority)
+		ServerSetCharacterClass(Index);
+	else
+	{
+		//update our character class id and type for next spawn
+		NextSpawnClass = Index;
+	}
+}
+
+bool AOrionPlayerController::ServerSetCharacterClass_Validate(int32 Index)
+{
+	return true;
+}
+
+void AOrionPlayerController::ServerSetCharacterClass_Implementation(int32 Index)
+{
+	SetCharacterClass(Index);
 }
 
 void AOrionPlayerController::ShowScores()
@@ -118,7 +155,7 @@ void AOrionPlayerController::PreClientTravel(const FString& PendingURL, ETravelT
 	//add our playfab credentials to the url so the server can verify us
 	FString newURL;
 	if (GI)
-		newURL = FString::Printf(TEXT("%s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s?LobbyID=%s?CharacterClass=%s"), *PendingURL, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName, *GI->LobbyID, *GI->CharacterClass);
+		newURL = FString::Printf(TEXT("%s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s?LobbyTicket=%s?CharacterClass=%s"), *PendingURL, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName, *GI->LobbyTicket, *GI->CharacterClass);
 
 	UE_LOG(LogPath, Log, TEXT("GundyTravel: %s"), *newURL);
 
@@ -133,7 +170,7 @@ void AOrionPlayerController::StartSoloMap(FString MapName)
 	FString newURL;
 
 	if (GI)
-		newURL = FString::Printf(TEXT("open %s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s?LobbyID=%s?CharacterClass=%s"), *MapName, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName, *GI->LobbyID, *GI->CharacterClass);
+		newURL = FString::Printf(TEXT("open %s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s?LobbyTicket=%s?CharacterClass=%s"), *MapName, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName, *GI->LobbyTicket, *GI->CharacterClass);
 
 	ConsoleCommand(newURL, true);
 }
@@ -146,7 +183,7 @@ void AOrionPlayerController::ConnectToIP(FString IP)
 	FString newURL;
 
 	if (GI)
-		newURL = FString::Printf(TEXT("open %s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s?LobbyID=%s?CharacterClass=%s"), *IP, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName, *GI->LobbyID, *GI->CharacterClass);
+		newURL = FString::Printf(TEXT("open %s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s?LobbyTicket=%s?CharacterClass=%s"), *IP, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName, *GI->LobbyTicket, *GI->CharacterClass);
 
 	UE_LOG(LogTemp, Log, TEXT("GundyReallyTravel: %s"), *newURL);
 
@@ -404,6 +441,12 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
 		if (newPawn && PRI && PRI->InventoryManager)
 		{
+			if (NextSpawnClass > -1)
+			{
+				ClassIndex = NextSpawnClass;
+				NextSpawnClass = -1;
+			}
+
 			////PRI->InventoryManager->EquipItems(newPawn, ITEM_ANY);
 			if (ClassIndex < 0)
 				ClassIndex = FMath::RandRange(0, 2);
@@ -682,10 +725,8 @@ void AOrionPlayerController::DaveyCam()
 //for various testing things
 void AOrionPlayerController::TestSettings()
 {
-	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
-
-	if (Game)
-		Game->EndMatch();
+	if (GEngine)
+		GEngine->Exec(nullptr, TEXT("QUIT"), *GLog);
 }
 
 void AOrionPlayerController::HideWeapons()
@@ -1285,14 +1326,14 @@ TArray<FString> AOrionPlayerController::GetPrivacySettings()
 	TArray<FString> PrivacySettings;
 
 	PrivacySettings.Add(TEXT("PRIVACY - PRIVATE"));
-	PrivacySettings.Add(TEXT("DIFFICULTY - PUBLIC"));
+	PrivacySettings.Add(TEXT("PRIVACY - PUBLIC"));
 
 	return PrivacySettings;
 }
 
 FString AOrionPlayerController::GetBuildVersion()
 {
-	return TEXT("0.1");
+	return TEXT("Beta0.1");
 }
 
 TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
@@ -1400,6 +1441,10 @@ TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("OpenScores", false, 0.0f);
 	Options.Add(NewOption);
 
+	NewOption.Title = TEXT("SHOW CHARACTER SELECT");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("OpenCharacterSelect", false, 0.0f);
+	Options.Add(NewOption);
+
 	return Options;
 }
 
@@ -1496,6 +1541,10 @@ TArray<FControllerOptionsData> AOrionPlayerController::GetControllerOptions()
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_OpenInventory", false, 0.0f));
 	Options.Add(NewOption);
 
+	NewOption.Title = TEXT("CHARACTER SELECT");
+	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_OpenCharacterSelect", false, 0.0f));
+	Options.Add(NewOption);
+
 	//NewOption.Title = TEXT("OPEN MENU");
 	//NewOption.Button = BUTTON_HOME;
 	//Options.Add(NewOption);
@@ -1559,8 +1608,24 @@ void AOrionPlayerController::OpenLobby(FString MapName, FString MapDifficulty, F
 	{
 		UPhotonProxy::GetListener()->PCOwner = this;
 
+		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
 		//create a new room that other players can join
-		UPhotonProxy::GetListener()->createRoom("Gundy's Game", TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*MapDifficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy));
+		if (PRI)
+		{
+			FString RoomName = PRI->PlayFabName.Append(TEXT("'s Game"));
+			UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*MapDifficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy));
+		}
+	}
+#endif
+}
+
+void AOrionPlayerController::JoinLobby(FString ServerName)
+{
+#if !IS_SERVER
+	if (UPhotonProxy::GetListener())
+	{
+		UPhotonProxy::GetListener()->JoinRoom(TCHAR_TO_UTF8(*ServerName));
 	}
 #endif
 }
@@ -1577,12 +1642,12 @@ void AOrionPlayerController::LeaveLobby()
 #endif
 }
 
-void AOrionPlayerController::FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy)
+void AOrionPlayerController::FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket)
 {
 #if !IS_SERVER
 	if (UPhotonProxy::GetListener())
 	{
-		UPhotonProxy::GetListener()->SetLobbySettings(TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*Difficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy));
+		UPhotonProxy::GetListener()->SetLobbySettings(TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*Difficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), TCHAR_TO_UTF8(*IP), TCHAR_TO_UTF8(*Ticket));
 	}
 #endif
 }
@@ -1623,6 +1688,14 @@ void AOrionPlayerController::ValidatePlayFabInfo(FString pfID, FString pfSession
 		return;
 
 	EventValidateSession(pfSession);
+}
+
+void AOrionPlayerController::ValidateLobbyTicket(FString pfLobbyID, FString pfTicket)
+{
+	if (Role != ROLE_Authority)
+		return;
+
+	EventValidateTicket(pfLobbyID, pfTicket);
 }
 
 void AOrionPlayerController::CreateInventory()
@@ -1757,8 +1830,10 @@ void AOrionPlayerController::InitStatsAndAchievements()
 
 		Stats = GetWorld()->SpawnActor<AOrionStats>(StatsClass, SpawnInfo);
 
+#if IS_SERVER
 		if (Stats)
 			Stats->ReadPlayerStats(this);
+#endif
 	}
 }
 

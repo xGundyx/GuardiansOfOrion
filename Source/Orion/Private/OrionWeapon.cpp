@@ -217,7 +217,7 @@ void AOrionWeapon::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
 
-	if (MyPawn && MyPawn->IsLocallyControlled())
+	if (MyPawn && MyPawn->GetWeapon() == this && MyPawn->IsLocallyControlled())
 	{
 		//HandleZooms(DeltaSeconds);
 		//HandleViewOffsets(DeltaSeconds);
@@ -457,14 +457,57 @@ void AOrionWeapon::CancelMelee()
 	WeaponState = WEAP_IDLE;
 }
 
+void AOrionWeapon::FireProjectile(FName SocketName, FVector Direction)
+{
+	if (!ProjectileClass || !MyPawn || SocketName == "")
+		return;
+
+	//make sure we have a projectile class
+	AOrionGrenade *Grenade = Cast<AOrionGrenade>(ProjectileClass.GetDefaultObject());
+	if (Grenade)
+	{
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.Instigator = Instigator;
+		SpawnInfo.Owner = Instigator;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		FVector Origin(0.0f);
+
+		if (Cast<AOrionDroidPawn>(MyPawn))
+			Origin = MyPawn->GetMesh()->GetSocketLocation(SocketName);
+		else
+		{
+			USkeletalMeshComponent* UseMesh = GetWeaponMesh(MyPawn->IsFirstPerson());
+
+			if (UseMesh)
+				Origin = UseMesh->GetSocketLocation(SocketName);
+		}
+
+		AOrionGrenade *Proj = GetWorld()->SpawnActor<AOrionGrenade>(ProjectileClass, Origin, Direction.Rotation(), SpawnInfo);
+
+		if (Proj)
+		{
+			Proj->Init(Direction);
+		}
+	}
+}
+
 void AOrionWeapon::FireSpecial(FName SocketName, FVector Direction)
 {
 	LastFireTime = GetWorld()->GetTimeSeconds();
+
+	if (bProjectile)
+	{
+		FireProjectile(SocketName, Direction);
+		return;
+	}
 
 	const int32 RandomSeed = FMath::Rand();
 	FRandomStream WeaponRandomStream(RandomSeed);
 	const float CurrentSpread = GetCurrentSpread();
 	const float ConeHalfAngle = FMath::DegreesToRadians(CurrentSpread * 0.5f);
+
+	SpecialSocketName = SocketName;
 
 	const FVector AimDir = GetAdjustedAim();
 	const FVector StartTrace = GetBarrelLocation(SocketName);
@@ -488,6 +531,13 @@ void AOrionWeapon::FireWeapon()
 	LastFireTime = GetWorld()->GetTimeSeconds();
 
 	UseAmmo();
+
+	if (bProjectile)
+	{
+		if (MuzzleAttachPoint.Num() > 0)
+			FireProjectile(MuzzleAttachPoint[0], GetAdjustedAim());
+		return;
+	}
 
 	for (int32 i = 0; i < InstantConfig.NumPellets; i++)
 	{
@@ -1002,6 +1052,9 @@ void AOrionWeapon::ProcessInstantHit_Confirmed(const FHitResult& Impact, const F
 		HitNotify.Origin = EndPoint;// Origin;
 		HitNotify.RandomSeed = RandomSeed;
 		HitNotify.ReticleSpread = ReticleSpread;
+		HitNotify.Socket = SpecialSocketName;
+
+		SpecialSocketName = "";
 	}
 
 	// play FX locally
@@ -1133,15 +1186,25 @@ FVector AOrionWeapon::GetMuzzleDirection() const
 
 void AOrionWeapon::OnRep_HitNotify()
 {
-	SimulateInstantHit(HitNotify.Origin, HitNotify.RandomSeed, HitNotify.ReticleSpread);
+	SimulateInstantHit(HitNotify.Origin, HitNotify.RandomSeed, HitNotify.ReticleSpread, HitNotify.Socket);
 }
 
-void AOrionWeapon::SimulateInstantHit(const FVector& ShotOrigin, int32 RandomSeed, float ReticleSpread)
+void AOrionWeapon::SimulateInstantHit(const FVector& ShotOrigin, int32 RandomSeed, float ReticleSpread, FName SocketName)
 {
 	FRandomStream WeaponRandomStream(RandomSeed);
 	const float ConeHalfAngle = FMath::DegreesToRadians(ReticleSpread * 0.5f);
 
-	const FVector StartTrace = GetMuzzleLocation();// ShotOrigin;
+	FVector StartTrace;
+	
+	if (MyPawn && SocketName != TEXT(""))
+	{
+		USkeletalMeshComponent* UseMesh = GetWeaponMesh(MyPawn->IsFirstPerson());
+		if (UseMesh)
+			StartTrace = UseMesh->GetSocketLocation(SocketName);
+	}
+	else
+		StartTrace = GetMuzzleLocation();// ShotOrigin;
+
 	//const FVector AimDir = GetAdjustedAim();
 	//const FVector ShootDir = WeaponRandomStream.VRandCone(AimDir, ConeHalfAngle, ConeHalfAngle);
 	const FVector EndTrace = ShotOrigin;// StartTrace + ShootDir * InstantConfig.WeaponRange;

@@ -26,7 +26,7 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
 		FString ChatToken;
 	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
-		FString LobbyID;
+		FString LobbyTicket;
 	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
 		FString CharacterClass;
 };

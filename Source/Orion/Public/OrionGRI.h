@@ -101,6 +101,9 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly)
 		bool bBossMission;
 
+	UPROPERTY(Replicated, BlueprintReadOnly)
+		int32 SecondsTillNextSpawn;
+
 	UFUNCTION()
 		void HandleVictoryDefeat();
 

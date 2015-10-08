@@ -36,7 +36,7 @@ void AOrionSideMission::MissionComplete()
 		Game->FinishCurrentTask();
 }
 
-void AOrionSideMission::SpawnMissionEnemies(FSpawnNumbers TypesToSpawn, FVector TargetLocation)
+void AOrionSideMission::SpawnMissionEnemies(FSpawnNumbers TypesToSpawn, AActor *Target)
 {
 	int32 Types[SPAWN_NUM];
 
@@ -67,7 +67,7 @@ void AOrionSideMission::SpawnMissionEnemies(FSpawnNumbers TypesToSpawn, FVector 
 	Types[SPAWN_PARA] = TypesToSpawn.NumPara;
 	Types[SPAWN_STEG] = TypesToSpawn.NumSteg;
 
-	SpawnWave(Types, TargetLocation);
+	SpawnWave(Types, Target);
 }
 
 //just single wave for testing

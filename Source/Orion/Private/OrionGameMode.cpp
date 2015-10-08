@@ -78,12 +78,33 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 	bDelayedStart = true;
 }
 
+void AOrionGameMode::TickExitTimer()
+{
+	TArray<AActor*> Controllers;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		ExitCounter = 0;
+		return;
+	}
+
+	ExitCounter++;
+
+	//close the server if it has been empty for a minute straight
+#if IS_SERVER
+	if (ExitCounter >= 60)
+		if (GEngine)
+			GEngine->Exec(nullptr, TEXT("QUIT"), *GLog);
+#endif
+}
+
 void AOrionGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
 #if IS_SERVER
-	//UOrionTCPLink::Init();
+	GetWorldTimerManager().SetTimer(ExitTimer, this, &AOrionGameMode::TickExitTimer, 1.0f, true);
 #endif
 
 	InitGRI();
@@ -174,6 +195,11 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Killer);
 
 	HandleStats(Killer, KilledPlayer, KilledPawn, DamageType);
+
+	AOrionAIController *AIC = Cast<AOrionAIController>(Killer);
+
+	if (AIC)
+		AIC->bShouldRoar = true;
 	
 	if (PC)
 	{
@@ -335,6 +361,9 @@ void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FS
 		Difficulty = DIFF_REDIKULOUS;
 	else
 		Difficulty = DIFF_MEDIUM;
+
+	//read in our PlayFab LobbyID
+	LobbyID = UGameplayStatics::ParseOption(Options, TEXT("LobbyID"));
 }
 
 float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, struct FDamageEvent const& DamageEvent, class AController *EventInstigator, class AActor *DamageCauser)
@@ -450,8 +479,8 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 	FString pfSession = UGameplayStatics::ParseOption(Options, TEXT("PlayFabSession"));
 	FString pfChar = UGameplayStatics::ParseOption(Options, TEXT("PlayFabCharacter"));
 	FString pfName = UGameplayStatics::ParseOption(Options, TEXT("PlayFabName"));
-	FString pfLobby = UGameplayStatics::ParseOption(Options, TEXT("LobbyID"));
-	FString pfClass = UGameplayStatics::ParseOption(Options, TEXT("PlayFabCharacterClass"));
+	FString pfTicket = UGameplayStatics::ParseOption(Options, TEXT("LobbyTicket"));
+	FString pfClass = UGameplayStatics::ParseOption(Options, TEXT("CharacterClass"));
 
 	//if this session and id aren't valid, kick the bitch
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(NewPlayerController);
@@ -464,11 +493,24 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 			PRI->SessionTicket = pfSession;
 			PRI->CharacterID = pfChar;
 			PRI->PlayFabName = pfName;
-			PRI->LobbyID = pfLobby;
+			PRI->LobbyTicket = pfTicket;
 			PRI->CharacterClass = pfClass;
 		}
 
+#if IS_SERVER
+		PC->ValidateLobbyTicket(LobbyID, pfTicket);
+#else
 		PC->ValidatePlayFabInfo(pfID, pfSession);
+#endif
+
+		if (pfClass == TEXT("ASSAULT"))
+			PC->ClassIndex = 0;
+		else if (pfClass == TEXT("SUPPORT"))
+			PC->ClassIndex = 1;
+		else if (pfClass == TEXT("RECON"))
+			PC->ClassIndex = 2;
+		else
+			PC->ClassIndex = 0;
 	}
 
 	return ret;
@@ -479,16 +521,15 @@ void AOrionGameMode::PlayerAuthed(class AOrionPlayerController *PC, bool bSucces
 #if !WITH_EDITOR && IS_SERVER
 	if (!bSuccess)
 	{
-		GameSession->KickPlayer(PC, FText::FromString(TEXT("Playfab Authentication Failed.")));
-		return;
+		//GameSession->KickPlayer(PC, FText::FromString(TEXT("Playfab Authentication Failed.")));
+		//return;
 	}
 
-	//tell the playfab matchmaker that this player has joined this lobby server
 	AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
 
 	if (PRI)
 	{
-		UPlayFabRequestProxy::ServerPlayerJoined(PRI->PlayFabId, PRI->LobbyID);
+		UPlayFabRequestProxy::ServerNotifyMatchmakerPlayerJoined(PRI->PlayFabID, LobbyID);
 	}
 #endif
 
@@ -513,8 +554,6 @@ void AOrionGameMode::Logout(AController* Exiting)
 {
 	SaveAllUsersStats();
 
-	Super::Logout(Exiting);
-
 	//update playerlist
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
 
@@ -527,9 +566,28 @@ void AOrionGameMode::Logout(AController* Exiting)
 
 	if (PRI)
 	{
-		UPlayFabRequestProxy::ServerNotifyMatchmakerPlayerLeft(PRI->PlayFabId, PRI->LobbyID);
+		UPlayFabRequestProxy::ServerNotifyMatchmakerPlayerLeft(PRI->PlayFabID, LobbyID);
 	}
+
+	//if there are 0 players left after this player leaves, close the server
+	TArray<AActor*> Controllers;
+	int32 Counter = 0;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
+		if (C && C != Exiting)
+			Counter++;
+	}
+
+	if (GEngine && Counter == 0)
+		GEngine->Exec(nullptr, TEXT("QUIT"), *GLog);
+	return;
 #endif
+
+	Super::Logout(Exiting);
 }
 
 //spawned from killing various types of enemies, vehicles, opening things, etc.

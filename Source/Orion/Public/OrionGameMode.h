@@ -30,6 +30,13 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = Gameplay)
 		TEnumAsByte<EGameDifficulty> Difficulty;
 
+	UPROPERTY(BlueprintReadWrite, Category = Gameplay)
+		FString LobbyID;
+
+	void TickExitTimer();
+	int32 ExitCounter;
+	FTimerHandle ExitTimer;
+
 	enum EStatID GetStatID(AController *KilledController, bool bVictim);
 	void HandleStats(AController* Killer, AController* KilledPlayer, APawn* KilledPawn, const UDamageType* DamageType);
 

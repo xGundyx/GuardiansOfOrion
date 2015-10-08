@@ -34,7 +34,7 @@ public:
 		TArray<AOrionCharacter*> Enemies;
 
 	UFUNCTION(BlueprintCallable, Category = Mission)
-		void SpawnMissionEnemies(FSpawnNumbers TypesToSpawn, FVector TargetLocation);
+		void SpawnMissionEnemies(FSpawnNumbers TypesToSpawn, AActor *Target);
 
 	void FinishWave();
 

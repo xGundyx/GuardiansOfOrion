@@ -292,7 +292,7 @@ void AOrionWeaponLink::ValidateLinkTarget(float DeltaSeconds)
 
 	if (Skill)
 	{
-		Skill->SetEnergy(FMath::Max(0.0f, Skill->GetEnergy() - DeltaSeconds * 10.0f));
+		Skill->SetEnergy(FMath::Max(0.0f, Skill->GetEnergy() - DeltaSeconds * 5.0f));
 		Skill->TimeSinceLastActive = GetWorld()->TimeSeconds - (Skill->RechargeDelay - 5.0f);
 
 		if (Skill->GetEnergy() <= 0.0f)

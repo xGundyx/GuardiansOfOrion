@@ -79,6 +79,7 @@ void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionGRI, GlobalMessage);
 	DOREPLIFETIME(AOrionGRI, HeaderMessage);
 	DOREPLIFETIME(AOrionGRI, GameOverCountDown);
+	DOREPLIFETIME(AOrionGRI, SecondsTillNextSpawn);
 	/*DOREPLIFETIME(AShooterGameState, NumTeams);
 	DOREPLIFETIME(AShooterGameState, RemainingTime);
 	DOREPLIFETIME(AShooterGameState, bTimerPaused);
