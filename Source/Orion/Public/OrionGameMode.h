@@ -33,6 +33,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = Gameplay)
 		FString LobbyID;
 
+	UPROPERTY(BlueprintReadWrite, Category = Gameplay)
+		FPhotonServerInfo ServerInfo;
+
 	void TickExitTimer();
 	int32 ExitCounter;
 	FTimerHandle ExitTimer;

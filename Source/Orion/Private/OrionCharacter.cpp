@@ -1003,7 +1003,7 @@ void AOrionCharacter::DetachFromShip()
 {
 	FWeaponAnim Info;
 	Info.Pawn3P = ExitShipAnim;
-	float length = OrionPlayAnimMontage(Info, 1.0f, TEXT(""), true, true, false);
+	float length = OrionPlayAnimMontage(Info, 1.0f, TEXT(""), false/*true*/, false/*true*/, false);
 
 	DetachRootComponentFromParent(true);
 	GetCharacterMovement()->SetMovementMode(MOVE_Flying);
@@ -1376,6 +1376,14 @@ bool AOrionCharacter::IsOvercharging() const
 float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser)
 {
 	UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject());
+
+	//if damagecauser is a weapon, get the weapon's instigator instead
+	AOrionWeapon *WeaponDamageCauser = Cast<AOrionWeapon>(DamageCauser);
+
+	if (WeaponDamageCauser)
+	{
+		DamageCauser = WeaponDamageCauser->Instigator;
+	}
 
 	if (Health <= 0.f)
 	{
@@ -3125,7 +3133,7 @@ void AOrionCharacter::ServerDoRoll_Implementation(ERollDir rDir, FRotator rRot)
 
 	if (CurrentWeapon)
 	{
-		CurrentWeapon->StopReload();
+		CurrentWeapon->CancelReload();
 		CurrentWeapon->StopFire();
 	}
 
@@ -3163,7 +3171,7 @@ void AOrionCharacter::DoRoll()
 		{
 			if (CurrentWeapon && CurrentWeapon->WeaponState == WEAP_RELOADING)
 			{
-				CurrentWeapon->StopReload();
+				CurrentWeapon->CancelReload();
 			}
 
 			//prevent upper body from doing wacky things

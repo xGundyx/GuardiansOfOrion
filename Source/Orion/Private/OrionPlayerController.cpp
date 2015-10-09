@@ -26,6 +26,7 @@
 
 class AOrionDinoPawn;
 class AOrionGameMenu;
+class AOrionAchievements;
 
 AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
@@ -182,12 +183,36 @@ void AOrionPlayerController::ConnectToIP(FString IP)
 	//add our playfab credentials to the url so the server can verify us
 	FString newURL;
 
+	GI->ServerIP = IP;
+
 	if (GI)
 		newURL = FString::Printf(TEXT("open %s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s?LobbyTicket=%s?CharacterClass=%s"), *IP, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName, *GI->LobbyTicket, *GI->CharacterClass);
 
 	UE_LOG(LogTemp, Log, TEXT("GundyReallyTravel: %s"), *newURL);
 
 	ConsoleCommand(newURL, true);
+}
+
+void AOrionPlayerController::CreateInGameLobby_Implementation(FPhotonServerInfo Info)
+{
+#if !IS_SERVER
+	if (UPhotonProxy::GetListener())
+	{
+		UPhotonProxy::GetListener()->PCOwner = this;
+
+		UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
+
+		//create a new room that other players can join
+		if (GI)
+		{
+			FString RoomName = Info.RoomName.Append(TEXT("'s Game"));
+			if (Info.RoomName == GI->PlayFabName)
+				UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*Info.MapName), TCHAR_TO_UTF8(*Info.Difficulty), "Survival", TCHAR_TO_UTF8(*Info.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*GI->LobbyTicket));
+			else
+				UPhotonProxy::GetListener()->JoinRoom(TCHAR_TO_UTF8(*RoomName));
+		}
+	}
+#endif
 }
 
 void AOrionPlayerController::CleanupGameViewport()
@@ -727,6 +752,75 @@ void AOrionPlayerController::TestSettings()
 {
 	if (GEngine)
 		GEngine->Exec(nullptr, TEXT("QUIT"), *GLog);
+}
+
+void AOrionPlayerController::AddXP(int32 Value)
+{
+#if IS_SERVER
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	//make sure stats are valid
+	if (!Stats)
+		return;
+
+	if (Value > 0)
+	{
+		int32 OldCharacterXP = 0;
+		int32 NewCharacterXP = 0;
+
+		if (ClassIndex == 0)
+		{
+			OldCharacterXP = Stats->aStats[STAT_ASSAULTEXP].StatValue;
+			Stats->AddStatValue(STAT_ASSAULTEXP, Value); 
+			PRI->AssaultXP = Stats->aStats[STAT_ASSAULTEXP].StatValue;
+			NewCharacterXP = Stats->aStats[STAT_ASSAULTEXP].StatValue;
+		}
+		else if (ClassIndex == 1)
+		{
+			OldCharacterXP = Stats->aStats[STAT_SUPPORTEXP].StatValue;
+			Stats->AddStatValue(STAT_SUPPORTEXP, Value); 
+			PRI->SupportXP = Stats->aStats[STAT_SUPPORTEXP].StatValue;
+			NewCharacterXP = Stats->aStats[STAT_SUPPORTEXP].StatValue;
+		}
+		else if (ClassIndex == 2)
+		{
+			OldCharacterXP = Stats->aStats[STAT_RECONEXP].StatValue;
+			Stats->AddStatValue(STAT_RECONEXP, Value); 
+			PRI->ReconXP = Stats->aStats[STAT_RECONEXP].StatValue;
+			NewCharacterXP = Stats->aStats[STAT_RECONEXP].StatValue;
+		}
+
+		int32 OldLevel = CalculateLevel(OldCharacterXP);
+		int32 NewLevel = CalculateLevel(NewCharacterXP);
+		//check for level up
+		if (OldLevel < NewLevel)
+		{
+			DoLevelUp(NewLevel);
+		}
+	}
+#endif
+}
+
+void AOrionPlayerController::DoLevelUp(int32 NewLevel)
+{
+	//spawn some effects
+	TArray<AActor*> Controllers;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+	PlayLevelUpEffect(NewLevel);
+
+	if (Achievements)
+		Achievements->CheckForLevelUnlocks(NewLevel, this);
+
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controllers[i]);
+		if (PC)
+		{
+			PC->ShowLevelUpMessage(NewLevel); //text message to show others that this player has leveled up
+		}
+	}
 }
 
 void AOrionPlayerController::HideWeapons()
@@ -1614,7 +1708,7 @@ void AOrionPlayerController::OpenLobby(FString MapName, FString MapDifficulty, F
 		if (PRI)
 		{
 			FString RoomName = PRI->PlayFabName.Append(TEXT("'s Game"));
-			UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*MapDifficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy));
+			UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*MapDifficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), "", "");
 		}
 	}
 #endif
@@ -1834,6 +1928,13 @@ void AOrionPlayerController::InitStatsAndAchievements()
 		if (Stats)
 			Stats->ReadPlayerStats(this);
 #endif
+
+		Achievements = GetWorld()->SpawnActor<AOrionAchievements>(AchievementsClass, SpawnInfo);
+
+#if IS_SERVER
+		if (Achievements)
+			Achievements->ReadPlayerAchievements(this);
+#endif
 	}
 }
 
@@ -1842,14 +1943,19 @@ void AOrionPlayerController::IceAge()
 	ServerIceAge();
 }
 
-void AOrionPlayerController::PlayLevelUpEffect_Implementation()
+void AOrionPlayerController::UnlockAchievement_Implementation(const FString &Header, const FString &Body)
 {
-	EventPlayLevelUpEffect();
+	EventShowNotification(Header, Body);
 }
 
-void AOrionPlayerController::ShowLevelUpMessage_Implementation()
+void AOrionPlayerController::PlayLevelUpEffect_Implementation(int32 NewLevel)
 {
-	EventShowLevelUpMessage();
+	EventPlayLevelUpEffect(NewLevel);
+}
+
+void AOrionPlayerController::ShowLevelUpMessage_Implementation(int32 NewLevel)
+{
+	EventShowLevelUpMessage(NewLevel);
 }
 
 void AOrionPlayerController::ServerIceAge_Implementation()

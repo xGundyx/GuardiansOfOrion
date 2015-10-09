@@ -1,9 +1,6 @@
 #include "Orion.h"
 #include "OrionPRI.h"
 
-#define BASEXP 10000
-#define XPINCREASE 2500
-
 AOrionPRI::AOrionPRI(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -22,61 +19,49 @@ void AOrionPRI::SeamlessTravelTo(APlayerState * NewPlayerState)
 
 }
 
-void AOrionPRI::AddXP(int32 Value)
+int32 AOrionPRI::GetXPIntoLevel()
 {
-	if (Value > 0)
-	{
-		int32 CharacterXP = 0;
+	int XP = 0;
 
-		if (CharacterClass == "ASSAULT")
-			AssaultXP += Value;
-		else if (CharacterClass == "SUPPORT")
-			SupportXP += Value;
-		else if (CharacterClass == "RECON")
-			ReconXP += Value;
-		
-		int32 OldLevel = CalculateLevel(CharacterXP);
+	if (ClassType == "SUPPORT")
+		XP = SupportXP;
+	else if (ClassType == "ASSAULT")
+		XP = AssaultXP;
+	else if (ClassType == "RECON")
+		XP = ReconXP;
+	else
+		return 0;
 
-		//check for level up
-		if (OldLevel < CalculateLevel(CharacterXP))
-		{
-			DoLevelUp();
-		}
-	}
-}
-
-int32 AOrionPRI::CalculateLevel(int32 XP)
-{
+	int32 Ret = XP;
 	int32 XPRemaining = XP - BASEXP;
 	int32 Level = 1;
 
 	while (XPRemaining >= 0)
 	{
 		Level++;
-		XPRemaining -= XPINCREASE;
+		Ret = XP;
+		XPRemaining -= (BASEXP + (XPINCREASE * (Level - 1)));
 	}
 
-	return Level;
+	return Ret;
 }
 
-void AOrionPRI::DoLevelUp()
+int32 AOrionPRI::GetXPToLevel()
 {
-	//spawn some effects
-	TArray<AActor*> Controllers;
+	int XP = 0;
 
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+	if (ClassType == "SUPPORT")
+		XP = SupportXP;
+	else if (ClassType == "ASSAULT")
+		XP = AssaultXP;
+	else if (ClassType == "RECON")
+		XP = ReconXP;
+	else
+		return 1;
 
-	for (int32 i = 0; i < Controllers.Num(); i++)
-	{
-		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controllers[i]);
-		if (PC)
-		{
-			if (PC->PlayerState == this)
-				PC->PlayLevelUpEffect(); //display message to the player who leveled up
-			else
-				PC->ShowLevelUpMessage(); //text message to show others that this player has leveled up
-		}
-	}
+	int32 Level = CalculateLevel(XP);
+
+	return BASEXP + (XPINCREASE * (Level - 1));
 }
 
 bool AOrionPRI::IsOnShip()
@@ -124,6 +109,9 @@ void AOrionPRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionPRI, AssaultXP);
 	DOREPLIFETIME(AOrionPRI, SupportXP);
 	DOREPLIFETIME(AOrionPRI, ReconXP);
+
+	//photon
+	DOREPLIFETIME(AOrionPRI, ServerInfo);
 }
 
 void AOrionPRI::OnRep_InventoryManager()
