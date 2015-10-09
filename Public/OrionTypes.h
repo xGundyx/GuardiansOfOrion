@@ -600,3 +600,39 @@ struct FRareStats
 };
 
 static FRareStats RareStats;
+
+#define BASEXP 10000
+#define XPINCREASE 2500
+
+static int32 CalculateLevel(int32 XP)
+{
+	int32 XPRemaining = XP - BASEXP;
+	int32 Level = 1;
+
+	while (XPRemaining >= 0)
+	{
+		Level++;
+		XPRemaining -= (BASEXP + (XPINCREASE * (Level - 1)));
+	}
+
+	return Level;
+}
+
+USTRUCT(BlueprintType)
+struct FPhotonServerInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = Photon)
+		FString RoomName;
+	UPROPERTY(BlueprintReadWrite, Category = Photon)
+		FString MapName;
+	UPROPERTY(BlueprintReadWrite, Category = Photon)
+		FString Difficulty;
+	UPROPERTY(BlueprintReadWrite, Category = Photon)
+		FString IP; //include port for ease
+	UPROPERTY(BlueprintReadWrite, Category = Photon)
+		FString Ticket;
+	UPROPERTY(BlueprintReadWrite, Category = Photon)
+		FString Privacy;
+};

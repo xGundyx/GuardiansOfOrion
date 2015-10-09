@@ -319,16 +319,25 @@ public:
 		void EventChangeClass(int32 index);
 
 	UFUNCTION(client, reliable)
-		void PlayLevelUpEffect();
-
-	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ShowLevelUpEffect"))
-		void EventPlayLevelUpEffect();
+		void CreateInGameLobby(FPhotonServerInfo Info);
 
 	UFUNCTION(client, reliable)
-		void ShowLevelUpMessage();
+		void UnlockAchievement(const FString &Header, const FString &Body);
+
+	UFUNCTION(client, reliable)
+		void PlayLevelUpEffect(int32 NewLevel);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ShowLevelUpEffect"))
+		void EventPlayLevelUpEffect(int32 NewLevel);
+
+	UFUNCTION(client, reliable)
+		void ShowLevelUpMessage(int32 NewLevel);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ShowLevelUpMessage"))
-		void EventShowLevelUpMessage();
+		void EventShowLevelUpMessage(int32 NewLevel);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ShowNotification"))
+		void EventShowNotification(const FString &Header, const FString &Body);
 
 	UFUNCTION(exec)
 		virtual void HideWeapons();
@@ -385,6 +394,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = PlayFab)
 		TSubclassOf<class AOrionStats> StatsClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = PlayFab)
+		TSubclassOf<class AOrionAchievements> AchievementsClass;
 	
 	//stats and achievements
 	UFUNCTION(BlueprintCallable, Category = PlayFab)
@@ -480,6 +492,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Menu)
 		FString GetBuildVersion();
+
+	void AddXP(int32 Value);
+	void DoLevelUp(int32 NewLevel);
 
 	EControllerButton ConvertControllerButtonToIndex(FString ButtonName);
 
@@ -690,6 +705,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Stats)
 		AOrionStats *GetStats() { return Stats; }
 
+	UFUNCTION(BlueprintCallable, Category = Achievements)
+		AOrionAchievements *GetAchievements() { return Achievements; }
+
 	UPROPERTY(BlueprintReadOnly, Category = PlayFab)
 		bool bAuthenticated;
 
@@ -749,7 +767,7 @@ private:
 	FTimerHandle ServerTickTimer;
 	UOrionQuestManager *QuestManager;
 	AOrionStats *Stats;
-	UOrionAchievements *Achievements;
+	AOrionAchievements *Achievements;
 
 	AOrionChatManager *ChatManager;
 

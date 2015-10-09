@@ -278,7 +278,7 @@ FMissionInfo AOrionGRI::GetMission(int32 Index)
 		}
 		else
 		{
-			Info.Title = FString::Printf(TEXT("Wave %i"), WaveNum);
+			Info.Title = WaveNum < 10 ? FString::Printf(TEXT("Wave 0%i"), WaveNum) : FString::Printf(TEXT("Wave %i"), WaveNum);
 			Info.Desc = Info.Desc = FString::Printf(TEXT("%i ENEMIES"), DinosAliveInWave);
 		}
 		break;

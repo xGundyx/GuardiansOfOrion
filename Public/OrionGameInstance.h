@@ -29,4 +29,6 @@ public:
 		FString LobbyTicket;
 	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
 		FString CharacterClass;
+	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
+		FString ServerIP;
 };

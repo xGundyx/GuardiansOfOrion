@@ -46,6 +46,9 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		FString CharacterClass;
 
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
+		FPhotonServerInfo ServerInfo;
+
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = Score)
 		int32 Kills;
 
@@ -65,15 +68,17 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		int32 ReconXP;
 
-	void AddXP(int32 Value);
-	void DoLevelUp();
-	int32 CalculateLevel(int32 XP);
-
 	UFUNCTION(BlueprintCallable, Category = Team)
 		int32 GetTeamIndex();
 
 	UFUNCTION(BlueprintCallable, Category = Team)
 		void SetTeamIndex(int32 index);
+
+	UFUNCTION(BlueprintCallable, Category = RPG)
+		int32 GetXPIntoLevel();
+
+	UFUNCTION(BlueprintCallable, Category = RPG)
+		int32 GetXPToLevel();
 
 private:
 	UPROPERTY(Replicated)

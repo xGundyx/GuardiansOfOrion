@@ -222,10 +222,7 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 				AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
 				if (C)
 				{
-					AOrionPRI *PRI = Cast<AOrionPRI>(C->PlayerState);
-
-					if (PRI)
-						PRI->AddXP(Dino->ExpValue);
+					C->AddXP(Dino->ExpValue);
 				}
 			}
 		}
@@ -364,6 +361,32 @@ void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FS
 
 	//read in our PlayFab LobbyID
 	LobbyID = UGameplayStatics::ParseOption(Options, TEXT("LobbyID"));
+
+	//server name
+	ServerInfo.RoomName = UGameplayStatics::ParseOption(Options, TEXT("ServerName"));
+	ServerInfo.MapName = MapName;
+	switch(Difficulty)
+	{
+	case DIFF_EASY:
+		ServerInfo.Difficulty = TEXT("EASY");
+		break;
+	case DIFF_MEDIUM:
+		ServerInfo.Difficulty = TEXT("MEDIUM");
+		break;
+	case DIFF_HARD:
+		ServerInfo.Difficulty = TEXT("HARD");
+		break;
+	case DIFF_INSANE:
+		ServerInfo.Difficulty = TEXT("INSANE");
+		break;
+	case DIFF_REDIKULOUS:
+		ServerInfo.Difficulty = TEXT("REDIKULOUS");
+		break;
+	}
+
+	//ServerInfo.IP = UGameplayStatics::ParseOption(Options, TEXT("IP"));
+	//ServerInfo.Ticket = UGameplayStatics::ParseOption(Options, TEXT("LobbyTicket"));
+	ServerInfo.Privacy = UGameplayStatics::ParseOption(Options, TEXT("Privacy"));
 }
 
 float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, struct FDamageEvent const& DamageEvent, class AController *EventInstigator, class AActor *DamageCauser)
@@ -495,6 +518,7 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 			PRI->PlayFabName = pfName;
 			PRI->LobbyTicket = pfTicket;
 			PRI->CharacterClass = pfClass;
+			PRI->ServerInfo = ServerInfo;
 		}
 
 #if IS_SERVER
@@ -531,6 +555,8 @@ void AOrionGameMode::PlayerAuthed(class AOrionPlayerController *PC, bool bSucces
 	{
 		UPlayFabRequestProxy::ServerNotifyMatchmakerPlayerJoined(PRI->PlayFabID, LobbyID);
 	}
+
+	PC->CreateInGameLobby(ServerInfo);
 #endif
 
 	//login was successfull, let the player spawn

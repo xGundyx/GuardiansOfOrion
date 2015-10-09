@@ -459,7 +459,7 @@ void AOrionAIController::RemoveEnemy()
 	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
 	if (P)
 	{
-		P->bRun = false;
+		P->bRun = true;// false;
 		P->bFinishingMove = false;
 	}
 

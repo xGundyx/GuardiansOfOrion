@@ -100,7 +100,7 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 	InstantConfig.RecoilScale = 1.0f;
 	InstantConfig.TimeBetweenShots = 0.1;
 	InstantConfig.WeaponIndex = 0;
-	InstantConfig.WeaponRange = 20000.0f;
+	InstantConfig.WeaponRange = 3000.0f;
 	InstantConfig.WeaponScale = 0.5f;
 
 	InventoryType = ITEM_PRIMARYWEAPON;
@@ -367,7 +367,7 @@ void AOrionWeapon::Melee()
 		return;
 
 	if (WeaponState == WEAP_RELOADING)
-		StopReload();
+		CancelReload();
 
 	if (Role < ROLE_Authority)
 	{
@@ -445,6 +445,7 @@ void AOrionWeapon::StartFire()
 void AOrionWeapon::CancelReload()
 {
 	GetWorldTimerManager().ClearTimer(ReloadTimer);// this, &AOrionWeapon::StopReload);
+	GetWorldTimerManager().ClearTimer(ReloadStopTimer);
 	//GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::ReloadWeapon);
 
 	WeaponState = WEAP_IDLE;
@@ -512,7 +513,7 @@ void AOrionWeapon::FireSpecial(FName SocketName, FVector Direction)
 	const FVector AimDir = GetAdjustedAim();
 	const FVector StartTrace = GetBarrelLocation(SocketName);
 	const FVector ShootDir = Direction;
-	const FVector EndTrace = StartTrace + ShootDir * InstantConfig.WeaponRange;
+	const FVector EndTrace = StartTrace + ShootDir * FMath::Min(3000.0f, InstantConfig.WeaponRange);
 
 	const FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
 	ProcessInstantHit(Impact, StartTrace, ShootDir, RandomSeed, CurrentSpread);
@@ -549,7 +550,7 @@ void AOrionWeapon::FireWeapon()
 		const FVector AimDir = GetAdjustedAim();
 		const FVector StartTrace = GetCameraDamageStartLocation(AimDir);
 		const FVector ShootDir = WeaponRandomStream.VRandCone(AimDir, ConeHalfAngle, ConeHalfAngle);
-		const FVector EndTrace = StartTrace + ShootDir * InstantConfig.WeaponRange;
+		const FVector EndTrace = StartTrace + ShootDir * FMath::Max(3000.0f, InstantConfig.WeaponRange);
 
 		const FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
 		ProcessInstantHit(Impact, StartTrace, ShootDir, RandomSeed, CurrentSpread);
@@ -809,6 +810,9 @@ bool AOrionWeapon::CanReload()
 
 void AOrionWeapon::StartReload(bool bFromReplication)
 {
+	if (WeaponState == WEAP_RELOADING)
+		return;
+
 	if (!bFromReplication && Role < ROLE_Authority)
 	{
 		ServerStartReload();
@@ -1046,7 +1050,7 @@ void AOrionWeapon::ProcessInstantHit_Confirmed(const FHitResult& Impact, const F
 		if (Impact.GetActor() != NULL)
 			DealDamage(Impact, ShootDir);
 
-		const FVector EndTrace = Origin + ShootDir * InstantConfig.WeaponRange;
+		const FVector EndTrace = Origin + ShootDir * FMath::Max(3000.0f, InstantConfig.WeaponRange);
 		const FVector EndPoint = Impact.GetActor() ? Impact.ImpactPoint : EndTrace;
 
 		HitNotify.Origin = EndPoint;// Origin;
@@ -1060,7 +1064,7 @@ void AOrionWeapon::ProcessInstantHit_Confirmed(const FHitResult& Impact, const F
 	// play FX locally
 	if (GetNetMode() != NM_DedicatedServer)
 	{
-		const FVector EndTrace = Origin + ShootDir * InstantConfig.WeaponRange;
+		const FVector EndTrace = Origin + ShootDir * FMath::Max(3000.0f, InstantConfig.WeaponRange);
 		const FVector EndPoint = Impact.GetActor() ? Impact.ImpactPoint : EndTrace;
 
 		SpawnTrailEffect(EndPoint);
@@ -1257,7 +1261,7 @@ void AOrionWeapon::ServerNotifyMiss_Implementation(FVector ShootDir, int32 Rando
 	// play FX locally
 	if (GetNetMode() != NM_DedicatedServer)
 	{
-		const FVector EndTrace = Origin + ShootDir * InstantConfig.WeaponRange;
+		const FVector EndTrace = Origin + ShootDir * FMath::Max(3000.0f, InstantConfig.WeaponRange);
 		SpawnTrailEffect(EndTrace);
 	}
 }

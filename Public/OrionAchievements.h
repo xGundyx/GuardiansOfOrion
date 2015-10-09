@@ -5,52 +5,86 @@
 #include "Object.h"
 #include "OrionAchievements.generated.h"
 
-/**
- * 
- */
+class AOrionPlayerController;
 
-//update backendmappings.h if you add more achievements
-UENUM()
+//UENUM()
 enum EAchievementID
 {
-	ACH_KILLFIVERAPTORS,
-	ACH_TREXSLAYER
+	ACH_REACHLEVELFIVE = 0,
+	ACH_REACHLEVELTEN
 };
 
-USTRUCT()
+USTRUCT(BlueprintType)
 struct FAchievement
 {
 	GENERATED_USTRUCT_BODY()
 
-	int32 ID;
+	int32 ID;			//id into array
 
 	FString Name;
+
+	UPROPERTY(BlueprintReadWrite, Category = Achievements)
+		FString pfName;		//name for playfab
+
 	FString Desc;
+
+	FString Unlock;		//message informing player of any unlock achieved
+
+	int32 Coins;		//amount of store coins this achievement is worth
 	
 	int32 StatID;		//stat we are linked to
 	int32 Goal;			//amount of stat needed
 
 	UTexture2D *Icon;
 
+	UPROPERTY(BlueprintReadWrite, Category = Achievements)
+		bool bUnlocked;
+
 	FAchievement(){}
-	FAchievement(FString sTitle, FString sDesc, int32 nID, int32 nStatID, int32 nGoal, UTexture2D *pIcon)
+	FAchievement(FString sTitle, FString sPFName, FString sDesc, int32 nID, int32 nStatID, int32 nGoal, UTexture2D *pIcon, FString sUnlock, int32 nCoins)
 	{
 		ID = nID;
 		Name = sTitle;
+		pfName = sPFName;
 		Desc = sDesc;
 		StatID = nStatID;
 		Goal = nGoal;
 		Icon = pIcon;
+		bUnlocked = false;
+		Coins = nCoins;
+		Unlock = sUnlock;
 	}
+
+	bool operator==(const FAchievement Other) const { return Name == Other.Name; }
 };
 
 UCLASS()
-class ORION_API UOrionAchievements : public UObject
+class ORION_API AOrionAchievements : public AActor
 {
 	GENERATED_BODY()
 public:
-	UOrionAchievements(const FObjectInitializer& ObjectInitializer);
-	
+	AOrionAchievements(const FObjectInitializer& ObjectInitializer);
+
+	//server only
+	void UnlockAchievement(int32 AchID, AOrionPlayerController *PC);
+
+	UFUNCTION(BlueprintCallable, Category = Achievements)
+		void ReadPlayerAchievements(AOrionPlayerController *PC);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Read Player Achievements From Playfab"))
+		void EventReadPlayerAchievements(AOrionPlayerController *PC);
+
+	UFUNCTION(BlueprintCallable, Category = Achievements)
+		void SetAchievementValues(TArray<FAchievement> AchievementsRead);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Save Player Achievements to Playfab"))
+		void EventSavePlayerAchievements(AOrionPlayerController* PC);
+
+	void CheckForLevelUnlocks(int32 NewLevel, AOrionPlayerController *PC);
+
+	UPROPERTY(BlueprintReadWrite, Category = Achievements)
+		TArray<FAchievement> Achievements;
+
 private:
-	TArray<FAchievement> Achievements;
+	bool bInitialized;
 };
