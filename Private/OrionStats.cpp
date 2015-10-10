@@ -240,4 +240,24 @@ void AOrionStats::SetStatValues(TArray<FPlayerStats> StatsRead)
 			aStats[index].StatValue = StatsRead[i].StatValue;
 		}
 	}
+
+	TArray<AActor*> Controllers;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
+		if (C && C->GetStats() == this)
+		{
+			AOrionPRI *PRI = Cast<AOrionPRI>(C->PlayerState);
+			//need to force the xp values here for initial load
+			if (PRI)
+			{
+				PRI->AssaultXP = aStats[STAT_ASSAULTEXP].StatValue;
+				PRI->SupportXP = aStats[STAT_SUPPORTEXP].StatValue;
+				PRI->ReconXP = aStats[STAT_RECONEXP].StatValue;
+			}
+		}
+	}
 }

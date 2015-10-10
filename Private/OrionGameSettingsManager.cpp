@@ -133,6 +133,8 @@ void UOrionGameSettingsManager::ApplyGraphicSettings()
 
 	Settings->ApplyNonResolutionSettings();
 	Settings->ApplyResolutionSettings(true);
+
+	Settings->SaveSettings();
 }
 
 bool UOrionGameSettingsManager::RebindKey(FString ActionName, FKey NewKey, FName OriginalKey, float NewScale)

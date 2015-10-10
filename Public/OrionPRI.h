@@ -80,6 +80,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = RPG)
 		int32 GetXPToLevel();
 
+	bool bInitialized;
+
 private:
 	UPROPERTY(Replicated)
 		int32 TeamIndex;

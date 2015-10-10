@@ -8,6 +8,7 @@
 #include "OrionDinoPawn.h"
 #include "OrionDroidPawn.h"
 #include "OrionPathFollowingComponent.h"
+#include "OrionGameMode.h"
 
 AOrionAIController::AOrionAIController(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer.SetDefaultSubobjectClass<UOrionPathFollowingComponent>(TEXT("PathFollowingComponent")))
@@ -16,6 +17,8 @@ AOrionAIController::AOrionAIController(const FObjectInitializer& ObjectInitializ
 	MoveType = AIMOVE_WALKING;
 	bFinishedPath = true;
 	bWantsPlayerState = true;
+
+	TimesStuck = 0;
 }
 
 void AOrionAIController::Possess(APawn* aPawn)
@@ -43,6 +46,58 @@ void AOrionAIController::Possess(APawn* aPawn)
 
 	if (Cast<AOrionCharacter>(aPawn))
 		Cast<AOrionCharacter>(aPawn)->bRun = true;
+
+	LastStuckPos = aPawn->GetActorLocation();
+	StuckCounter = 0;
+	GetWorldTimerManager().SetTimer(StuckTimer, this, &AOrionAIController::HandleStuck, 1.0f, true);
+}
+
+void AOrionAIController::HandleStuck()
+{
+	if (!GetPawn())
+		return;
+
+	//check if we haven't moved since our last checkup
+	if ((LastStuckPos - GetPawn()->GetActorLocation()).Size() < 1.0f)
+		StuckCounter++;
+	else
+		StuckCounter = 0;
+
+	LastStuckPos = GetPawn()->GetActorLocation();
+
+	if (StuckCounter >= 5.0f)
+	{
+		bIsStuck = true;
+		GetWorldTimerManager().SetTimer(StuckTimer, this, &AOrionAIController::ResetStuck, 3.0f, false);
+	}
+	else
+		bIsStuck = false;
+}
+
+void AOrionAIController::ResetStuck()
+{
+	if (GetPawn())
+	{
+		bIsStuck = false;
+		LastStuckPos = GetPawn()->GetActorLocation();
+		StuckCounter = 0;
+
+		TimesStuck++;
+
+		if (TimesStuck >= 5)
+		{
+			//destroy and re-add to the spawn queue
+			AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
+			AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
+			if (Game && P)
+			{
+				Game->AddSpawn(P);
+				P->Destroy();
+			}
+		}
+	}
+
+	GetWorldTimerManager().SetTimer(StuckTimer, this, &AOrionAIController::HandleStuck, 1.0f, true);
 }
 
 void AOrionAIController::FindFlightPath(FVector Destination)

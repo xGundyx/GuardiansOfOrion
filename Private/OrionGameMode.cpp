@@ -203,14 +203,14 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 	
 	if (PC)
 	{
-		AOrionDinoPawn *Dino = Cast<AOrionDinoPawn>(KilledPawn);
+		AOrionCharacter *Dino = Cast<AOrionCharacter>(KilledPawn);
 		if (Dino)
 		{
-			SpawnItems(Dino);
+			////SpawnItems(Dino);
 
 			//award some experience to the team
 			if (Dino->ExpValue > 0)
-				PC->ClientAddXPNumber(Dino->ExpValue, KilledPawn->GetActorLocation());
+				PC->ClientAddXPNumber(Dino->ExpValue * 2, KilledPawn->GetActorLocation());
 
 			//all players on the team receive the same xp
 			TArray<AActor*> Controllers;
@@ -222,7 +222,7 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 				AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
 				if (C)
 				{
-					C->AddXP(Dino->ExpValue);
+					C->AddXP(Dino->ExpValue * 2);
 				}
 			}
 		}

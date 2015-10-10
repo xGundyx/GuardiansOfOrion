@@ -171,6 +171,7 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], AActor *F
 				NewPawn->FocusActor = FocusActor;
 				NewPawn->SpawnDefaultController();
 				NewPawn->SetAIType(AI_HUNTING);
+				NewPawn->SpawnType = TypesToSpawn[i];
 			}
 			else
 			{
@@ -211,6 +212,7 @@ void AOrionRandomWaveSpawner::SpawnFailures()
 			NewPawn->FocusActor = FocusActor;
 			NewPawn->SpawnDefaultController();
 			NewPawn->SetAIType(AI_HUNTING);
+			NewPawn->SpawnType = FailedToSpawn[i];
 		}
 		else
 		{
