@@ -400,6 +400,8 @@ public:
 	float HealAmount;
 	float LastHealTime;
 
+	int32 SpawnType;
+
 	void HandleHealEffects(float DeltaSeconds);
 
 	//UPROPERTY(VisibleDefaultsOnly, Category = Mesh)

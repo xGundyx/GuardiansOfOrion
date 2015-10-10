@@ -41,6 +41,8 @@ AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObjectI
 	bForceFeedbackEnabled = true;
 
 	NextSpawnClass = -1;
+
+	LastNotificationTime = -20.0f;
 }
 
 void AOrionPlayerController::AttemptLogin(FString UserName, FString Password)
@@ -196,22 +198,7 @@ void AOrionPlayerController::ConnectToIP(FString IP)
 void AOrionPlayerController::CreateInGameLobby_Implementation(FPhotonServerInfo Info)
 {
 #if !IS_SERVER
-	if (UPhotonProxy::GetListener())
-	{
-		UPhotonProxy::GetListener()->PCOwner = this;
-
-		UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
-
-		//create a new room that other players can join
-		if (GI)
-		{
-			FString RoomName = Info.RoomName.Append(TEXT("'s Game"));
-			if (Info.RoomName == GI->PlayFabName)
-				UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*Info.MapName), TCHAR_TO_UTF8(*Info.Difficulty), "Survival", TCHAR_TO_UTF8(*Info.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*GI->LobbyTicket));
-			else
-				UPhotonProxy::GetListener()->JoinRoom(TCHAR_TO_UTF8(*RoomName));
-		}
-	}
+	ServerInfo = Info;
 #endif
 }
 
@@ -652,6 +639,7 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 	//UOrionTCPLink::Update();
 	//UClientConnector::Update();
 	UPhotonProxy::Update(DeltaTime);
+	ProcessNotifications();
 
 	int32 x, y;
 	//check if we need to update our hud scaling
@@ -662,7 +650,50 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 		OldViewportSizeY = y;
 		EventResizeHUD();
 	}
+
+	if (ServerInfo.RoomName != TEXT("") && GetWorld()->GetTimeSeconds() - LastLobbyTime >= 1.0f)
+	{
+		LastLobbyTime = GetWorld()->GetTimeSeconds();
+
+		if (UPhotonProxy::GetListener())
+		{
+			UPhotonProxy::GetListener()->PCOwner = this;
+
+			UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
+
+			//create a new room that other players can join
+			if (GI)
+			{
+				FString RoomName = ServerInfo.RoomName;
+				RoomName.Append(TEXT("'s Game"));
+				UPhotonProxy::GetListener()->JoinRoom(TCHAR_TO_UTF8(*RoomName), true);
+			}
+		}
+	}
 #else
+#endif
+}
+
+void AOrionPlayerController::CreateServerRoom()
+{
+#if !IS_SERVER
+	if (ServerInfo.RoomName != TEXT(""))
+	{
+		if (UPhotonProxy::GetListener())
+		{
+			UPhotonProxy::GetListener()->PCOwner = this;
+
+			UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
+
+			//create a new room that other players can join
+			if (GI)
+			{
+				FString RoomName = ServerInfo.RoomName;
+				RoomName.Append(TEXT("'s Game"));
+				UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*ServerInfo.MapName), TCHAR_TO_UTF8(*ServerInfo.Difficulty), "Survival", TCHAR_TO_UTF8(*ServerInfo.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*GI->LobbyTicket));
+			}
+		}
+	}
 #endif
 }
 
@@ -699,8 +730,23 @@ void AOrionPlayerController::SendPlayerInfoToPhoton()
 
 		UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetGameInstance());
 
-		if (GI)
-			UPhotonProxy::GetListener()->SetPlayerSettings(LobbyPlayerNumber, TCHAR_TO_UTF8(*GI->PlayFabName), TCHAR_TO_UTF8(*GI->CharacterClass), "1");
+		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+		if (GI && PRI)
+		{
+			int32 Level = 1;
+
+			if (GI->CharacterClass == TEXT("ASSAULT"))
+				Level = CalculateLevel(PRI->AssaultXP);
+			else if (GI->CharacterClass == TEXT("SUPPORT"))
+				Level = CalculateLevel(PRI->SupportXP);
+			else if (GI->CharacterClass == TEXT("RECON"))
+				Level = CalculateLevel(PRI->ReconXP);
+
+			FString strLevel = FString::Printf(TEXT("%i"),Level);
+
+			UPhotonProxy::GetListener()->SetPlayerSettings(LobbyPlayerNumber, TCHAR_TO_UTF8(*GI->PlayFabName), TCHAR_TO_UTF8(*GI->CharacterClass), TCHAR_TO_UTF8(*strLevel));
+		}
 	}
 #endif
 }
@@ -750,8 +796,21 @@ void AOrionPlayerController::DaveyCam()
 //for various testing things
 void AOrionPlayerController::TestSettings()
 {
-	if (GEngine)
-		GEngine->Exec(nullptr, TEXT("QUIT"), *GLog);
+	FNotificationHelper Notify;
+	Notify.Header = TEXT("YOU LEVELED");
+	Notify.Body = TEXT("LEVEL 3");
+
+	Notifications.Add(Notify);
+
+	Notify.Header = TEXT("SOMETHING UNLOCKED");
+	Notify.Body = TEXT("IT'S BEEN UNLOCKED");
+
+	Notifications.Add(Notify);
+
+	Notify.Header = TEXT("YOU LEVELED");
+	Notify.Body = TEXT("LEVEL 4");
+
+	Notifications.Add(Notify);
 }
 
 void AOrionPlayerController::AddXP(int32 Value)
@@ -1387,9 +1446,12 @@ TArray<FString> AOrionPlayerController::GetDifficultySettings()
 
 	Difficulties.Add(TEXT("DIFFICULTY - EASY"));
 	Difficulties.Add(TEXT("DIFFICULTY - NORMAL"));
-	Difficulties.Add(TEXT("DIFFICULTY - HARD"));
-	Difficulties.Add(TEXT("DIFFICULTY - INSANE"));
-	Difficulties.Add(TEXT("DIFFICULTY - REDIKULOUS"));
+	if (Achievements && Achievements->Achievements[ACH_REACHLEVELTWO].bUnlocked)
+		Difficulties.Add(TEXT("DIFFICULTY - HARD"));
+	if (Achievements && Achievements->Achievements[ACH_REACHLEVELFIVE].bUnlocked)
+		Difficulties.Add(TEXT("DIFFICULTY - INSANE"));
+	if (Achievements && Achievements->Achievements[ACH_REACHLEVELTEN].bUnlocked)
+		Difficulties.Add(TEXT("DIFFICULTY - REDIKULOUS"));
 
 	return Difficulties;
 }
@@ -1707,7 +1769,8 @@ void AOrionPlayerController::OpenLobby(FString MapName, FString MapDifficulty, F
 		//create a new room that other players can join
 		if (PRI)
 		{
-			FString RoomName = PRI->PlayFabName.Append(TEXT("'s Game"));
+			FString RoomName = PRI->PlayFabName;
+			RoomName.Append(TEXT("'s Game"));
 			UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*MapDifficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), "", "");
 		}
 	}
@@ -1719,7 +1782,7 @@ void AOrionPlayerController::JoinLobby(FString ServerName)
 #if !IS_SERVER
 	if (UPhotonProxy::GetListener())
 	{
-		UPhotonProxy::GetListener()->JoinRoom(TCHAR_TO_UTF8(*ServerName));
+		UPhotonProxy::GetListener()->JoinRoom(TCHAR_TO_UTF8(*ServerName), false);
 	}
 #endif
 }
@@ -1890,6 +1953,7 @@ void AOrionPlayerController::TickPhoton()
 	{
 		UPhotonProxy::GetListener()->PCOwner = this;
 		UPhotonProxy::GetListener()->UpdatePlayerSettings();
+		SendPlayerInfoToPhoton();
 	}
 #endif
 }
@@ -1945,7 +2009,25 @@ void AOrionPlayerController::IceAge()
 
 void AOrionPlayerController::UnlockAchievement_Implementation(const FString &Header, const FString &Body)
 {
-	EventShowNotification(Header, Body);
+	FNotificationHelper Notify;
+	Notify.Header = Header;
+	Notify.Body = Body;
+	
+	Notifications.Add(Notify);
+
+	//ProcessNotifications();
+}
+
+void AOrionPlayerController::ProcessNotifications()
+{
+	if (Notifications.Num() > 0 && GetWorld()->GetTimeSeconds() - LastNotificationTime > 10.0f)
+	{
+		LastNotificationTime = GetWorld()->GetTimeSeconds();
+
+		EventShowNotification(Notifications[0].Header, Notifications[0].Body);
+
+		Notifications.RemoveAt(0);
+	}
 }
 
 void AOrionPlayerController::PlayLevelUpEffect_Implementation(int32 NewLevel)
@@ -1955,7 +2037,13 @@ void AOrionPlayerController::PlayLevelUpEffect_Implementation(int32 NewLevel)
 
 void AOrionPlayerController::ShowLevelUpMessage_Implementation(int32 NewLevel)
 {
-	EventShowLevelUpMessage(NewLevel);
+	//EventShowLevelUpMessage(NewLevel);
+	FNotificationHelper Notify;
+
+	Notify.Header = TEXT("LEVEL UP");
+	Notify.Body = FString::Printf(TEXT("LEVEL %s"), NewLevel);
+
+	Notifications.Add(Notify);
 }
 
 void AOrionPlayerController::ServerIceAge_Implementation()

@@ -25,6 +25,15 @@
 *
 */
 
+USTRUCT()
+struct FNotificationHelper
+{
+	GENERATED_USTRUCT_BODY()
+
+	FString Header;
+	FString Body;
+};
+
 USTRUCT(BlueprintType)
 struct FLobbyPlayer
 {
@@ -318,6 +327,10 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ChangeClass"))
 		void EventChangeClass(int32 index);
 
+	float LastLobbyTime;
+	FPhotonServerInfo ServerInfo;
+	void CreateServerRoom();
+
 	UFUNCTION(client, reliable)
 		void CreateInGameLobby(FPhotonServerInfo Info);
 
@@ -409,6 +422,10 @@ public:
 	void SaveStats();
 
 	AOrionDroidPawn *DroidBuddy;
+
+	TArray<FNotificationHelper> Notifications;
+	void ProcessNotifications();
+	float LastNotificationTime;
 
 	UFUNCTION(BlueprintCallable, Category = PlayFab)
 		void AttemptLogin(FString UserName, FString Password);

@@ -409,6 +409,10 @@ void AOrionCharacter::AddShield(int32 Amount)
 
 void AOrionCharacter::AddExp(int32 Amount)
 {
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC)
+		PC->AddXP(Amount);
 }
 
 void AOrionCharacter::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)

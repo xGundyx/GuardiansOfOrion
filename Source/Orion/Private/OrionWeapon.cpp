@@ -1316,18 +1316,19 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 		SpawnInfo.Instigator = Instigator;
 		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
-		AOrionProjectile *Proj = GetWorld()->SpawnActor<AOrionProjectile>(AOrionProjectile::StaticClass(), Origin, vDir.Rotation(), SpawnInfo);
+		/*AOrionProjectile *Proj = GetWorld()->SpawnActor<AOrionProjectile>(AOrionProjectile::StaticClass(), Origin, vDir.Rotation(), SpawnInfo);
 		if (Proj)
 		{
 			Proj->SetReplicates(false);
 			Proj->Init(TracerFX, Origin, EndPoint);
 			Proj->ProjectileMovement->Velocity = (EndPoint - Origin).GetSafeNormal() * 10000.0f;
-		}
-		/*UParticleSystemComponent* TracerPSC = UGameplayStatics::SpawnEmitterAtLocation(this, TracerFX, Origin, vDir.Rotation());
+		}*/
+		UParticleSystemComponent* TracerPSC = UGameplayStatics::SpawnEmitterAtLocation(this, TracerFX, Origin, vDir.Rotation());
 		if (TracerPSC)
 		{
 			TracerPSC->SetWorldScale3D(FVector(1.0));
-		}*/
+			TracerPSC->SetFloatParameter("BulletLife", FMath::Min(1.0f, (Origin - EndPoint).Size() / 3000.0f));
+		}
 	}
 
 	if (MuzzleFX.Num() > 0 && MyPawn)

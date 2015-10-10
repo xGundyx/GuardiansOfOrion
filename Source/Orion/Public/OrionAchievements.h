@@ -10,7 +10,8 @@ class AOrionPlayerController;
 //UENUM()
 enum EAchievementID
 {
-	ACH_REACHLEVELFIVE = 0,
+	ACH_REACHLEVELTWO = 0,
+	ACH_REACHLEVELFIVE,
 	ACH_REACHLEVELTEN
 };
 

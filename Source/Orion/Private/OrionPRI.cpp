@@ -39,7 +39,7 @@ int32 AOrionPRI::GetXPIntoLevel()
 	while (XPRemaining >= 0)
 	{
 		Level++;
-		Ret = XP;
+		Ret = XPRemaining;
 		XPRemaining -= (BASEXP + (XPINCREASE * (Level - 1)));
 	}
 

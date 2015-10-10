@@ -21,6 +21,8 @@ public:
 	virtual void SetInitialTeam(APlayerController *PC);
 	virtual FString InitNewPlayer(class APlayerController* NewPlayerController, const TSharedPtr<const FUniqueNetId>& UniqueId, const FString& Options, const FString& Portal = TEXT(""));
 
+	virtual void AddSpawn(AOrionCharacter* P) {}
+
 	UFUNCTION(BlueprintCallable, Category = Auth)
 		void PlayerAuthed(class AOrionPlayerController *PC, bool bSuccess);
 

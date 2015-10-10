@@ -50,6 +50,18 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = AI)
 		bool bShouldRoar;
 
+	UPROPERTY(BlueprintReadWrite, Category = AI)
+		bool bIsStuck;
+
+	void HandleStuck();
+	void ResetStuck();
+
+	int32 TimesStuck;
+
+	FTimerHandle StuckTimer;
+	int32 StuckCounter;
+	FVector LastStuckPos;
+
 	UBlackboardComponent *GetBlackboard();
 
 	UFUNCTION(BlueprintCallable, Category = Target)
