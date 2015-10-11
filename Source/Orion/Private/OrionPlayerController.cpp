@@ -372,7 +372,7 @@ void AOrionPlayerController::PawnPendingDestroy(APawn* P)
 
 	//ClientSetSpectatorCamera(CameraLocation, CameraRotation);
 }
-
+#if WITH_CHEATS
 void AOrionPlayerController::ChangeCamera(int32 TeamIndex)
 {
 	AOrionCharacter *MyPawn = Cast<AOrionCharacter>(GetPawn());
@@ -412,12 +412,14 @@ void AOrionPlayerController::ServerChangeDifficulty_Implementation(int32 Index)
 		break;
 	}
 }
+#endif
 
 void AOrionPlayerController::ClientSetAuthed_Implementation(bool bAuthed)
 {
 	bAuthenticated = bAuthed;
 }
 
+#if WITH_CHEATS
 void AOrionPlayerController::ServerSetWeather_Implementation(int32 index)
 {
 	if (GetWorld())
@@ -440,6 +442,7 @@ void AOrionPlayerController::ServerSetWeather_Implementation(int32 index)
 		}
 	}
 }
+#endif
 
 void AOrionPlayerController::Possess(APawn* aPawn)
 {
@@ -690,7 +693,10 @@ void AOrionPlayerController::CreateServerRoom()
 			{
 				FString RoomName = ServerInfo.RoomName;
 				RoomName.Append(TEXT("'s Game"));
-				UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*ServerInfo.MapName), TCHAR_TO_UTF8(*ServerInfo.Difficulty), "Survival", TCHAR_TO_UTF8(*ServerInfo.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*GI->LobbyTicket));
+
+				FString ChatRoom = GI->ServerIP;
+
+				UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*ServerInfo.MapName), TCHAR_TO_UTF8(*ServerInfo.Difficulty), "Survival", TCHAR_TO_UTF8(*ServerInfo.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*GI->LobbyTicket), TCHAR_TO_UTF8(*ChatRoom));
 			}
 		}
 	}
@@ -763,7 +769,7 @@ void AOrionPlayerController::AddLobbyPlayer(int32 pNumber, FString pName, FStrin
 
 	LobbyPlayers.Add(Player);
 }
-
+#if WITH_CHEATS
 void AOrionPlayerController::SpawnWave()
 {
 	if (GetWorld())
@@ -812,6 +818,7 @@ void AOrionPlayerController::TestSettings()
 
 	Notifications.Add(Notify);
 }
+#endif
 
 void AOrionPlayerController::AddXP(int32 Value)
 {
@@ -892,6 +899,7 @@ void AOrionPlayerController::ShowWeapons()
 	bHideWeapons = false;
 }
 
+#if WITH_CHEATS
 void AOrionPlayerController::PerfectDay()
 {
 	if (Role < ROLE_Authority)
@@ -974,6 +982,7 @@ void AOrionPlayerController::ArmorColor(int32 index)
 		myPawn->EventUpdateArmorColor(index);
 	}
 }
+#endif
 
 AOrionChatManager *AOrionPlayerController::GetChatManager()
 {
@@ -1103,6 +1112,7 @@ bool AOrionPlayerController::CreateAndGiveInventoryItem(TSharedPtr<FJsonObject> 
 	return false;
 }
 
+#if WITH_CHEATS
 void AOrionPlayerController::SpawnSkeletalActor(FName Type, int32 Index)
 {
 	for (int32 i = 0; i < AnimationTests.Num(); i++)
@@ -1189,6 +1199,7 @@ void AOrionPlayerController::SpawnSkeletalActor(FName Type, int32 Index)
 		}
 	}
 }
+#endif
 
 //this version is for the actual in game inventory, server version
 #if IS_SERVER
@@ -1771,7 +1782,10 @@ void AOrionPlayerController::OpenLobby(FString MapName, FString MapDifficulty, F
 		{
 			FString RoomName = PRI->PlayFabName;
 			RoomName.Append(TEXT("'s Game"));
-			UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*MapDifficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), "", "");
+
+			FString ChatRoom = PRI->PlayFabName;
+
+			UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*MapDifficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), "", "", TCHAR_TO_UTF8(*ChatRoom));
 		}
 	}
 #endif
@@ -1796,6 +1810,14 @@ void AOrionPlayerController::LeaveLobby()
 		//create a new room that other players can join
 		UPhotonProxy::GetListener()->leave();
 	}
+#endif
+}
+
+void AOrionPlayerController::JoinChatRoom(FString Room)
+{
+#if !IS_SERVER
+	if (Room.Len() > 1)
+		UPhotonProxy::JoinChannel(TCHAR_TO_UTF8(*Room));
 #endif
 }
 
@@ -2002,11 +2024,12 @@ void AOrionPlayerController::InitStatsAndAchievements()
 	}
 }
 
+#if WITH_CHEATS
 void AOrionPlayerController::IceAge()
 {
 	ServerIceAge();
 }
-
+#endif
 void AOrionPlayerController::UnlockAchievement_Implementation(const FString &Header, const FString &Body)
 {
 	FNotificationHelper Notify;
@@ -2045,7 +2068,7 @@ void AOrionPlayerController::ShowLevelUpMessage_Implementation(int32 NewLevel)
 
 	Notifications.Add(Notify);
 }
-
+#if WITH_CHEATS
 void AOrionPlayerController::ServerIceAge_Implementation()
 {
 	TArray<AActor*> Dinos;
@@ -2068,7 +2091,7 @@ void AOrionPlayerController::ServerIceAge_Implementation()
 		}
 	}
 }
-
+#endif
 void AOrionPlayerController::ReadStats()
 {
 #if IS_SERVER

@@ -3,6 +3,8 @@
 
 class AOrionInventory;
 
+#define WITH_CHEATS 0
+
 #define ORION_SURFACE_Default		SurfaceType_Default
 #define ORION_SURFACE_Concrete		SurfaceType1
 #define ORION_SURFACE_Dirt			SurfaceType2

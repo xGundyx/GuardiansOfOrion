@@ -119,6 +119,60 @@ void AOrionGameMode::BeginPlay()
 		bDelayedStart = false;
 		bWarmingUp = false;
 	}
+
+	//out of bounds checker
+	GetWorldTimerManager().SetTimer(OOBTimer, this, &AOrionGameMode::HandleOutOfBounds, 1.0f, true);
+}
+
+void AOrionGameMode::HandleOutOfBounds()
+{
+	if (!OOBVolume)
+	{
+		TArray<AActor*> OOB;
+
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionOutOfBoundsVolume::StaticClass(), OOB);
+
+		for (int32 i = 0; i < OOB.Num(); i++)
+		{
+			OOBVolume = Cast<AOrionOutOfBoundsVolume>(OOB[i]);
+			break;
+		}
+	}
+
+	if (!OOBVolume)
+		return;
+
+	TArray<AActor*> Controllers;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
+		if (C)
+		{
+			AOrionCharacter *P = Cast<AOrionCharacter>(C->GetPawn());
+			if (P)
+			{
+				if (!P->IsOnShip() && !OOBVolume->EncompassesPoint(P->GetActorLocation()))
+				{
+					P->OutOfBoundsCounter++;
+
+					if (P->OutOfBoundsCounter >= 10)
+					{
+						FDamageEvent dEvent = FDamageEvent::FDamageEvent();
+						dEvent.DamageTypeClass = UOrionDamageType::StaticClass();
+
+						P->Die(10000000.0f, dEvent, nullptr, P);
+					}
+				}
+				else
+				{
+					P->OutOfBoundsCounter = -1;
+				}
+			}
+		}
+	}
 }
 
 void AOrionGameMode::WarmupOver()

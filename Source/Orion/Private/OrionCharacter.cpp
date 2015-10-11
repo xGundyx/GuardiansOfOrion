@@ -260,6 +260,8 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	UpdatePawnMeshes();
 
 	FlyingOffset = 100.0f;
+
+	OutOfBoundsCounter = -1;
 }
 
 void AOrionCharacter::BeginPlay()
@@ -888,6 +890,9 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, ShieldMax);
 	DOREPLIFETIME(AOrionCharacter, Shield);
 	DOREPLIFETIME(AOrionCharacter, bIsElite);
+
+	//out of bounds
+	DOREPLIFETIME(AOrionCharacter, OutOfBoundsCounter);
 
 	//healing material stuff
 	DOREPLIFETIME(AOrionCharacter, HealTarget);

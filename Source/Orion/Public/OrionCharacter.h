@@ -402,6 +402,9 @@ public:
 
 	int32 SpawnType;
 
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = AI)
+		int32 OutOfBoundsCounter;
+
 	void HandleHealEffects(float DeltaSeconds);
 
 	//UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
