@@ -3,6 +3,7 @@
 #include "GameFramework/GameMode.h"
 #include "OrionPickup.h"
 #include "OrionShipPawn.h"
+#include "OrionOutOfBoundsVolume.h"
 #include "OrionGameMode.generated.h"
 
 UCLASS()
@@ -28,6 +29,10 @@ public:
 
 	void SpawnItems(AActor *Spawner);
 	void SaveAllUsersStats();
+
+	void HandleOutOfBounds();
+	AOrionOutOfBoundsVolume *OOBVolume;
+	FTimerHandle OOBTimer;
 
 	UPROPERTY(BlueprintReadWrite, Category = Gameplay)
 		TEnumAsByte<EGameDifficulty> Difficulty;

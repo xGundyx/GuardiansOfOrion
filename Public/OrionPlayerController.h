@@ -281,7 +281,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation)
 		TArray<FAnimTester> AnimationTests;
-
+#if WITH_CHEATS
 	//
 	UFUNCTION(exec)
 		void SpawnSkeletalActor(FName Type, int32 Index);
@@ -310,6 +310,7 @@ public:
 		void ServerSlowMotion(float Value);
 		bool ServerSlowMotion_Validate(float Value) { return true; }
 		void ServerSlowMotion_Implementation(float Value) { GetWorldSettings()->TimeDilation =  Value; }
+#endif
 
 	UFUNCTION(exec)
 		void ToggleHUD();
@@ -357,7 +358,7 @@ public:
 
 	UFUNCTION(exec)
 		virtual void ShowWeapons();
-
+#if WITH_CHEATS
 	UFUNCTION(exec)
 		virtual void PerfectDay();
 
@@ -380,6 +381,7 @@ public:
 
 	UFUNCTION(exec)
 		void ChangeCamera(int32 TeamIndex);
+#endif
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Give Default Inventory"))
 		void EventGiveDefaultInventory();
@@ -557,6 +559,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Photon)
 		void FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket);
 
+	void JoinChatRoom(FString Room);
+
 	UFUNCTION(BlueprintCallable, Category = Photon)
 		bool IsLobbyLeader();
 
@@ -632,7 +636,7 @@ public:
 
 	//UFUNCTION(exec)
 		virtual void ClearUMG();
-
+#if WITH_CHEATS
 	UFUNCTION(exec)
 		void TestSettings();
 
@@ -646,7 +650,7 @@ public:
 		void ServerSetDaveyCam(bool bOn);
 		bool ServerSetDaveyCam_Validate(bool bOn) { return true; }
 		void ServerSetDaveyCam_Implementation(bool bOn) { bDaveyCam = bOn; }
-
+#endif
 	bool bDaveyCam;
 
 	virtual void Destroyed() override;
@@ -661,12 +665,12 @@ public:
 		void SaveSoundOptions(FString ClassName, float Volume);
 
 	void UpdateRotation(float DeltaTime) override;
-
+#if WITH_CHEATS
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerAllArmor(int32 index);
 		bool ServerAllArmor_Validate(int32 index);
 		void ServerAllArmor_Implementation(int32 index);
-
+#endif
 	UPROPERTY(BlueprintReadWrite, Category = Playfab)
 		int32 ClassIndex;
 

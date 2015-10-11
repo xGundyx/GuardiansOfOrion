@@ -19,6 +19,7 @@ AOrionAIController::AOrionAIController(const FObjectInitializer& ObjectInitializ
 	bWantsPlayerState = true;
 
 	TimesStuck = 0;
+	bCanBeStuck = true;
 }
 
 void AOrionAIController::Possess(APawn* aPawn)
@@ -54,7 +55,7 @@ void AOrionAIController::Possess(APawn* aPawn)
 
 void AOrionAIController::HandleStuck()
 {
-	if (!GetPawn())
+	if (!GetPawn() || !bCanBeStuck)
 		return;
 
 	//check if we haven't moved since our last checkup
