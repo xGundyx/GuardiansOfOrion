@@ -10,9 +10,9 @@ class AOrionPlayerController;
 //UENUM()
 enum EAchievementID
 {
-	ACH_REACHLEVELTWO = 0,
-	ACH_REACHLEVELFIVE,
-	ACH_REACHLEVELTEN
+	ACH_REACHLEVELTHREE = 0,
+	ACH_REACHLEVELTEN,
+	ACH_REACHLEVELTWENTY
 };
 
 USTRUCT(BlueprintType)
@@ -56,7 +56,7 @@ struct FAchievement
 		Unlock = sUnlock;
 	}
 
-	bool operator==(const FAchievement Other) const { return Name == Other.Name; }
+	bool operator==(const FAchievement Other) const { return pfName == Other.pfName; }
 };
 
 UCLASS()

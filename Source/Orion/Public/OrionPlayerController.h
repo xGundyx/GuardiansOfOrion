@@ -18,7 +18,9 @@
 #include "OrionDroidPawn.h"
 #include "OrionDropPod.h"
 #include "OrionChatManager.h"
+#include "OrionTypes.h"
 #include "OrionPlayFabInventoryMapper.h"
+#include "OrionSkillTree.h"
 #include "OrionPlayerController.generated.h"
 
 /**
@@ -74,6 +76,12 @@ struct FLobbyData
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
 		FString Ping;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+		FString IP;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+		FString LobbyTicket;
 };
 
 USTRUCT(BlueprintType)
@@ -139,6 +147,12 @@ struct FKeyboardOptionsData
 
 	UPROPERTY(BlueprintReadOnly, Category = Option)
 		FString Key;
+
+	UPROPERTY(BlueprintReadOnly, Category = Option)
+		FString Action;
+
+	UPROPERTY(BlueprintReadOnly, Category = Option)
+		float Scale;
 };
 
 UENUM(BlueprintType)
@@ -172,6 +186,9 @@ struct FControllerOptionsData
 
 	UPROPERTY(BlueprintReadOnly, Category = Option)
 		TEnumAsByte<EControllerButton> Button;
+
+	UPROPERTY(BlueprintReadOnly, Category = Option)
+		FString Action;
 };
 
 USTRUCT(BlueprintType)
@@ -276,11 +293,42 @@ public:
 
 	virtual void Possess(APawn* aPawn) override;
 
+	UFUNCTION(BlueprintCallable, Category = Steam)
+		FString GetSteamID();
+
+	UFUNCTION(BlueprintCallable, Category = Steam)
+		void GetFriends();
+
+	void ReadFriendsDelegate(int32 LocalUserNum, bool bSuccessful, const FString& ListName, const FString& ErrorString);
+
+	UPROPERTY(BlueprintReadOnly, Category = Steam)
+		TArray<FFriendListData> Friends;
+
+	UTexture2D *GetFriendAvatar(TSharedRef<FOnlineFriend> Friend);
+
+	UFUNCTION(BlueprintCallable, Category = Steam)
+		void SetConnectInfo(const FString &RoomName);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "DrawFriends"))
+		void EventDrawFriends();
+
 	AOrionWeather* TheSun;
 	bool bHideWeapons;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation)
 		TArray<FAnimTester> AnimationTests;
+
+	//UFUNCTION(exec)
+	//	void TestSkillTree() {EventOpenSkillTree();}
+
+	void OpenSkillTree() { EventOpenSkillTree(); }
+
+	UFUNCTION(exec)
+		void ReadFriends();
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ToggleSkillTree"))
+		void EventOpenSkillTree();
+
 #if WITH_CHEATS
 	//
 	UFUNCTION(exec)
@@ -321,12 +369,22 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ToggleHUD"))
 		void EventToggleHUD();
 
+	void UpdateOrbEffects();
+
+	UFUNCTION(BlueprintCallable, Category = ORB)
+		bool HasOrbEffect(EOrbType Type);
+
+	FTimerHandle OrbTimer;
+
 	//0 = assault, 1 = support, 2 = recon
 	UFUNCTION(exec)
 		virtual void ChangeClass(int32 index);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ChangeClass"))
 		void EventChangeClass(int32 index);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ServerGetSkills"))
+		void EventServerGetSkillTreeInfo();
 
 	float LastLobbyTime;
 	FPhotonServerInfo ServerInfo;
@@ -553,11 +611,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Photon)
 		void LeaveLobby();
 
+	int32 GetMaxLevel();
+
 	UFUNCTION(BlueprintImplementableEvent, Category = Photon)
-		void UpdateLobbySettings(const FString& MapName, const FString& Difficulty, const FString& Gamemode, const FString& Privacy, const FString& IP, const FString& Ticket);
+		void UpdateLobbySettings(const FString& MapName, const FString& Difficulty, const FString& Gamemode, const FString& Privacy, const FString& IP, const FString& Ticket, const FString& Progress);
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
-		void FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket);
+		void FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket, FString Wave);
 
 	void JoinChatRoom(FString Room);
 
@@ -633,6 +693,9 @@ public:
 	void CleanupGameViewport() override;
 	void SeamlessTravelTo(class APlayerController* NewPC) override;
 	void SeamlessTravelFrom(class APlayerController* OldPC) override;
+
+	UFUNCTION(exec)
+		void TestLevel();
 
 	//UFUNCTION(exec)
 		virtual void ClearUMG();
@@ -720,6 +783,34 @@ public:
 	void TickPhoton();
 
 public:
+	UFUNCTION(BlueprintCallable, Category = PlayFab)
+		int32 GetClassIndex();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Skill)
+		TSubclassOf<UOrionSkillTree> SkillTrees;
+
+	UPROPERTY(BlueprintReadWrite, Category = Skill)
+		UOrionSkillTree *MySkillTree;
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
+		void SetSkillTreeValuesForUse();
+
+	void SetDefaultSkills();
+
+	UFUNCTION(server, reliable, WithValidation)
+		void ServerSetSkillTreeValuesForUse();
+		bool ServerSetSkillTreeValuesForUse_Validate() { return true; }
+		void ServerSetSkillTreeValuesForUse_Implementation();
+
+	UPROPERTY(BlueprintReadWrite, Category = Skill)
+		TArray<FUnlockedSkills> CharacterSkills;
+
+	UFUNCTION(client, reliable)
+		void ClientSetCharacterSkills(const TArray<FUnlockedSkills> &Skills);
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
+		int32 GetSkillValue(ESkillTreeUnlocks Skill);
+
 	virtual void BeginPlay();
 	virtual void StartFire(uint8 FireModeNum);
 
@@ -736,16 +827,19 @@ public:
 		void ClientSetAuthed(bool bAuthed);
 
 	UFUNCTION(BlueprintCallable, Category = PlayFab)
-		void SetCharacterClass(int32 Index);
+		void SetCharacterClass(int32 Index, FString CharID);
 
 	UFUNCTION(server, reliable, WithValidation)
-		void ServerSetCharacterClass(int32 Index);
-		bool ServerSetCharacterClass_Validate(int32 Index);
-		void ServerSetCharacterClass_Implementation(int32 Index);
+		void ServerSetCharacterClass(int32 Index, const FString &CharID);
+		bool ServerSetCharacterClass_Validate(int32 Index, const FString &CharID);
+		void ServerSetCharacterClass_Implementation(int32 Index, const FString &CharID);
 
 	int32 NextSpawnClass;
 
 	bool InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad) override;
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SelectWeapon"))
+		void EventSelectWeapon(int32 index, const FString &WeaponName);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "AuthenticatePF"))
 		void EventValidateSession(const FString &Session);

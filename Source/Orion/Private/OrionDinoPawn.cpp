@@ -71,7 +71,7 @@ FVector2D AOrionDinoPawn::GetAim(float DeltaTime)
 	else if (start.X < -1.0 && end.X > 1.0)
 		start.X = 2.0 + (start.X + 2.0);
 
-	CurrentAim2D = FMath::Vector2DInterpTo(start, end, DeltaTime, 3.0);
+	CurrentAim2D = FMath::Vector2DInterpTo(start, end, DeltaTime, 6.0);
 
 	AimYaw = CurrentAim2D.X;
 	AimPitch = CurrentAim2D.Y;
@@ -103,6 +103,23 @@ void AOrionDinoPawn::Tick(float DeltaTime)
 		if (!IsFlying())
 			rot.Pitch = 0.0f;
 		SetActorRotation(FMath::RInterpTo(GetActorRotation(), rot, DeltaTime, 1.0f));
+	}
+
+	//check to see if we should stop charging
+	if (bChargeAttack)
+	{
+		FVector dir = GetActorRotation().Vector();
+		FVector targetdir = (ChargeTarget - GetActorLocation()).GetSafeNormal();
+
+		if (FVector::DotProduct(dir, targetdir) < 0.5f)
+		{
+			bShouldStopMovement = true;
+			bChargeAttack = false;
+			bChargingAttack = false;
+
+			if (Controller)
+				Controller->StopMovement();
+		}
 	}
 }
 

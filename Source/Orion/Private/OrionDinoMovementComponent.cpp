@@ -30,6 +30,16 @@ void UOrionDinoMovementComponent::CalcVelocity(float DeltaTime, float Friction, 
 		return;
 	}
 
+	AOrionDinoPawn* Dino = Cast<AOrionDinoPawn>(PawnOwner);
+	if (Dino && Dino->bChargeAttack)
+	{
+		//if we're charging, just move forwards in a straight line until we collide with something or hit our goal, does no pathfinding
+		Velocity = Velocity + Dino->GetActorRotation().Vector() * MaxAcceleration * 3.0f * DeltaTime;
+		Velocity = Velocity.GetClampedToMaxSize(1500.0f);
+
+		return;
+	}
+
 	Friction = FMath::Max(0.f, Friction);
 	const float MaxAccel = GetMaxAcceleration();
 	float MaxSpeed = GetMaxSpeed();

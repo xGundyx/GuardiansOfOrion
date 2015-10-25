@@ -27,12 +27,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Auth)
 		void PlayerAuthed(class AOrionPlayerController *PC, bool bSuccess);
 
-	void SpawnItems(AActor *Spawner);
+	void SpawnItems(AController *Killer, AActor *Spawner, const UDamageType* DamageType);
 	void SaveAllUsersStats();
 
 	void HandleOutOfBounds();
 	AOrionOutOfBoundsVolume *OOBVolume;
 	FTimerHandle OOBTimer;
+
+	void AwardXPToAllPlayers(int32 Amount);
 
 	UPROPERTY(BlueprintReadWrite, Category = Gameplay)
 		TEnumAsByte<EGameDifficulty> Difficulty;

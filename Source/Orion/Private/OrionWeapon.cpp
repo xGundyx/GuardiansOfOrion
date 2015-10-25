@@ -114,7 +114,7 @@ void AOrionWeapon::PostInitializeComponents()
 
 	InitMaterials();
 
-	AmmoInClip = InstantConfig.ClipSize;
+	AmmoInClip = GetClipSize();
 	Ammo = InstantConfig.MaxAmmo;
 
 	TargetFOV = 90.0;
@@ -276,9 +276,9 @@ int32 AOrionWeapon::GetWeaponIndex()
 	return InstantConfig.WeaponIndex;
 }
 
-void AOrionWeapon::StartAiming()
+void AOrionWeapon::StartAiming(bool bPlaySound)
 {
-	if (MyPawn && ZoomInSound)
+	if (MyPawn && bPlaySound && ZoomInSound)
 		UGameplayStatics::PlaySoundAtLocation(GetWorld(), ZoomInSound, MyPawn->GetActorLocation());
 
 	bAiming = true;
@@ -290,7 +290,7 @@ void AOrionWeapon::StartAiming()
 
 	//PlayWeaponAnimation(AimAnim);
 
-	if (LaserAimPSC == nullptr && LaserAimFX != nullptr)
+	if (LaserAimPSC == nullptr && LaserAimFX != nullptr && MyPawn && MyPawn->IsLocallyControlled())
 	{
 		LaserAimPSC = UGameplayStatics::SpawnEmitterAttached(LaserAimFX, GetWeaponMesh(MyPawn->IsFirstPerson()), "LaserAim");
 		if (LaserAimPSC)
@@ -366,8 +366,7 @@ void AOrionWeapon::Melee()
 	if (WeaponState == WEAP_MELEE)
 		return;
 
-	if (WeaponState == WEAP_RELOADING)
-		CancelReload();
+	StopFire();
 
 	if (Role < ROLE_Authority)
 	{
@@ -379,6 +378,9 @@ void AOrionWeapon::Melee()
 
 float AOrionWeapon::DoMelee()
 {
+	if (WeaponState == WEAP_RELOADING)
+		CancelReload();
+
 	WeaponState = WEAP_MELEE;
 	float Len = PlayWeaponAnimation(MeleeAnim, Role == ROLE_Authority);
 
@@ -407,6 +409,9 @@ void AOrionWeapon::ResetMelee()
 
 void AOrionWeapon::StartFire()
 {
+	if (!MyPawn || BurstCounter > 0)
+		return;
+
 	//can't fire when punching stuff
 	if (WeaponState == WEAP_MELEE)
 		return;
@@ -422,6 +427,8 @@ void AOrionWeapon::StartFire()
 	{
 		if (MyPawn && MyPawn->CurrentSkill && MyPawn->CurrentSkill->IsCloaking())
 			MyPawn->CurrentSkill->DepleteEnergy();
+		if (MyPawn && MyPawn->CurrentSecondarySkill && MyPawn->CurrentSecondarySkill->IsCloaking())
+			MyPawn->CurrentSecondarySkill->DepleteEnergy();
 	}
 
 	/*if (!bWantsToFire)
@@ -436,8 +443,24 @@ void AOrionWeapon::StartFire()
 	if (WeaponState == WEAP_MELEE)
 		CancelMelee();
 
-	if (InstantConfig.TimeBetweenShots > 0 && LastFireTime + InstantConfig.TimeBetweenShots > GetWorld()->GetTimeSeconds())
-		GetWorldTimerManager().SetTimer(FireTimer, this, &AOrionWeapon::FireWeapon, LastFireTime + InstantConfig.TimeBetweenShots - GetWorld()->GetTimeSeconds(), false);
+	float FireRate = InstantConfig.TimeBetweenShots;
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(MyPawn->Controller);
+	if (PC)
+	{
+		FireRate *= 1.0f - float(PC->GetSkillValue(SKILL_FIRERATE)) / 100.0f;
+
+		if (PC->HasOrbEffect(ORB_ROF))
+			FireRate *= 0.5f;
+	}
+
+	if (InstantConfig.bBurst)
+	{
+		BurstCounter = 3;
+		GetWorldTimerManager().SetTimer(BurstTimer, this, &AOrionWeapon::FireBurst, FireRate, false);
+	}
+	else if (FireRate > 0 && LastFireTime + FireRate > GetWorld()->GetTimeSeconds())
+		GetWorldTimerManager().SetTimer(FireTimer, this, &AOrionWeapon::FireWeapon, LastFireTime + FireRate - GetWorld()->GetTimeSeconds(), false);
 	else
 		FireWeapon();
 }
@@ -489,6 +512,7 @@ void AOrionWeapon::FireProjectile(FName SocketName, FVector Direction)
 		if (Proj)
 		{
 			Proj->Init(Direction);
+			Proj->SetFuseTime(2.5f);
 		}
 	}
 }
@@ -521,13 +545,49 @@ void AOrionWeapon::FireSpecial(FName SocketName, FVector Direction)
 	CurrentFiringSpread = FMath::Min(InstantConfig.FiringSpreadMax, CurrentFiringSpread + InstantConfig.FiringSpreadIncrement) * GetSpreadModifier();
 }
 
+void AOrionWeapon::FireBurst()
+{
+	if (BurstCounter > 0)
+		FireWeapon();
+
+	BurstCounter--;
+
+	float FireRate = InstantConfig.TimeBetweenShots;
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(MyPawn->Controller);
+	if (PC)
+	{
+		FireRate *= 1.0f - float(PC->GetSkillValue(SKILL_FIRERATE)) / 100.0f;
+
+		if (PC->HasOrbEffect(ORB_ROF))
+			FireRate *= 0.5f;
+	}
+
+	if (BurstCounter > -4)
+		GetWorldTimerManager().SetTimer(BurstTimer, this, &AOrionWeapon::FireBurst, FireRate, false);
+}
+
 void AOrionWeapon::FireWeapon()
 {
 	if (!CanFire())
 		return;
 
+	float FireRate = InstantConfig.TimeBetweenShots;
+
+	if (MyPawn)
+	{
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(MyPawn->Controller);
+		if (PC)
+		{
+			FireRate *= 1.0f - float(PC->GetSkillValue(SKILL_FIRERATE)) / 100.0f;
+
+			if (PC->HasOrbEffect(ORB_ROF))
+				FireRate *= 0.5f;
+		}
+	}
+
 	if (InstantConfig.bAutomatic)
-		GetWorldTimerManager().SetTimer(FireTimer, this, &AOrionWeapon::FireWeapon, InstantConfig.TimeBetweenShots, false);
+		GetWorldTimerManager().SetTimer(FireTimer, this, &AOrionWeapon::FireWeapon, FireRate, false);
 
 	LastFireTime = GetWorld()->GetTimeSeconds();
 
@@ -593,6 +653,17 @@ int32 AOrionWeapon::GetCurrentAmmoInClip() const
 
 int32 AOrionWeapon::GetClipSize() const
 {
+	if (MyPawn)
+	{
+		int32 Size = InstantConfig.ClipSize;
+
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(MyPawn->Controller);
+		if (PC)
+			Size = int32(float(Size) * (1.0f + float(PC->GetSkillValue(SKILL_CLIPSIZE)) / 100.0f));
+
+		return Size;
+	}
+
 	return InstantConfig.ClipSize;
 }
 
@@ -803,7 +874,7 @@ void AOrionWeapon::UseAmmo()
 bool AOrionWeapon::CanReload()
 {
 	if (MyPawn)
-		return AmmoInClip < InstantConfig.ClipSize && Ammo > 0 && WeaponState != WEAP_EQUIPPING && WeaponState != WEAP_PUTTINGDOWN && WeaponState != WEAP_MELEE && !MyPawn->IsRolling();
+		return AmmoInClip < GetClipSize() && Ammo > 0 && WeaponState != WEAP_EQUIPPING && WeaponState != WEAP_PUTTINGDOWN && WeaponState != WEAP_MELEE && !MyPawn->IsRolling();
 	else
 		return false;
 }
@@ -863,7 +934,7 @@ void AOrionWeapon::StartShellReload()
 		AnimDuration = 1.0;// WeaponConfig.NoAnimReloadDuration;
 	}
 
-	if (AmmoInClip < InstantConfig.ClipSize && Ammo > AmmoInClip && CanReload())
+	if (AmmoInClip < GetClipSize() && Ammo > AmmoInClip && CanReload())
 		GetWorldTimerManager().SetTimer(ReloadTimer, this, &AOrionWeapon::ReloadNextShell, AnimDuration, false);
 	else
 		StopReload();
@@ -904,7 +975,7 @@ void AOrionWeapon::StopReload()
 
 void AOrionWeapon::ReloadWeapon()
 {
-	int32 ClipDelta = FMath::Min(InstantConfig.ClipSize - AmmoInClip, Ammo - AmmoInClip);
+	int32 ClipDelta = FMath::Min(GetClipSize() - AmmoInClip, Ammo - AmmoInClip);
 
 	if (ClipDelta > 0)
 	{
@@ -1310,7 +1381,9 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 		}
 	}*/
 
-	if (TracerFX)
+	float dist = (EndPoint - Origin).Size();
+
+	if (TracerFX && dist > 150.0f)
 	{
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.Instigator = Instigator;
@@ -1324,10 +1397,16 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 			Proj->ProjectileMovement->Velocity = (EndPoint - Origin).GetSafeNormal() * 10000.0f;
 		}*/
 		UParticleSystemComponent* TracerPSC = UGameplayStatics::SpawnEmitterAtLocation(this, TracerFX, Origin, vDir.Rotation());
+
+		//FVector Facing = MyPawn->GetActorRotation().Vector();
+
+		//if (FVector::DotProduct(Facing, vDir) < 0.8f)
+		//	vDir = Facing;
+
 		if (TracerPSC)
 		{
 			TracerPSC->SetWorldScale3D(FVector(1.0));
-			TracerPSC->SetFloatParameter("BulletLife", FMath::Min(1.0f, (Origin - EndPoint).Size() / 3000.0f));
+			TracerPSC->SetFloatParameter("BulletLife", FMath::Min(1.0f, ((Origin - EndPoint).Size() / 3000.0f)) - 0.05f);
 		}
 	}
 
@@ -1575,8 +1654,17 @@ float AOrionWeapon::PlayWeaponAnimation(const FWeaponAnim& Animation, bool bRepl
 {
 	float Duration = 0.01f;
 
+	float Rate = 1.0f;
+
+	if (MyPawn && WeaponState == WEAP_RELOADING)
+	{
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(MyPawn->Controller);
+		if (PC)
+			Rate += float(PC->GetSkillValue(SKILL_RELOADSPEED)) / 100.0f;
+	}
+
 	if (MyPawn)
-		Duration = MyPawn->OrionPlayAnimMontage(Animation, 1.0f, FName(""), bReplicate);
+		Duration = MyPawn->OrionPlayAnimMontage(Animation, Rate, FName(""), bReplicate);
 	return Duration;
 }
 

@@ -6,6 +6,7 @@ AOrionBuff::AOrionBuff(const FObjectInitializer& ObjectInitializer)
 {
 	BuffName = TEXT("Buff Name");
 	Damage = 1.0f;
+	DamageReduction = 0.0f;
 	SpeedMultiplier = 1.0f;
 	Duration = 3.0f;
 	TickInterval = 1.5f;
@@ -14,4 +15,7 @@ AOrionBuff::AOrionBuff(const FObjectInitializer& ObjectInitializer)
 	NumStacks = 0;
 	bIsBuff = false;
 	bBlockSight = false;
+	bAffectsEnemies = true;
+	bAffectsTeammates = true;
+	HealPercent = 0.0f;
 }

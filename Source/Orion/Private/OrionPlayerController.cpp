@@ -13,6 +13,14 @@
 #include "OrionGameInstance.h"
 #include "AudioDevice.h"
 #include "Animation/SkeletalMeshActor.h"
+#include <steam/steam_api.h>
+#include "OnlineSubsystem.h"
+#include "OnlineFriendsInterface.h"
+#include "OnlinePresenceInterface.h"
+#include "OnlineIdentityInterface.h"
+#include "OnlineSubsystemTypes.h"
+//#include "OnlineFriendsInterfaceSteam.h"
+#include "OnlineSubsystemSteam.h"
 #if !IS_SERVER
 #include "PhotonProxy.h"
 #include "LoadBalancing.h"
@@ -23,6 +31,8 @@
 #include "OrionGameMode.h"
 #include "PhotonProxy.h"
 #include "PlayFabRequestProxy.h"
+
+#pragma warning( disable : 4996 )
 
 class AOrionDinoPawn;
 class AOrionGameMenu;
@@ -103,6 +113,10 @@ void AOrionPlayerController::SetupInputComponent()
 	//escape
 	InputComponent->BindAction("OpenCharacterSelect", IE_Pressed, this, &AOrionPlayerController::ShowCharacterSelect);
 	InputComponent->BindAction("Gamepad_OpenCharacterSelect", IE_Pressed, this, &AOrionPlayerController::ShowCharacterSelect);
+
+	//skilltree
+	InputComponent->BindAction("OpenSkillTree", IE_Pressed, this, &AOrionPlayerController::OpenSkillTree);
+	InputComponent->BindAction("Gamepad_OpenSkillTree", IE_Pressed, this, &AOrionPlayerController::OpenSkillTree);
 }
 
 void AOrionPlayerController::ShowCharacterSelect()
@@ -114,25 +128,29 @@ void AOrionPlayerController::ShowCharacterSelect()
 	EventShowCharacterSelect();
 }
 
-void AOrionPlayerController::SetCharacterClass(int32 Index)
+void AOrionPlayerController::SetCharacterClass(int32 Index, FString CharID)
 {
 	if (Role < ROLE_Authority)
-		ServerSetCharacterClass(Index);
+		ServerSetCharacterClass(Index, CharID);
 	else
 	{
 		//update our character class id and type for next spawn
 		NextSpawnClass = Index;
+
+		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+		if (PRI)
+			PRI->CharacterID = CharID;
 	}
 }
 
-bool AOrionPlayerController::ServerSetCharacterClass_Validate(int32 Index)
+bool AOrionPlayerController::ServerSetCharacterClass_Validate(int32 Index, const FString &CharID)
 {
 	return true;
 }
 
-void AOrionPlayerController::ServerSetCharacterClass_Implementation(int32 Index)
+void AOrionPlayerController::ServerSetCharacterClass_Implementation(int32 Index, const FString &CharID)
 {
-	SetCharacterClass(Index);
+	SetCharacterClass(Index, CharID);
 }
 
 void AOrionPlayerController::ShowScores()
@@ -191,6 +209,8 @@ void AOrionPlayerController::ConnectToIP(FString IP)
 		newURL = FString::Printf(TEXT("open %s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s?LobbyTicket=%s?CharacterClass=%s"), *IP, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName, *GI->LobbyTicket, *GI->CharacterClass);
 
 	UE_LOG(LogTemp, Log, TEXT("GundyReallyTravel: %s"), *newURL);
+
+	LeaveLobby();
 
 	ConsoleCommand(newURL, true);
 }
@@ -267,6 +287,8 @@ void AOrionPlayerController::Destroyed()
 {
 #if IS_SERVER
 	//UOrionTCPLink::SaveCharacter(this);
+#else
+	LeaveLobby();
 #endif
 
 	//cleanup our menus so we don't get a garbage collection crash
@@ -483,8 +505,37 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 				PRI->ClassType = TEXT("NONE");
 				break;
 			}
+
+			EventServerGetSkillTreeInfo();
 		}
 	}
+}
+
+int32 AOrionPlayerController::GetClassIndex()
+{
+	FString ClassType;
+
+	if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
+	{
+		UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
+		if (GI)
+			ClassType = GI->CharacterClass;
+	}
+	else
+	{
+		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+		if (PRI)
+			ClassType = PRI->ClassType;
+	}
+
+	if (ClassType == TEXT("ASSAULT"))
+		return 0;
+	else if (ClassType == TEXT("SUPPORT"))
+		return 1;
+	else if (ClassType == TEXT("RECON"))
+		return 2;
+
+	return 0;
 }
 
 void AOrionPlayerController::ToggleHUD()
@@ -633,6 +684,30 @@ void AOrionPlayerController::ClientSetDeathSpectate_Implementation(APawn *DeadPa
 	ChangeState(NAME_Spectating);
 }
 
+void AOrionPlayerController::UpdateOrbEffects()
+{
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	if (PRI)
+		PRI->UpdateOrbEffects();
+}
+
+bool AOrionPlayerController::HasOrbEffect(EOrbType Type)
+{
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	if (PRI)
+	{
+		for (int32 i = 0; i < PRI->OrbEffects.Num(); i++)
+		{
+			if (PRI->OrbEffects[i].Type == Type)
+				return true;
+		}
+	}
+
+	return false;
+}
+
 //only gets called on the local controller
 void AOrionPlayerController::PlayerTick(float DeltaTime)
 {
@@ -654,7 +729,12 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 		EventResizeHUD();
 	}
 
-	if (ServerInfo.RoomName != TEXT("") && GetWorld()->GetTimeSeconds() - LastLobbyTime >= 1.0f)
+	//AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	//if(PRI)
+	//	ServerInfo = PRI->ServerInfo;
+
+	if (bAuthenticated && ServerInfo.RoomName != TEXT("") && GetWorld()->GetTimeSeconds() - LastLobbyTime >= 1.0f)
 	{
 		LastLobbyTime = GetWorld()->GetTimeSeconds();
 
@@ -668,7 +748,7 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 			if (GI)
 			{
 				FString RoomName = ServerInfo.RoomName;
-				RoomName.Append(TEXT("'s Game"));
+				RoomName.Append(TEXT("'s Server"));
 				UPhotonProxy::GetListener()->JoinRoom(TCHAR_TO_UTF8(*RoomName), true);
 			}
 		}
@@ -692,9 +772,10 @@ void AOrionPlayerController::CreateServerRoom()
 			if (GI)
 			{
 				FString RoomName = ServerInfo.RoomName;
-				RoomName.Append(TEXT("'s Game"));
+				RoomName.Append(TEXT("'s Server"));
 
-				FString ChatRoom = GI->ServerIP;
+				FString ChatRoom = ServerInfo.RoomName;
+				ChatRoom.Append(TEXT("Chat"));
 
 				UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*ServerInfo.MapName), TCHAR_TO_UTF8(*ServerInfo.Difficulty), "Survival", TCHAR_TO_UTF8(*ServerInfo.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*GI->LobbyTicket), TCHAR_TO_UTF8(*ChatRoom));
 			}
@@ -875,18 +956,19 @@ void AOrionPlayerController::DoLevelUp(int32 NewLevel)
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
 
 	PlayLevelUpEffect(NewLevel);
+	ShowLevelUpMessage(NewLevel);
 
 	if (Achievements)
 		Achievements->CheckForLevelUnlocks(NewLevel, this);
 
-	for (int32 i = 0; i < Controllers.Num(); i++)
+	/*for (int32 i = 0; i < Controllers.Num(); i++)
 	{
 		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controllers[i]);
 		if (PC)
 		{
 			PC->ShowLevelUpMessage(NewLevel); //text message to show others that this player has leveled up
 		}
-	}
+	}*/
 }
 
 void AOrionPlayerController::HideWeapons()
@@ -1457,11 +1539,11 @@ TArray<FString> AOrionPlayerController::GetDifficultySettings()
 
 	Difficulties.Add(TEXT("DIFFICULTY - EASY"));
 	Difficulties.Add(TEXT("DIFFICULTY - NORMAL"));
-	if (Achievements && Achievements->Achievements[ACH_REACHLEVELTWO].bUnlocked)
+	if (Achievements && Achievements->Achievements[ACH_REACHLEVELTHREE].bUnlocked)
 		Difficulties.Add(TEXT("DIFFICULTY - HARD"));
-	if (Achievements && Achievements->Achievements[ACH_REACHLEVELFIVE].bUnlocked)
-		Difficulties.Add(TEXT("DIFFICULTY - INSANE"));
 	if (Achievements && Achievements->Achievements[ACH_REACHLEVELTEN].bUnlocked)
+		Difficulties.Add(TEXT("DIFFICULTY - INSANE"));
+	if (Achievements && Achievements->Achievements[ACH_REACHLEVELTWENTY].bUnlocked)
 		Difficulties.Add(TEXT("DIFFICULTY - REDIKULOUS"));
 
 	return Difficulties;
@@ -1500,7 +1582,7 @@ TArray<FString> AOrionPlayerController::GetPrivacySettings()
 
 FString AOrionPlayerController::GetBuildVersion()
 {
-	return TEXT("Beta0.1");
+	return TEXT("Beta0.2");
 }
 
 TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
@@ -1510,106 +1592,158 @@ TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
 
 	NewOption.Title = TEXT("MOVE FORWARDS");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("MoveForward", true, 1.0f);
+	NewOption.Action = TEXT("MoveForward");
+	NewOption.Scale = 1.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("MOVE BACKWARDS");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("MoveForward", true, -1.0f);
+	NewOption.Action = TEXT("MoveForward");
+	NewOption.Scale = -1.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("MOVE LEFT");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("MoveRight", true, -1.0f);
+	NewOption.Action = TEXT("MoveRight");
+	NewOption.Scale = 1.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("MOVE RIGHT");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("MoveRight", true, 1.0f);
+	NewOption.Action = TEXT("MoveRight");
+	NewOption.Scale = -1.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("ROLL");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Roll", false, 0.0f);
+	NewOption.Action = TEXT("Roll");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("SPRINT");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Run", false, 0.0f);
+	NewOption.Action = TEXT("Run");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("BLINK");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Blink", false, 0.0f);
+	NewOption.Action = TEXT("Blink");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("USE");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Use", false, 0.0f);
+	NewOption.Action = TEXT("Use");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("FIRE WEAPON");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Fire", false, 0.0f);
+	NewOption.Action = TEXT("Fire");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("AIM WEAPON");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Aim", false, 0.0f);
+	NewOption.Action = TEXT("Aim");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 	
 	NewOption.Title = TEXT("RELOAD");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Reload", false, 0.0f);
+	NewOption.Action = TEXT("Reload");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("MELEE");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Melee", false, 0.0f);
+	NewOption.Action = TEXT("Melee");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("USE ABILITY");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("ActivateSkill", false, 0.0f);
+	NewOption.Action = TEXT("ActivateSkill");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("PRIMARY WEAPON");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("WeaponSlot1", false, 0.0f);
+	NewOption.Action = TEXT("WeaponSlot1");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("SECONDARY WEAPON");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("WeaponSlot2", false, 0.0f);
+	NewOption.Action = TEXT("WeaponSlot2");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("GADGET");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("WeaponSlot3", false, 0.0f);
+	NewOption.Action = TEXT("WeaponSlot3");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("LAST WEAPON");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("LastWeapon", false, 0.0f);
+	NewOption.Action = TEXT("LastWeapon");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("GRENADE");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("ThrowGrenade", false, 0.0f);
+	NewOption.Action = TEXT("ThrowGrenade");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("GLOBAL SAY");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Say", false, 0.0f);
+	NewOption.Action = TEXT("Say");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("TEAM SAY");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("TeamSay", false, 0.0f);
+	NewOption.Action = TEXT("TeamSay");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("INVENTORY");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("OpenInventory", false, 0.0f);
+	NewOption.Action = TEXT("OpenInventory");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("NEXT WEAPON");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("NextWeapon", false, 0.0f);
+	NewOption.Action = TEXT("NextWeapon");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("PREV WEAPON");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("PrevWeapon", false, 0.0f);
+	NewOption.Action = TEXT("PrevWeapon");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("VOICE");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("StartVoiceChat", false, 0.0f);
+	NewOption.Action = TEXT("StartVoiceChat");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("SHOW SCORES");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("OpenScores", false, 0.0f);
+	NewOption.Action = TEXT("OpenScores");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("SHOW CHARACTER SELECT");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("OpenCharacterSelect", false, 0.0f);
+	NewOption.Action = TEXT("OpenCharacterSelect");
+	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
 	return Options;
@@ -1662,54 +1796,67 @@ TArray<FControllerOptionsData> AOrionPlayerController::GetControllerOptions()
 
 	NewOption.Title = TEXT("ROLL");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Roll", false, 0.0f));
+	NewOption.Action = TEXT("Gamepad_Roll");
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("SPRINT");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Run", false, 0.0f));
+	NewOption.Action = TEXT("Gamepad_Run");
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("BLINK");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Blink", false, 0.0f));
+	NewOption.Action = TEXT("Gamepad_Blink");
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("RELOAD/USE");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Reload", false, 0.0f));
+	NewOption.Action = TEXT("Gamepad_Reload");
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("FIRE WEAPON");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Fire", false, 0.0f));
+	NewOption.Action = TEXT("Gamepad_Fire");
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("AIM WEAPON");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Aim", false, 0.0f));
+	NewOption.Action = TEXT("Gamepad_Aim");
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("MELEE ATTACK");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Melee", false, 0.0f));
+	NewOption.Action = TEXT("Gamepad_Melee");
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("USE ABILITY");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_ActivateSkill", false, 0.0f));
+	NewOption.Action = TEXT("Gamepad_ActivateSkill");
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("GADGET");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_WeaponSlot3", false, 0.0f));
+	NewOption.Action = TEXT("Gamepad_WeaponSlot3");
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("LAST WEAPON");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_LastWeapon", false, 0.0f));
+	NewOption.Action = TEXT("Gamepad_LastWeapon");
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("GRENADE");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_ThrowGrenade", false, 0.0f));
+	NewOption.Action = TEXT("Gamepad_ThrowGrenade");
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("INVENTORY");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_OpenInventory", false, 0.0f));
+	NewOption.Action = TEXT("Gamepad_OpenInventory");
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("CHARACTER SELECT");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_OpenCharacterSelect", false, 0.0f));
+	NewOption.Action = TEXT("Gamepad_OpenCharacterSelect");
 	Options.Add(NewOption);
 
 	//NewOption.Title = TEXT("OPEN MENU");
@@ -1767,6 +1914,22 @@ FOptionsValueData AOrionPlayerController::GetMouseSmooth()
 	return Data;
 }
 
+int32 AOrionPlayerController::GetMaxLevel()
+{
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	int32 XP = 0;
+
+	if (PRI)
+	{
+		XP = PRI->AssaultXP;
+		XP = FMath::Max(XP, PRI->SupportXP);
+		XP = FMath::Max(XP, PRI->ReconXP);
+	}
+
+	return CalculateLevel(XP);
+}
+
 //let photon handle this, so players can join and talk before a match actually starts, will allow multiple platforms to mingle
 void AOrionPlayerController::OpenLobby(FString MapName, FString MapDifficulty, FString Gamemode, FString Privacy)
 {
@@ -1776,14 +1939,15 @@ void AOrionPlayerController::OpenLobby(FString MapName, FString MapDifficulty, F
 		UPhotonProxy::GetListener()->PCOwner = this;
 
 		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+		UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetGameInstance());
 
 		//create a new room that other players can join
-		if (PRI)
+		if (PRI && GI)
 		{
-			FString RoomName = PRI->PlayFabName;
+			FString RoomName = GI->PlayFabName;
 			RoomName.Append(TEXT("'s Game"));
 
-			FString ChatRoom = PRI->PlayFabName;
+			FString ChatRoom = GI->PlayFabName;
 
 			UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*MapDifficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), "", "", TCHAR_TO_UTF8(*ChatRoom));
 		}
@@ -1807,8 +1971,9 @@ void AOrionPlayerController::LeaveLobby()
 #if !IS_SERVER
 	if (UPhotonProxy::GetListener())
 	{
-		//create a new room that other players can join
 		UPhotonProxy::GetListener()->leave();
+
+		JoinChatRoom(TEXT("Global"));
 	}
 #endif
 }
@@ -1821,12 +1986,12 @@ void AOrionPlayerController::JoinChatRoom(FString Room)
 #endif
 }
 
-void AOrionPlayerController::FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket)
+void AOrionPlayerController::FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket, FString Wave)
 {
 #if !IS_SERVER
 	if (UPhotonProxy::GetListener())
 	{
-		UPhotonProxy::GetListener()->SetLobbySettings(TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*Difficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), TCHAR_TO_UTF8(*IP), TCHAR_TO_UTF8(*Ticket));
+		UPhotonProxy::GetListener()->SetLobbySettings(TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*Difficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), TCHAR_TO_UTF8(*IP), TCHAR_TO_UTF8(*Ticket), TCHAR_TO_UTF8(*Wave));
 	}
 #endif
 }
@@ -1935,19 +2100,7 @@ void AOrionPlayerController::BeginPlay()
 	Super::BeginPlay();
 
 #if !IS_SERVER
-	if (Role < ROLE_Authority)
-	{
-		//ServerSetPlayFabInfo(UOrionTCPLink::PlayFabID, UOrionTCPLink::SessionTicket, UOrionTCPLink::CurrentCharacterID);
-
-		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
-		if (PRI)
-		{
-			//PRI->PlayFabID = UOrionTCPLink::PlayFabID;
-			//PRI->SessionTicket = UOrionTCPLink::SessionTicket;
-			//PRI->CharacterID = UOrionTCPLink::CurrentCharacterID;
-		}
-	}
-	else if (IsLocalPlayerController())
+	if (IsLocalPlayerController())
 	{
 		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
 		if (PRI)
@@ -1964,8 +2117,340 @@ void AOrionPlayerController::BeginPlay()
 	}
 #endif
 
+	if (SkillTrees)
+	{
+		MySkillTree = NewObject<UOrionSkillTree>(this, SkillTrees);
+
+		//set to defaults to avoid nasty crashes
+		SetDefaultSkills();
+	}
+
 	if (Role == ROLE_Authority)
+	{
+		EventServerGetSkillTreeInfo();
+
 		GetWorldTimerManager().SetTimer(ServerTickTimer, this, &AOrionPlayerController::ServerTick, 0.35f, true);
+		GetWorldTimerManager().SetTimer(OrbTimer, this, &AOrionPlayerController::UpdateOrbEffects, 0.01f, true);
+	}
+}
+
+void AOrionPlayerController::SetDefaultSkills()
+{
+	if (MySkillTree)
+	{
+		//reset the values
+		CharacterSkills.Empty();
+		CharacterSkills.SetNum(SKILL_NUMPLUSONE - 1);
+
+		for (int32 i = 0; i < MySkillTree->Skills[0].SkillCategory1.Num(); i++)
+		{
+			FSkillCategory Category = MySkillTree->Skills[0].SkillCategory1[i];
+
+			CharacterSkills[Category.Skill1.Category].Points = Category.Skill1.Points;
+			CharacterSkills[Category.Skill1.Category].MaxPoints = Category.Skill1.MaxPoints;
+			CharacterSkills[Category.Skill1.Category].Modifier = FMath::Max(1, Category.Skill1.Upgrade1);
+
+			CharacterSkills[Category.Skill2.Category].Points = Category.Skill2.Points;
+			CharacterSkills[Category.Skill2.Category].MaxPoints = Category.Skill2.MaxPoints;
+			CharacterSkills[Category.Skill2.Category].Modifier = FMath::Max(1, Category.Skill2.Upgrade1);
+
+			CharacterSkills[Category.Skill3.Category].Points = Category.Skill3.Points;
+			CharacterSkills[Category.Skill3.Category].MaxPoints = Category.Skill3.MaxPoints;
+			CharacterSkills[Category.Skill3.Category].Modifier = FMath::Max(1, Category.Skill3.Upgrade1);
+		}
+		for (int32 i = 0; i < MySkillTree->Skills[0].SkillCategory2.Num(); i++)
+		{
+			FSkillCategory Category = MySkillTree->Skills[0].SkillCategory2[i];
+
+			CharacterSkills[Category.Skill1.Category].Points = Category.Skill1.Points;
+			CharacterSkills[Category.Skill1.Category].MaxPoints = Category.Skill1.MaxPoints;
+			CharacterSkills[Category.Skill1.Category].Modifier = FMath::Max(1, Category.Skill1.Upgrade1);
+
+			CharacterSkills[Category.Skill2.Category].Points = Category.Skill2.Points;
+			CharacterSkills[Category.Skill2.Category].MaxPoints = Category.Skill2.MaxPoints;
+			CharacterSkills[Category.Skill2.Category].Modifier = FMath::Max(1, Category.Skill2.Upgrade1);
+
+			CharacterSkills[Category.Skill3.Category].Points = Category.Skill3.Points;
+			CharacterSkills[Category.Skill3.Category].MaxPoints = Category.Skill3.MaxPoints;
+			CharacterSkills[Category.Skill3.Category].Modifier = FMath::Max(1, Category.Skill3.Upgrade1);
+		}
+		for (int32 i = 0; i < MySkillTree->Skills[0].SkillCategory3.Num(); i++)
+		{
+			FSkillCategory Category = MySkillTree->Skills[0].SkillCategory3[i];
+
+			CharacterSkills[Category.Skill1.Category].Points = Category.Skill1.Points;
+			CharacterSkills[Category.Skill1.Category].MaxPoints = Category.Skill1.MaxPoints;
+			CharacterSkills[Category.Skill1.Category].Modifier = FMath::Max(1, Category.Skill1.Upgrade1);
+
+			CharacterSkills[Category.Skill2.Category].Points = Category.Skill2.Points;
+			CharacterSkills[Category.Skill2.Category].MaxPoints = Category.Skill2.MaxPoints;
+			CharacterSkills[Category.Skill2.Category].Modifier = FMath::Max(1, Category.Skill2.Upgrade1);
+
+			CharacterSkills[Category.Skill3.Category].Points = Category.Skill3.Points;
+			CharacterSkills[Category.Skill3.Category].MaxPoints = Category.Skill3.MaxPoints;
+			CharacterSkills[Category.Skill3.Category].Modifier = FMath::Max(1, Category.Skill3.Upgrade1);
+		}
+	}
+}
+
+void AOrionPlayerController::SetSkillTreeValuesForUse()
+{
+	if (Role != ROLE_Authority)
+	{
+		ServerSetSkillTreeValuesForUse();
+		return;
+	}
+
+	//cycle through our skill tree and convert the data into a quicker lookup version
+	if (MySkillTree)
+	{
+		//reset the values
+		CharacterSkills.Empty();
+		CharacterSkills.SetNum(SKILL_NUMPLUSONE - 1);
+
+		for (int32 i = 0; i < MySkillTree->Skills[ClassIndex].SkillCategory1.Num(); i++)
+		{
+			FSkillCategory Category = MySkillTree->Skills[ClassIndex].SkillCategory1[i];
+
+			CharacterSkills[Category.Skill1.Category].Points = Category.Skill1.Points;
+			CharacterSkills[Category.Skill1.Category].MaxPoints = Category.Skill1.MaxPoints;
+			CharacterSkills[Category.Skill1.Category].Modifier = FMath::Max(1,Category.Skill1.Upgrade1);
+
+			CharacterSkills[Category.Skill2.Category].Points = Category.Skill2.Points;
+			CharacterSkills[Category.Skill2.Category].MaxPoints = Category.Skill2.MaxPoints;
+			CharacterSkills[Category.Skill2.Category].Modifier = FMath::Max(1, Category.Skill2.Upgrade1);
+
+			CharacterSkills[Category.Skill3.Category].Points = Category.Skill3.Points;
+			CharacterSkills[Category.Skill3.Category].MaxPoints = Category.Skill3.MaxPoints;
+			CharacterSkills[Category.Skill3.Category].Modifier = FMath::Max(1, Category.Skill3.Upgrade1);
+		}
+		for (int32 i = 0; i < MySkillTree->Skills[ClassIndex].SkillCategory2.Num(); i++)
+		{
+			FSkillCategory Category = MySkillTree->Skills[ClassIndex].SkillCategory2[i];
+
+			CharacterSkills[Category.Skill1.Category].Points = Category.Skill1.Points;
+			CharacterSkills[Category.Skill1.Category].MaxPoints = Category.Skill1.MaxPoints;
+			CharacterSkills[Category.Skill1.Category].Modifier = FMath::Max(1, Category.Skill1.Upgrade1);
+
+			CharacterSkills[Category.Skill2.Category].Points = Category.Skill2.Points;
+			CharacterSkills[Category.Skill2.Category].MaxPoints = Category.Skill2.MaxPoints;
+			CharacterSkills[Category.Skill2.Category].Modifier = FMath::Max(1, Category.Skill2.Upgrade1);
+
+			CharacterSkills[Category.Skill3.Category].Points = Category.Skill3.Points;
+			CharacterSkills[Category.Skill3.Category].MaxPoints = Category.Skill3.MaxPoints;
+			CharacterSkills[Category.Skill3.Category].Modifier = FMath::Max(1, Category.Skill3.Upgrade1);
+		}
+		for (int32 i = 0; i < MySkillTree->Skills[ClassIndex].SkillCategory3.Num(); i++)
+		{
+			FSkillCategory Category = MySkillTree->Skills[ClassIndex].SkillCategory3[i];
+
+			CharacterSkills[Category.Skill1.Category].Points = Category.Skill1.Points;
+			CharacterSkills[Category.Skill1.Category].MaxPoints = Category.Skill1.MaxPoints;
+			CharacterSkills[Category.Skill1.Category].Modifier = FMath::Max(1, Category.Skill1.Upgrade1);
+
+			CharacterSkills[Category.Skill2.Category].Points = Category.Skill2.Points;
+			CharacterSkills[Category.Skill2.Category].MaxPoints = Category.Skill2.MaxPoints;
+			CharacterSkills[Category.Skill2.Category].Modifier = FMath::Max(1, Category.Skill2.Upgrade1);
+
+			CharacterSkills[Category.Skill3.Category].Points = Category.Skill3.Points;
+			CharacterSkills[Category.Skill3.Category].MaxPoints = Category.Skill3.MaxPoints;
+			CharacterSkills[Category.Skill3.Category].Modifier = FMath::Max(1, Category.Skill3.Upgrade1);
+		}
+	}
+
+	ClientSetCharacterSkills(CharacterSkills);
+}
+
+void AOrionPlayerController::ClientSetCharacterSkills_Implementation(const TArray<FUnlockedSkills> &Skills)
+{
+	CharacterSkills = Skills;
+}
+
+int32 AOrionPlayerController::GetSkillValue(ESkillTreeUnlocks Skill)
+{
+	if (CharacterSkills.Num() <= int32(Skill))
+		return 0;
+
+	return CharacterSkills[Skill].Points * FMath::Max(1, CharacterSkills[Skill].Modifier);
+}
+
+void AOrionPlayerController::ServerSetSkillTreeValuesForUse_Implementation()
+{
+	//call playfab to make sure we get the correct info, don't trust those filthy clients
+	EventServerGetSkillTreeInfo();
+	//SetSkillTreeValuesForUse();
+}
+
+void AOrionPlayerController::SetConnectInfo(const FString &RoomName)
+{
+	if (SteamAPI_Init())
+	{
+		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+
+		if (OnlineSub)
+		{
+			IOnlineIdentityPtr User = OnlineSub->GetIdentityInterface();
+
+			if (!User.IsValid())
+				return;
+
+			IOnlinePresencePtr Presence = OnlineSub->GetPresenceInterface();
+
+			if (!Presence.IsValid())
+				return;
+
+			FOnlineKeyValuePairs<FPresenceKey, FVariantData> props;
+
+			props.Add(TEXT("LobbyInfo"), RoomName);
+
+			FOnlineUserPresenceStatus P;
+
+			P.State = EOnlinePresenceState::Online;
+			P.Properties = props;
+
+			Presence->SetPresence(*User->GetUniquePlayerId(0), P);
+		}
+	}
+}
+
+FString AOrionPlayerController::GetSteamID()
+{
+	if (SteamAPI_Init())
+	{
+		//set the lobby info to blank so we don't try to join an old match that wasn't closed properly
+		SetConnectInfo(TEXT("0"));
+
+		CSteamID steamID = SteamUser()->GetSteamID();
+
+		uint64 Return = steamID.CSteamID::ConvertToUint64();
+
+		//Return ID as String if Found
+		FString ID = FString::Printf(TEXT("%016llX"), Return);
+
+		return ID;
+	}
+
+	return TEXT("0");
+}
+
+void AOrionPlayerController::ReadFriends()
+{
+	GetFriends();
+}
+
+void AOrionPlayerController::GetFriends()
+{
+	if (SteamAPI_Init())
+	{
+		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+
+		if (OnlineSub)
+		{
+			Friends.Empty();
+
+			IOnlineFriendsPtr FriendsInt = OnlineSub->GetFriendsInterface();
+
+			FOnReadFriendsListComplete ReadFriendsDelegate = FOnReadFriendsListComplete::CreateUObject(this, &AOrionPlayerController::ReadFriendsDelegate);
+
+			FriendsInt->ReadFriendsList(0, EFriendsLists::ToString(EFriendsLists::Default), ReadFriendsDelegate);
+		}
+	}
+}
+
+UTexture2D *AOrionPlayerController::GetFriendAvatar(TSharedRef<FOnlineFriend> Friend)
+{
+	uint32 Width;
+	uint32 Height;
+
+	bool IsValid = false;
+
+	if (SteamAPI_Init())
+	{
+		//Getting the PictureID from the SteamAPI and getting the Size with the ID
+		const char *SteamID = TCHAR_TO_UTF8(*Friend->GetUserId()->ToString());
+		CSteamID ID = CSteamID(strtoull(SteamID, nullptr, 10)); //convert string to uint64
+		int Picture = SteamFriends()->GetMediumFriendAvatar(ID);
+		SteamUtils()->GetImageSize(Picture, &Width, &Height);
+
+		if (Width > 0 && Height > 0)
+		{
+			IsValid = true;
+
+			//Creating the buffer "oAvatarRGBA" and then filling it with the RGBA Stream from the Steam Avatar
+			BYTE *oAvatarRGBA = new BYTE[Width * Height * 4];
+
+			//Filling the buffer with the RGBA Stream from the Steam Avatar and creating a UTextur2D to parse the RGBA Steam in
+			SteamUtils()->GetImageRGBA(Picture, (uint8*)oAvatarRGBA, 4 * Height * Width * sizeof(char));
+			UTexture2D* Avatar = UTexture2D::CreateTransient(Width, Height, PF_B8G8R8A8);
+
+			//MAGIC!
+			uint8* MipData = (uint8*)Avatar->PlatformData->Mips[0].BulkData.Lock(LOCK_READ_WRITE);
+			FMemory::Memcpy(MipData, (void*)oAvatarRGBA, Height * Width * 4);
+			Avatar->PlatformData->Mips[0].BulkData.Unlock();
+
+			//Setting some Parameters for the Texture and finally returning it
+			Avatar->PlatformData->NumSlices = 1;
+			Avatar->NeverStream = true;
+			Avatar->Rename(*Friend->GetUserId()->ToString());
+			Avatar->CompressionSettings = TC_EditorIcon;
+
+			Avatar->UpdateResource();
+
+			//SteamAPI_Shutdown();
+			return Avatar;
+		}
+	}
+
+	return nullptr;
+}
+
+void AOrionPlayerController::ReadFriendsDelegate(int32 LocalUserNum, bool bSuccessful, const FString& ListName, const FString& ErrorString)
+{
+	IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+
+	if (OnlineSub)
+	{
+		IOnlineFriendsPtr FriendsInt = OnlineSub->GetFriendsInterface();
+
+		TArray<TSharedRef<FOnlineFriend> > FFriends;
+
+		TArray<FFriendListData> JoinableFriends;
+		TArray<FFriendListData> PlayingFriends;
+		TArray<FFriendListData> OnlineFriends;
+		TArray<FFriendListData> OfflineFriends;
+
+		if (FriendsInt->GetFriendsList(0, EFriendsLists::ToString(EFriendsLists::Default), FFriends))
+		{
+			for (int32 i = 0; i < FFriends.Num(); i++)
+			{
+				FFriendListData newFriend;
+
+				newFriend.PlayerName = FFriends[i]->GetDisplayName();
+				newFriend.bOnline = FFriends[i]->GetPresence().bIsOnline;
+				newFriend.bPlayingGame = FFriends[i]->GetPresence().bIsPlayingThisGame;
+				if (!FFriends[i]->GetUserAttribute(TEXT("LobbyInfo"), newFriend.LobbyID))
+					newFriend.LobbyID = TEXT("0");
+
+				//try to grab the avatar for this player
+				newFriend.Avatar = GetFriendAvatar(FFriends[i]);
+
+				if (!newFriend.bOnline)
+					OfflineFriends.Add(newFriend);
+				else if (!newFriend.bPlayingGame)
+					OnlineFriends.Add(newFriend);
+				else
+					PlayingFriends.Add(newFriend);
+			}
+		}
+
+		//sort the friends list, with online friends playing games at the top and offlines friends at the bottom
+		Friends = JoinableFriends;
+		Friends.Append(PlayingFriends);
+		Friends.Append(OnlineFriends);
+		Friends.Append(OfflineFriends);
+
+		EventDrawFriends();
+	}
 }
 
 void AOrionPlayerController::TickPhoton()
@@ -1976,6 +2461,20 @@ void AOrionPlayerController::TickPhoton()
 		UPhotonProxy::GetListener()->PCOwner = this;
 		UPhotonProxy::GetListener()->UpdatePlayerSettings();
 		SendPlayerInfoToPhoton();
+	
+		//update our lobby settings while in game
+		if (IsLobbyLeader())// UPhotonProxy::GetListener()->IsLobbyLeader())
+		{
+			AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
+			AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+			UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetGameInstance());
+			if (!Game && GRI && GI)
+			{
+				FString Wave = GRI->WaveNum > 9 ? FString::Printf(TEXT("WAVE %i"), GRI->WaveNum) : FString::Printf(TEXT("WAVE 0%i"), GRI->WaveNum);
+				UPhotonProxy::GetListener()->SetLobbySettings(TCHAR_TO_UTF8(*ServerInfo.MapName), TCHAR_TO_UTF8(*ServerInfo.Difficulty), "SURVIVAL",
+					TCHAR_TO_UTF8(*ServerInfo.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*GI->LobbyTicket), TCHAR_TO_UTF8(*Wave));
+			}
+		}
 	}
 #endif
 }
@@ -2010,17 +2509,17 @@ void AOrionPlayerController::InitStatsAndAchievements()
 
 		Stats = GetWorld()->SpawnActor<AOrionStats>(StatsClass, SpawnInfo);
 
-#if IS_SERVER
-		if (Stats)
+//#if IS_SERVER
+		if (Stats && Role == ROLE_Authority)
 			Stats->ReadPlayerStats(this);
-#endif
+//#endif
 
 		Achievements = GetWorld()->SpawnActor<AOrionAchievements>(AchievementsClass, SpawnInfo);
 
-#if IS_SERVER
-		if (Achievements)
+//#if IS_SERVER
+		if (Stats && Role == ROLE_Authority)
 			Achievements->ReadPlayerAchievements(this);
-#endif
+//#endif
 	}
 }
 
@@ -2039,6 +2538,12 @@ void AOrionPlayerController::UnlockAchievement_Implementation(const FString &Hea
 	Notifications.Add(Notify);
 
 	//ProcessNotifications();
+}
+
+void AOrionPlayerController::TestLevel()
+{
+	//ShowLevelUpMessage_Implementation(12);
+	//UnlockAchievement_Implementation(TEXT("TEST ACH"), TEXT("UNLOCKED"));
 }
 
 void AOrionPlayerController::ProcessNotifications()
@@ -2064,7 +2569,7 @@ void AOrionPlayerController::ShowLevelUpMessage_Implementation(int32 NewLevel)
 	FNotificationHelper Notify;
 
 	Notify.Header = TEXT("LEVEL UP");
-	Notify.Body = FString::Printf(TEXT("LEVEL %s"), NewLevel);
+	Notify.Body = FString::Printf(TEXT("LEVEL %i"), NewLevel);
 
 	Notifications.Add(Notify);
 }

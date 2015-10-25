@@ -197,7 +197,12 @@ void AOrionStats::AddStatValue(EStatID ID, int32 Value)
 		if (aStats.Num() > ID)
 		{
 			aStats[ID].bDirty = true;
-			aStats[ID].StatValue += Value;
+
+			//don't want people going over the level cap of 30
+			if (ID == STAT_RECONEXP || ID == STAT_ASSAULTEXP || ID == STAT_SUPPORTEXP)
+				aStats[ID].StatValue = FMath::Min(aStats[ID].StatValue + Value, CalculateExpToLevel(30));
+			else
+				aStats[ID].StatValue += Value;
 		}
 	}
 }

@@ -147,7 +147,7 @@ bool UOrionGameSettingsManager::RebindKey(FString ActionName, FKey NewKey, FName
 	bool bFound = false;
 	for (FInputActionKeyMapping& Each : Actions)
 	{
-		if (Each.ActionName.ToString() == ActionName && Each.Key == FKey(OriginalKey))
+		if (Each.ActionName.ToString() == ActionName && (Each.Key == FKey(OriginalKey) || OriginalKey == "Button"))
 		{
 			Each.Key = NewKey;
 			bFound = true;
@@ -161,7 +161,7 @@ bool UOrionGameSettingsManager::RebindKey(FString ActionName, FKey NewKey, FName
 
 		for (FInputAxisKeyMapping& Each : Axis)
 		{
-			if (Each.AxisName.ToString() == ActionName && Each.Scale == NewScale && Each.Key == FKey(OriginalKey))
+			if (Each.AxisName.ToString() == ActionName && Each.Scale == NewScale && (Each.Key == FKey(OriginalKey) || OriginalKey == "Button"))
 			{
 				Each.Key = NewKey;
 				bFound = true;
@@ -211,6 +211,9 @@ void UOrionGameSettingsManager::SaveInput()
 	//REBUILDS INPUT, creates modified config in Saved/Config/Windows/Input.ini
 	for (TObjectIterator<UPlayerInput> It; It; ++It)
 	{
-		It->ForceRebuildingKeyMaps(true);
+		It->ForceRebuildingKeyMaps();// true);
 	}
+
+	if (InputSettings)
+		InputSettings->SaveConfig();
 }

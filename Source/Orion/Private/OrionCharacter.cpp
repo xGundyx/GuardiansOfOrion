@@ -80,6 +80,11 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	EliteFX->RelativeLocation = FVector(0, 0, 0);
 	EliteFX->bAutoActivate = false;
 
+	BuffFX = ObjectInitializer.CreateDefaultSubobject<UParticleSystemComponent>(this, TEXT("BuffFX"));
+	BuffFX->AttachParent = GetMesh();
+	BuffFX->RelativeLocation = FVector(0, 0, 0);
+	BuffFX->bAutoActivate = false;
+
 	GetMesh()->bOnlyOwnerSee = false;
 	GetMesh()->bOwnerNoSee = false;// true;
 	GetMesh()->bReceivesDecals = false;
@@ -246,7 +251,11 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Shield = 500.0;
 	ShieldMax = 500.0;
 
-	GrenadeCooldown = 0.0f;
+	GrenadeCooldown.SecondsToRecharge = 25.0f;
+	GrenadeCooldown.Energy = GrenadeCooldown.SecondsToRecharge;
+
+	BlinkCooldown.SecondsToRecharge = 5.0f;
+	BlinkCooldown.Energy = BlinkCooldown.SecondsToRecharge;
 
 	bIsHealableMachine = false;
 
@@ -730,6 +739,12 @@ void AOrionCharacter::HandleSpecialWeaponFire(FName SocketName)
 
 void AOrionCharacter::SetCurrentWeapon(class AOrionWeapon* NewWeapon, class AOrionWeapon* LastWeapon)
 {
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+	if (PC && IsLocallyControlled() && NewWeapon)
+	{
+		PC->EventSelectWeapon(NewWeapon->InstantConfig.WeaponSlot, NewWeapon->GetWeaponName());
+	}
+
 	//if we're already putting our weapon down, just set the next weapon and don't trigger any anims
 	if (GetWorldTimerManager().IsTimerActive(UnEquipTimer))
 	{
@@ -880,6 +895,37 @@ void AOrionCharacter::OnRep_ShipPawn()
 		DetachFromShip();
 }
 
+//replicate the buffs to clients for effects
+void AOrionCharacter::OnRep_Buffs()
+{
+	UpdateBuffFX();
+}
+
+void AOrionCharacter::UpdateBuffFX()
+{
+	if (BuffFX)
+	{
+		bool bFound = false;
+		for (int32 i = 0; i < Buffs.Num(); i++)
+		{
+			if (Buffs[i] && Buffs[i] && Buffs[i]->Effect)
+			{
+				BuffFX->AttachTo(GetMesh(), "Aura");
+				BuffFX->SetTemplate(Buffs[i]->Effect);
+				BuffFX->ActivateSystem();
+				BuffFX->SetWorldScale3D(FVector(1.0f));
+
+				bFound = true;
+			}
+		}
+
+		if (!bFound)
+		{
+			BuffFX->DeactivateSystem();
+		}
+	}
+}
+
 void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
@@ -890,6 +936,7 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, ShieldMax);
 	DOREPLIFETIME(AOrionCharacter, Shield);
 	DOREPLIFETIME(AOrionCharacter, bIsElite);
+	DOREPLIFETIME(AOrionCharacter, Buffs);
 
 	//out of bounds
 	DOREPLIFETIME(AOrionCharacter, OutOfBoundsCounter);
@@ -947,6 +994,7 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 
 	DOREPLIFETIME(AOrionCharacter, DrivenVehicle);
 	DOREPLIFETIME(AOrionCharacter, CurrentSkill);
+	DOREPLIFETIME(AOrionCharacter, CurrentSecondarySkill);
 
 	DOREPLIFETIME(AOrionCharacter, bShoulderCamera);
 	DOREPLIFETIME(AOrionCharacter, bShipCamera);
@@ -1121,7 +1169,7 @@ void AOrionCharacter::PostInitializeComponents()
 
 	if (Role == ROLE_Authority)
 	{
-		bShoulderCamera = FMath::RandRange(0, 1) == 1;
+		bShoulderCamera = true;// FMath::RandRange(0, 1) == 1;
 		bShipCamera = !bShoulderCamera;
 	}
 
@@ -1374,6 +1422,35 @@ void AOrionCharacter::SetAbility(AOrionAbility *NewAbility)
 	CurrentSkill = NewAbility;
 }
 
+void AOrionCharacter::SetSecondaryAbility(AOrionAbility *NewAbility)
+{
+	if (CurrentSecondarySkill)
+		CurrentSecondarySkill->Destroy();
+
+	CurrentSecondarySkill = NewAbility;
+}
+
+void AOrionCharacter::SetTeamCloaking()
+{
+	if (CurrentSkill && CurrentSkill->IsCloaking())
+		return;
+
+	if (CurrentSecondarySkill)
+	{
+		if (!CurrentSecondarySkill->IsSkillActive())
+		{
+			if (CurrentSecondarySkill->ActivateSkill())
+			{
+
+			}
+		}
+		else
+		{
+			CurrentSecondarySkill->DeactivateSkill();
+		}
+	}
+}
+
 bool AOrionCharacter::IsOvercharging() const
 {
 	if (CurrentSkill && CurrentSkill->IsOvercharging())
@@ -1386,13 +1463,60 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 {
 	UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject());
 
+	//take no damage while blinking
+	if (bBlinking)
+		return 0.0f;
+
+	for (auto Itr(Buffs.CreateIterator()); Itr; ++Itr)
+	{
+		AOrionBuff *Buff = *Itr;
+
+		if (!Itr)
+			continue;
+
+		if (Buff->DamageReduction > 0.0f)
+			Damage *= (1.0f - Buff->DamageReduction);
+	}
+
 	//if damagecauser is a weapon, get the weapon's instigator instead
 	AOrionWeapon *WeaponDamageCauser = Cast<AOrionWeapon>(DamageCauser);
 
 	if (WeaponDamageCauser)
 	{
+		//apply gear and skill based damage adjustments
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(EventInstigator);
+		if (PC)
+		{
+			if (WeaponDamageCauser->InstantConfig.WeaponSlot == 2)
+				Damage *= 1.0f + float(PC->GetSkillValue(SKILL_SECONDARYDAMAGE)) / 100.0f;
+			else if (WeaponDamageCauser->InstantConfig.WeaponSlot == 1)
+				Damage *= 1.0f + float(PC->GetSkillValue(SKILL_PRIMARYDAMAGE)) / 100.0f;
+		}
+
 		DamageCauser = WeaponDamageCauser->Instigator;
 	}
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+	if (PC)
+	{
+		Damage *= 1.0f - float(PC->GetSkillValue(SKILL_ROBOTDAMAGEREDUCTION)) / 100.0f;
+		if (CurrentSkill && CurrentSkill->IsJetpacking())
+			Damage *= 1.0f - float(PC->GetSkillValue(SKILL_JETPACKDAMAGEREDUCTION)) / 100.0f;
+
+		if (PC->HasOrbEffect(ORB_STRENGTH))
+			Damage *= 0.5f;
+	}
+
+	AOrionPlayerController *AttackerPC = Cast<AOrionPlayerController>(EventInstigator);
+
+	if (bIsBigDino)
+	{
+		if (AttackerPC)
+			Damage *= 1.0f + float(AttackerPC->GetSkillValue(SKILL_DAMAGETOLARGEDINOS)) / 100.0f;
+	}
+
+	if (AttackerPC && AttackerPC->HasOrbEffect(ORB_STOPPING))
+		Damage *= 2.0f;
 
 	if (Health <= 0.f)
 	{
@@ -1470,6 +1594,10 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 	if (ActualDamage > 0.f)
 	{
+		//add this player to our assist tracker
+		if (AttackerPC)
+			Assisters.AddUnique(AttackerPC);
+
 		//if we're an ai, tell us about this bastard
 		if (Cast<AOrionAIController>(Controller))
 			Cast<AOrionAIController>(Controller)->OnSeePawn(Cast<APawn>(DamageCauser));
@@ -1915,21 +2043,21 @@ float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float I
 				CurrentWeapon->GetWeaponMesh(false)->AnimScriptInstance->Montage_Stop(0.05);
 
 			if (CurrentWeapon->GetWeaponMesh(true) && Animation.Weapon1P && IsFirstPerson())
-				CurrentWeapon->GetWeaponMesh(true)->AnimScriptInstance->Montage_Play(Animation.Weapon1P, 1.0f);// / Animation.Weapon1P->RateScale;
+				CurrentWeapon->GetWeaponMesh(true)->AnimScriptInstance->Montage_Play(Animation.Weapon1P, InPlayRate);// / Animation.Weapon1P->RateScale;
 			if (CurrentWeapon->GetWeaponMesh(false) && Animation.Weapon3P && !IsFirstPerson())
-				CurrentWeapon->GetWeaponMesh(false)->AnimScriptInstance->Montage_Play(Animation.Weapon3P, 1.0f);// / Animation.Weapon3P->RateScale;
+				CurrentWeapon->GetWeaponMesh(false)->AnimScriptInstance->Montage_Play(Animation.Weapon3P, InPlayRate);// / Animation.Weapon3P->RateScale;
 		}
 
 		//play 1p arms animation
 		if (Arms1PMesh && Arms1PMesh->AnimScriptInstance && Animation.Pawn1P)
-			Duration = Arms1PMesh->AnimScriptInstance->Montage_Play(Animation.Pawn1P, 1.0f) / Animation.Pawn1P->RateScale;// , 1.0);
+			Duration = Arms1PMesh->AnimScriptInstance->Montage_Play(Animation.Pawn1P, InPlayRate) / Animation.Pawn1P->RateScale;// , 1.0);
 		//play 3p char animation
 		if (Animation.Pawn3P)
 		{
 			if (Duration < 0.05f)
-				Duration = FMath::Max(Duration, AnimInstance->Montage_Play(Animation.Pawn3P, 1.0f) / Animation.Pawn3P->RateScale);
+				Duration = FMath::Max(Duration, AnimInstance->Montage_Play(Animation.Pawn3P, InPlayRate) / Animation.Pawn3P->RateScale);
 			else
-				AnimInstance->Montage_Play(Animation.Pawn3P, 1.0f);
+				AnimInstance->Montage_Play(Animation.Pawn3P, InPlayRate);
 		}
 		if (Duration > 0.f)
 		{
@@ -1954,7 +2082,7 @@ float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float I
 				GetWorldTimerManager().SetTimer(GrenadeHideTimer, this, &AOrionCharacter::UnhideWeapon, Duration * 0.9f, false);
 			}
 
-			return Duration;
+			return Duration / InPlayRate;
 		}
 	}
 
@@ -2220,7 +2348,11 @@ void AOrionCharacter::UpdatePawnMeshes()
 		Arms1PArmorMesh->SetHiddenInGame(!bFirst || bBlinking); //SetOwnerNoSee(!bFirst);
 
 	if (CurrentWeapon)
+	{
 		CurrentWeapon->AttachMeshToPawn();
+		if (bAim)
+			CurrentWeapon->StartAiming(false);
+	}
 	//	CurrentWeapon->OnEquip();
 
 	//if we're a local player controller, set us up to render outlines behind walls
@@ -2265,7 +2397,10 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 		AOrionBuff *Buff = *Itr;
 
 		if (!Itr)
+		{
+			Buffs.Remove(Buff);
 			continue;
+		}
 
 		//see if we're hidden from enemy AI view
 		if (Buff->bBlockSight)
@@ -2297,6 +2432,11 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 			else if (Buff->Damage < 0.0f)
 				Heal(int32(-Buff->Damage));
 
+			if (Buff->HealPercent > 0.0f)
+			{
+				Health = FMath::Min(HealthMax, Health + (Buff->HealPercent * HealthMax));
+			}
+
 			//reset the ticker
 			Buff->TickTimer += Buff->TickInterval;
 		}
@@ -2310,6 +2450,8 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 			Buff->Destroy();
 
 			Buffs.Remove(Buff);
+
+			UpdateBuffFX();
 
 			continue;
 		}
@@ -2327,7 +2469,7 @@ void AOrionCharacter::AddBuff(TSubclassOf<AOrionBuff> BuffClass, AController *cO
 	//first check if we already have this buff, if we do, add any stacks and refresh the timer
 	for (int32 i = 0; i < Buffs.Num(); i++)
 	{
-		if (Buffs[i]->GetClass() == BuffClass && TeamIndex == Buffs[i]->TeamIndex)
+		if (Buffs[i] && Buffs[i]->GetClass() == BuffClass && TeamIndex == Buffs[i]->TeamIndex)
 		{
 			Buffs[i]->LastRefreshedTime = GetWorld()->GetTimeSeconds();
 			if (Buffs[i]->bStackable)
@@ -2348,7 +2490,10 @@ void AOrionCharacter::AddBuff(TSubclassOf<AOrionBuff> BuffClass, AController *cO
 		Buff->LastRefreshedTime = GetWorld()->GetTimeSeconds();
 		Buff->ControllerOwner = cOwner;
 		Buff->TeamIndex = TeamIndex;
+
 		Buffs.Add(Buff);
+
+		UpdateBuffFX();
 	}
 }
 
@@ -2447,12 +2592,29 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 	//recharge shields
 	if (Role == ROLE_Authority)
 	{
+		float Rate = 1.0f;
+
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+		if (PC)
+			Rate = 1.0f + float(PC->GetSkillValue(SKILL_SHIELDREGENSPEED)) / 100.0f;
+
 		if (Shield < ShieldMax && GetWorld()->TimeSeconds - LastTakeHitTime >= 10.0f)
 		{
-			Shield = FMath::Min(ShieldMax, Shield + DeltaSeconds * (ShieldMax / 10.0f));
+			Shield = FMath::Min(ShieldMax, Shield + DeltaSeconds * Rate * (ShieldMax / 10.0f));
 
 			if (PC && Shield >= ShieldMax)
 				PC->PlayShieldEffect(true);
+		}
+
+		if (PC && PC->GetSkillValue(SKILL_HEALTHREGEN) > 0 && Health < HealthMax && GetWorld()->TimeSeconds - LastTakeHitTime >= 10.0f)
+			Health = FMath::Min(HealthMax, Health + DeltaSeconds * Rate * (HealthMax / 10.0f));
+
+		if (PC && PC->HasOrbEffect(ORB_HEALTH))
+			Health = FMath::Min(HealthMax, Health + DeltaSeconds * (HealthMax / 20.0f));
+
+		if (CurrentSkill && CurrentSkill->IsCloaking())
+		{
+			Health = FMath::Min(HealthMax, Health + DeltaSeconds * (float(PC->GetSkillValue(SKILL_CLOAKREGEN)) / 100.0f)  * HealthMax);
 		}
 	}
 
@@ -2489,10 +2651,18 @@ void AOrionCharacter::HandleHealEffects(float DeltaTime)
 
 void AOrionCharacter::UpdateCooldowns(float DeltaTime)
 {
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (!PC)
+		return;
+
 	if (Role == ROLE_Authority)
 	{
-		GrenadeCooldown = FMath::Max(0.0f, GrenadeCooldown - DeltaTime);
-		BlinkCooldown = FMath::Max(0.0f, BlinkCooldown - DeltaTime);
+		float Rate = 1.0f + float(PC->GetSkillValue(SKILL_GRENADECOOLDOWN)) / 25.0f;
+		GrenadeCooldown.Energy = FMath::Min(GrenadeCooldown.Energy + DeltaTime * Rate, float(GrenadeCooldown.SecondsToRecharge * (PC->GetSkillValue(SKILL_EXTRAGRENADE) > 0 ? 2 : 1)));
+
+		BlinkCooldown.Energy = FMath::Min(BlinkCooldown.Energy + DeltaTime, float(BlinkCooldown.SecondsToRecharge * (PC->GetSkillValue(SKILL_EXTRABLINK) > 0 ? 2 : 1)));
+
 		RollCooldown = FMath::Max(0.0f, RollCooldown - DeltaTime);
 	}
 }
@@ -2597,7 +2767,7 @@ void AOrionCharacter::TossGrenade()
 	if (ShouldIgnoreControls())
 		return;
 
-	if (GrenadeCooldown > 0.0f)
+	if (GrenadeCooldown.Energy < GrenadeCooldown.SecondsToRecharge)
 		return;
 
 	FWeaponAnim GrenAnim;
@@ -2625,12 +2795,12 @@ void AOrionCharacter::ServerTossGrenade_Implementation(FVector dir)
 //throw this bitch
 void AOrionCharacter::ActuallyTossGrenade(FVector dir)
 {
-	if (GrenadeCooldown > 0.0f)
+	if (GrenadeCooldown.Energy < GrenadeCooldown.SecondsToRecharge)
 		return;
 
 	if (Role == ROLE_Authority)
 	{
-		GrenadeCooldown = 20.0f;
+		GrenadeCooldown.Energy -= GrenadeCooldown.SecondsToRecharge;
 
 		if (GrenadeClass)
 		{
@@ -2645,7 +2815,10 @@ void AOrionCharacter::ActuallyTossGrenade(FVector dir)
 
 			AOrionGrenade *Grenade = GetWorld()->SpawnActor<AOrionGrenade>(GrenadeClass, pos + FVector(0.0f, 0.0f, 25.0f) + dir.GetSafeNormal() * 75.0f, dir.Rotation(), SpawnInfo);
 			if (Grenade)
+			{
 				Grenade->Init(dir);
+				Grenade->SetFuseTime(Grenade->LifeTime);
+			}
 		}
 	}
 }
@@ -2706,7 +2879,31 @@ void AOrionCharacter::ActivateSkill()
 		{
 			if (CurrentSkill->ActivateSkill())
 			{
+				AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+				AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+				if (Role == ROLE_Authority && PRI && PRI->ClassType == "RECON" && PC && PC->GetSkillValue(SKILL_CLOAKTEAMMATES) > 0)
+				{
+					TArray<AActor*> Controllers;
 
+					UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+					for (int32 i = 0; i < Controllers.Num(); i++)
+					{
+						AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
+
+						if (C == PC)
+							continue;
+
+						if (C && C->GetPawn())
+						{
+							AOrionCharacter *Pawn = Cast<AOrionCharacter>(C->GetPawn());
+							if (Pawn)
+							{
+								Pawn->SetTeamCloaking();
+							}
+						}
+					}
+				}
 			}
 		}
 		else
@@ -2989,7 +3186,7 @@ void AOrionCharacter::OnRep_Teleport()
 
 void AOrionCharacter::Blink(FVector dir)
 {
-	BlinkCooldown = 5.0f;
+	BlinkCooldown.Energy -= 5.0f;
 	if (Role < ROLE_Authority)
 	{
 		ServerBlink(dir);
@@ -3007,6 +3204,14 @@ void AOrionCharacter::Blink(FVector dir)
 		props.AgentRadius = 150.0f;
 
 		BlinkPos.Start = GetActorLocation();
+
+		float Dist = 250.0f;
+
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+		if (PC)
+		{
+			Dist *= 1.0f + float(PC->GetSkillValue(SKILL_BLINKDISTANCE)) / 100.0f;
+		}
 
 		for (int32 i = 0; i < 4; i++)
 		{
@@ -3029,6 +3234,22 @@ void AOrionCharacter::Blink(FVector dir)
 				EndPos = loc.Location + GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 				if (TeleportTo(EndPos, GetActorRotation()))
 				{
+					if (PC && PC->GetSkillValue(SKILL_BLINKDISTANCE) == PC->CharacterSkills[SKILL_BLINKDISTANCE].MaxPoints * PC->CharacterSkills[SKILL_BLINKDISTANCE].Modifier)
+					{
+						//drop a grenade at their old spot
+						FActorSpawnParameters SpawnInfo;
+						SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+						SpawnInfo.Owner = this;
+
+						AOrionGrenade *Grenade = GetWorld()->SpawnActor<AOrionGrenade>(GrenadeClass, StartPos + FVector(0.0f, 0.0f, 25.0f) + FVector(0.0f, 0.0f, 1.0f) * 75.0f, FRotator::ZeroRotator, SpawnInfo);
+						if (Grenade)
+						{
+							Grenade->Init(FVector(0.0f, 0.0f, 1.0f));
+							Grenade->bIsMiniGrenade = true;
+							Grenade->SetFuseTime(0.5f);
+						}
+					}
+
 					if (GetNetMode() != NM_DedicatedServer)
 						DoBlinkEffect(true, StartPos);
 
@@ -3148,7 +3369,13 @@ void AOrionCharacter::ServerDoRoll_Implementation(ERollDir rDir, FRotator rRot)
 
 	StopAllAnimMontages();
 
-	float Length = OrionPlayAnimMontage(Info, 1.0f, FName(""), true, false, true);
+	float Rate = 1.0f;
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+	if (PC)
+		Rate += float(PC->GetSkillValue(SKILL_ROLLSPEED)) / 100.0f;
+
+	float Length = OrionPlayAnimMontage(Info, Rate, FName(""), true, false, true);
 
 	//set roll after anim
 	bRolling = true;
@@ -3161,6 +3388,10 @@ void AOrionCharacter::DoRoll()
 	if (GetWorldTimerManager().IsTimerActive(RollTimer2))
 		return;
 
+	//no interupting grenade animation
+	if (GetWorldTimerManager().IsTimerActive(GrenadeTimer))
+		return;
+
 	if (RollCooldown > 0.0f)
 		return;
 
@@ -3171,6 +3402,12 @@ void AOrionCharacter::DoRoll()
 		return;
 
 	FRotator newRot = GetActorRotation();
+
+	float Rate = 1.0f;
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+	if (PC)
+		Rate += float(PC->GetSkillValue(SKILL_ROLLSPEED)) / 100.0f;
 
 	if (RollAnimation.Backwards != NULL)
 	{
@@ -3198,7 +3435,7 @@ void AOrionCharacter::DoRoll()
 			{
 				Info.Pawn3P = RollAnimation.Backwards;
 				TargetYaw = 180.0f + AimRotLS.Yaw;
-				Length = OrionPlayAnimMontage(Info);// AnimInstance->Montage_Play(RollAnimation.Backwards, 1.f) / RollAnimation.Backwards->RateScale;
+				Length = OrionPlayAnimMontage(Info, Rate);// AnimInstance->Montage_Play(RollAnimation.Backwards, 1.f) / RollAnimation.Backwards->RateScale;
 				RollDir = ROLL_BACKWARDS;
 				newRot = (-AimDirWS).Rotation();
 				SetActorRotation((-AimDirWS).Rotation());
@@ -3207,14 +3444,14 @@ void AOrionCharacter::DoRoll()
 			{
 				Info.Pawn3P = RollAnimation.Left;
 				TargetYaw = 0.0f;
-				Length = OrionPlayAnimMontage(Info);// AnimInstance->Montage_Play(RollAnimation.Left, 1.f) / RollAnimation.Left->RateScale;
+				Length = OrionPlayAnimMontage(Info, Rate);// AnimInstance->Montage_Play(RollAnimation.Left, 1.f) / RollAnimation.Left->RateScale;
 				RollDir = ROLL_LEFT;
 			}
 			else if (AimRotLS.Yaw < 75.0f)
 			{
 				Info.Pawn3P = RollAnimation.Forwards;
 				TargetYaw = AimRotLS.Yaw;
-				Length = OrionPlayAnimMontage(Info);// AnimInstance->Montage_Play(RollAnimation.Forwards, 1.f) / RollAnimation.Forwards->RateScale;
+				Length = OrionPlayAnimMontage(Info, Rate);// AnimInstance->Montage_Play(RollAnimation.Forwards, 1.f) / RollAnimation.Forwards->RateScale;
 				RollDir = ROLL_FORWARDS;
 				newRot = AimDirWS.Rotation();
 				SetActorRotation(AimDirWS.Rotation());
@@ -3223,7 +3460,7 @@ void AOrionCharacter::DoRoll()
 			{
 				Info.Pawn3P = RollAnimation.Right;
 				TargetYaw = 0.0f;
-				Length = OrionPlayAnimMontage(Info);// AnimInstance->Montage_Play(RollAnimation.Right , 1.f) / RollAnimation.Right->RateScale;
+				Length = OrionPlayAnimMontage(Info, Rate);// AnimInstance->Montage_Play(RollAnimation.Right , 1.f) / RollAnimation.Right->RateScale;
 				RollDir = ROLL_RIGHT;
 			}
 		}
@@ -3236,7 +3473,6 @@ void AOrionCharacter::DoRoll()
 	if (Role < ROLE_Authority)
 		ServerDoRoll(RollDir, newRot);
 
-	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 	if (PC)
 	{
 		PC->SetIgnoreMoveInput(true);
@@ -3404,6 +3640,10 @@ void AOrionCharacter::DoMelee()
 	if (ShouldIgnoreControls())
 		return;
 
+	//no interupting grenade animation
+	if (GetWorldTimerManager().IsTimerActive(GrenadeTimer))
+		return;
+
 	if (CurrentWeapon)
 	{
 		CurrentWeapon->Melee();
@@ -3413,6 +3653,10 @@ void AOrionCharacter::DoMelee()
 void AOrionCharacter::Reload()
 {
 	if (ShouldIgnoreControls())
+		return;
+
+	//no interupting grenade animation
+	if (GetWorldTimerManager().IsTimerActive(GrenadeTimer))
 		return;
 
 	if (CurrentWeapon)
@@ -3475,6 +3719,10 @@ void AOrionCharacter::StartAiming()
 	if (ShouldIgnoreControls())
 		return;
 
+	//no interupting grenade animation
+	if (GetWorldTimerManager().IsTimerActive(GrenadeTimer))
+		return;
+
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
 	if (PC && PC->bCinematicMode)
@@ -3504,6 +3752,10 @@ void AOrionCharacter::OnStopFire()
 void AOrionCharacter::OnFire()
 {
 	if (ShouldIgnoreControls())
+		return;
+
+	//no interupting grenade animation
+	if (GetWorldTimerManager().IsTimerActive(GrenadeTimer))
 		return;
 
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);

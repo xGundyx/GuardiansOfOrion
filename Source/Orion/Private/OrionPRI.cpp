@@ -46,6 +46,76 @@ int32 AOrionPRI::GetXPIntoLevel()
 	return Ret;
 }
 
+//update visual effects and timers on client machines
+void AOrionPRI::OnRep_OrbEffects()
+{
+}
+
+void AOrionPRI::UpdateOrbEffects()
+{
+	for (int32 i = 0; i < OrbEffects.Num(); i++)
+	{
+		float TimeLeft = GetWorld()->GetTimeSeconds() - OrbEffects[i].TimeStarted;
+		if (TimeLeft >= OrbEffects[i].Duration)
+		{
+			OrbEffects.RemoveAt(i);
+			i = -1;
+		}
+		else
+		{
+			OrbEffects[i].TimeLeft = TimeLeft;
+		}
+	}
+}
+
+void AOrionPRI::AddOrbEffect(EOrbType Type, float Duration)
+{
+	if (Role != ROLE_Authority)
+		return;
+
+	bool bFound = false;
+
+	//make sure it doesn't already exist
+	for (int32 i = 0; i < OrbEffects.Num(); i++)
+	{
+		if (OrbEffects[i].Type == Type)
+		{
+			OrbEffects[i].Duration = Duration;
+			OrbEffects[i].TimeLeft = Duration;
+			OrbEffects[i].TimeStarted = GetWorld()->GetTimeSeconds();
+			bFound = true;
+			break;
+		}
+	}
+
+	if (!bFound)
+	{
+		FOrbHelper Orb;
+		Orb.Duration = Duration;
+		Orb.TimeLeft = Duration;
+		Orb.TimeStarted = GetWorld()->GetTimeSeconds();
+		Orb.Type = Type;
+
+		OrbEffects.Add(Orb);
+	}
+}
+
+int32 AOrionPRI::GetCharacterLevel(ECharacterClass CharacterType)
+{
+	int XP = 0;
+
+	if (CharacterType == ECharacterClass::CLASS_SUPPORT)
+		XP = SupportXP;
+	else if (CharacterType == ECharacterClass::CLASS_ASSAULT)
+		XP = AssaultXP;
+	else if (CharacterType == ECharacterClass::CLASS_RECON)
+		XP = ReconXP;
+	else
+		return 1;
+
+	return CalculateLevel(XP);
+}
+
 int32 AOrionPRI::GetXPToLevel()
 {
 	int XP = 0;
@@ -98,6 +168,7 @@ void AOrionPRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionPRI, SessionTicket);
 	DOREPLIFETIME(AOrionPRI, CharacterID);
 	DOREPLIFETIME(AOrionPRI, PlayFabName);
+	DOREPLIFETIME(AOrionPRI, UnlockedSkills);
 
 	//scores
 	DOREPLIFETIME(AOrionPRI, Kills);
@@ -112,6 +183,9 @@ void AOrionPRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 
 	//photon
 	DOREPLIFETIME(AOrionPRI, ServerInfo);
+
+	//ooooooorbs
+	DOREPLIFETIME(AOrionPRI, OrbEffects);
 }
 
 void AOrionPRI::OnRep_InventoryManager()

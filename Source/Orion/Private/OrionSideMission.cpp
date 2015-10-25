@@ -13,6 +13,8 @@ AOrionSideMission::AOrionSideMission(const FObjectInitializer& ObjectInitializer
 	PrimaryActorTick.bCanEverTick = true;
 
 	bBossMission = false;
+
+	Tier = 0;
 }
 
 // Called when the game starts or when spawned

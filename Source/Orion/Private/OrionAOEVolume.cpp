@@ -1,6 +1,7 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Orion.h"
+#include "OrionBuff.h"
 #include "OrionAOEVolume.h"
 
 AOrionAOEVolume::AOrionAOEVolume(const FObjectInitializer& ObjectInitializer)
@@ -24,8 +25,13 @@ void AOrionAOEVolume::OnEnter(AActor *Other, UPrimitiveComponent *OtherComp, int
 {
 	//apply any special status effects
 	AOrionCharacter *Pawn = Cast<AOrionCharacter>(Other);
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
+
 	if (Pawn && Role == ROLE_Authority)
 	{
+		if (Pawn->bIsHealableMachine)
+			return;
+
 		if (BuffClass)
 		{
 			AController *cOwner = Cast<AController>(GetOwner());
@@ -35,6 +41,17 @@ void AOrionAOEVolume::OnEnter(AActor *Other, UPrimitiveComponent *OtherComp, int
 				if (P)
 					cOwner = P->Controller;
 			}
+
+			AOrionBuff *Buff = BuffClass.GetDefaultObject();
+			bool SameTeam = false;
+
+			if (cOwner && GRI && GRI->OnSameTeam(Cast<AOrionPRI>(Pawn->PlayerState), Cast<AOrionPRI>(cOwner->PlayerState)))
+				SameTeam = true;
+
+			if (Buff && !Buff->bAffectsEnemies && !SameTeam)
+				return;
+			else if (Buff && !Buff->bAffectsTeammates && SameTeam)
+				return;
 
 			Pawn->AddBuff(BuffClass, cOwner, TeamIndex);
 		}

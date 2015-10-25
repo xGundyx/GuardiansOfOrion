@@ -25,6 +25,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Mission)
 		void MissionComplete();
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Mission)
+		FString MissionObjective;
+
 	//start the mission
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "EventStartMission"))
 		void StartMission();
@@ -32,6 +35,10 @@ public:
 	//list of enemies for this mission (if any)
 	UPROPERTY(BlueprintReadWrite, Category = Mission)
 		TArray<AOrionCharacter*> Enemies;
+
+	//0 = easy, 1 = hard, 2 = boss
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Mission)
+		int32 Tier;
 
 	UFUNCTION(BlueprintCallable, Category = Mission)
 		void SpawnMissionEnemies(FSpawnNumbers TypesToSpawn, AActor *Target);

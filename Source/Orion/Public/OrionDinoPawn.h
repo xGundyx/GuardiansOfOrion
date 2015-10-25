@@ -72,6 +72,12 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = AI)
 		bool bChargeAttack;
 
+	UPROPERTY(BlueprintReadWrite, Category = AI)
+		FVector ChargeTarget;
+
+	UPROPERTY(BlueprintReadWrite, Category = AI)
+		bool bShouldStopMovement;
+
 private:
 	FVector GroundNormal;
 };

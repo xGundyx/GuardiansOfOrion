@@ -21,6 +21,7 @@ AOrionGRI::AOrionGRI(const FObjectInitializer& ObjectInitializer)
 	bTeamGame = false;
 
 	GameOverCountDown = -1;
+	SecondsTillNextWave = -1;
 }
 
 void AOrionGRI::AddRagdoll(AOrionCharacter *Ragdoll)
@@ -80,6 +81,7 @@ void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionGRI, HeaderMessage);
 	DOREPLIFETIME(AOrionGRI, GameOverCountDown);
 	DOREPLIFETIME(AOrionGRI, SecondsTillNextSpawn);
+	DOREPLIFETIME(AOrionGRI, SecondsTillNextWave);
 	/*DOREPLIFETIME(AShooterGameState, NumTeams);
 	DOREPLIFETIME(AShooterGameState, RemainingTime);
 	DOREPLIFETIME(AShooterGameState, bTimerPaused);
@@ -278,7 +280,7 @@ FMissionInfo AOrionGRI::GetMission(int32 Index)
 		}
 		else
 		{
-			Info.Title = WaveNum < 10 ? FString::Printf(TEXT("Wave 0%i"), WaveNum) : FString::Printf(TEXT("Wave %i"), WaveNum);
+			Info.Title = WaveNum < 10 ? FString::Printf(TEXT("WAVE 0%i"), WaveNum) : FString::Printf(TEXT("WAVE %i"), WaveNum);
 			Info.Desc = Info.Desc = FString::Printf(TEXT("%i ENEMIES"), DinosAliveInWave);
 		}
 		break;
@@ -290,7 +292,7 @@ FMissionInfo AOrionGRI::GetMission(int32 Index)
 		}
 		else
 		{
-			Info.Title = TEXT("Enemies Alive");
+			Info.Title = TEXT("ENEMIES ALIVE");
 			Info.Desc = FString::Printf(TEXT("%i"), DinosAliveInWave);
 		}
 		break;
