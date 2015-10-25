@@ -37,12 +37,16 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Grenade)
 		float ExplosionScale;
 
+	UPROPERTY(BlueprintReadWrite, Category = Grenade)
+		bool bIsMiniGrenade;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
 		class UProjectileMovementComponent* ProjectileMovement;
 
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void Destroyed() override;
 	void GoBoom();
+	void SetFuseTime(float FuseTime);
 
 	UFUNCTION()
 		void OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);

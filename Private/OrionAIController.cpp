@@ -93,7 +93,10 @@ void AOrionAIController::ResetStuck()
 			if (Game && P)
 			{
 				Game->AddSpawn(P);
-				P->Destroy();
+				FDamageEvent dEvent = FDamageEvent::FDamageEvent();
+				dEvent.DamageTypeClass = UOrionDamageType::StaticClass();
+
+				P->Die(10000000.0f, dEvent, nullptr, P);
 			}
 		}
 	}
@@ -399,30 +402,34 @@ void AOrionAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn
 	FVector FocalPoint = GetFocalPoint();
 
 	AOrionCharacter *Pawn = Cast<AOrionCharacter>(GetPawn());
+	AOrionDinoPawn *Dino = Cast<AOrionDinoPawn>(GetPawn());
 
-	if (!FocalPoint.IsZero() && Pawn && (Pawn->GetVelocity().SizeSquared2D() > 10.0f || Pawn->bAlwaysRotate))
+	if (!FocalPoint.IsZero() && Pawn && (Pawn->GetVelocity().SizeSquared2D() > 10.0f || Pawn->bAlwaysRotate || (Dino && Dino->bChargingAttack)))
 	{
 		FVector Direction = FocalPoint - GetPawn()->GetActorLocation();
 		
 		FRotator NewControlRotation = Direction.Rotation();
 
 		NewControlRotation.Yaw = FRotator::ClampAxis(NewControlRotation.Yaw);
-		AOrionCharacter *pPawn = Cast<AOrionCharacter>(GetPawn());
-		if (pPawn->IsFlying() && !pPawn->bLanding)
+
+		if (Dino && Dino->bChargeAttack)
+			return;
+		//else if (Dino->bChargingAttack)
+		//
+		else if (Pawn->IsFlying() && !Pawn->bLanding)
 		{
 			NewControlRotation.Pitch = FRotator::ClampAxis(NewControlRotation.Pitch);
 		}
-		else if (pPawn->bLanding)
+		else if (Pawn->bLanding)
 		{
 			NewControlRotation.Pitch = 0.0f;
 		}
 
 		SetControlRotation(NewControlRotation);
 
-		APawn* const P = GetPawn();
-		if (P && bUpdatePawn)
+		if (bUpdatePawn)
 		{
-			P->FaceRotation(NewControlRotation, DeltaTime);
+			Pawn->FaceRotation(NewControlRotation, DeltaTime);
 		}
 	}
 }
@@ -497,6 +504,8 @@ void AOrionAIController::CheckEnemyStatus()
 			bRemoveEnemy = true;
 		//can't see cloaked assholes
 		if (pEnemy->CurrentSkill && pEnemy->CurrentSkill->IsCloaking())
+			bRemoveEnemy = true;
+		if (pEnemy->CurrentSecondarySkill && pEnemy->CurrentSecondarySkill->IsCloaking())
 			bRemoveEnemy = true;
 		//ignore dead players
 		else if (pEnemy->Health <= 0)
@@ -652,6 +661,9 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 			return;
 
 		if (pPawn->CurrentSkill && pPawn->CurrentSkill->IsCloaking())
+			return;
+
+		if (pPawn->CurrentSecondarySkill && pPawn->CurrentSecondarySkill->IsCloaking())
 			return;
 
 		if (pPawn->bIsHiddenFromView)

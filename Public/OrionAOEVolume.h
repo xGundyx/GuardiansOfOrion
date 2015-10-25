@@ -20,29 +20,29 @@ public:
 	void Tick(float DeltaSeconds) override;
 
 	//sphere component to use for a volume
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AOE)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AOE)
 		class USphereComponent* SphereMesh;
 
 	//particle effect to play inside
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AOE)
+		UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AOE)
 		UParticleSystem *AOEEffect;
 
 	//pointer to the actual component
 	UParticleSystemComponent *AOEPSC;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AOE)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AOE)
 		float Radius;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AOE)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AOE)
 		float DamagePerTick;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AOE)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AOE)
 		bool bCauseSlow;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AOE)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AOE)
 		float AOEScale;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AOE)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AOE)
 		float Duration;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AOE)

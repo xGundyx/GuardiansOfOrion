@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameFramework/PlayerState.h"
+#include "OrionTypes.h"
 #include "OrionPRI.generated.h"
 
 /**
@@ -68,6 +69,9 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		int32 ReconXP;
 
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
+		TArray<FUnlockedSkills> UnlockedSkills;
+
 	UFUNCTION(BlueprintCallable, Category = Team)
 		int32 GetTeamIndex();
 
@@ -80,7 +84,21 @@ public:
 	UFUNCTION(BlueprintCallable, Category = RPG)
 		int32 GetXPToLevel();
 
+	UFUNCTION(BlueprintCallable, Category = RPG)
+		int32 GetCharacterLevel(ECharacterClass CharacterType);
+
 	bool bInitialized;
+
+	UFUNCTION()
+		void OnRep_OrbEffects();
+
+	UFUNCTION(BlueprintCallable, Category = RPG)
+		void AddOrbEffect(EOrbType Type, float Duration);
+
+	UPROPERTY(replicatedUsing = OnRep_OrbEffects)
+		TArray<FOrbHelper> OrbEffects;
+
+	void UpdateOrbEffects();
 
 private:
 	UPROPERTY(Replicated)

@@ -31,6 +31,7 @@ AOrionGrenade::AOrionGrenade(const FObjectInitializer& ObjectInitializer) : Supe
 	Damage = 1000;
 	DamageRadius = 1250.0f;
 	LifeTime = 2.5f;
+	bIsMiniGrenade = false;
 
 	ExplosionScale = 1.0f;
 
@@ -70,7 +71,23 @@ void AOrionGrenade::Explode()
 	{
 		UParticleSystemComponent *PSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionFX, GetActorLocation());
 		if (PSC)
-			PSC->SetWorldScale3D(FVector(ExplosionScale));
+		{
+			float Life = 15.0f;
+			float Scale = ExplosionScale * (bIsMiniGrenade ? 0.25f : 1.0f);
+
+			if (GetOwner() && Cast<AOrionCharacter>(GetOwner()))
+			{
+				AOrionPlayerController *PC = Cast<AOrionPlayerController>(Cast<AOrionCharacter>(GetOwner())->Controller);
+				if (PC)
+				{
+					Life += PC->GetSkillValue(SKILL_SPRINTSPEED);
+					Scale *= 1.0f + float(PC->GetSkillValue(SKILL_GRENADERADIUS)) / 100.0f;
+				}
+			}
+
+			PSC->SetWorldScale3D(FVector(Scale));
+			PSC->SetFloatParameter("LifeTime", 15.0f);
+		}
 	}
 
 	//play the explosion sound
@@ -84,8 +101,18 @@ void AOrionGrenade::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
+	/*if (Role == ROLE_Authority)
+	{
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, this, &AOrionGrenade::GoBoom, LifeTime, false);
+	}*/
+}
+
+void AOrionGrenade::SetFuseTime(float FuseTime)
+{
 	if (Role == ROLE_Authority)
 	{
+		LifeTime = FuseTime;
 		FTimerHandle Handle;
 		GetWorldTimerManager().SetTimer(Handle, this, &AOrionGrenade::GoBoom, LifeTime, false);
 	}

@@ -495,10 +495,10 @@ public:
 	void ActuallyTossGrenade(FVector dir);
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Grenade)
-		float GrenadeCooldown;
+		FCooldownAbility GrenadeCooldown;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Grenade)
-		float BlinkCooldown;
+		FCooldownAbility BlinkCooldown;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Grenade)
 		float RollCooldown;
@@ -918,7 +918,17 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Health)
 		void Heal(int32 Amount);
 
-	UPROPERTY(BlueprintReadWrite, Category = Buffs)
+	UFUNCTION()
+		void OnRep_Buffs();
+
+	void UpdateBuffFX();
+
+	UPROPERTY(EditDefaultsOnly, Category = Buff)
+		class UParticleSystemComponent* BuffFX;
+
+	TArray<AOrionPlayerController*> Assisters;
+
+	UPROPERTY(ReplicatedUsing = OnRep_Buffs, BlueprintReadWrite, Category = Buffs)
 		TArray<AOrionBuff*> Buffs;
 
 	UFUNCTION(BlueprintCallable, Category = Buffs)
@@ -1162,8 +1172,18 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Skill)
 		AOrionAbility *CurrentSkill;
 
+	//mainly for handling cloaking
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Skill)
+		AOrionAbility *CurrentSecondarySkill;
+
 	UFUNCTION(BlueprintCallable, Category = Skill)
 		void SetAbility(AOrionAbility *NewSkill);
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
+		void SetSecondaryAbility(AOrionAbility *NewSkill);
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
+		void SetTeamCloaking();
 
 	UPROPERTY(BlueprintReadOnly, Category = Skill)
 		TArray<UMaterialInstanceDynamic*> CharacterMats;
@@ -1331,6 +1351,9 @@ public:
 	AOrionSquad *Squad;
 
 	bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = RPG)
+		bool bFemale;
 
 protected:
 	// APawn interface

@@ -254,31 +254,77 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 
 	if (AIC)
 		AIC->bShouldRoar = true;
+
+	//assists
+	AOrionCharacter *DeadPawn = Cast<AOrionCharacter>(KilledPawn);
+
+	if (DeadPawn)
+	{
+		for (int32 i = 0; i < DeadPawn->Assisters.Num(); i++)
+		{
+			if (PC != DeadPawn->Assisters[i])
+			{
+				AOrionPRI *AssistPRI = Cast<AOrionPRI>(DeadPawn->PlayerState);
+
+				if (AssistPRI)
+				{
+					AssistPRI->Assists++;
+				}
+			}
+		}
+	}
 	
 	if (PC)
 	{
+		if (PC->GetSkillValue(SKILL_KILLLEECH))
+		{
+			AOrionCharacter *Pawn = Cast<AOrionCharacter>(PC->GetPawn());
+			if (Pawn)
+			{
+				Pawn->AddHealth(Pawn->HealthMax / 10);
+				Pawn->AddShield(Pawn->ShieldMax / 20);
+			}
+		}
+
 		AOrionCharacter *Dino = Cast<AOrionCharacter>(KilledPawn);
 		if (Dino)
 		{
-			////SpawnItems(Dino);
+			SpawnItems(Killer, Dino, DamageType);
+
+			int32 XP = Dino->ExpValue * 2;
 
 			//award some experience to the team
 			if (Dino->ExpValue > 0)
-				PC->ClientAddXPNumber(Dino->ExpValue * 2, KilledPawn->GetActorLocation());
-
-			//all players on the team receive the same xp
-			TArray<AActor*> Controllers;
-
-			UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
-
-			for (int32 i = 0; i < Controllers.Num(); i++)
 			{
-				AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
-				if (C)
-				{
-					C->AddXP(Dino->ExpValue * 2);
-				}
+				if (PC->HasOrbEffect(ORB_EXP))
+					XP *= 2;
+
+				PC->ClientAddXPNumber(XP, KilledPawn->GetActorLocation());
 			}
+
+			AwardXPToAllPlayers(Dino->ExpValue * 2);
+		}
+	}
+}
+
+void AOrionGameMode::AwardXPToAllPlayers(int32 Amount)
+{
+	//all players on the team receive the same xp
+	TArray<AActor*> Controllers;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
+		if (C)
+		{
+			int32 XP = Amount;
+
+			if (C->HasOrbEffect(ORB_EXP))
+				XP *= 2;
+
+			C->AddXP(Amount);
 		}
 	}
 }
@@ -388,7 +434,7 @@ void AOrionGameMode::HandleStats(AController* Killer, AController* KilledPlayer,
 
 		if (KillerPRI)
 			KillerPRI->Kills++;
-		else if (KilledPRI)
+		if (KilledPRI)
 			KilledPRI->Deaths++;
 	}
 }
@@ -506,9 +552,9 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 		else if (Difficulty == DIFF_HARD)
 			Damage *= 1.3f;
 		else if (Difficulty == DIFF_INSANE)
-			Damage *= 1.75f;
+			Damage *= 1.8f;
 		else if (Difficulty == DIFF_REDIKULOUS)
-			Damage *= 2.5f;
+			Damage *= 4.0f;
 	}
 
 	return Damage;
@@ -671,7 +717,7 @@ void AOrionGameMode::Logout(AController* Exiting)
 }
 
 //spawned from killing various types of enemies, vehicles, opening things, etc.
-void AOrionGameMode::SpawnItems(AActor *Spawner)
+void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDamageType* DamageType)
 {
 	bool bSuccess = false;
 	//for testing purposes, just spawn random items (turn off for now!)
@@ -708,10 +754,33 @@ void AOrionGameMode::SpawnItems(AActor *Spawner)
 	//spawn some orbies, these are global and are awarded to all teammates in range
 	if (DefaultPickupOrbClass)
 	{
+		float OrbChance = 10.0f;
+
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Killer);
+		if (PC)
+		{
+			OrbChance *= 1.0f + float(PC->GetSkillValue(SKILL_ORBDROPRATE)) / 100.0f;
+
+			AOrionCharacter *P = Cast<AOrionCharacter>(PC->GetPawn());
+			if (P)
+			{
+				AOrionWeapon *Weapon = P->GetWeapon();
+				if (Weapon)
+				{
+					if (Weapon->InstantConfig.WeaponSlot == 2)
+						OrbChance *= 1.0f + float(PC->GetSkillValue(SKILL_PISTOLORBS)) / 100.0f;
+				}
+			}
+
+			const UOrionDamageType *DmgType = Cast<UOrionDamageType>(DamageType);
+			if (DmgType && DmgType->bIsKnife)
+				OrbChance *= 1.0f + float(PC->GetSkillValue(SKILL_KNIFEORBS)) / 100.0f;
+		}
+
 		//10% chance to spawn an orb
 		int32 RandNum = FMath::RandRange(1, 100);
 
-		if (RandNum <= 10)
+		if (RandNum <= OrbChance)
 		{
 			FActorSpawnParameters SpawnInfo;
 			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;

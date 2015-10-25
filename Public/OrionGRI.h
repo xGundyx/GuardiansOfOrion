@@ -104,6 +104,9 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly)
 		int32 SecondsTillNextSpawn;
 
+	UPROPERTY(Replicated, BlueprintReadOnly)
+		int32 SecondsTillNextWave;
+
 	UFUNCTION()
 		void HandleVictoryDefeat();
 

@@ -88,6 +88,14 @@ void UOrionPathFollowingComponent::FollowPathSegment(float DeltaTime)
 {
 	if (Controller && Controller->GetPawn())
 	{
+		/*AOrionDinoPawn *Dino = Cast<AOrionDinoPawn>(Controller->GetPawn());
+		if (Dino && Dino->bShouldStopMovement)
+		{
+			Dino->bShouldStopMovement = false;
+			OnPathFinished(EPathFollowingResult::Success);
+			return;
+		}*/
+
 		AOrionCharacter *Pawn = Cast<AOrionCharacter>(Controller->GetPawn());
 		if (Pawn && Pawn->IsFlying())
 		{
@@ -171,7 +179,7 @@ bool UOrionPathFollowingComponent::HandleRotation()
 	if (Controller && Controller->GetPawn())
 	{
 		AOrionDinoPawn *Pawn = Cast<AOrionDinoPawn>(Controller->GetPawn());
-		if (Pawn && Pawn->TurnLeft90Animation && Pawn->bIsBigDino)
+		if (Pawn && Pawn->TurnLeft90Animation && Pawn->bIsBigDino && !Pawn->bChargeAttack && !Pawn->bChargingAttack)
 		{
 			const FVector CurrentLocation = MovementComp->GetActorFeetLocation();
 			const FVector CurrentTarget = GetCurrentTargetLocation();

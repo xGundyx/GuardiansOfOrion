@@ -42,7 +42,20 @@ void AOrionAbility::Tick(float DeltaSeconds)
 		{
 			if (!bOneShotAbility)
 			{
-				Energy = FMath::Max(0.0f, Energy - EnergyRate * DeltaSeconds);
+				float Rate = EnergyRate;
+
+				if (IsCloaking())
+				{
+					AOrionCharacter *P = Cast<AOrionCharacter>(GetOwner());
+					if (P)
+					{
+						AOrionPlayerController *PC = Cast<AOrionPlayerController>(P->Controller);
+						if (PC)
+							Rate = 100.0f / ((100.0f / EnergyRate) + float(PC->GetSkillValue(SKILL_CLOAKDURATION)));
+					}
+				}
+
+				Energy = FMath::Max(0.0f, Energy - Rate * DeltaSeconds);
 
 				if (Energy <= 0.0f)
 				{

@@ -119,10 +119,16 @@ struct FInstantWeaponData
 		bool bSingleShellReload;
 
 	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+		bool bBurst;
+
+	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
 		int32 NumPellets;
 
 	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
 		FVector AimAdjustment;
+
+	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+		FString WeaponName;
 
 	//this is needed to make the left hand match up for third person animations
 	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
@@ -162,6 +168,9 @@ public:
 
 	/** [all] start weapon reload */
 	virtual void StartReload(bool bFromReplication = false);
+
+	UFUNCTION(BlueprintCallable, Category = Weapon)
+		FString GetWeaponName() { return InstantConfig.WeaponName; }
 
 	//mainly for shotties
 	void ReloadNextShell();
@@ -362,6 +371,7 @@ public:
 
 	/** [local] weapon specific fire implementation */
 	virtual void FireWeapon();
+	virtual void FireBurst();
 
 	UPROPERTY()
 		float CurrentFiringSpread;
@@ -464,7 +474,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Weapon)
 		virtual UAnimMontage* GetFireMontage();
 
-	virtual void StartAiming();
+	virtual void StartAiming(bool bPlaySound = true);
 	virtual void StopAiming();
 
 	bool IsEquipped() const;
@@ -554,4 +564,7 @@ private:
 	FTimerHandle ReloadStopTimer;
 	FTimerHandle FireTimer;
 	FTimerHandle EquipTimer;
+	FTimerHandle BurstTimer;
+
+	int32 BurstCounter;
 };

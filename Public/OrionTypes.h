@@ -620,6 +620,16 @@ static int32 CalculateLevel(int32 XP)
 	return Level;
 }
 
+static int32 CalculateExpToLevel(int32 Level)
+{
+	int32 XP = 0;
+
+	for (int32 i = 0; i < Level - 1; i++)
+		XP += BASEXP + (XPINCREASE * i);
+
+	return XP;
+}
+
 USTRUCT(BlueprintType)
 struct FPhotonServerInfo
 {
@@ -637,4 +647,130 @@ struct FPhotonServerInfo
 		FString Ticket;
 	UPROPERTY(BlueprintReadWrite, Category = Photon)
 		FString Privacy;
+};
+
+UENUM(BlueprintType)
+enum ESkillTreeUnlocks
+{
+	SKILL_NONE = 0,
+	SKILL_MELEEDAMAGE,
+	SKILL_GRENADECOOLDOWN,
+	SKILL_ROLLSPEED,
+	SKILL_ORBDROPRATE,
+	SKILL_SECONDARYDAMAGE,
+	SKILL_BLINKDISTANCE,
+	SKILL_ORBDURATION,
+	SKILL_PRIMARYDAMAGE,
+	SKILL_GRENADERADIUS,
+	SKILL_EXTRABLINK,
+	SKILL_EXTRAGRENADE,
+	SKILL_PISTOLORBS,
+	SKILL_KNIFEORBS,
+	SKILL_REGENENERGY,
+	SKILL_CLIPSIZE,
+	SKILL_FASTERHEALING,
+	SKILL_FRAGGRENADEDAMAGE,
+	SKILL_FIRERATE,
+	SKILL_BEAMLENGTH,
+	SKILL_RELOADSPEED,
+	SKILL_KILLLEECH,
+	SKILL_REGENCHAIN,
+	SKILL_SPRINTSPEED,
+	SKILL_AIMSPEED,
+	SKILL_JETPACKSPEED,
+	SKILL_ROBOTDAMAGEREDUCTION,
+	SKILL_SHIELDREGENSPEED,
+	SKILL_JETPACKHEIGHT,
+	SKILL_DAMAGETOLARGEDINOS,
+	SKILL_JETPACKDAMAGEREDUCTION,
+	SKILL_REVIVESPEED,
+	SKILL_JETPACKBURN,
+	SKILL_HEALTHREGEN,
+	SKILL_SMOKEDURATION,
+	SKILL_BUBBLESTRENGTH,
+	SKILL_BUBBLERADIUS,
+	SKILL_BUBBLEREGEN,
+	SKILL_BUBBLEEXPLODE,
+	SKILL_EMPGENERATORHEAL,
+	SKILL_CLOAKSPEED,
+	SKILL_CLOAKREGEN,
+	SKILL_CLOAKDURATION,
+	SKILL_CLOAKTEAMMATES,
+
+	SKILL_NUMPLUSONE
+};
+
+USTRUCT(BlueprintType)
+struct FUnlockedSkills
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = Skills)
+		int32 Points;
+
+	UPROPERTY(BlueprintReadWrite, Category = Skills)
+		int32 MaxPoints;
+
+	UPROPERTY(BlueprintReadWrite, Category = Skills)
+		int32 Modifier;
+};
+
+UENUM(BlueprintType)
+enum EOrbType
+{
+	ORB_HEALTH, //green health regen
+	ORB_STOPPING, //red stopping power
+	ORB_EXP, //yellow xp
+	ORB_ROF, //blue rate of fire increase
+	ORB_SPEED, //purple speed 
+	ORB_STRENGTH //orange strength
+};
+
+USTRUCT()
+struct FOrbHelper
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		TEnumAsByte<EOrbType> Type;
+
+	UPROPERTY()
+		int32 TimeLeft;
+
+	float TimeStarted;
+	float Duration;
+};
+
+USTRUCT(BlueprintType)
+struct FCooldownAbility
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = Skill)
+		float Energy;
+
+	UPROPERTY(BlueprintReadWrite, Category = Skill)
+		int32 SecondsToRecharge;
+};
+
+USTRUCT(BlueprintType)
+struct FFriendListData
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = Friend)
+		FString PlayerName;
+
+	UPROPERTY(BlueprintReadOnly, Category = Friend)
+		bool bOnline;
+
+	UPROPERTY(BlueprintReadOnly, Category = Friend)
+		bool bPlayingGame;
+
+	//id to connect to photon lobby, which in turn connects to the actual game server
+	UPROPERTY(BlueprintReadOnly, Category = Friend)
+		FString LobbyID;
+
+	UPROPERTY(BlueprintReadOnly, Category = Friend)
+		UTexture2D *Avatar;
 };

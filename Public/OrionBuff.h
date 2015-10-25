@@ -17,8 +17,20 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Buff)
 		FString BuffName;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Buff)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Buff)
 		float Damage;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Buff)
+		float HealPercent;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Buff)
+		float DamageReduction;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Buff)
+		bool bAffectsEnemies;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Buff)
+		bool bAffectsTeammates;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Buff)
 		float SpeedMultiplier;

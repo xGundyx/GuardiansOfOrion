@@ -5,14 +5,6 @@
 #include "GameFramework/Actor.h"
 #include "OrionPickupOrb.generated.h"
 
-UENUM(BlueprintType)
-enum EOrbType
-{
-	ORB_HEALTH,
-	ORB_SHIELD,
-	ORB_EXP
-};
-
 UCLASS()
 class ORION_API AOrionPickupOrb : public AActor
 {

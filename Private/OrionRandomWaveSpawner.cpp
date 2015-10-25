@@ -153,7 +153,7 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], AActor *F
 
 			FVector Loc;
 
-			Loc = GetWorld()->GetNavigationSystem()->GetRandomReachablePointInRadius(GetWorld(), GetActorLocation(), SpawnRadius, (ANavigationData*)0, DefaultFilterClass);
+			Loc = GetWorld()->GetNavigationSystem()->GetRandomReachablePointInRadius(GetWorld(), GetActorLocation(), 1000.0f/*SpawnRadius*/, (ANavigationData*)0, DefaultFilterClass);
 
 			TSharedPtr<const FNavigationQueryFilter> QueryFilter = UNavigationQueryFilter::GetQueryFilter(GetWorld()->GetNavigationSystem()->MainNavData, DefaultFilterClass);
 
@@ -171,7 +171,7 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], AActor *F
 				NewPawn->FocusActor = FocusActor;
 				NewPawn->SpawnDefaultController();
 				NewPawn->SetAIType(AI_HUNTING);
-				NewPawn->SpawnType = TypesToSpawn[i];
+				NewPawn->SpawnType = i;
 			}
 			else
 			{
@@ -200,7 +200,7 @@ void AOrionRandomWaveSpawner::SpawnFailures()
 
 		FVector Loc;
 
-		Loc = GetWorld()->GetNavigationSystem()->GetRandomReachablePointInRadius(GetWorld(), GetActorLocation(), SpawnRadius, (ANavigationData*)0, DefaultFilterClass);
+		Loc = GetWorld()->GetNavigationSystem()->GetRandomReachablePointInRadius(GetWorld(), GetActorLocation(), 1000.0f/*SpawnRadius*/, (ANavigationData*)0, DefaultFilterClass);
 
 		AOrionCharacter* NewPawn = GetWorld()->SpawnActor<AOrionCharacter>(SpawnClasses[FailedToSpawn[i]], Loc + FVector(0, 0, 150.0f), GetActorRotation(), SpawnInfo);
 		if (NewPawn)

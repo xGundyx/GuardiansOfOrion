@@ -95,6 +95,26 @@ float UOrionMovementComponent::GetMaxSpeed() const
 	float SpeedMod = Super::GetMaxSpeed();
 
 	const AOrionCharacter* OrionCharacterOwner = Cast<AOrionCharacter>(PawnOwner);
+
+	float SprintRate = 1.0f;
+	float AimRate = 1.0f;
+
+	if (OrionCharacterOwner)
+	{
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(OrionCharacterOwner->Controller);
+		if (PC)
+		{
+			SprintRate = 1.0f + float(PC->GetSkillValue(SKILL_SPRINTSPEED)) / 100.0f;
+			AimRate = 1.0f + float(PC->GetSkillValue(SKILL_AIMSPEED)) / 100.0f;
+
+			if (OrionCharacterOwner->CurrentSkill && OrionCharacterOwner->CurrentSkill->IsCloaking())
+				SpeedMod *= 1.0f + float(PC->GetSkillValue(SKILL_CLOAKSPEED)) / 100.0f;
+
+			if (PC->HasOrbEffect(ORB_SPEED))
+				SpeedMod *= 1.5f;
+		}
+	}
+
 	if (OrionCharacterOwner)
 	{
 		if (Cast<AOrionDinoPawn>(PawnOwner))
@@ -126,12 +146,12 @@ float UOrionMovementComponent::GetMaxSpeed() const
 			{
 				SpeedMod *= 0.4f;
 				if (OrionCharacterOwner->bAim)
-					SpeedMod *= 0.625;
+					SpeedMod *= 0.625 * AimRate;
 			}
 			else if (OrionCharacterOwner->bRun && IsMovingOnGround())
-				SpeedMod *= 1.15f;
+				SpeedMod *= 1.15f * SprintRate;
 			else if (OrionCharacterOwner->bAim)
-				SpeedMod *= 0.4;
+				SpeedMod *= 0.4 * AimRate;
 			else
 				SpeedMod *= 0.75f;// 0.55f;
 

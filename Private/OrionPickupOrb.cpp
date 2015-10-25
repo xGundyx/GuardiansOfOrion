@@ -50,14 +50,20 @@ void AOrionPickupOrb::OnRep_OrbType()
 
 void AOrionPickupOrb::Init()
 {
-	int32 RandNum = FMath::RandRange(1, 100);
+	int32 RandNum = FMath::RandRange(10, 100);
 
-	if (RandNum > 70)//health
+	if (RandNum > 85)
 		OrbType = ORB_HEALTH;
-	else if (RandNum > 20)//shield
-		OrbType = ORB_SHIELD;
-	else//exp boost
-		OrbType = ORB_EXP;
+	else if (RandNum > 70)
+	OrbType = ORB_STOPPING;
+	else if (RandNum > 55)
+	OrbType = ORB_EXP;
+	else if (RandNum > 40)
+	OrbType = ORB_ROF;
+	else if (RandNum > 25)
+	OrbType = ORB_SPEED;
+	else
+		OrbType = ORB_STRENGTH;
 
 	//setup the orb particle
 	EventInitOrb();
