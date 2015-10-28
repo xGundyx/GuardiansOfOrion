@@ -585,6 +585,9 @@ public:
 		TArray<FString> GetDifficultySettings();
 
 	UFUNCTION(BlueprintCallable, Category = Menu)
+		TArray<FString> GetMaps();
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
 		TArray<FString> GetGameModeSettings();
 
 	UFUNCTION(BlueprintCallable, Category = Menu)

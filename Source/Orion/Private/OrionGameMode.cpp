@@ -762,7 +762,7 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 			if (!PC)
 				continue;
 
-			float OrbChance = 10.0f;
+			float OrbChance = 5.0f;
 
 			//AOrionPlayerController *PC = Cast<AOrionPlayerController>(Killer);
 			//if (PC)

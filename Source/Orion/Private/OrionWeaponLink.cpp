@@ -9,6 +9,9 @@ void AOrionWeaponLink::StartAiming(bool bPlaySound)
 {
 	if (Role == ROLE_Authority)
 	{
+		if (LinkTarget != nullptr)
+			return;
+
 		AOrionAbility *Skill = MyPawn->CurrentSkill;
 
 		//maybe play an error sound?
@@ -260,6 +263,12 @@ void AOrionWeaponLink::StartBeamEffects()
 		BeamPSC->SetColorParameter(TEXT("BeamColor2"), col2);
 		BeamPSC->SetColorParameter(TEXT("BeamColor3"), col3);
 		BeamPSC->SetColorParameter(TEXT("BeamColor4"), col4);
+
+		if (LoopAudio)
+		{
+			LoopAudio->Stop();
+			LoopAudio = nullptr;
+		}
 
 		UGameplayStatics::PlaySoundAtLocation(GetWorld(), StartSound, MyPawn->GetActorLocation());
 		LoopAudio = UGameplayStatics::SpawnSoundAttached(LoopSound, MyPawn->GetMesh());
