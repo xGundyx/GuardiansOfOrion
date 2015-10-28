@@ -416,6 +416,15 @@ void AOrionWeapon::StartFire()
 	if (WeaponState == WEAP_MELEE)
 		return;
 
+	if (MyPawn->IsLocallyControlled())
+	{
+		if (AmmoInClip == 0 && WeaponState != WEAP_RELOADING && Ammo > 0 && CanReload())
+		{
+			StartReload();
+			return;
+		}
+	}
+
 	if (CanFire() == false)
 		return;
 
@@ -457,7 +466,11 @@ void AOrionWeapon::StartFire()
 	if (InstantConfig.bBurst)
 	{
 		BurstCounter = 3;
-		GetWorldTimerManager().SetTimer(BurstTimer, this, &AOrionWeapon::FireBurst, FireRate, false);
+
+		if (GetWorld()->GetTimeSeconds() - LastFireTime < InstantConfig.TimeBetweenShots)
+			GetWorldTimerManager().SetTimer(BurstTimer, this, &AOrionWeapon::FireBurst, LastFireTime + FireRate - GetWorld()->GetTimeSeconds(), false);
+		else
+			FireBurst();
 	}
 	else if (FireRate > 0 && LastFireTime + FireRate > GetWorld()->GetTimeSeconds())
 		GetWorldTimerManager().SetTimer(FireTimer, this, &AOrionWeapon::FireWeapon, LastFireTime + FireRate - GetWorld()->GetTimeSeconds(), false);
@@ -563,8 +576,12 @@ void AOrionWeapon::FireBurst()
 			FireRate *= 0.5f;
 	}
 
-	if (BurstCounter > -4)
+	if (BurstCounter > 0)
 		GetWorldTimerManager().SetTimer(BurstTimer, this, &AOrionWeapon::FireBurst, FireRate, false);
+	else
+	{
+		LastFireTime = GetWorld()->GetTimeSeconds() + 0.5f;
+	}
 }
 
 void AOrionWeapon::FireWeapon()
@@ -597,6 +614,12 @@ void AOrionWeapon::FireWeapon()
 	{
 		if (MuzzleAttachPoint.Num() > 0)
 			FireProjectile(MuzzleAttachPoint[0], GetAdjustedAim());
+		return;
+	}
+
+	//making bullets client side only for now
+	if (!MyPawn->IsLocallyControlled())
+	{
 		return;
 	}
 
@@ -864,8 +887,9 @@ void AOrionWeapon::UseAmmo()
 	//make ai not use any ammo
 	if (MyPawn && MyPawn->PlayerState && MyPawn->PlayerState->bIsABot)
 		return;
-
-	AmmoInClip--;
+	
+	if (Role == ROLE_Authority)
+		AmmoInClip--;
 
 	//infinite ammo for now
 	////Ammo--;
@@ -1007,7 +1031,7 @@ bool AOrionWeapon::ServerStartReload_Validate()
 
 void AOrionWeapon::ServerStartReload_Implementation()
 {
-	StartReload();
+	StartReload(true);
 }
 
 bool AOrionWeapon::ServerStopReload_Validate()

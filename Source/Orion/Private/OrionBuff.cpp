@@ -18,4 +18,14 @@ AOrionBuff::AOrionBuff(const FObjectInitializer& ObjectInitializer)
 	bAffectsEnemies = true;
 	bAffectsTeammates = true;
 	HealPercent = 0.0f;
+
+	SetReplicates(true);
+}
+
+void AOrionBuff::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	// everyone
+	DOREPLIFETIME(AOrionBuff, Effect);
 }

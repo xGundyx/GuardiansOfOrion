@@ -391,6 +391,12 @@ public:
 	void CreateServerRoom();
 
 	UFUNCTION(client, reliable)
+		void ClientSetLastCharacterID(const FString &newID);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SetLastCharID"))
+		void EventSetLastCharacterID();
+
+	UFUNCTION(client, reliable)
 		void CreateInGameLobby(FPhotonServerInfo Info);
 
 	UFUNCTION(client, reliable)
@@ -835,6 +841,7 @@ public:
 		void ServerSetCharacterClass_Implementation(int32 Index, const FString &CharID);
 
 	int32 NextSpawnClass;
+	FString NextSpawnID;
 
 	bool InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad) override;
 

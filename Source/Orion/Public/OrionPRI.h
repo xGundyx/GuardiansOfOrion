@@ -95,10 +95,14 @@ public:
 	UFUNCTION(BlueprintCallable, Category = RPG)
 		void AddOrbEffect(EOrbType Type, float Duration);
 
-	UPROPERTY(replicatedUsing = OnRep_OrbEffects)
+	UPROPERTY(replicatedUsing = OnRep_OrbEffects, BlueprintReadOnly, Category = RPG)
 		TArray<FOrbHelper> OrbEffects;
 
 	void UpdateOrbEffects();
+
+	TArray<FOrbEffectHelper> OrbPSC;
+
+	void UpdateOrbFX();
 
 private:
 	UPROPERTY(Replicated)

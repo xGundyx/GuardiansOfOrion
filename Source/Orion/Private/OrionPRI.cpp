@@ -49,10 +49,97 @@ int32 AOrionPRI::GetXPIntoLevel()
 //update visual effects and timers on client machines
 void AOrionPRI::OnRep_OrbEffects()
 {
+	UpdateOrbFX();
+}
+
+void AOrionPRI::UpdateOrbFX()
+{
+	if (!ControlledPawn)
+		return;
+
+	//check for new fx to start
+	for (int32 i = 0; i < OrbEffects.Num(); i++)
+	{
+		bool bFound = false;
+		for (int32 j = 0; j < OrbPSC.Num(); j++)
+		{
+			if (OrbEffects[i].Type == OrbPSC[j].Type)
+			{
+				bFound = true;
+			}
+		}
+
+		if (!bFound)
+		{
+			FOrbEffectHelper FX;
+			FX.PSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ControlledPawn->OrbFX, ControlledPawn->GetActorLocation() + FVector(0.0f, 0.0f, 10.0f));
+
+			if (FX.PSC)
+			{
+				switch (OrbEffects[i].Type)
+				{
+				case ORB_HEALTH:
+					FX.PSC->SetVectorParameter("OrbColor", FVector(0.0f, 30.0f, 0.0f));
+					FX.PSC->SetVectorParameter("OrbTrailColor", FVector(0.5f, 30.0f, 0.5f));
+					break;
+				case ORB_STOPPING:
+					FX.PSC->SetVectorParameter("OrbColor", FVector(30.0f, 0.0f, 0.0f));
+					FX.PSC->SetVectorParameter("OrbTrailColor", FVector(30.0f, 0.5f, 0.5f));
+					break;
+				case ORB_EXP:
+					FX.PSC->SetVectorParameter("OrbColor", FVector(30.0f, 30.0f, 0.0f));
+					FX.PSC->SetVectorParameter("OrbTrailColor", FVector(30.0f, 30.0f, 0.5f));
+					break;
+				case ORB_ROF:
+					FX.PSC->SetVectorParameter("OrbColor", FVector(0.0f, 0.0f, 30.0f));
+					FX.PSC->SetVectorParameter("OrbTrailColor", FVector(0.5f, 0.5f, 30.0f));
+					break;
+				case ORB_SPEED:
+					FX.PSC->SetVectorParameter("OrbColor", FVector(30.0f, 0.0f, 30.0f));
+					FX.PSC->SetVectorParameter("OrbTrailColor", FVector(30.0f, 0.5f, 30.0f));
+					break;
+				case ORB_STRENGTH:
+					FX.PSC->SetVectorParameter("OrbColor", FVector(30.0f, 1.0f, 0.0f));
+					FX.PSC->SetVectorParameter("OrbTrailColor", FVector(30.0f, 1.0f, 0.5f));
+					break;
+				};
+			}
+
+			FX.Type = OrbEffects[i].Type;
+
+			OrbPSC.Add(FX);
+		}
+	}
+
+	//check for fx to end
+	for (int32 i = 0; i < OrbPSC.Num(); i++)
+	{
+		bool bFound = false;
+		for (int32 j = 0; j < OrbEffects.Num(); j++)
+		{
+			if (OrbPSC[i].Type == OrbEffects[i].Type)
+			{
+				bFound = true;
+				break;
+			}
+		}
+
+		if (!bFound)
+		{
+			/*if (OrbPSC[i].PSC)
+			{
+				OrbPSC[i].PSC->DeactivateSystem();
+				OrbPSC[i].PSC = nullptr;
+			}*/
+			OrbPSC.RemoveAt(i);
+			i = -1;
+		}
+	}
 }
 
 void AOrionPRI::UpdateOrbEffects()
 {
+	bool bUpdate = false;
 	for (int32 i = 0; i < OrbEffects.Num(); i++)
 	{
 		float TimeLeft = GetWorld()->GetTimeSeconds() - OrbEffects[i].TimeStarted;
@@ -60,17 +147,25 @@ void AOrionPRI::UpdateOrbEffects()
 		{
 			OrbEffects.RemoveAt(i);
 			i = -1;
+			bUpdate = true;
 		}
 		else
 		{
 			OrbEffects[i].TimeLeft = TimeLeft;
 		}
 	}
+
+	if (bUpdate)
+		UpdateOrbFX();
 }
 
 void AOrionPRI::AddOrbEffect(EOrbType Type, float Duration)
 {
 	if (Role != ROLE_Authority)
+		return;
+
+	//dead players don't get buffs!
+	if (!ControlledPawn || ControlledPawn->Health <= 0.0f)
 		return;
 
 	bool bFound = false;
@@ -96,7 +191,31 @@ void AOrionPRI::AddOrbEffect(EOrbType Type, float Duration)
 		Orb.TimeStarted = GetWorld()->GetTimeSeconds();
 		Orb.Type = Type;
 
+		switch (Type)
+		{
+		case ORB_HEALTH:
+			Orb.Color = FVector(0.0f, 30.0f, 0.0f);
+			break;
+		case ORB_STOPPING:
+			Orb.Color = FVector(30.0f, 0.0f, 0.0f);
+			break;
+		case ORB_EXP:
+			Orb.Color = FVector(30.0f, 30.0f, 0.0f);
+			break;
+		case ORB_ROF:
+			Orb.Color = FVector(0.0f, 0.0f, 30.0f);
+			break;
+		case ORB_SPEED:
+			Orb.Color = FVector(30.0f, 0.0f, 30.0f);
+			break;
+		case ORB_STRENGTH:
+			Orb.Color = FVector(30.0f, 15.0f, 0.0f);
+			break;
+		}
+
 		OrbEffects.Add(Orb);
+
+		UpdateOrbFX();
 	}
 }
 
