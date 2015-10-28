@@ -1532,6 +1532,8 @@ void AOrionWeapon::OnEquip()
 	bPendingEquip = true;
 	WeaponState = WEAP_EQUIPPING;
 
+	BurstCounter = 0;
+
 	float Duration = PlayWeaponAnimation(EquipAnim, false);// Role == ROLE_Authority);
 
 	if (Duration <= 0.0f)

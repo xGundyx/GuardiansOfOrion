@@ -1604,6 +1604,16 @@ TArray<FString> AOrionPlayerController::GetDifficultySettings()
 	return Difficulties;
 }
 
+TArray<FString> AOrionPlayerController::GetMaps()
+{
+	TArray<FString> Maps;
+
+	Maps.Add(TEXT("GOO-RELIC"));
+	Maps.Add(TEXT("GOO-OUTBACK"));
+
+	return Maps;
+}
+
 //must match the class index
 TArray<FString> AOrionPlayerController::GetCharacters()
 {
