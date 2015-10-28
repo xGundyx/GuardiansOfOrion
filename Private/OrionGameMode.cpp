@@ -262,9 +262,9 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 	{
 		for (int32 i = 0; i < DeadPawn->Assisters.Num(); i++)
 		{
-			if (PC != DeadPawn->Assisters[i])
+			if (PC!= NULL && PC != DeadPawn->Assisters[i])
 			{
-				AOrionPRI *AssistPRI = Cast<AOrionPRI>(DeadPawn->PlayerState);
+				AOrionPRI *AssistPRI = Cast<AOrionPRI>(DeadPawn->Assisters[i]->PlayerState);
 
 				if (AssistPRI)
 				{
@@ -618,6 +618,7 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 			PRI->PlayFabName = pfName;
 			PRI->LobbyTicket = pfTicket;
 			PRI->CharacterClass = pfClass;
+			PRI->ClassType = pfClass;
 			PRI->ServerInfo = ServerInfo;
 		}
 
@@ -754,11 +755,18 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 	//spawn some orbies, these are global and are awarded to all teammates in range
 	if (DefaultPickupOrbClass)
 	{
-		float OrbChance = 10.0f;
-
-		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Killer);
-		if (PC)
+		for (TActorIterator<AOrionPlayerController> ActorItr(GetWorld()); ActorItr; ++ActorItr)
 		{
+			AOrionPlayerController *PC = *ActorItr;
+
+			if (!PC)
+				continue;
+
+			float OrbChance = 10.0f;
+
+			//AOrionPlayerController *PC = Cast<AOrionPlayerController>(Killer);
+			//if (PC)
+			//{
 			OrbChance *= 1.0f + float(PC->GetSkillValue(SKILL_ORBDROPRATE)) / 100.0f;
 
 			AOrionCharacter *P = Cast<AOrionCharacter>(PC->GetPawn());
@@ -775,21 +783,24 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 			const UOrionDamageType *DmgType = Cast<UOrionDamageType>(DamageType);
 			if (DmgType && DmgType->bIsKnife)
 				OrbChance *= 1.0f + float(PC->GetSkillValue(SKILL_KNIFEORBS)) / 100.0f;
-		}
+			//}
 
-		//10% chance to spawn an orb
-		int32 RandNum = FMath::RandRange(1, 100);
+			//10% chance to spawn an orb
+			int32 RandNum = FMath::RandRange(1, 100);
 
-		if (RandNum <= OrbChance)
-		{
-			FActorSpawnParameters SpawnInfo;
-			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-
-			AOrionPickupOrb *Pickup = GetWorld()->SpawnActor<AOrionPickupOrb>(DefaultPickupOrbClass, Spawner->GetActorLocation(), Spawner->GetActorRotation(), SpawnInfo);
-
-			if (Pickup)
+			if (RandNum <= OrbChance)
 			{
-				Pickup->Init();
+				FActorSpawnParameters SpawnInfo;
+				SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+				SpawnInfo.Owner = PC;
+
+				AOrionPickupOrb *Pickup = GetWorld()->SpawnActor<AOrionPickupOrb>(DefaultPickupOrbClass, Spawner->GetActorLocation(), Spawner->GetActorRotation(), SpawnInfo);
+
+				if (Pickup)
+				{
+					Pickup->Init();
+					Pickup->bOnlyRelevantToOwner = true;
+				}
 			}
 		}
 	}

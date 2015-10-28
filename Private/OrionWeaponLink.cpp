@@ -553,6 +553,7 @@ void AOrionWeaponLink::HandleLinkTargets(AOrionCharacter *Target, float DeltaSec
 
 				PointDmg.DamageTypeClass = UOrionDamageType::StaticClass();
 				PointDmg.Damage = 150.0f;
+				PointDmg.ShotDirection = FVector(0.0f);
 
 				P->Die(150.0f, PointDmg, MyPawn->Controller, MyPawn);
 			}
@@ -679,6 +680,7 @@ void AOrionWeaponLink::HandleTarget(float DeltaSeconds)
 
 				PointDmg.DamageTypeClass = UOrionDamageType::StaticClass();
 				PointDmg.Damage = 150.0f;
+				PointDmg.ShotDirection = FVector(0.0f);
 
 				P->Die(150.0f, PointDmg, MyPawn->Controller, MyPawn);
 			}

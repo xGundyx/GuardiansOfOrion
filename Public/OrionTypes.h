@@ -731,14 +731,28 @@ struct FOrbHelper
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = Orb)
 		TEnumAsByte<EOrbType> Type;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadOnly, Category = Orb)
 		int32 TimeLeft;
 
+	UPROPERTY(BlueprintReadOnly, Category = Orb)
+		FVector Color;
+
 	float TimeStarted;
-	float Duration;
+
+	UPROPERTY(BlueprintReadOnly, Category = Orb)
+		float Duration;
+};
+
+USTRUCT()
+struct FOrbEffectHelper
+{
+	GENERATED_USTRUCT_BODY()
+
+	TEnumAsByte<EOrbType> Type;
+	UParticleSystemComponent *PSC;
 };
 
 USTRUCT(BlueprintType)
@@ -773,4 +787,6 @@ struct FFriendListData
 
 	UPROPERTY(BlueprintReadOnly, Category = Friend)
 		UTexture2D *Avatar;
+
+	bool operator<(const FFriendListData Other) const { return PlayerName < Other.PlayerName; }
 };

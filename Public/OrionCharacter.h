@@ -978,6 +978,9 @@ public:
 		UParticleSystem* BloodSpurtFX;
 
 	UPROPERTY(EditDefaultsOnly, Category = Gibs)
+		UParticleSystem* OrbFX;
+
+	UPROPERTY(EditDefaultsOnly, Category = Gibs)
 		UMaterialInstanceConstant* BloodDecal;
 
 	UFUNCTION()
@@ -1352,8 +1355,14 @@ public:
 
 	bool IsNetRelevantFor(const AActor* RealViewer, const AActor* ViewTarget, const FVector& SrcLocation) const override;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = RPG)
+	UFUNCTION()
+		void OnRep_Female();
+
+	UPROPERTY(ReplicatedUsing = OnRep_Female, EditDefaultsOnly, BlueprintReadOnly, Category = RPG)
 		bool bFemale;
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Change Base Mesh"))
+		void EventSetFemaleMesh();
 
 protected:
 	// APawn interface

@@ -115,7 +115,7 @@ void AOrionSpectatorPawn::GetNextSpecTarget(bool bForwards)
 
 	if (GRI)
 	{
-		int32 CurrentIndex = 0;
+		int32 CurrentIndex = -1;
 
 		for (int32 i = 0; i < GRI->PlayerList.Num(); i++)
 		{

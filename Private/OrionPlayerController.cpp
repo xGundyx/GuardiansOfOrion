@@ -136,10 +136,11 @@ void AOrionPlayerController::SetCharacterClass(int32 Index, FString CharID)
 	{
 		//update our character class id and type for next spawn
 		NextSpawnClass = Index;
+		NextSpawnID = CharID;
 
-		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
-		if (PRI)
-			PRI->CharacterID = CharID;
+		//AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+		//if (PRI)
+		//	PRI->CharacterID = CharID;
 	}
 }
 
@@ -466,6 +467,26 @@ void AOrionPlayerController::ServerSetWeather_Implementation(int32 index)
 }
 #endif
 
+void AOrionPlayerController::ClientSetLastCharacterID_Implementation(const FString &newID)
+{
+	UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
+
+	if (GI)
+	{
+		GI->CharacterID = newID;
+
+		for (int32 i = 0; i < CharacterDatas.Num(); i++)
+		{
+			if (CharacterDatas[i].CharacterID == newID)
+			{
+				GI->CharacterClass = CharacterDatas[i].pClass;
+			}
+		}
+	}
+
+	EventSetLastCharacterID();
+}
+
 void AOrionPlayerController::Possess(APawn* aPawn)
 {
 	Ragdoll = nullptr;
@@ -484,6 +505,36 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 				NextSpawnClass = -1;
 			}
 
+			if (NextSpawnID.Len() > 0)
+			{
+				if (PRI)
+					PRI->CharacterID = NextSpawnID;
+			}
+
+			if (!IsLocalPlayerController())
+				ClientSetLastCharacterID(NextSpawnID);
+			else
+			{
+				UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
+
+				if (GI)
+				{
+					GI->CharacterID = NextSpawnID;
+
+					for (int32 i = 0; i < CharacterDatas.Num(); i++)
+					{
+						if (CharacterDatas[i].CharacterID == NextSpawnID)
+						{
+							GI->CharacterClass = CharacterDatas[i].pClass;
+						}
+					}
+				}
+
+				EventSetLastCharacterID();
+			}
+
+			NextSpawnID = TEXT("");
+
 			////PRI->InventoryManager->EquipItems(newPawn, ITEM_ANY);
 			if (ClassIndex < 0)
 				ClassIndex = FMath::RandRange(0, 2);
@@ -494,15 +545,19 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 			{
 			case 0:
 				PRI->ClassType = TEXT("ASSAULT");
+				PRI->CharacterClass = TEXT("ASSAULT");
 				break;
 			case 1:
 				PRI->ClassType = TEXT("SUPPORT");
+				PRI->CharacterClass = TEXT("SUPPORT");
 				break;
 			case 2:
 				PRI->ClassType = TEXT("RECON");
+				PRI->CharacterClass = TEXT("RECON");
 				break;
 			default:
 				PRI->ClassType = TEXT("NONE");
+				PRI->CharacterClass = TEXT("NONE");
 				break;
 			}
 
@@ -1746,6 +1801,12 @@ TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
 	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
+	NewOption.Title = TEXT("SHOW SKILLTREE");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("OpenSkillTree", false, 0.0f);
+	NewOption.Action = TEXT("OpenSkillTree");
+	NewOption.Scale = 0.0f;
+	Options.Add(NewOption);
+
 	return Options;
 }
 
@@ -1857,6 +1918,11 @@ TArray<FControllerOptionsData> AOrionPlayerController::GetControllerOptions()
 	NewOption.Title = TEXT("CHARACTER SELECT");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_OpenCharacterSelect", false, 0.0f));
 	NewOption.Action = TEXT("Gamepad_OpenCharacterSelect");
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("SHOW SKILLTREE");
+	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_OpenSkillTree", false, 0.0f));
+	NewOption.Action = TEXT("Gamepad_OpenSkillTree");
 	Options.Add(NewOption);
 
 	//NewOption.Title = TEXT("OPEN MENU");
@@ -2125,9 +2191,12 @@ void AOrionPlayerController::BeginPlay()
 		SetDefaultSkills();
 	}
 
+	//run this on the client too, it'll give a skill points popup if we have some skill points!
+	EventServerGetSkillTreeInfo();
+
 	if (Role == ROLE_Authority)
 	{
-		EventServerGetSkillTreeInfo();
+		//EventServerGetSkillTreeInfo();
 
 		GetWorldTimerManager().SetTimer(ServerTickTimer, this, &AOrionPlayerController::ServerTick, 0.35f, true);
 		GetWorldTimerManager().SetTimer(OrbTimer, this, &AOrionPlayerController::UpdateOrbEffects, 0.01f, true);
@@ -2140,7 +2209,7 @@ void AOrionPlayerController::SetDefaultSkills()
 	{
 		//reset the values
 		CharacterSkills.Empty();
-		CharacterSkills.SetNum(SKILL_NUMPLUSONE - 1);
+		CharacterSkills.SetNum(SKILL_NUMPLUSONE);
 
 		for (int32 i = 0; i < MySkillTree->Skills[0].SkillCategory1.Num(); i++)
 		{
@@ -2206,11 +2275,13 @@ void AOrionPlayerController::SetSkillTreeValuesForUse()
 	{
 		//reset the values
 		CharacterSkills.Empty();
-		CharacterSkills.SetNum(SKILL_NUMPLUSONE - 1);
+		CharacterSkills.SetNum(SKILL_NUMPLUSONE);
 
-		for (int32 i = 0; i < MySkillTree->Skills[ClassIndex].SkillCategory1.Num(); i++)
+		int32 cIndex = GetClassIndex();
+
+		for (int32 i = 0; i < MySkillTree->Skills[cIndex].SkillCategory1.Num(); i++)
 		{
-			FSkillCategory Category = MySkillTree->Skills[ClassIndex].SkillCategory1[i];
+			FSkillCategory Category = MySkillTree->Skills[cIndex].SkillCategory1[i];
 
 			CharacterSkills[Category.Skill1.Category].Points = Category.Skill1.Points;
 			CharacterSkills[Category.Skill1.Category].MaxPoints = Category.Skill1.MaxPoints;
@@ -2224,9 +2295,9 @@ void AOrionPlayerController::SetSkillTreeValuesForUse()
 			CharacterSkills[Category.Skill3.Category].MaxPoints = Category.Skill3.MaxPoints;
 			CharacterSkills[Category.Skill3.Category].Modifier = FMath::Max(1, Category.Skill3.Upgrade1);
 		}
-		for (int32 i = 0; i < MySkillTree->Skills[ClassIndex].SkillCategory2.Num(); i++)
+		for (int32 i = 0; i < MySkillTree->Skills[cIndex].SkillCategory2.Num(); i++)
 		{
-			FSkillCategory Category = MySkillTree->Skills[ClassIndex].SkillCategory2[i];
+			FSkillCategory Category = MySkillTree->Skills[cIndex].SkillCategory2[i];
 
 			CharacterSkills[Category.Skill1.Category].Points = Category.Skill1.Points;
 			CharacterSkills[Category.Skill1.Category].MaxPoints = Category.Skill1.MaxPoints;
@@ -2240,9 +2311,9 @@ void AOrionPlayerController::SetSkillTreeValuesForUse()
 			CharacterSkills[Category.Skill3.Category].MaxPoints = Category.Skill3.MaxPoints;
 			CharacterSkills[Category.Skill3.Category].Modifier = FMath::Max(1, Category.Skill3.Upgrade1);
 		}
-		for (int32 i = 0; i < MySkillTree->Skills[ClassIndex].SkillCategory3.Num(); i++)
+		for (int32 i = 0; i < MySkillTree->Skills[cIndex].SkillCategory3.Num(); i++)
 		{
-			FSkillCategory Category = MySkillTree->Skills[ClassIndex].SkillCategory3[i];
+			FSkillCategory Category = MySkillTree->Skills[cIndex].SkillCategory3[i];
 
 			CharacterSkills[Category.Skill1.Category].Points = Category.Skill1.Points;
 			CharacterSkills[Category.Skill1.Category].MaxPoints = Category.Skill1.MaxPoints;
@@ -2325,7 +2396,20 @@ FString AOrionPlayerController::GetSteamID()
 		uint64 Return = steamID.CSteamID::ConvertToUint64();
 
 		//Return ID as String if Found
-		FString ID = FString::Printf(TEXT("%016llX"), Return);
+		//FString ID = FString::Printf(TEXT("%016llX"), Return);
+		//FString ID = FString::Printf(TEXT("%llu"), Return);
+		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+		FString ID;
+
+		if (OnlineSub)
+		{
+			IOnlineIdentityPtr User = OnlineSub->GetIdentityInterface();
+
+			if (!User.IsValid())
+				return TEXT("");
+
+			ID = User->GetAuthToken(0);
+		}
 
 		return ID;
 	}
@@ -2391,7 +2475,7 @@ UTexture2D *AOrionPlayerController::GetFriendAvatar(TSharedRef<FOnlineFriend> Fr
 			//Setting some Parameters for the Texture and finally returning it
 			Avatar->PlatformData->NumSlices = 1;
 			Avatar->NeverStream = true;
-			Avatar->Rename(*Friend->GetUserId()->ToString());
+			//Avatar->Rename(*Friend->GetUserId()->ToString());
 			Avatar->CompressionSettings = TC_EditorIcon;
 
 			Avatar->UpdateResource();
@@ -2442,6 +2526,12 @@ void AOrionPlayerController::ReadFriendsDelegate(int32 LocalUserNum, bool bSucce
 					PlayingFriends.Add(newFriend);
 			}
 		}
+
+		//sort each sub category by name
+		JoinableFriends.Sort();
+		PlayingFriends.Sort();
+		OnlineFriends.Sort();
+		OfflineFriends.Sort();
 
 		//sort the friends list, with online friends playing games at the top and offlines friends at the bottom
 		Friends = JoinableFriends;

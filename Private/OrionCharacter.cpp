@@ -908,14 +908,15 @@ void AOrionCharacter::UpdateBuffFX()
 		bool bFound = false;
 		for (int32 i = 0; i < Buffs.Num(); i++)
 		{
-			if (Buffs[i] && Buffs[i] && Buffs[i]->Effect)
+			if (Buffs[i] && Buffs[i]->Effect)
 			{
 				BuffFX->AttachTo(GetMesh(), "Aura");
 				BuffFX->SetTemplate(Buffs[i]->Effect);
 				BuffFX->ActivateSystem();
-				BuffFX->SetWorldScale3D(FVector(1.0f));
+				BuffFX->SetWorldScale3D(FVector(0.55f));
 
 				bFound = true;
+				break;
 			}
 		}
 
@@ -937,6 +938,7 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, Shield);
 	DOREPLIFETIME(AOrionCharacter, bIsElite);
 	DOREPLIFETIME(AOrionCharacter, Buffs);
+	DOREPLIFETIME(AOrionCharacter, bFemale);
 
 	//out of bounds
 	DOREPLIFETIME(AOrionCharacter, OutOfBoundsCounter);
@@ -1499,7 +1501,8 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 	if (PC)
 	{
-		Damage *= 1.0f - float(PC->GetSkillValue(SKILL_ROBOTDAMAGEREDUCTION)) / 100.0f;
+		if (Cast<AOrionDroidPawn>(DamageCauser))
+			Damage *= 1.0f - float(PC->GetSkillValue(SKILL_ROBOTDAMAGEREDUCTION)) / 100.0f;
 		if (CurrentSkill && CurrentSkill->IsJetpacking())
 			Damage *= 1.0f - float(PC->GetSkillValue(SKILL_JETPACKDAMAGEREDUCTION)) / 100.0f;
 
@@ -1544,7 +1547,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	if (!DamageType || !DamageType->bIgnoreModify)
 		Damage = Game ? Game->ModifyDamage(Damage, this, DamageEvent, EventInstigator, DamageCauser) : 0.f;
 
-	if (!bIsHealableMachine && DamageType && DamageType->bKnockBack && (!CurrentSkill || !CurrentSkill->IsJetpacking()))
+	if (!bIsBigDino && !bIsHealableMachine && DamageType && DamageType->bKnockBack && (!CurrentSkill || !CurrentSkill->IsJetpacking()))
 	{
 		//if this is a big dino doing the knockback, kill any small dinos caught in the area, and do no knockbacks to other dinos
 		AOrionDinoPawn *EnemyDino = Cast<AOrionDinoPawn>(DamageCauser);
@@ -1791,7 +1794,18 @@ void AOrionCharacter::SetClassArmor(int32 index)
 		EquipArmor(ArmorList[index].BodyArmor.GetDefaultObject());
 		EquipArmor(ArmorList[index].LegsArmor.GetDefaultObject());
 		EquipArmor(ArmorList[index].ArmsArmor.GetDefaultObject());
+
+		if (index == 2)
+		{
+			bFemale = true;
+			EventSetFemaleMesh();
+		}
 	}
+}
+
+void AOrionCharacter::OnRep_Female()
+{
+	EventSetFemaleMesh();
 }
 
 void AOrionCharacter::SetArmor(int32 index)
@@ -1890,6 +1904,10 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 
 	if (Role == ROLE_Authority)
 	{
+		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+		if (PRI)
+			PRI->OrbEffects.Empty();
+
 		ReplicateHit(KillingDamage, DamageEvent, PawnInstigator, DamageCauser, true);
 
 		// play the force feedback effect on the client player controller
@@ -2418,6 +2436,7 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 
 				PointDmg.DamageTypeClass = Buff->DamageType;
 				PointDmg.Damage = Buff->Damage;
+				PointDmg.ShotDirection = FVector(0.0f);
 
 				AController *cOwner = Buff->ControllerOwner;
 
@@ -2617,6 +2636,9 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 			Health = FMath::Min(HealthMax, Health + DeltaSeconds * (float(PC->GetSkillValue(SKILL_CLOAKREGEN)) / 100.0f)  * HealthMax);
 		}
 	}
+
+	if (BuffFX)
+		BuffFX->SetWorldRotation(FRotator::ZeroRotator);
 
 	//hax for now
 	//if (CurrentWeapon == NULL && Inventory.Num() > 0)
@@ -3520,6 +3542,12 @@ void AOrionCharacter::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 	if (!bUseControllerRotationRoll)
 	{
 		NewControlRotation.Roll = CurrentRotation.Roll;
+	}
+
+	if (bIsHealableMachine)
+	{
+		NewControlRotation.Pitch = 0.0f;
+		NewControlRotation.Roll = 0.0f;
 	}
 
 	if (RotationRate > 0.1f)

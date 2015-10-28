@@ -41,7 +41,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Buff)
 		float TickInterval;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Buff)
+	UPROPERTY(Replicated, EditDefaultsOnly, BlueprintReadOnly, Category = Buff)
 		class UParticleSystem *Effect;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Buff)
