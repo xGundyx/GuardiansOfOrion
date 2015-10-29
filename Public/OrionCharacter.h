@@ -171,6 +171,9 @@ struct FFatalityAnim
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 		bool bToggle;
+
+	UPROPERTY(BlueprintReadOnly, Category = Stats)
+		bool bRemove;
 };
 
 USTRUCT(BlueprintType)
@@ -545,7 +548,7 @@ public:
 	float LastTakeHitTime;
 
 	UFUNCTION(BlueprintCallable, Category = AI)
-		void PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAnim, AOrionCharacter *TheVictim);
+		void PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAnim, AOrionCharacter *TheVictim, bool bHideOnFatality);
 
 	UFUNCTION()
 		void OnRep_Fatality();
@@ -555,6 +558,9 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Fatality)
 		bool bFatality;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Fatality)
+		bool bFatalityRemove;
 
 	bool bFinishingMove;
 
