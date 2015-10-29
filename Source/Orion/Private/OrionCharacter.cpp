@@ -964,6 +964,7 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, Level);
 
 	DOREPLIFETIME(AOrionCharacter, bFatality);
+	DOREPLIFETIME(AOrionCharacter, bFatalityRemove);
 	DOREPLIFETIME(AOrionCharacter, FatalityAnim);
 	DOREPLIFETIME(AOrionCharacter, GibCenter);
 
@@ -1866,6 +1867,8 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 		return;
 	}
 
+	GetMesh()->DetachFromParent(true);
+
 	UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass->GetDefaultObject());
 	if (DamageType && DamageType->bIsKnife)
 	{
@@ -1964,7 +1967,7 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	}*/
 
 	//remove us completely if we got eaten
-	if (bFatality)
+	if (bFatality && bFatalityRemove)
 	{
 		Destroy();
 		return;
@@ -2516,18 +2519,22 @@ void AOrionCharacter::AddBuff(TSubclassOf<AOrionBuff> BuffClass, AController *cO
 	}
 }
 
-void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAnim, AOrionCharacter *TheVictim)
+void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAnim, AOrionCharacter *TheVictim, bool bHideOnFatality)
 {
 	if (Role == ROLE_Authority)
 	{
 		FatalityAnim.AttackerAnim = Anim;
 		FatalityAnim.VictimAnim = EnemyAnim;
 		FatalityAnim.Victim = TheVictim;
+		FatalityAnim.bRemove = bHideOnFatality;
 		FatalityAnim.bToggle = !FatalityAnim.bToggle;
 
 		//make the victim lose control over themselves
 		if (TheVictim)
+		{
 			TheVictim->bFatality = true;
+			TheVictim->bFatalityRemove = bHideOnFatality;
+		}
 	}
 
 	bFinishingMove = true;
@@ -2567,7 +2574,7 @@ void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAni
 void AOrionCharacter::OnRep_Fatality()
 {
 	//play the animations on both us and the victim
-	PerformFatality(FatalityAnim.AttackerAnim, FatalityAnim.VictimAnim, FatalityAnim.Victim);
+	PerformFatality(FatalityAnim.AttackerAnim, FatalityAnim.VictimAnim, FatalityAnim.Victim, FatalityAnim.bRemove);
 }
 
 void AOrionCharacter::Tick(float DeltaSeconds)
