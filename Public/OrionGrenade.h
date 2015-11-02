@@ -40,6 +40,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = Grenade)
 		bool bIsMiniGrenade;
 
+	UPROPERTY(BlueprintReadWrite, Category = Grenade)
+		FString GrenadeName;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
 		class UProjectileMovementComponent* ProjectileMovement;
 

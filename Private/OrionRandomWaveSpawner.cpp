@@ -146,6 +146,9 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], AActor *F
 		////if (!ClassEnabled[i])
 		////	continue;
 
+		//possible error checking
+		////TypesToSpawn[i] = FMath::Min(15, TypesToSpawn[i]);
+
 		for (int32 j = 0; j < TypesToSpawn[i]; j++)
 		{
 			FActorSpawnParameters SpawnInfo;

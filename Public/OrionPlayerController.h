@@ -714,15 +714,16 @@ public:
 
 	UFUNCTION(exec)
 		void SpawnWave();
-
-	UFUNCTION(exec)
-		void DaveyCam();
+#endif
 
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerSetDaveyCam(bool bOn);
 		bool ServerSetDaveyCam_Validate(bool bOn) { return true; }
 		void ServerSetDaveyCam_Implementation(bool bOn) { bDaveyCam = bOn; }
-#endif
+
+	UFUNCTION(exec)
+		void DaveyCam();
+
 	bool bDaveyCam;
 
 	virtual void Destroyed() override;
@@ -831,6 +832,13 @@ public:
 
 	UPROPERTY(BlueprintReadOnly, Category = PlayFab)
 		bool bAuthenticated;
+
+	float LastTRexKill;
+	float LastNamorKill;
+	bool bHereFromStart;
+
+	float LastGrenadeKillTime;
+	int32 GrenadeKills;
 
 	UFUNCTION(client, reliable)
 		void ClientSetAuthed(bool bAuthed);

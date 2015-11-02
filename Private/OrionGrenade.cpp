@@ -57,6 +57,7 @@ void AOrionGrenade::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FV
 
 	if (HitPawn)
 	{
+		HitPawn->bDirectGrenadeHit = true;
 		Destroy();
 	}
 }

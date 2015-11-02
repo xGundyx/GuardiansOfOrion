@@ -69,7 +69,15 @@ void AOrionSideMission::SpawnMissionEnemies(FSpawnNumbers TypesToSpawn, AActor *
 	Types[SPAWN_PARA] = TypesToSpawn.NumPara;
 	Types[SPAWN_STEG] = TypesToSpawn.NumSteg;
 
-	SpawnWave(Types, Target);
+	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
+
+	if (Game)
+	{
+		for (int32 i = 0; i < SPAWN_NUM; i++)
+			Game->SpawnTypes[i] = Types[i];
+	}
+
+	//SpawnWave(Types, Target);
 }
 
 //just single wave for testing

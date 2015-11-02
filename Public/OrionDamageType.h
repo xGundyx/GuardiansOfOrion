@@ -43,4 +43,7 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = Orion)
 		bool bIsKnife;
+
+	UPROPERTY(EditDefaultsOnly, Category = Orion)
+		FString WeaponName;
 };

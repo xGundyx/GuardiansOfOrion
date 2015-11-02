@@ -970,12 +970,12 @@ public:
 	UFUNCTION()
 		void OnRep_GibAll();
 
-	void GibAll(FVector Center);
+	void GibAll(FVector Center, AOrionPlayerController *PC);
 
 	UPROPERTY(ReplicatedUsing = OnRep_GibAll)
 		FVector GibCenter;
 
-	void HandleGibs(float damage, FDamageEvent const& DamageEvent);
+	void HandleGibs(float damage, FDamageEvent const& DamageEvent, AOrionPlayerController *PC);
 
 	//UFUNCTION(unreliable, client, Category = Gibs)
 	void SpawnGibs(int32 index, FVector pos, FRotator rot, FVector dir);
@@ -1010,6 +1010,9 @@ public:
 
 	//UPROPERTY(EditAnywhere, Category = Behavior)
 	//class UBehaviorTree* BotBehavior;
+
+	float TotalDamageReceived;
+	bool bDirectGrenadeHit;
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Change 1P Armor"))
 		void EventUpdate1PArmor(int32 index);
@@ -1214,7 +1217,7 @@ public:
 	UFUNCTION()
 		void OnSeePawn(APawn *SeenPawn);
 
-	UFUNCTION(server, reliable, WithValidation)
+	UFUNCTION(server, unreliable, WithValidation)
 		void ServerSetAimPos(FVector pos);
 		bool ServerSetAimPos_Validate(FVector pos);
 		void ServerSetAimPos_Implementation(FVector pos);

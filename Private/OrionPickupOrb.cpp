@@ -55,13 +55,13 @@ void AOrionPickupOrb::Init()
 	if (RandNum > 85)
 		OrbType = ORB_HEALTH;
 	else if (RandNum > 70)
-	OrbType = ORB_STOPPING;
+		OrbType = ORB_STOPPING;
 	else if (RandNum > 55)
-	OrbType = ORB_EXP;
+		OrbType = ORB_EXP;
 	else if (RandNum > 40)
-	OrbType = ORB_ROF;
+		OrbType = ORB_ROF;
 	else if (RandNum > 25)
-	OrbType = ORB_SPEED;
+		OrbType = ORB_SPEED;
 	else
 		OrbType = ORB_STRENGTH;
 

@@ -1189,7 +1189,7 @@ void AOrionWeapon::ServerNotifyHit_Implementation(const FHitResult Impact, FVect
 	// if we have an instigator, calculate dot between the view and the shot
 	if (Instigator && (Impact.GetActor() || Impact.bBlockingHit))
 	{
-		const FVector Origin = GetMuzzleLocation();
+		const FVector Origin = GetCameraDamageStartLocation(FVector(0.0f));// GetMuzzleLocation();
 		const FVector ViewDir = (Impact.Location - Origin).GetSafeNormal();
 
 		AOrionCharacter *Pawn = Cast<AOrionCharacter>(Instigator);

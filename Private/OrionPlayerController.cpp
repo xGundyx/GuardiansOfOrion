@@ -905,16 +905,6 @@ void AOrionPlayerController::AddLobbyPlayer(int32 pNumber, FString pName, FStrin
 
 	LobbyPlayers.Add(Player);
 }
-#if WITH_CHEATS
-void AOrionPlayerController::SpawnWave()
-{
-	if (GetWorld())
-	{
-		AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
-		if (Game)
-			Game->SpawnWave();
-	}
-}
 
 void AOrionPlayerController::DaveyCam()
 {
@@ -933,6 +923,17 @@ void AOrionPlayerController::DaveyCam()
 
 	if (GetWorld()->GetNetMode() == NM_Client)
 		ServerSetDaveyCam(bDaveyCam);
+}
+
+#if WITH_CHEATS
+void AOrionPlayerController::SpawnWave()
+{
+	if (GetWorld())
+	{
+		AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
+		if (Game)
+			Game->SpawnWave();
+	}
 }
 
 //for various testing things
@@ -2175,6 +2176,8 @@ void AOrionPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
 
+	bHereFromStart = false;
+
 #if !IS_SERVER
 	if (IsLocalPlayerController())
 	{
@@ -2611,14 +2614,23 @@ void AOrionPlayerController::InitStatsAndAchievements()
 
 //#if IS_SERVER
 		if (Stats && Role == ROLE_Authority)
+		{
 			Stats->ReadPlayerStats(this);
+			Stats->PCOwner = this;
+		}
 //#endif
 
 		Achievements = GetWorld()->SpawnActor<AOrionAchievements>(AchievementsClass, SpawnInfo);
 
+		if (Achievements)
+			Achievements->Init();
+
 //#if IS_SERVER
 		if (Stats && Role == ROLE_Authority)
+		{
 			Achievements->ReadPlayerAchievements(this);
+			Achievements->PCOwner = this;
+		}
 //#endif
 	}
 }
