@@ -257,6 +257,21 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 
 	//assists
 	AOrionCharacter *DeadPawn = Cast<AOrionCharacter>(KilledPawn);
+	AOrionDinoPawn *DeadDino = Cast<AOrionDinoPawn>(KilledPawn);
+
+	if (PC && DeadDino && DeadDino->DinoName.ToString().ToUpper() == TEXT("TREX"))
+	{
+		PC->LastTRexKill = GetWorld()->GetTimeSeconds();
+
+		if (PC->LastTRexKill - PC->LastNamorKill <= 5.0f)
+			PC->GetAchievements()->UnlockAchievement(ACH_TREXNAMOR, PC);
+	}
+	else if (PC && DeadDino && DeadDino->DinoName.ToString().ToUpper() == TEXT("NAMOR"))
+	{
+		PC->LastNamorKill = GetWorld()->GetTimeSeconds();
+		if (PC->LastNamorKill - PC->LastTRexKill <= 5.0f)
+			PC->GetAchievements()->UnlockAchievement(ACH_TREXNAMOR, PC);
+	}
 
 	if (DeadPawn)
 	{
@@ -264,11 +279,32 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 		{
 			if (PC!= NULL && PC != DeadPawn->Assisters[i])
 			{
-				AOrionPRI *AssistPRI = Cast<AOrionPRI>(DeadPawn->Assisters[i]->PlayerState);
+				AOrionPlayerController *C = DeadPawn->Assisters[i];
+				AOrionPRI *AssistPRI = Cast<AOrionPRI>(C->PlayerState);
 
 				if (AssistPRI)
 				{
+					if (C && C->GetStats())
+					{
+						switch (C->ClassIndex)
+						{
+						case 0:
+							C->GetStats()->AddStatValue(STAT_ASSISTSSASASSAULT, 1);
+							break;
+						case 1:
+							C->GetStats()->AddStatValue(STAT_ASSISTSASSUPPORT, 1);
+							break;
+						case 2:
+							C->GetStats()->AddStatValue(STAT_ASSISTSASRECON, 1);
+							break;
+						};
+
+						C->GetStats()->AddStatValue(STAT_ASSISTS, 1);
+					}
 					AssistPRI->Assists++;
+
+					if (AssistPRI->Assists >= 200 && C->GetAchievements())
+						C->GetAchievements()->UnlockAchievement(ACH_200ASSIST, C);
 				}
 			}
 		}
@@ -415,6 +451,9 @@ void AOrionGameMode::HandleStats(AController* Killer, AController* KilledPlayer,
 		{
 			Stats->AddStatValue(KilledStatID, 1);
 		}
+
+		if (KillerPC->GetAchievements())
+			KillerPC->GetAchievements()->CheckForSlayer();
 	}
 
 	if (KilledPC)
@@ -433,9 +472,43 @@ void AOrionGameMode::HandleStats(AController* Killer, AController* KilledPlayer,
 		AOrionPRI *KilledPRI = Cast<AOrionPRI>(KilledPlayer->PlayerState);
 
 		if (KillerPRI)
+		{
+			if (KillerPC && KillerPC->GetStats())
+			{
+				switch (KillerPC->ClassIndex)
+				{
+				case 0:
+					KillerPC->GetStats()->AddStatValue(STAT_KILLSASASSAULT, 1);
+					break;
+				case 1:
+					KillerPC->GetStats()->AddStatValue(STAT_KILLSASSUPPORT, 1);
+					break;
+				case 2:
+					KillerPC->GetStats()->AddStatValue(STAT_KILLSASRECON, 1);
+					break;
+				};
+			}
 			KillerPRI->Kills++;
+		}
 		if (KilledPRI)
+		{
+			if (KillerPC && KillerPC->GetStats())
+			{
+				switch (KillerPC->ClassIndex)
+				{
+				case 0:
+					KillerPC->GetStats()->AddStatValue(STAT_DEATHSASASSAULT, 1);
+					break;
+				case 1:
+					KillerPC->GetStats()->AddStatValue(STAT_DEATHSASSUPPORT, 1);
+					break;
+				case 2:
+					KillerPC->GetStats()->AddStatValue(STAT_DEATHSASRECON, 1);
+					break;
+				};
+			}
 			KilledPRI->Deaths++;
+		}
 	}
 }
 

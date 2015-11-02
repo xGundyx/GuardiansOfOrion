@@ -277,6 +277,8 @@ void AOrionCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	TotalDamageReceived = 0.0f;
+
 	if (bIsElite && EliteFX)
 	{
 		ShowEliteFX(true);
@@ -1199,10 +1201,10 @@ void AOrionCharacter::PostInitializeComponents()
 
 void AOrionCharacter::OnRep_GibAll()
 {
-	GibAll(GibCenter);
+	GibAll(GibCenter, nullptr);
 }
 
-void AOrionCharacter::GibAll(FVector Center)
+void AOrionCharacter::GibAll(FVector Center, AOrionPlayerController *PC)
 {
 	for (int32 i = 0; i < Gibs.Num(); i++)
 	{
@@ -1222,6 +1224,9 @@ void AOrionCharacter::GibAll(FVector Center)
 			FRotator rot;
 			GetMesh()->GetSocketWorldLocationAndRotation(Gib->SocketName, pos, rot);
 			SpawnGibs(i, pos, rot, vel);
+
+			if (PC && PC->GetStats())
+				PC->GetStats()->AddStatValue(Gib->DoBloodSpurt ? STAT_HEADSBLOWNOFF : STAT_LIMBSBLOWNOFF, 1);
 		}
 	}
 
@@ -1229,7 +1234,7 @@ void AOrionCharacter::GibAll(FVector Center)
 		GibCenter = Center;
 }
 
-void AOrionCharacter::HandleGibs(float damage, FDamageEvent const& DamageEvent)
+void AOrionCharacter::HandleGibs(float damage, FDamageEvent const& DamageEvent, AOrionPlayerController *Damager)
 {
 	const FPointDamageEvent *RealEvent = (FPointDamageEvent*)&DamageEvent;
 	FName CurrentBone, TargetBone;
@@ -1258,6 +1263,9 @@ void AOrionCharacter::HandleGibs(float damage, FDamageEvent const& DamageEvent)
 						FRotator rot;
 						GetMesh()->GetSocketWorldLocationAndRotation(Gib->SocketName, pos, rot);
 						SpawnGibs(i, pos, rot, vel);
+
+						if (Damager && Damager->GetStats())
+							Damager->GetStats()->AddStatValue(Gib->DoBloodSpurt ? STAT_HEADSBLOWNOFF : STAT_LIMBSBLOWNOFF, 1);
 
 						GibRep.Index = i;
 						GibRep.Socket = Gib->SocketName;
@@ -1499,6 +1507,13 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 		DamageCauser = WeaponDamageCauser->Instigator;
 	}
 
+	AOrionGrenade *GrenadeDamageCauser = Cast<AOrionGrenade>(DamageCauser);
+
+	if (GrenadeDamageCauser)
+	{
+		DamageCauser = GrenadeDamageCauser->GetOwner();
+	}
+
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 	if (PC)
 	{
@@ -1524,14 +1539,14 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 	if (Health <= 0.f)
 	{
-		if (DamageType && DamageType->bGibAll)
+		/*if (DamageType && DamageType->bGibAll)
 		{
 			const FPointDamageEvent *RealEvent = (FPointDamageEvent*)&DamageEvent;
 			GibAll(RealEvent->HitInfo.ImpactPoint);
 		}
 		//see if we want to blow some body pieces off
 		else
-			HandleGibs(Damage, DamageEvent);
+			HandleGibs(Damage, DamageEvent);*/
 
 		return 0.f;
 	}
@@ -1650,11 +1665,18 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 			if (DamageType && DamageType->bGibAll)
 			{
 				const FPointDamageEvent *RealEvent = (FPointDamageEvent*)&DamageEvent;
-				GibAll(RealEvent->HitInfo.ImpactPoint);
+				GibAll(RealEvent->HitInfo.ImpactPoint, Damager);
+
+				AOrionDinoPawn *DeadDino = Cast<AOrionDinoPawn>(this);
+				if (DeadDino && DeadDino->DinoName.ToString().ToUpper() == TEXT("TRIKE"))
+				{
+					if (Damager && Damager->GetAchievements())
+						Damager->GetAchievements()->UnlockAchievement(ACH_INHUMANE, Damager);
+				}
 			}
 			//see if we want to blow some body pieces off
 			else
-				HandleGibs(Damage, DamageEvent);
+				HandleGibs(Damage, DamageEvent, Damager);
 		}
 		else
 		{
@@ -1662,7 +1684,20 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 		}
 
 		MakeNoise(1.0f, EventInstigator ? EventInstigator->GetPawn() : this);
+
+		if (Health > 0)
+		{
+			TotalDamageReceived += ActualDamage;
+			if (PC && PC->GetAchievements() && TotalDamageReceived >= 25000.0f)
+				PC->GetAchievements()->UnlockAchievement(ACH_UNKILLABLE, PC);
+
+			AOrionDroidPawn *Droid = Cast<AOrionDroidPawn>(DamageCauser);
+			if (PC && PC->GetAchievements() && Droid && Droid->DroidName.ToString().ToUpper() == TEXT("ORB") && bDirectGrenadeHit)
+				PC->GetAchievements()->UnlockAchievement(ACH_IRONBALLS, PC);
+		}
 	}
+
+	bDirectGrenadeHit = false;
 
 	return ActualDamage;
 }
@@ -1682,6 +1717,41 @@ bool AOrionCharacter::Die(float KillingDamage, FDamageEvent const& DamageEvent, 
 	// if this is an environmental death then refer to the previous killer so that they receive credit (knocked into lava pits, etc)
 	UDamageType const* const DamageType = DamageEvent.DamageTypeClass ? DamageEvent.DamageTypeClass->GetDefaultObject<UDamageType>() : GetDefault<UDamageType>();
 	Killer = GetDamageInstigator(Killer, *DamageType);
+
+	UOrionDamageType *dType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass);
+
+	if (dType && dType->WeaponName != TEXT(""))
+	{
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Killer);
+		if (PC && PC->GetStats())
+		{
+			if (dType->WeaponName.ToUpper() == TEXT("AUTORIFLE"))
+				PC->GetStats()->AddStatValue(STAT_AUTORIFLEKILLS, 1);
+			else if (dType->WeaponName.ToUpper() == TEXT("PISTOL"))
+				PC->GetStats()->AddStatValue(STAT_PISTOLKILLS, 1);
+			else if (dType->WeaponName.ToUpper() == TEXT("COMBATSHOTGUN"))
+				PC->GetStats()->AddStatValue(STAT_COMBATSHOTGUNKILLS, 1);
+			else if (dType->WeaponName.ToUpper() == TEXT("MAGNUM"))
+				PC->GetStats()->AddStatValue(STAT_MAGNUMKILLS, 1);
+			else if (dType->WeaponName.ToUpper() == TEXT("SILENCEDSMG"))
+				PC->GetStats()->AddStatValue(STAT_SILENCEDSMGKILLS, 1);
+			else if (dType->WeaponName.ToUpper() == TEXT("AUTOPISTOL"))
+				PC->GetStats()->AddStatValue(STAT_AUTOPISTOLKILLS, 1);
+
+			if (dType->WeaponName.ToUpper() == TEXT("FRAGGRENADE"))
+			{
+				if (GetWorld()->GetTimeSeconds() - PC->LastGrenadeKillTime > 1.0f)
+					PC->GrenadeKills = 0;
+
+				PC->GrenadeKills++;
+
+				if (PC->GrenadeKills >= 10 && PC->GetAchievements())
+					PC->GetAchievements()->UnlockAchievement(ACH_MONSTERFRAG, PC);
+
+				PC->LastGrenadeKillTime = GetWorld()->GetTimeSeconds();
+			}
+		}
+	}
 
 	AController* const KilledPlayer = (Controller != NULL) ? Controller : Cast<AController>(GetOwner());
 	GetWorld()->GetAuthGameMode<AOrionGameMode>()->Killed(Killer, KilledPlayer, this, DamageType);
@@ -2534,6 +2604,26 @@ void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAni
 		{
 			TheVictim->bFatality = true;
 			TheVictim->bFatalityRemove = bHideOnFatality;
+
+			AOrionPlayerController *PC = Cast<AOrionPlayerController>(TheVictim->Controller);
+
+			if (PC && PC->GetAchievements())
+			{
+				if (Cast<AOrionDinoPawn>(TheVictim))
+				{
+					FString DinoName = Cast<AOrionDinoPawn>(TheVictim)->DinoName.ToString().ToUpper();
+					if (DinoName == TEXT("TREX"))
+						PC->GetAchievements()->UnlockAchievement(ACH_TREXFATALITY, PC);
+					else if (DinoName == TEXT("KRUGER"))
+						PC->GetAchievements()->UnlockAchievement(ACH_KRUGERFATALITY, PC);
+					else if (DinoName == TEXT("JECKYL"))
+						PC->GetAchievements()->UnlockAchievement(ACH_JECKYLFATALITY, PC);
+				}
+				else if (Cast<AOrionDroidPawn>(TheVictim))
+				{
+					FString DinoName = Cast<AOrionDroidPawn>(TheVictim)->DroidName.ToString().ToUpper();
+				}
+			}
 		}
 	}
 
@@ -2847,6 +2937,18 @@ void AOrionCharacter::ActuallyTossGrenade(FVector dir)
 			{
 				Grenade->Init(dir);
 				Grenade->SetFuseTime(Grenade->LifeTime);
+
+				AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+				if (PC && PC->GetStats())
+				{
+					if (Grenade->GrenadeName.ToUpper() == TEXT("FRAG"))
+						PC->GetStats()->AddStatValue(STAT_FRAGGRENADESTHROWN, 1);
+					else if (Grenade->GrenadeName.ToUpper() == TEXT("SMOKE"))
+						PC->GetStats()->AddStatValue(STAT_SMOKEGRENADESTHROWN, 1);
+					else if (Grenade->GrenadeName.ToUpper() == TEXT("EMP"))
+						PC->GetStats()->AddStatValue(STAT_EMPGRENADESTHROWN, 1);
+				}
 			}
 		}
 	}
@@ -3282,6 +3384,9 @@ void AOrionCharacter::Blink(FVector dir)
 					if (GetNetMode() != NM_DedicatedServer)
 						DoBlinkEffect(true, StartPos);
 
+					if (PC && PC->GetStats())
+						PC->GetStats()->AddStatValue(STAT_TIMESBLINKED, 1);
+
 					BlinkPos.End = EndPos;
 				}
 				else // teleport failed, need a better way to handle this
@@ -3496,6 +3601,9 @@ void AOrionCharacter::DoRoll()
 	}
 
 	bRolling = true;
+
+	if (PC && PC->GetStats())
+		PC->GetStats()->AddStatValue(STAT_TIMESROLLED, 1);
 
 	RollCooldown = 1.0f;
 

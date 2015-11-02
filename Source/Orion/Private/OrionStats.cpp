@@ -73,9 +73,16 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 	aStats.Add(FPlayerStats(STAT_SMGKILLS, TEXT("SMGKills")));
 	aStats.Add(FPlayerStats(STAT_SMGBULLETSFIRED, TEXT("SMGBulletsFired")));
 	aStats.Add(FPlayerStats(STAT_SMGBULLETSHIT, TEXT("SMGBulletsHit")));
+	aStats.Add(FPlayerStats(STAT_SILENCEDSMGKILLS, TEXT("SilencedSMGKills")));
+	aStats.Add(FPlayerStats(STAT_SILENCEDSMGBULLETSFIRED, TEXT("SilencedSMGBulletsFired")));
+	aStats.Add(FPlayerStats(STAT_SILENCEDSMGBULLETSHIT, TEXT("SilencedSMGBulletsHit")));
 
 	aStats.Add(FPlayerStats(STAT_RELICLOSSES, TEXT("RelicLosses")));
 	aStats.Add(FPlayerStats(STAT_RELICWINS, TEXT("RelicWins")));
+	aStats.Add(FPlayerStats(STAT_RELICLOSSES, TEXT("OutbackLosses")));
+	aStats.Add(FPlayerStats(STAT_RELICWINS, TEXT("OutbackWins")));
+	aStats.Add(FPlayerStats(STAT_ARIDLOSSES, TEXT("AridLosses")));
+	aStats.Add(FPlayerStats(STAT_ARIDWINS, TEXT("AridWins")));
 
 	aStats.Add(FPlayerStats(STAT_SUPPORTEXP, TEXT("SupportExp")));
 	aStats.Add(FPlayerStats(STAT_ASSAULTEXP, TEXT("AssaultExp")));
@@ -145,7 +152,10 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 	aStats.Add(FPlayerStats(STAT_TIMESREVIVED, TEXT("TimesRevived")));
 
 	aStats.Add(FPlayerStats(STAT_HEALTHORBS, TEXT("HealthOrbs")));
-	aStats.Add(FPlayerStats(STAT_SHIELDORBS, TEXT("ShieldOrbs")));
+	aStats.Add(FPlayerStats(STAT_STOPPINGORBS, TEXT("StoppingOrbs")));
+	aStats.Add(FPlayerStats(STAT_ROFORBS, TEXT("ROFOrbs")));
+	aStats.Add(FPlayerStats(STAT_SPEEDORBS, TEXT("SpeedOrbs")));
+	aStats.Add(FPlayerStats(STAT_REDUCTIONORBS, TEXT("ReductionOrbs")));
 	aStats.Add(FPlayerStats(STAT_EXPORBS, TEXT("ExpOrbs")));
 
 	aStats.Add(FPlayerStats(STAT_LIMBSBLOWNOFF, TEXT("LimbsBlownOff")));
@@ -154,6 +164,9 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 	aStats.Add(FPlayerStats(STAT_KILLSASASSAULT, TEXT("KillsAsAssault")));
 	aStats.Add(FPlayerStats(STAT_KILLSASSUPPORT, TEXT("KillsAsSupport")));
 	aStats.Add(FPlayerStats(STAT_KILLSASRECON, TEXT("KillsAsRecon")));
+	aStats.Add(FPlayerStats(STAT_KILLSASASSAULT, TEXT("AssistsAsAssault")));
+	aStats.Add(FPlayerStats(STAT_KILLSASSUPPORT, TEXT("AssistsAsSupport")));
+	aStats.Add(FPlayerStats(STAT_KILLSASRECON, TEXT("AssistsAsRecon")));
 	aStats.Add(FPlayerStats(STAT_DEATHSASASSAULT, TEXT("DeathsAsAssault")));
 	aStats.Add(FPlayerStats(STAT_DEATHSASSUPPORT, TEXT("DeathsAsSupport")));
 	aStats.Add(FPlayerStats(STAT_DEATHSASRECON, TEXT("DeathsAsRecon")));
@@ -171,6 +184,8 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 
 	aStats.Add(FPlayerStats(STAT_GENERATORHEALINGDONE, TEXT("GeneratorHealingDone")));
 	aStats.Add(FPlayerStats(STAT_GENERATORSREPAIRED, TEXT("GeneratorsRepaired")));
+
+	aStats.Add(FPlayerStats(STAT_ASSISTS, TEXT("Assists")));
 
 	bInitialized = false;
 
@@ -203,6 +218,11 @@ void AOrionStats::AddStatValue(EStatID ID, int32 Value)
 				aStats[ID].StatValue = FMath::Min(aStats[ID].StatValue + Value, CalculateExpToLevel(30));
 			else
 				aStats[ID].StatValue += Value;
+
+			if (PCOwner && PCOwner->GetAchievements())
+			{
+				PCOwner->GetAchievements()->CheckForStatUnlocks();
+			}
 		}
 	}
 }

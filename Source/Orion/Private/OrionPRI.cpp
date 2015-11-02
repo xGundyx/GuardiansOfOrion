@@ -168,6 +168,36 @@ void AOrionPRI::AddOrbEffect(EOrbType Type, float Duration)
 	if (!ControlledPawn || ControlledPawn->Health <= 0.0f)
 		return;
 
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(ControlledPawn->Controller);
+
+	if (PC && PC->GetStats())
+	{
+		switch (Type)
+		{
+		case ORB_STOPPING:
+			PC->GetStats()->AddStatValue(STAT_STOPPINGORBS, 1);
+			break;
+		case ORB_HEALTH:
+			PC->GetStats()->AddStatValue(STAT_HEALTHORBS, 1);
+			break;
+		case ORB_ROF:
+			PC->GetStats()->AddStatValue(STAT_ROFORBS, 1);
+			break;
+		case ORB_SPEED:
+			PC->GetStats()->AddStatValue(STAT_SPEEDORBS, 1);
+			break;
+		case ORB_EXP:
+			PC->GetStats()->AddStatValue(STAT_EXPORBS, 1);
+			break;
+		case ORB_STRENGTH:
+			PC->GetStats()->AddStatValue(STAT_REDUCTIONORBS, 1);
+			break;
+		}
+
+		if (PC->GetAchievements())
+			PC->GetAchievements()->CheckOrbs();
+	}
+
 	bool bFound = false;
 
 	//make sure it doesn't already exist
@@ -214,6 +244,12 @@ void AOrionPRI::AddOrbEffect(EOrbType Type, float Duration)
 		}
 
 		OrbEffects.Add(Orb);
+
+		if (OrbEffects.Num() >= 6)
+		{
+			if (PC && PC->GetAchievements())
+				PC->GetAchievements()->UnlockAchievement(ACH_6ORBS, PC);
+		}
 
 		UpdateOrbFX();
 	}

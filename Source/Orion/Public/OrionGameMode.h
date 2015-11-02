@@ -34,6 +34,9 @@ public:
 	AOrionOutOfBoundsVolume *OOBVolume;
 	FTimerHandle OOBTimer;
 
+	//keep track of the enemies we have yet to spawn
+	int32 SpawnTypes[SPAWN_NUM];
+
 	void AwardXPToAllPlayers(int32 Amount);
 
 	UPROPERTY(BlueprintReadWrite, Category = Gameplay)

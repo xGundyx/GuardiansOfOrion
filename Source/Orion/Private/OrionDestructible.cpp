@@ -33,6 +33,12 @@ void AOrionDestructible::Tick( float DeltaTime )
 
 float AOrionDestructible::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser)
 {
+	//ignore knife damage
+	UOrionDamageType *type = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject());
+
+	if (type && type->bIsKnife)
+		return 0.0f;
+
 	if (Cast<AOrionPlayerController>(EventInstigator))
 		Damage *= 4.0f;
 
