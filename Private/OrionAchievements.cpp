@@ -95,11 +95,11 @@ void AOrionAchievements::Init()
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("BONES MASTER III"), TEXT("bonesmasterthree"), TEXT("KILL 100 BONES"), ACH_BONESSKILLEDIII, STAT_BONESKILL, 100, NULL, TEXT(""), 100));
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("BONES MASTER IV"), TEXT("bonesmasterfour"), TEXT("KILL 500 BONES"), ACH_BONESSKILLEDIV, STAT_BONESKILL, 500, NULL, TEXT(""), 100));
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("BONES MASTER V"), TEXT("bonesmasterfive"), TEXT("KILL 1000 BONES"), ACH_BONESSKILLEDV, STAT_BONESKILL, 1000, NULL, TEXT(""), 250));
-	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("GRUMPS MASTER I"), TEXT("grumpsmasterone"), TEXT("KILL 10 GRUMPS"), ACH_GRUMPSSKILLEDI, STAT_GRUMPSKILL, 10, NULL, TEXT(""), 50));
-	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("GRUMPS MASTER II"), TEXT("grumpsmastertwo"), TEXT("KILL 50 GRUMPS"), ACH_GRUMPSSKILLEDII, STAT_GRUMPSKILL, 50, NULL, TEXT(""), 100));
-	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("GRUMPS MASTER III"), TEXT("grumpsmasterthree"), TEXT("KILL 100 GRUMPS"), ACH_GRUMPSSKILLEDIII, STAT_GRUMPSKILL, 100, NULL, TEXT(""), 100));
-	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("GRUMPS MASTER IV"), TEXT("grumpsmasterfour"), TEXT("KILL 500 GRUMPS"), ACH_GRUMPSSKILLEDIV, STAT_GRUMPSKILL, 500, NULL, TEXT(""), 100));
-	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("GRUMPS MASTER V"), TEXT("grumpsmasterfive"), TEXT("KILL 1000 GRUMPS"), ACH_GRUMPSSKILLEDV, STAT_GRUMPSKILL, 1000, NULL, TEXT(""), 250));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("GRUMPS MASTER I"), TEXT("grumpsmasterone"), TEXT("KILL 2 GRUMPS"), ACH_GRUMPSSKILLEDI, STAT_GRUMPSKILL, 2, NULL, TEXT(""), 50));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("GRUMPS MASTER II"), TEXT("grumpsmastertwo"), TEXT("KILL 15 GRUMPS"), ACH_GRUMPSSKILLEDII, STAT_GRUMPSKILL, 15, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("GRUMPS MASTER III"), TEXT("grumpsmasterthree"), TEXT("KILL 40 GRUMPS"), ACH_GRUMPSSKILLEDIII, STAT_GRUMPSKILL, 40, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("GRUMPS MASTER IV"), TEXT("grumpsmasterfour"), TEXT("KILL 100 GRUMPS"), ACH_GRUMPSSKILLEDIV, STAT_GRUMPSKILL, 100, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("GRUMPS MASTER V"), TEXT("grumpsmasterfive"), TEXT("KILL 250 GRUMPS"), ACH_GRUMPSSKILLEDV, STAT_GRUMPSKILL, 250, NULL, TEXT(""), 250));
 
 	//weapon/equipment/gear
 	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("AUTO-RIFLE MASTER I"), TEXT("autoriflemasterone"), TEXT("KILL 100 ENEMIES WITH THE AUTO-RIFLE"), ACH_AUTORIFLEKILLSI, STAT_AUTORIFLEKILLS, 100, NULL, TEXT(""), 50));
@@ -183,6 +183,7 @@ void AOrionAchievements::UnlockAchievement(int32 AchID, AOrionPlayerController *
 		return;
 
 	Achievements[AchID].bUnlocked = true;
+	Achievements[AchID].bDirty = true;
 
 	PC->UnlockAchievement(TEXT("ACHIEVEMENT UNLOCKED!"), Achievements[AchID].Name);
 
@@ -293,9 +294,10 @@ void AOrionAchievements::UpdateUnlocks()
 		if (Achievements[i].StatID < 0)
 			continue;
 
-		if (PCOwner->GetStats()->aStats[Achievements[i].StatID] >= Achievements[i].Goal)
+		if (PCOwner->GetStats()->aStats[Achievements[i].StatID].StatValue >= Achievements[i].Goal)
 		{
 			Achievements[i].bUnlocked = true;
+			Achievements[i].bDirty = true;
 
 			PCOwner->UnlockAchievement(TEXT("ACHIEVEMENT UNLOCKED!"), Achievements[i].Name);
 

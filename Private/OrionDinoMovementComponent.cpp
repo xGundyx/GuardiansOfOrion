@@ -130,7 +130,7 @@ float UOrionDinoMovementComponent::GetMaxSpeed() const
 		else if (OrionCharacterOwner->bRun && IsMovingOnGround())
 			SpeedMod *= (OrionCharacterOwner->bChargeAttack ? 4.0f : 1.0f) * OrionCharacterOwner->RunningModifier;
 		else
-			SpeedMod *= 1.0f;
+			SpeedMod *= (OrionCharacterOwner->bChargeAttack ? 4.0f : 1.0f) * OrionCharacterOwner->RunningModifier;
 	}
 
 	if (SpeedMod == 0.0f)

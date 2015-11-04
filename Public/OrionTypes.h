@@ -51,6 +51,7 @@ enum EAISpawnType
 	SPAWN_ALLO,
 	SPAWN_PARA,
 	SPAWN_STEG,
+	SPAWN_GRUMPS,
 
 	SPAWN_NUM
 };
@@ -156,6 +157,9 @@ struct FSpawnNumbers
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
 		int32 NumSteg;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Generator)
+		int32 NumGrumps;
 };
 
 USTRUCT()

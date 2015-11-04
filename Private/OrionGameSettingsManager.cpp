@@ -82,6 +82,9 @@ void UOrionGameSettingsManager::SetAudioLevels(FOrionAudioSettings InSettings)
 	Settings->DialogueVolume = InSettings.DialogueVolume;
 	Settings->WeaponVolume = InSettings.WeaponVolume;
 	Settings->CreatureVolume = InSettings.CreatureVolume;
+
+	if (Settings)
+		Settings->SaveConfig();
 }
 
 FScreenSettings UOrionGameSettingsManager::GetScreenSettings()
