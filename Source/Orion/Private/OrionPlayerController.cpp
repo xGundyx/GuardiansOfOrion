@@ -1611,6 +1611,7 @@ TArray<FString> AOrionPlayerController::GetMaps()
 
 	Maps.Add(TEXT("GOO-RELIC"));
 	Maps.Add(TEXT("GOO-OUTBACK"));
+	Maps.Add(TEXT("GOO-ARID"));
 
 	return Maps;
 }

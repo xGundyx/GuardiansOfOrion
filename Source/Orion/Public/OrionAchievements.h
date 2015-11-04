@@ -218,6 +218,9 @@ struct FAchievement
 	UPROPERTY(BlueprintReadWrite, Category = Achievements)
 		bool bUnlocked;
 
+	UPROPERTY(BlueprintReadWrite, Category = Achievements)
+		bool bDirty;
+
 	FAchievement(){}
 	FAchievement(EAchCategory cat, FString sTitle, FString sPFName, FString sDesc, int32 nID, int32 nStatID, int32 nGoal, UTexture2D *pIcon, FString sUnlock, int32 nCoins)
 	{
@@ -232,6 +235,7 @@ struct FAchievement
 		Coins = nCoins;
 		Unlock = sUnlock;
 		Category = cat;
+		bDirty = false;
 	}
 
 	bool operator==(const FAchievement Other) const { return pfName == Other.pfName; }
