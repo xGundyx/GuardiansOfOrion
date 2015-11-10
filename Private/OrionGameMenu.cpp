@@ -32,3 +32,10 @@ void AOrionGameMenu::AddPlacer(int32 index, AOrionMenuCharacter *Picker)
 	if (CharacterPlacers.Num() > index )
 		CharacterPlacers[index] = Picker;
 }
+
+void AOrionGameMenu::InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage)
+{
+	Super::InitGame(MapName, Options, ErrorMessage);
+
+	LobbyIP = UGameplayStatics::ParseOption(Options, TEXT("SteamConnectIP"));
+}

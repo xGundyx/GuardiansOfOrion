@@ -22,6 +22,14 @@ AOrionGRI::AOrionGRI(const FObjectInitializer& ObjectInitializer)
 
 	GameOverCountDown = -1;
 	SecondsTillNextWave = -1;
+
+	bPlayingIdleMovie = false;
+
+	Difficulty = DIFF_MEDIUM;
+	TimesHarvDowned = 0;
+	TotalLimbsBlownOff = 0;
+	ServerLocation = TEXT("US-EAST");
+	bStatsEnabled = false;
 }
 
 void AOrionGRI::AddRagdoll(AOrionCharacter *Ragdoll)
@@ -86,6 +94,12 @@ void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AShooterGameState, RemainingTime);
 	DOREPLIFETIME(AShooterGameState, bTimerPaused);
 	DOREPLIFETIME(AShooterGameState, TeamScores);*/
+	DOREPLIFETIME(AOrionGRI, TimesHarvDowned);
+	DOREPLIFETIME(AOrionGRI, TotalLimbsBlownOff);
+	DOREPLIFETIME(AOrionGRI, ServerLocation);
+	DOREPLIFETIME(AOrionGRI, bStatsEnabled);
+	DOREPLIFETIME(AOrionGRI, Difficulty);
+	DOREPLIFETIME(AOrionGRI, MapName);
 }
 
 void AOrionGRI::HandleVictoryDefeat()
@@ -166,8 +180,22 @@ void AOrionGRI::Tick(float DeltaSeconds)
 	{
 		Weather->UpdateWeather(DeltaSeconds);
 		if (Role == ROLE_Authority)
+		{
 			WorldTime = Weather->TheTime;
+		}
 	}
+}
+
+FString AOrionGRI::GetMapName()
+{
+	FString Map = GetWorld()->GetMapName().ToUpper();
+
+	int32 index = Map.Find("GOO-");
+
+	if (index > INDEX_NONE)
+		Map = Map.Mid(index + 4);
+
+	return Map;
 }
 
 FTimeOfDay AOrionGRI::GetWorldTime() const

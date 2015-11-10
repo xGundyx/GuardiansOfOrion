@@ -140,6 +140,27 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Generator)
 		int32 GameOverCountDown;
 
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Generator)
+		int32 TimesHarvDowned;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Generator)
+		int32 TotalLimbsBlownOff;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Generator)
+		FString ServerLocation;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Generator)
+		FString MapName;
+
+	UFUNCTION(BlueprintCallable, Category = Scores)
+		FString GetMapName();
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Generator)
+		bool bStatsEnabled;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Generator)
+		TEnumAsByte<EGameDifficulty> Difficulty;
+
 	void SetHeaderMessage(FString Title, FString Desc);
 
 	bool AddPlayerToTeam(AOrionPlayerController *PC, int32 TeamIndex);
@@ -159,4 +180,7 @@ public:
 	void AddRagdoll(AOrionCharacter *Ragdoll);
 	void RemoveRagdoll(AOrionCharacter *Ragdoll);
 	void ValidateRagdollArray();
+
+	UPROPERTY(BlueprintReadWrite, Category = Music)
+		bool bPlayingIdleMovie;
 };

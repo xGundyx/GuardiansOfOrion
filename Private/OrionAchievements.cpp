@@ -187,6 +187,11 @@ void AOrionAchievements::UnlockAchievement(int32 AchID, AOrionPlayerController *
 
 	PC->UnlockAchievement(TEXT("ACHIEVEMENT UNLOCKED!"), Achievements[AchID].Name);
 
+	AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+
+	if (PRI)
+		UPlayFabRequestProxy::ServerAddUserVirtualCurrency(PRI->PlayFabID, TEXT("TC"), Achievements[AchID].Name);
+
 	EventSavePlayerAchievements(PC);
 #endif
 }
@@ -300,6 +305,11 @@ void AOrionAchievements::UpdateUnlocks()
 			Achievements[i].bDirty = true;
 
 			PCOwner->UnlockAchievement(TEXT("ACHIEVEMENT UNLOCKED!"), Achievements[i].Name);
+
+			AOrionPRI *PRI = Cast<AOrionPRI>(PCOwner->PlayerState);
+
+			if (PRI)
+				UPlayFabRequestProxy::ServerAddUserVirtualCurrency(PRI->PlayFabID, TEXT("TC"), Achievements[i].Name);
 
 			bUnlocked = true;
 		}

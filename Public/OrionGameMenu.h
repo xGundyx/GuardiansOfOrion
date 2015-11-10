@@ -22,4 +22,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Placer)
 		void AddPlacer(int32 index, AOrionMenuCharacter *Picker);
+
+	UPROPERTY(BlueprintReadWrite, Category = Steam)
+		FString LobbyIP;
+
+	void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 };

@@ -39,13 +39,13 @@ public:
 		void EventPlayStopEffects();
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
-		bool IsJetpacking() { return bIsJetpacking; }
+		bool IsJetpacking() { return Cast<AOrionCharacter>(GetOwner()) && Cast<AOrionCharacter>(GetOwner())->Health > 0.0f && bIsJetpacking; }
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
-		bool IsCloaking() { return bIsCloaking; }
+		bool IsCloaking() { return Cast<AOrionCharacter>(GetOwner()) && Cast<AOrionCharacter>(GetOwner())->Health > 0.0f && bIsCloaking; }
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
-		bool IsOvercharging() { return bIsOvercharging; }
+		bool IsOvercharging() { return Cast<AOrionCharacter>(GetOwner()) && Cast<AOrionCharacter>(GetOwner())->Health > 0.0f && bIsOvercharging; }
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
 		void SetJetpacking(bool bActive) { bIsJetpacking = bActive; }

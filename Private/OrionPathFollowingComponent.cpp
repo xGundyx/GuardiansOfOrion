@@ -72,7 +72,6 @@ FVector UOrionPathFollowingComponent::GetCurrentTargetFlyingLocation()
 		return Controller->LandingLocation;
 	}
 
-
 	if (Controller && Controller->FlightPath.Num() > Controller->FlightIndex)
 	{
 		return Controller->FlightPath[Controller->FlightIndex];
@@ -99,6 +98,9 @@ void UOrionPathFollowingComponent::FollowPathSegment(float DeltaTime)
 		AOrionCharacter *Pawn = Cast<AOrionCharacter>(Controller->GetPawn());
 		if (Pawn && Pawn->IsFlying())
 		{
+			if (Controller->bFinishedPath)
+				OnPathFinished(EPathFollowingResult::Success);
+
 			if (MovementComp == NULL)//|| !Path.IsValid())
 			{
 				return;

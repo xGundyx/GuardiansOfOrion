@@ -72,6 +72,16 @@ void AOrionMusicManager::TickMusic()
 
 	if (GRI)
 	{
+		if (GRI->bPlayingIdleMovie)
+		{
+			if (bPlayingMusic)
+			{
+				MusicComponent->FadeOut(2.0f, 0.0f);
+				bPlayingMusic = false;
+			}
+			return;
+		}
+
 		EMusicType Type = MUSIC_NONE;
 		float VolumeMultiplier = 1.0f;
 

@@ -21,6 +21,7 @@
 #include "OrionTypes.h"
 #include "OrionPlayFabInventoryMapper.h"
 #include "OrionSkillTree.h"
+//#include "SPanel.h"
 #include "OrionPlayerController.generated.h"
 
 /**
@@ -622,11 +623,14 @@ public:
 
 	int32 GetMaxLevel();
 
+	//UFUNCTION(BlueprintCallable, Category = Loading)
+	//	void PlayLoadingScreen(UUserWidget *Widget);
+
 	UFUNCTION(BlueprintImplementableEvent, Category = Photon)
-		void UpdateLobbySettings(const FString& MapName, const FString& Difficulty, const FString& Gamemode, const FString& Privacy, const FString& IP, const FString& Ticket, const FString& Progress);
+		void UpdateLobbySettings(const FString& MapName, const FString& Difficulty, const FString& Gamemode, const FString& Privacy, const FString& IP, const FString& Ticket, const FString& Progress, const FString& Version);
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
-		void FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket, FString Wave);
+		void FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket, FString Wave, FString Version);
 
 	void JoinChatRoom(FString Room);
 
@@ -703,8 +707,10 @@ public:
 	void SeamlessTravelTo(class APlayerController* NewPC) override;
 	void SeamlessTravelFrom(class APlayerController* OldPC) override;
 
+#if WITH_CHEATS
 	UFUNCTION(exec)
 		void TestLevel();
+#endif
 
 	//UFUNCTION(exec)
 		virtual void ClearUMG();
@@ -715,6 +721,36 @@ public:
 	UFUNCTION(exec)
 		void SpawnWave();
 #endif
+
+	//delegates for steam friends stuff
+	void OnInviteAccepted(const bool bWasSuccessful, const int32 LocalUserNum, TSharedPtr<const FUniqueNetId>, const FOnlineSessionSearchResult &SessionToJoin);
+	void OnInviteReceived(const FUniqueNetId& UserId, const FUniqueNetId& FromId, const FString& AppId, const FOnlineSessionSearchResult& InviteResult);
+	void OnSessionCreated(FName SessionName, bool bSuccessful);
+
+	void CreateLobbySession(FString RoomName);
+	void DestroyLobbySession();
+
+	FString LobbyName;
+
+	UFUNCTION(BlueprintCallable, Category = Steam)
+		void InviteFriendToLobby(FString FriendSteamID);
+
+	UFUNCTION(BlueprintCallable, Category = Steam)
+		void SetPresenceInfo(FString LobbyID);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ReceiveChat"))
+		void EventAddChatMessage(const FString &msg);
+
+	UFUNCTION(Reliable, client)
+		void ClientReceiveChatMessage(const FString &msg);
+
+	UFUNCTION(BlueprintCallable, Category = Chat)
+		void OrionSendChatMessage(const FString &msg);
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerSendChatMessage(const FString &msg);
+		bool ServerSendChatMessage_Validate(const FString &msg) { return true; }
+		void ServerSendChatMessage_Implementation(const FString &msg);
 
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerSetDaveyCam(bool bOn);
@@ -854,7 +890,23 @@ public:
 	int32 NextSpawnClass;
 	FString NextSpawnID;
 
+	float LastTutorialTime;
+	void TickGenericTutorials();
+	FTimerHandle TutorialTimer;
+	FString FormatTutorial(FString Desc);
+
+	UFUNCTION(client, reliable)
+		void ClientSendTutorialMessage(const FString &Title, const FString &Desc);
+
 	bool InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad) override;
+
+	void SendTutorialMessage(FString Title, FString Desc);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "OrbMessage"))
+		void EventSetOrbMessage(const FString &Message, EOrbType Type);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ShowTutorial"))
+		void EventShowTutorial(const FString &Title, const FString &Desc);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SelectWeapon"))
 		void EventSelectWeapon(int32 index, const FString &WeaponName);

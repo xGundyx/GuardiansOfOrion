@@ -785,6 +785,9 @@ struct FFriendListData
 	UPROPERTY(BlueprintReadOnly, Category = Friend)
 		bool bPlayingGame;
 
+	UPROPERTY(BlueprintReadOnly, Category = Friend)
+		FString SteamID;
+
 	//id to connect to photon lobby, which in turn connects to the actual game server
 	UPROPERTY(BlueprintReadOnly, Category = Friend)
 		FString LobbyID;
