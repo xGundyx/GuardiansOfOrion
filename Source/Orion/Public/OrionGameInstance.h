@@ -28,6 +28,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
 		FString LobbyTicket;
 	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
+		FString LobbyID;
+	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
 		FString CharacterClass;
 	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
 		FString ServerIP;

@@ -74,6 +74,8 @@ void AOrionPRI::UpdateOrbFX()
 			FOrbEffectHelper FX;
 			FX.PSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ControlledPawn->OrbFX, ControlledPawn->GetActorLocation() + FVector(0.0f, 0.0f, 10.0f));
 
+			FString Message = "";
+
 			if (FX.PSC)
 			{
 				switch (OrbEffects[i].Type)
@@ -81,26 +83,32 @@ void AOrionPRI::UpdateOrbFX()
 				case ORB_HEALTH:
 					FX.PSC->SetVectorParameter("OrbColor", FVector(0.0f, 30.0f, 0.0f));
 					FX.PSC->SetVectorParameter("OrbTrailColor", FVector(0.5f, 30.0f, 0.5f));
+					Message = "HEALTH REGEN";
 					break;
 				case ORB_STOPPING:
 					FX.PSC->SetVectorParameter("OrbColor", FVector(30.0f, 0.0f, 0.0f));
 					FX.PSC->SetVectorParameter("OrbTrailColor", FVector(30.0f, 0.5f, 0.5f));
+					Message = "INCREASED DAMAGE";
 					break;
 				case ORB_EXP:
 					FX.PSC->SetVectorParameter("OrbColor", FVector(30.0f, 30.0f, 0.0f));
 					FX.PSC->SetVectorParameter("OrbTrailColor", FVector(30.0f, 30.0f, 0.5f));
+					Message = "DOUBLE XP";
 					break;
 				case ORB_ROF:
 					FX.PSC->SetVectorParameter("OrbColor", FVector(0.0f, 0.0f, 30.0f));
 					FX.PSC->SetVectorParameter("OrbTrailColor", FVector(0.5f, 0.5f, 30.0f));
+					Message = "FIRING SPEED";
 					break;
 				case ORB_SPEED:
 					FX.PSC->SetVectorParameter("OrbColor", FVector(30.0f, 0.0f, 30.0f));
 					FX.PSC->SetVectorParameter("OrbTrailColor", FVector(30.0f, 0.5f, 30.0f));
+					Message = "SPEED BOOST";
 					break;
 				case ORB_STRENGTH:
 					FX.PSC->SetVectorParameter("OrbColor", FVector(30.0f, 1.0f, 0.0f));
 					FX.PSC->SetVectorParameter("OrbTrailColor", FVector(30.0f, 1.0f, 0.5f));
+					Message = "DAMAGE REDUCTION";
 					break;
 				};
 			}
@@ -108,6 +116,12 @@ void AOrionPRI::UpdateOrbFX()
 			FX.Type = OrbEffects[i].Type;
 
 			OrbPSC.Add(FX);
+
+			AOrionPlayerController *PC = Cast<AOrionPlayerController>(ControlledPawn->Controller);
+			if (PC && PC->IsLocalPlayerController())
+				PC->EventSetOrbMessage(Message, FX.Type);
+
+			ControlledPawn->EventStartTrailFX();
 		}
 	}
 
@@ -135,6 +149,9 @@ void AOrionPRI::UpdateOrbFX()
 			i = -1;
 		}
 	}
+
+	if (OrbEffects.Num() <= 0)
+		ControlledPawn->EventStopTrailFX();
 }
 
 void AOrionPRI::UpdateOrbEffects()

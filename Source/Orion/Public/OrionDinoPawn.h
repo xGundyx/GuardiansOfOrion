@@ -76,6 +76,12 @@ public:
 		FVector ChargeTarget;
 
 	UPROPERTY(BlueprintReadWrite, Category = AI)
+		bool bTongueAttack;
+
+	UPROPERTY(BlueprintReadWrite, Category = AI)
+		FVector TongueTarget;
+
+	UPROPERTY(BlueprintReadWrite, Category = AI)
 		bool bShouldStopMovement;
 
 private:

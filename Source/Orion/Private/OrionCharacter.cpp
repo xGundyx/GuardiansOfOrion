@@ -941,6 +941,8 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, bIsElite);
 	DOREPLIFETIME(AOrionCharacter, Buffs);
 	DOREPLIFETIME(AOrionCharacter, bFemale);
+	DOREPLIFETIME(AOrionCharacter, bLatchedOnto);
+	DOREPLIFETIME(AOrionCharacter, Latcher);
 
 	//out of bounds
 	DOREPLIFETIME(AOrionCharacter, OutOfBoundsCounter);
@@ -1138,8 +1140,8 @@ void AOrionCharacter::InitMaterials()
 	CharacterMats.Empty();
 	CharacterCloakMats.Empty();
 
-	CharacterMats.SetNumUninitialized(5);
-	CharacterCloakMats.SetNumUninitialized(5);
+	CharacterMats.SetNumUninitialized(7);
+	CharacterCloakMats.SetNumUninitialized(7);
 
 	//reset materials to default if needed
 	if (GetMesh()) GetMesh()->OverrideMaterials.Empty();
@@ -1147,12 +1149,16 @@ void AOrionCharacter::InitMaterials()
 	if (BodyMesh) BodyMesh->OverrideMaterials.Empty();
 	if (LegsMesh) LegsMesh->OverrideMaterials.Empty();
 	if (ArmsMesh) ArmsMesh->OverrideMaterials.Empty();
+	if (Flight1Mesh) Flight1Mesh->OverrideMaterials.Empty();
+	if (Flight2Mesh) Flight2Mesh->OverrideMaterials.Empty();
 
 	CharacterMats[0] = UMaterialInstanceDynamic::Create(GetMesh()->GetMaterial(0), this); if (CharacterMats[0]) GetMesh()->SetMaterial(0, CharacterMats[0]);
 	CharacterMats[1] = UMaterialInstanceDynamic::Create(HelmetMesh->GetMaterial(0), this); if (CharacterMats[1]) HelmetMesh->SetMaterial(0, CharacterMats[1]);//head
 	CharacterMats[2] = UMaterialInstanceDynamic::Create(BodyMesh->GetMaterial(0), this); if (CharacterMats[2]) BodyMesh->SetMaterial(0, CharacterMats[2]);//body
 	CharacterMats[3] = UMaterialInstanceDynamic::Create(LegsMesh->GetMaterial(0), this); if (CharacterMats[3]) LegsMesh->SetMaterial(0, CharacterMats[3]);//legs
 	CharacterMats[4] = UMaterialInstanceDynamic::Create(ArmsMesh->GetMaterial(0), this); if (CharacterMats[4]) ArmsMesh->SetMaterial(0, CharacterMats[4]);//hands
+	CharacterMats[5] = UMaterialInstanceDynamic::Create(Flight1Mesh->GetMaterial(0), this); if (CharacterMats[5]) Flight1Mesh->SetMaterial(0, CharacterMats[5]);//delete1
+	CharacterMats[6] = UMaterialInstanceDynamic::Create(Flight2Mesh->GetMaterial(0), this); if (CharacterMats[6]) Flight2Mesh->SetMaterial(0, CharacterMats[6]);//delete2
 
 	//some greasy sorting for going cloaked with armor on
 	if (GetMesh()) GetMesh()->SetTranslucentSortPriority(1);
@@ -1160,12 +1166,16 @@ void AOrionCharacter::InitMaterials()
 	if (BodyMesh) BodyMesh->SetTranslucentSortPriority(2);
 	if (LegsMesh) LegsMesh->SetTranslucentSortPriority(2);
 	if (ArmsMesh) ArmsMesh->SetTranslucentSortPriority(2);
+	if (Flight1Mesh) Flight1Mesh->SetTranslucentSortPriority(2);
+	if (Flight2Mesh) Flight2Mesh->SetTranslucentSortPriority(2);
 
 	CharacterCloakMats[0] = UMaterialInstanceDynamic::Create(CloakParent, this); if(GetMesh() && GetMesh()->SkeletalMesh) CharacterCloakMats[0]->CopyParameterOverrides(Cast<UMaterialInstance>(GetMesh()->SkeletalMesh->Materials[0].MaterialInterface));
 	CharacterCloakMats[1] = UMaterialInstanceDynamic::Create(CloakParent, this); if (HelmetMesh && HelmetMesh->SkeletalMesh) CharacterCloakMats[1]->CopyParameterOverrides(Cast<UMaterialInstance>(HelmetMesh->SkeletalMesh->Materials[0].MaterialInterface));
 	CharacterCloakMats[2] = UMaterialInstanceDynamic::Create(CloakParent, this); if (BodyMesh && BodyMesh->SkeletalMesh) CharacterCloakMats[2]->CopyParameterOverrides(Cast<UMaterialInstance>(BodyMesh->SkeletalMesh->Materials[0].MaterialInterface));
 	CharacterCloakMats[3] = UMaterialInstanceDynamic::Create(CloakParent, this); if (LegsMesh && LegsMesh->SkeletalMesh) CharacterCloakMats[3]->CopyParameterOverrides(Cast<UMaterialInstance>(LegsMesh->SkeletalMesh->Materials[0].MaterialInterface));
 	CharacterCloakMats[4] = UMaterialInstanceDynamic::Create(CloakParent, this); if (ArmsMesh && ArmsMesh->SkeletalMesh) CharacterCloakMats[4]->CopyParameterOverrides(Cast<UMaterialInstance>(ArmsMesh->SkeletalMesh->Materials[0].MaterialInterface));
+	CharacterCloakMats[5] = UMaterialInstanceDynamic::Create(CloakParent, this); if (Flight1Mesh && Flight1Mesh->SkeletalMesh) CharacterCloakMats[5]->CopyParameterOverrides(Cast<UMaterialInstance>(Flight1Mesh->SkeletalMesh->Materials[0].MaterialInterface));
+	CharacterCloakMats[6] = UMaterialInstanceDynamic::Create(CloakParent, this); if (Flight2Mesh && Flight2Mesh->SkeletalMesh) CharacterCloakMats[6]->CopyParameterOverrides(Cast<UMaterialInstance>(Flight2Mesh->SkeletalMesh->Materials[0].MaterialInterface));
 }
 
 void AOrionCharacter::PostInitializeComponents()
@@ -1315,6 +1325,11 @@ void AOrionCharacter::SpawnGibs(int32 index, FVector pos, FRotator rot, FVector 
 
 	if (NewGib)
 	{
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
+
+		if (GRI && Role == ROLE_Authority)
+			GRI->TotalLimbsBlownOff++;
+
 		//hide the bone on the mesh
 		////GetMesh()->HideBoneByName(GetMesh()->GetSocketBoneName(NewGib->SocketName), PBO_None);
 		NewGib->Mesh->AddImpulse(dir + FVector(0, 0, 250.0f), NAME_None, true);
@@ -1517,6 +1532,9 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 	if (PC)
 	{
+		if (PC->GetAchievements() && (bLatchedOnto || DamageType->WeaponName.ToUpper() == TEXT("JECKYL")))
+			PC->GetAchievements()->UnlockAchievement(ACH_JECKYLFATALITY, PC);
+
 		if (Cast<AOrionDroidPawn>(DamageCauser))
 			Damage *= 1.0f - float(PC->GetSkillValue(SKILL_ROBOTDAMAGEREDUCTION)) / 100.0f;
 		if (CurrentSkill && CurrentSkill->IsJetpacking())
@@ -1563,7 +1581,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	if (!DamageType || !DamageType->bIgnoreModify)
 		Damage = Game ? Game->ModifyDamage(Damage, this, DamageEvent, EventInstigator, DamageCauser) : 0.f;
 
-	if (!bIsBigDino && !bIsHealableMachine && DamageType && DamageType->bKnockBack && (!CurrentSkill || !CurrentSkill->IsJetpacking()))
+	if (!bIsBigDino && !bIsHealableMachine && !bLatchedOnto && DamageType && DamageType->bKnockBack && (!CurrentSkill || !CurrentSkill->IsJetpacking()))
 	{
 		//if this is a big dino doing the knockback, kill any small dinos caught in the area, and do no knockbacks to other dinos
 		AOrionDinoPawn *EnemyDino = Cast<AOrionDinoPawn>(DamageCauser);
@@ -1937,6 +1955,9 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 		return;
 	}
 
+	if (bLatchedOnto)
+		bLatchedOnto = false;
+
 	GetMesh()->DetachFromParent(true);
 
 	UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass->GetDefaultObject());
@@ -1995,6 +2016,9 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 		}
 	}
 
+	//stop any fx we have going on
+	EventStopTrailFX();
+
 	// cannot use IsLocallyControlled here, because even local client's controller may be NULL here
 	if (GetNetMode() != NM_DedicatedServer && DeathSound)
 	{
@@ -2017,7 +2041,7 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 		PC->ChangeState(NAME_Spectating);
 
 		if (!PC->IsLocalPlayerController())
-			PC->ClientSetDeathSpectate(bFatality? nullptr : this);
+			PC->ClientSetDeathSpectate(bFatality && bFatalityRemove? nullptr : this);
 	}
 
 	// switch back to 3rd person view
@@ -2737,6 +2761,13 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 	if (BuffFX)
 		BuffFX->SetWorldRotation(FRotator::ZeroRotator);
 
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+	if (PRI && PRI->OrbEffects.Num() > 0)
+	{
+		LastHealTime = GetWorld()->GetTimeSeconds();
+		HealTarget = 5.0f;
+	}
+
 	//hax for now
 	//if (CurrentWeapon == NULL && Inventory.Num() > 0)
 	//	EquipWeapon(Inventory[0]);
@@ -3170,7 +3201,7 @@ void AOrionCharacter::BehindView()
 
 bool AOrionCharacter::ShouldIgnoreControls()
 {
-	return IsRolling() || bBlinking || bShoulderCamera || bShipCamera || bFatality || bFinishingMove;
+	return IsRolling() || bBlinking || bShoulderCamera || bShipCamera || bFatality || bFinishingMove || bLatchedOnto;
 }
 
 void AOrionCharacter::Duck()

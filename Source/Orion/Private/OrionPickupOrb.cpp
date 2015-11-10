@@ -25,7 +25,11 @@ AOrionPickupOrb::AOrionPickupOrb(const FObjectInitializer& ObjectInitializer)
 void AOrionPickupOrb::BeginPlay()
 {
 	Super::BeginPlay();
-	
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
+
+	if (PC && PC->IsLocalPlayerController())
+		PC->SendTutorialMessage("POWER ORBS", "TOUCH A POWER ORB TO GAIN A TEMPORARY BOOST IN POWER");
 }
 
 // Called every frame

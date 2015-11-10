@@ -35,4 +35,7 @@ public:
 
 	UPROPERTY(config)
 		float DialogueVolume;
+
+	UPROPERTY(config)
+		TArray<FString> Tutorials;
 };

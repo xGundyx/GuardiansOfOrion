@@ -11,6 +11,7 @@
 #include "PlayFabRequestProxy.h"
 #include "OrionAIController.h"
 #include "OrionPickupOrb.h"
+#include "OrionDinoPawn.h"
 
 AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -516,6 +517,8 @@ void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FS
 {
 	Super::InitGame(MapName, Options, ErrorMessage);
 
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
+
 	//read in our desired difficulty
 	FString Diff = UGameplayStatics::ParseOption(Options, TEXT("Difficulty"));
 
@@ -531,6 +534,15 @@ void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FS
 		Difficulty = DIFF_REDIKULOUS;
 	else
 		Difficulty = DIFF_MEDIUM;
+
+	if (GRI)
+	{
+		GRI->Difficulty = Difficulty;
+		GRI->MapName == MapName;
+#if IS_SERVER
+		GRI->bStatsEnabled = true;
+#endif
+	}
 
 	//read in our PlayFab LobbyID
 	LobbyID = UGameplayStatics::ParseOption(Options, TEXT("LobbyID"));
@@ -569,8 +581,16 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 	if (!PawnToDamage || !PawnToDamage->Controller || !EventInstigator)
 		return 0.0f;
 
+	AOrionDinoPawn *TRexKiller = Cast<AOrionDinoPawn>(EventInstigator->GetPawn());
+	AOrionDinoPawn *TRexKilled = Cast<AOrionDinoPawn>(PawnToDamage);
+
+	bool bDoTRexDamage = false;
+
+	if (TRexKiller && TRexKiller->DinoName.ToString().ToUpper() == "TREX")
+		bDoTRexDamage = true;
+
 	//if we're a team game, don't damage your teammates
-	if (bTeamGame && GRI && GRI->OnSameTeam(Cast<AOrionPRI>(PawnToDamage->Controller->PlayerState), Cast<AOrionPRI>(EventInstigator->PlayerState)))
+	if (bTeamGame && !bDoTRexDamage && GRI && GRI->OnSameTeam(Cast<AOrionPRI>(PawnToDamage->Controller->PlayerState), Cast<AOrionPRI>(EventInstigator->PlayerState)))
 	{
 		Damage = 0.0f;
 	}
@@ -712,6 +732,21 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 	}
 
 	return ret;
+}
+
+void AOrionGameMode::AddChatMessage(const FString &msg)
+{
+	TArray<AActor*> Controllers;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
+
+		if (C)
+			C->ClientReceiveChatMessage(msg);
+	}
 }
 
 void AOrionGameMode::PlayerAuthed(class AOrionPlayerController *PC, bool bSuccess)

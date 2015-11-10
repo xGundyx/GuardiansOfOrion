@@ -528,6 +528,13 @@ void AOrionAIController::RemoveEnemy()
 		P->bFinishingMove = false;
 	}
 
+	AOrionDinoPawn *D = Cast<AOrionDinoPawn>(GetPawn());
+
+	if (D)
+	{
+		D->bTongueAttack = false;
+	}
+
 	myEnemy = nullptr;
 
 	StopFiringWeapon();
@@ -614,6 +621,7 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 	//if we are capable of attacking the generator and this is a generator, attack it!
 	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
 	AOrionCharacter *pPawn = Cast<AOrionCharacter>(SeenPawn);
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
 
 	//if we're inside a blocking volume like smoke, ignore things we see
 	if (P && P->bIsHiddenFromView)
@@ -623,8 +631,11 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 	if (pPawn && pPawn->bIsHiddenFromView)
 		return;
 
-	if (pPawn && P && pPawn->bIsHealableMachine)
+	if (pPawn && P && pPawn->bIsHealableMachine && GRI)
 	{
+		if (GRI->bSideMission)
+			return;
+
 		if (GetEnemy())
 			return;
 

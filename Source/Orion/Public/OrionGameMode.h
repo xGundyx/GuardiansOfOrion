@@ -24,6 +24,8 @@ public:
 
 	virtual void AddSpawn(AOrionCharacter* P) {}
 
+	void AddChatMessage(const FString &msg);
+
 	UFUNCTION(BlueprintCallable, Category = Auth)
 		void PlayerAuthed(class AOrionPlayerController *PC, bool bSuccess);
 

@@ -126,6 +126,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Settings")
 		static void ApplyGraphicSettings();
 
+	static bool GetTutorial(FString Title);
+	static void SetTutorial(FString Title);
+
 	static UOrionGameUserSettings *Settings;
 	static UInputSettings *InputSettings;
 

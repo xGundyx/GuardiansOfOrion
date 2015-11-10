@@ -1014,6 +1014,12 @@ public:
 	float TotalDamageReceived;
 	bool bDirectGrenadeHit;
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "StartTrailFX"))
+		void EventStartTrailFX();
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "StopTrailFX"))
+		void EventStopTrailFX();
+
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Change 1P Armor"))
 		void EventUpdate1PArmor(int32 index);
 
@@ -1196,6 +1202,16 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
 		void SetTeamCloaking();
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Skill)
+		bool bLatchedOnto;
+
+	//timestamp of last time a rham tried to dive at us
+	UPROPERTY(BlueprintReadWrite, Category = AI)
+		float LastRhamAttackTime;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Skill)
+		AOrionCharacter *Latcher;
 
 	UPROPERTY(BlueprintReadOnly, Category = Skill)
 		TArray<UMaterialInstanceDynamic*> CharacterMats;

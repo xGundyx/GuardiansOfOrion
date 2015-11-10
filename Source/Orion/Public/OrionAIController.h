@@ -139,9 +139,9 @@ public:
 	//timestamp of last time we got a new enemy, after 5 seconds of chasing someone, we can switch to a better target if desired
 	float LastEnemyTime;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Navigation)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Navigation)
 		bool bFinishedPath;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Navigation)
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = Navigation)
 		bool bFinishedLanding;
 };

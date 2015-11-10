@@ -15,7 +15,7 @@ void AOrionWeaponLink::StartAiming(bool bPlaySound)
 		AOrionAbility *Skill = MyPawn->CurrentSkill;
 
 		//maybe play an error sound?
-		if (!Skill || Skill->GetEnergy() <= 0.0f)
+		if (!Skill)// || Skill->GetEnergy() <= 0.0f)
 			return;
 
 		LinkTarget = MyPawn;
@@ -28,7 +28,7 @@ void AOrionWeaponLink::StopAiming()
 	AOrionAbility *Skill = MyPawn->CurrentSkill;
 
 	//maybe play an error sound?
-	if (!Skill || Skill->GetEnergy() <= 0.0f)
+	if (!Skill)// || Skill->GetEnergy() <= 0.0f)
 		return;
 
 	if (Role == ROLE_Authority)
@@ -79,7 +79,7 @@ void AOrionWeaponLink::StartFire()
 		AOrionAbility *Skill = MyPawn->CurrentSkill;
 
 		//maybe play an error sound?
-		if (!Skill || Skill->GetEnergy() <= 0.0f)
+		if (!Skill)// || Skill->GetEnergy() <= 0.0f)
 			return;
 
 		float MaxDist = 1000.0f;
@@ -610,7 +610,7 @@ void AOrionWeaponLink::ValidateLinkTarget(float DeltaSeconds)
 
 	if (Skill)
 	{
-		float Rate = 4.0f;
+		/*float Rate = 4.0f;
 
 		AOrionPlayerController *PC = Cast<AOrionPlayerController>(MyPawn->Controller);
 		if (PC)
@@ -620,7 +620,7 @@ void AOrionWeaponLink::ValidateLinkTarget(float DeltaSeconds)
 		Skill->TimeSinceLastActive = GetWorld()->TimeSeconds - (Skill->RechargeDelay - 5.0f);
 
 		if (Skill->GetEnergy() <= 0.0f)
-			bExit = true;
+			bExit = true;*/
 	}
 
 	float MaxDist = 1100.0f;
@@ -666,6 +666,9 @@ void AOrionWeaponLink::HandleTarget(float DeltaSeconds)
 	//if the target is the generator, heal it up
 	if (P && P->bIsHealableMachine)
 	{
+		if (PC)
+			Rate += float(PC->GetSkillValue(SKILL_REGENENERGY)) / 100.0f;
+
 		if (P && P->Health < P->HealthMax)
 			P->Health += DeltaSeconds * Rate * P->HealthMax / 20.0f;
 	}

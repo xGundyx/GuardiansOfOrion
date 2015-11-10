@@ -460,7 +460,7 @@ void AOrionWeapon::StartFire()
 		FireRate *= 1.0f - float(PC->GetSkillValue(SKILL_FIRERATE)) / 100.0f;
 
 		if (PC->HasOrbEffect(ORB_ROF))
-			FireRate *= 0.5f;
+			FireRate *= 0.75f;
 	}
 
 	if (InstantConfig.bBurst)
@@ -573,7 +573,7 @@ void AOrionWeapon::FireBurst()
 		FireRate *= 1.0f - float(PC->GetSkillValue(SKILL_FIRERATE)) / 100.0f;
 
 		if (PC->HasOrbEffect(ORB_ROF))
-			FireRate *= 0.5f;
+			FireRate *= 0.75f;
 	}
 
 	if (BurstCounter > 0)
@@ -599,7 +599,7 @@ void AOrionWeapon::FireWeapon()
 			FireRate *= 1.0f - float(PC->GetSkillValue(SKILL_FIRERATE)) / 100.0f;
 
 			if (PC->HasOrbEffect(ORB_ROF))
-				FireRate *= 0.5f;
+				FireRate *= 0.75f;
 		}
 	}
 

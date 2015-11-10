@@ -136,7 +136,12 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], AActor *F
 	if (GetWorld() == nullptr || GetWorld()->GetNavigationSystem() == nullptr)
 		return;
 
-	FocusActor = Focus;
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+	if (GRI && GRI->bSideMission)
+		FocusActor = this;
+	else
+		FocusActor = Focus;
 
 	FailedToSpawn.Empty();
 
@@ -157,14 +162,36 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], AActor *F
 
 			FVector Loc;
 
-			Loc = GetWorld()->GetNavigationSystem()->GetRandomReachablePointInRadius(GetWorld(), GetActorLocation(), 1000.0f/*SpawnRadius*/, (ANavigationData*)0, DefaultFilterClass);
+			FVector vStart = GetWorld()->GetNavigationSystem()->ProjectPointToNavigation(GetWorld(), GetActorLocation(), (ANavigationData *)0, DefaultFilterClass, FVector(100.0f, 100.0f, 100.0f));
+
+			Loc = GetWorld()->GetNavigationSystem()->GetRandomReachablePointInRadius(GetWorld(), vStart, 5000.0f/*SpawnRadius*/, (ANavigationData*)0, DefaultFilterClass);
 
 			TSharedPtr<const FNavigationQueryFilter> QueryFilter = UNavigationQueryFilter::GetQueryFilter(GetWorld()->GetNavigationSystem()->MainNavData, DefaultFilterClass);
 
 			if (!GetWorld()->GetNavigationSystem()->TestPathSync(FPathFindingQuery(nullptr, GetWorld()->GetNavigationSystem()->MainNavData, GetActorLocation(), Loc, QueryFilter)))
 				continue;
 
-			AOrionCharacter* NewPawn = GetWorld()->SpawnActor<AOrionCharacter>(SpawnClasses[i], Loc + FVector(0, 0, 150.0f), GetActorRotation(), SpawnInfo);
+			bool bExit = false;
+			for (TActorIterator<AOrionPlayerController> Itr(GetWorld()); Itr && !bExit; ++Itr)
+			{
+				AOrionPlayerController *PC = *Itr;
+				AOrionCharacter *P = Cast<AOrionCharacter>(PC->GetPawn());
+
+				if (P == nullptr)
+					continue;
+
+				if ((P->GetActorLocation() - Loc).SizeSquared() < 2250000.0)
+					bExit = true;
+			}
+
+			if (bExit)
+			{
+				//FailedToSpawn.Add(i);
+				Game->SpawnTypes[i]++;
+				continue;
+			}
+
+			AOrionCharacter* NewPawn = GetWorld()->SpawnActor<AOrionCharacter>(SpawnClasses[i], Loc + FVector(0, 0, 1.05f) * SpawnClasses[i].GetDefaultObject()->GetCapsuleComponent()->GetScaledCapsuleHalfHeight(), GetActorRotation(), SpawnInfo);
 			if (NewPawn)
 			{
 				if (Game)
@@ -177,23 +204,24 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], AActor *F
 				NewPawn->SetAIType(AI_HUNTING);
 				NewPawn->SpawnType = i;
 			}
-			else
+			else if (Game)
 			{
-				FailedToSpawn.Add(i);
+				//FailedToSpawn.Add(i);
+				Game->SpawnTypes[i]++;
 				continue;
 			}
 		}
 	}
 
-	if (FailedToSpawn.Num() > 0)
+	/*if (FailedToSpawn.Num() > 0)
 	{
 		GetWorldTimerManager().SetTimer(FailedTimer, this, &AOrionRandomWaveSpawner::SpawnFailures, 1.0f, false);
-	}
+	}*/
 }
 
 void AOrionRandomWaveSpawner::SpawnFailures()
 {
-	TArray<int32> MoreFailures;
+	/*TArray<int32> MoreFailures;
 
 	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
 
@@ -204,9 +232,30 @@ void AOrionRandomWaveSpawner::SpawnFailures()
 
 		FVector Loc;
 
-		Loc = GetWorld()->GetNavigationSystem()->GetRandomReachablePointInRadius(GetWorld(), GetActorLocation(), 1000.0f/*SpawnRadius*/, (ANavigationData*)0, DefaultFilterClass);
+		FVector vStart = GetWorld()->GetNavigationSystem()->ProjectPointToNavigation(GetWorld(), GetActorLocation(), (ANavigationData *)0, DefaultFilterClass, FVector(100.0f, 100.0f, 100.0f));
 
-		AOrionCharacter* NewPawn = GetWorld()->SpawnActor<AOrionCharacter>(SpawnClasses[FailedToSpawn[i]], Loc + FVector(0, 0, 150.0f), GetActorRotation(), SpawnInfo);
+		Loc = GetWorld()->GetNavigationSystem()->GetRandomReachablePointInRadius(GetWorld(), vStart, 3000.0f, (ANavigationData*)0, DefaultFilterClass);
+
+		bool bExit = false;
+		for (TActorIterator<AOrionPlayerController> Itr(GetWorld()); Itr && !bExit; ++Itr)
+		{
+			AOrionPlayerController *PC = *Itr;
+			AOrionCharacter *P = Cast<AOrionCharacter>(PC->GetPawn());
+
+			if (P == nullptr)
+				continue;
+
+			if ((P->GetActorLocation() - Loc).SizeSquared() < 4000.0)
+				bExit = true;
+		}
+
+		if (bExit)
+		{
+			MoreFailures.Add(FailedToSpawn[i]);
+			continue;
+		}
+
+		AOrionCharacter* NewPawn = GetWorld()->SpawnActor<AOrionCharacter>(SpawnClasses[FailedToSpawn[i]], Loc + FVector(0, 0, 1.05f) * SpawnClasses[FailedToSpawn[i]].GetDefaultObject()->GetCapsuleComponent()->GetScaledCapsuleHalfHeight(), GetActorRotation(), SpawnInfo);
 		if (NewPawn)
 		{
 			if (Game)
@@ -231,5 +280,5 @@ void AOrionRandomWaveSpawner::SpawnFailures()
 	if (FailedToSpawn.Num() > 0)
 	{
 		GetWorldTimerManager().SetTimer(FailedTimer, this, &AOrionRandomWaveSpawner::SpawnFailures, 1.0f, false);
-	}
+	}*/
 }

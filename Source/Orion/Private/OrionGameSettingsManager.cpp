@@ -220,3 +220,21 @@ void UOrionGameSettingsManager::SaveInput()
 	if (InputSettings)
 		InputSettings->SaveConfig();
 }
+
+void UOrionGameSettingsManager::SetTutorial(FString Title)
+{
+	if (!Settings)
+		InitSettings();
+
+	Settings->Tutorials.AddUnique(Title);
+
+	Settings->SaveConfig();
+}
+
+bool UOrionGameSettingsManager::GetTutorial(FString Title)
+{
+	if (!Settings)
+		InitSettings();
+
+	return Settings->Tutorials.Find(Title) > INDEX_NONE;
+}
