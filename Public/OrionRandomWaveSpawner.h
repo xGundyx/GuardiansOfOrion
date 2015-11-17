@@ -100,6 +100,6 @@ public:
 
 private:
 	TArray<bool> ClassEnabled;
-	TArray<int32> FailedToSpawn;
+	//TArray<int32> FailedToSpawn;
 	FTimerHandle FailedTimer;
 };

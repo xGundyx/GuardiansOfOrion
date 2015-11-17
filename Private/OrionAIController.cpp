@@ -55,6 +55,18 @@ void AOrionAIController::Possess(APawn* aPawn)
 
 void AOrionAIController::HandleStuck()
 {
+	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
+	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
+	if (Game && P && P->GetActorLocation().Z < Game->DinoKillZ)
+	{
+		FDamageEvent dEvent = FDamageEvent::FDamageEvent();
+		dEvent.DamageTypeClass = UOrionDamageType::StaticClass();
+
+		P->Die(10000000.0f, dEvent, nullptr, P);
+
+		return;
+	}
+
 	if (!GetPawn() || !bCanBeStuck)
 		return;
 

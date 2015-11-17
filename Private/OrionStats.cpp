@@ -192,13 +192,13 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 	bReplicates = true;
 }
 
-void AOrionStats::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+/*void AOrionStats::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	// everyone
 	DOREPLIFETIME_CONDITION(AOrionStats, aStats, COND_OwnerOnly);
-}
+}*/
 
 void AOrionStats::ReadPlayerStats(AOrionPlayerController* PC)
 {

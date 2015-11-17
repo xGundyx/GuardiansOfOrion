@@ -77,6 +77,8 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 
 	// do this so the match doesn't accidently start on us
 	bDelayedStart = true;
+
+	DinoKillZ = -100000.0f;
 }
 
 void AOrionGameMode::TickExitTimer()
@@ -136,6 +138,13 @@ void AOrionGameMode::HandleOutOfBounds()
 		for (int32 i = 0; i < OOB.Num(); i++)
 		{
 			OOBVolume = Cast<AOrionOutOfBoundsVolume>(OOB[i]);
+
+			FVector Origin;
+			FVector Extents;
+			OOBVolume->GetActorBounds(false, Origin, Extents);
+
+			DinoKillZ = Origin.Z - Extents.Z;
+
 			break;
 		}
 	}
@@ -249,7 +258,7 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 {
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Killer);
 
-	HandleStats(Killer, KilledPlayer, KilledPawn, DamageType);
+	//HandleStats(Killer, KilledPlayer, KilledPawn, DamageType);
 
 	AOrionAIController *AIC = Cast<AOrionAIController>(Killer);
 
@@ -535,15 +544,6 @@ void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FS
 	else
 		Difficulty = DIFF_MEDIUM;
 
-	if (GRI)
-	{
-		GRI->Difficulty = Difficulty;
-		GRI->MapName == MapName;
-#if IS_SERVER
-		GRI->bStatsEnabled = true;
-#endif
-	}
-
 	//read in our PlayFab LobbyID
 	LobbyID = UGameplayStatics::ParseOption(Options, TEXT("LobbyID"));
 
@@ -572,6 +572,7 @@ void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FS
 	//ServerInfo.IP = UGameplayStatics::ParseOption(Options, TEXT("IP"));
 	//ServerInfo.Ticket = UGameplayStatics::ParseOption(Options, TEXT("LobbyTicket"));
 	ServerInfo.Privacy = UGameplayStatics::ParseOption(Options, TEXT("Privacy"));
+	ServerInfo.LobbyID = LobbyID;
 }
 
 float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, struct FDamageEvent const& DamageEvent, class AController *EventInstigator, class AActor *DamageCauser)
@@ -673,6 +674,16 @@ APlayerController* AOrionGameMode::Login(UPlayer* NewPlayer, ENetRole RemoteRole
 
 	if (GRI && rPC)
 		GRI->PlayerList.AddUnique(Cast<AOrionPRI>(rPC->PlayerState));
+
+	if (GRI)
+	{
+		GRI->Difficulty = Difficulty;
+#if IS_SERVER
+		GRI->bStatsEnabled = true;
+#else
+		GRI->bStatsEnabled = false;
+#endif
+	}
 
 	//retrieve player info, do not let them spawn until the data has been fully read in
 

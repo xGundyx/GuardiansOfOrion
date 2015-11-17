@@ -24,7 +24,11 @@ public:
 
 	virtual void AddSpawn(AOrionCharacter* P) {}
 
+	virtual void SetSpawnTimer() {}
+
 	void AddChatMessage(const FString &msg);
+
+	float DinoKillZ;
 
 	UFUNCTION(BlueprintCallable, Category = Auth)
 		void PlayerAuthed(class AOrionPlayerController *PC, bool bSuccess);

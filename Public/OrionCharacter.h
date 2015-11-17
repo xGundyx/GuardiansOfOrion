@@ -393,6 +393,12 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Generator)
 		bool bPowered;
+	
+	UFUNCTION()
+		void OnRep_Spawned();
+
+	UPROPERTY(ReplicatedUsing = OnRep_Spawned)
+		bool bNotSpawnedYet;
 
 	UPROPERTY(Replicated)
 		bool bSelfHealing;
@@ -489,6 +495,18 @@ public:
 
 	virtual void DoGrenade();
 	virtual void TossGrenade();
+	virtual void ThrowGrenadeAtLocation();
+	virtual void UpdateGrenadeTarget(float DeltaSeconds) {}
+	virtual void CancelGrenadeTarget();
+
+	FVector GrenadeTargetLocation;
+
+	//press G to bring up target, and fire to throw at the target
+	bool bTargetingGrenade;
+	ADecalActor *GrenadeTarget;
+
+	UPROPERTY(EditDefaultsOnly, Category = Projectile)
+		TSubclassOf<class ADecalActor> GrenadeTargetClass;
 
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerTossGrenade(FVector dir);
@@ -1206,9 +1224,23 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = Skill)
 		bool bLatchedOnto;
 
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Skill)
+		bool bKnockedDown;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Skill)
+		AOrionCharacter *Knocker;
+
+	void HandleKnockedDown();
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "GetUp"))
+		void EventGetUp();
+
 	//timestamp of last time a rham tried to dive at us
 	UPROPERTY(BlueprintReadWrite, Category = AI)
 		float LastRhamAttackTime;
+
+	UPROPERTY(BlueprintReadWrite, Category = AI)
+		float LastRaptorJumpTime;
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = Skill)
 		AOrionCharacter *Latcher;
@@ -1344,10 +1376,43 @@ public:
 	UFUNCTION()
 		void OnRep_NextWeapon();
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = Spawn)
+	bool bController;
+
+	UFUNCTION()
+		void OnRep_Downed();
+
+	//go into a crawling state when health reaches 0 for 30 seconds, or someone revives you to full health
+	UPROPERTY(ReplicatedUsing = OnRep_Downed, BlueprintReadWrite, Category = Speed)
+		bool bDowned;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Speed)
+		int32 DownedTime;
+
+	FTimerHandle DownedTimer;
+	void TickDownedTime();
+
+	FDamageEvent DownedDamageEvent;
+	AController* DownedEventInstigator;
+	AActor* DownedDamageCauser;
+
+	bool CanBeDowned(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser);
+
+	virtual void EquipWeaponFromSlot(int32 index) {}
+
+	//speed related boosts
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Speed)
+		float SprintRate;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Speed)
+		float AimRate;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Speed)
+		float CloakRate;
+
+	bool HasOrbEffect(EOrbType Type);
+
+	UPROPERTY(/*Replicated, */BlueprintReadOnly, Category = Spawn)
 		bool bShoulderCamera;
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = Spawn)
+	UPROPERTY(/*Replicated, */BlueprintReadOnly, Category = Spawn)
 		bool bShipCamera;
 
 	/** currently equipped weapon */

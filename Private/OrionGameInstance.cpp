@@ -7,7 +7,6 @@
 UOrionGameInstance::UOrionGameInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-
 }
 
 

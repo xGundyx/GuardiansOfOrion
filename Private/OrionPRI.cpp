@@ -131,7 +131,7 @@ void AOrionPRI::UpdateOrbFX()
 		bool bFound = false;
 		for (int32 j = 0; j < OrbEffects.Num(); j++)
 		{
-			if (OrbPSC[i].Type == OrbEffects[i].Type)
+			if (OrbPSC[i].Type == OrbEffects[j].Type)
 			{
 				bFound = true;
 				break;

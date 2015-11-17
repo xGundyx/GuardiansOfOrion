@@ -83,6 +83,12 @@ struct FLobbyData
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
 		FString LobbyTicket;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+		FString GUID;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+		FString RoomName;
 };
 
 USTRUCT(BlueprintType)
@@ -323,6 +329,9 @@ public:
 	//	void TestSkillTree() {EventOpenSkillTree();}
 
 	void OpenSkillTree() { EventOpenSkillTree(); }
+
+	UPROPERTY(BlueprintReadWrite, Category = Movement)
+		bool bMenuOpen;
 
 	UFUNCTION(exec)
 		void ReadFriends();
@@ -627,10 +636,10 @@ public:
 	//	void PlayLoadingScreen(UUserWidget *Widget);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Photon)
-		void UpdateLobbySettings(const FString& MapName, const FString& Difficulty, const FString& Gamemode, const FString& Privacy, const FString& IP, const FString& Ticket, const FString& Progress, const FString& Version);
+		void UpdateLobbySettings(const FString& MapName, const FString& Difficulty, const FString& Gamemode, const FString& Privacy, const FString& IP, const FString& Ticket, const FString& Progress, const FString& Version, const FString &GUID, const FString& RoomName);
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
-		void FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket, FString Wave, FString Version);
+		void FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket, FString Wave, FString Version, FString RoomName);
 
 	void JoinChatRoom(FString Room);
 
@@ -723,12 +732,21 @@ public:
 #endif
 
 	//delegates for steam friends stuff
-	void OnInviteAccepted(const bool bWasSuccessful, const int32 LocalUserNum, TSharedPtr<const FUniqueNetId>, const FOnlineSessionSearchResult &SessionToJoin);
+	void OnInviteAccepted(const bool bWasSuccessful, const int32 LocalUserNum, TSharedPtr<const FUniqueNetId> FriendID, const FOnlineSessionSearchResult &SessionToJoin);
 	void OnInviteReceived(const FUniqueNetId& UserId, const FUniqueNetId& FromId, const FString& AppId, const FOnlineSessionSearchResult& InviteResult);
 	void OnSessionCreated(FName SessionName, bool bSuccessful);
+	void OnJoinGame(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& SearchResult);
+	void OnFindSession(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& SearchResult);
+
+	void OnFriendInviteAccepted(const FUniqueNetId& UserID, const FUniqueNetId& FriendID);
+	void OnAcceptFriendInvite(int32 UserNum, bool bWasSuccessful, const FUniqueNetId& FriendId, const FString& ListName, const FString& ErrorStr);
+	void OnJoinSessionCompleted(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& SearchResult);
 
 	void CreateLobbySession(FString RoomName);
 	void DestroyLobbySession();
+
+	UFUNCTION(BlueprintCallable, Category = Raptor)
+		void DoPounceTutorial();
 
 	FString LobbyName;
 
@@ -804,6 +822,9 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Lobby)
 		void EventJoinLobbySuccess();
+
+	UFUNCTION(BlueprintImplementableEvent, Category = Spawn)
+		void EventBlackFade();
 
 	UPROPERTY(BlueprintReadOnly, Category = Lobby)
 		int32 LobbyPlayerNumber;

@@ -382,12 +382,30 @@ float AOrionWeapon::DoMelee()
 		CancelReload();
 
 	WeaponState = WEAP_MELEE;
-	float Len = PlayWeaponAnimation(MeleeAnim, Role == ROLE_Authority);
+
+	if (bAiming)
+		StopAiming();
+
+	if (LaserAimPSC)
+	{
+		LaserAimPSC->DeactivateSystem();
+		LaserAimPSC = nullptr;
+	}
+
+	float Len = 0.1f;
+	
+	if(MyPawn && MyPawn->bKnockedDown)
+		Len = PlayWeaponAnimation(MeleeKnockDownAnim, Role == ROLE_Authority);
+	else
+		Len = PlayWeaponAnimation(MeleeAnim, Role == ROLE_Authority);
 
 	//hide weapon and show knife
-	bKnifing = true;
-	Mesh3P->SetHiddenInGame(true);
-	KnifeMesh->SetHiddenInGame(false);
+	if (MyPawn && !MyPawn->bKnockedDown)
+	{
+		bKnifing = true;
+		Mesh3P->SetHiddenInGame(true);
+		KnifeMesh->SetHiddenInGame(false);
+	}
 
 	if (Len < 0.1f)
 		Len = 0.1f;
@@ -435,9 +453,9 @@ void AOrionWeapon::StartFire()
 	else
 	{
 		if (MyPawn && MyPawn->CurrentSkill && MyPawn->CurrentSkill->IsCloaking())
-			MyPawn->CurrentSkill->DepleteEnergy();
+			MyPawn->CurrentSkill->DeactivateSkill();// DepleteEnergy();
 		if (MyPawn && MyPawn->CurrentSecondarySkill && MyPawn->CurrentSecondarySkill->IsCloaking())
-			MyPawn->CurrentSecondarySkill->DepleteEnergy();
+			MyPawn->CurrentSecondarySkill->DeactivateSkill();// DepleteEnergy();
 	}
 
 	/*if (!bWantsToFire)
@@ -560,6 +578,12 @@ void AOrionWeapon::FireSpecial(FName SocketName, FVector Direction)
 
 void AOrionWeapon::FireBurst()
 {
+	if (MyPawn && MyPawn->IsRolling())
+	{
+		BurstCounter = 0;
+		return;
+	}
+
 	if (BurstCounter > 0)
 		FireWeapon();
 
@@ -781,7 +805,7 @@ FVector AOrionWeapon::GetAdjustedAim() const
 	if (MyPawn && MyPawn->IsTopDown())
 	{
 		//FinalAim = Instigator->GetActorRotation().Vector();
-		FinalAim = MyPawn->AimPos - FVector(0, 0, 25.0f) - MyPawn->GetActorLocation();
+		FinalAim = MyPawn->AimPos - FVector(0, 0, MyPawn->bDowned ? -25.0f : 25.0f) - MyPawn->GetActorLocation();
 	}
 	// If we have a player controller use it for the aim
 	else if (PlayerController)
@@ -829,7 +853,7 @@ FVector AOrionWeapon::GetCameraDamageStartLocation(const FVector& AimDir) const
 
 	if (MyPawn && MyPawn->IsTopDown())
 	{
-		OutStartTrace = Instigator->GetActorLocation() + FVector(0, 0, 25.0f);
+		OutStartTrace = Instigator->GetActorLocation() + FVector(0, 0, MyPawn->bDowned ? -25 : 25.0f);
 	}
 	else if (PC)
 	{
@@ -907,6 +931,14 @@ void AOrionWeapon::StartReload(bool bFromReplication)
 {
 	if (WeaponState == WEAP_RELOADING)
 		return;
+
+	BurstCounter = 0;
+
+	if (GetWorldTimerManager().IsTimerActive(FireTimer))
+		GetWorldTimerManager().ClearTimer(FireTimer);
+
+	if (GetWorldTimerManager().IsTimerActive(BurstTimer))
+		GetWorldTimerManager().ClearTimer(BurstTimer);
 
 	if (!bFromReplication && Role < ROLE_Authority)
 	{
@@ -1448,7 +1480,8 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 	{
 		LastFireSoundTime = GetWorld()->GetTimeSeconds();
 
-		PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim, false);//Role == ROLE_Authority);
+		if (MyPawn && !MyPawn->bDowned)
+			PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim, false);//Role == ROLE_Authority);
 		PlayWeaponSound(FireSound);
 	}
 }
@@ -1583,6 +1616,7 @@ float AOrionWeapon::OnUnEquip()
 {
 	//DetachMeshFromPawn();
 	StopFire();
+	StopAiming();
 	//bIsEquipped = false;
 
 	if (bPendingReload)
@@ -1592,6 +1626,12 @@ float AOrionWeapon::OnUnEquip()
 
 		GetWorldTimerManager().ClearTimer(ReloadStopTimer);// this, &AOrionWeapon::StopReload);
 		GetWorldTimerManager().ClearTimer(ReloadTimer);// this, &AOrionWeapon::ReloadWeapon);
+	}
+
+	if (LaserAimPSC)
+	{
+		LaserAimPSC->DeactivateSystem();
+		LaserAimPSC = nullptr;
 	}
 
 	/*if (bPendingEquip)
@@ -1756,7 +1796,8 @@ void AOrionWeapon::SimulateWeaponFire()
 
 	//if (!bLoopedFireAnim || !bPlayingFireAnim)
 	//{
-	PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim, false);//Role == ROLE_Authority);
+	if (MyPawn && !MyPawn->bDowned)
+		PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim, false);//Role == ROLE_Authority);
 	//	bPlayingFireAnim = true;
 	//}
 

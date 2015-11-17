@@ -271,13 +271,35 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	FlyingOffset = 100.0f;
 
 	OutOfBoundsCounter = -1;
+
+	bNotSpawnedYet = true;
+
+	//mainly for minimap updates
+	bAlwaysRelevant = true;
+}
+
+void AOrionCharacter::OnRep_Spawned()
+{
+	if (!bNotSpawnedYet)
+	{
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+		if (PC)
+			PC->EventBlackFade();
+	}
 }
 
 void AOrionCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	bShoulderCamera = true;
+
 	TotalDamageReceived = 0.0f;
+
+	SprintRate = 1.0f;
+	AimRate = 1.0f;
+	CloakRate = 1.0f;
 
 	if (bIsElite && EliteFX)
 	{
@@ -943,6 +965,18 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, bFemale);
 	DOREPLIFETIME(AOrionCharacter, bLatchedOnto);
 	DOREPLIFETIME(AOrionCharacter, Latcher);
+	DOREPLIFETIME(AOrionCharacter, bKnockedDown);
+	DOREPLIFETIME(AOrionCharacter, Knocker);
+
+	DOREPLIFETIME(AOrionCharacter, bDowned);
+	DOREPLIFETIME(AOrionCharacter, DownedTime);
+
+	//speed 
+	DOREPLIFETIME(AOrionCharacter, SprintRate);
+	DOREPLIFETIME(AOrionCharacter, AimRate);
+	DOREPLIFETIME(AOrionCharacter, CloakRate);
+
+	DOREPLIFETIME_CONDITION(AOrionCharacter, bNotSpawnedYet, COND_OwnerOnly);
 
 	//out of bounds
 	DOREPLIFETIME(AOrionCharacter, OutOfBoundsCounter);
@@ -1003,8 +1037,8 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, CurrentSkill);
 	DOREPLIFETIME(AOrionCharacter, CurrentSecondarySkill);
 
-	DOREPLIFETIME(AOrionCharacter, bShoulderCamera);
-	DOREPLIFETIME(AOrionCharacter, bShipCamera);
+	//DOREPLIFETIME(AOrionCharacter, bShoulderCamera);
+	//DOREPLIFETIME(AOrionCharacter, bShipCamera);
 }
 
 void AOrionCharacter::Destroyed()
@@ -1182,11 +1216,11 @@ void AOrionCharacter::PostInitializeComponents()
 {
 	Super::PostInitializeComponents();
 
-	if (Role == ROLE_Authority)
+	/*if (Role == ROLE_Authority)
 	{
 		bShoulderCamera = true;// FMath::RandRange(0, 1) == 1;
 		bShipCamera = !bShoulderCamera;
-	}
+	}*/
 
 	if (PawnSensor)
 	{
@@ -1546,6 +1580,14 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 	AOrionPlayerController *AttackerPC = Cast<AOrionPlayerController>(EventInstigator);
 
+	if (AttackerPC)
+	{
+		AOrionCharacter *AttackerPawn = Cast<AOrionCharacter>(AttackerPC->GetPawn());
+
+		if (AttackerPawn && AttackerPawn->bDowned)
+			Damage *= 0.35f;
+	}
+
 	if (bIsBigDino)
 	{
 		if (AttackerPC)
@@ -1581,7 +1623,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	if (!DamageType || !DamageType->bIgnoreModify)
 		Damage = Game ? Game->ModifyDamage(Damage, this, DamageEvent, EventInstigator, DamageCauser) : 0.f;
 
-	if (!bIsBigDino && !bIsHealableMachine && !bLatchedOnto && DamageType && DamageType->bKnockBack && (!CurrentSkill || !CurrentSkill->IsJetpacking()))
+	if (!bIsBigDino && !bIsHealableMachine && !bLatchedOnto && !bKnockedDown && DamageType && DamageType->bKnockBack && (!CurrentSkill || !CurrentSkill->IsJetpacking()))
 	{
 		//if this is a big dino doing the knockback, kill any small dinos caught in the area, and do no knockbacks to other dinos
 		AOrionDinoPawn *EnemyDino = Cast<AOrionDinoPawn>(DamageCauser);
@@ -1678,23 +1720,51 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 		if (Health <= 0)
 		{
-			Die(ActualDamage, DamageEvent, EventInstigator, DamageCauser);
-
-			if (DamageType && DamageType->bGibAll)
+			if (CanBeDowned(Damage, DamageEvent, EventInstigator, DamageCauser))
 			{
-				const FPointDamageEvent *RealEvent = (FPointDamageEvent*)&DamageEvent;
-				GibAll(RealEvent->HitInfo.ImpactPoint, Damager);
+				PC->SendTutorialMessage(TEXT("DOWNED"), TEXT("YOU HAVE BEEN DOWNED, WAIT FOR A TEAMMATE TO REVIVE YOU!"));
 
-				AOrionDinoPawn *DeadDino = Cast<AOrionDinoPawn>(this);
-				if (DeadDino && DeadDino->DinoName.ToString().ToUpper() == TEXT("TRIKE"))
-				{
-					if (Damager && Damager->GetAchievements())
-						Damager->GetAchievements()->UnlockAchievement(ACH_INHUMANE, Damager);
-				}
+				bDowned = true;
+
+				//can only use pistol when downed
+				EquipWeaponFromSlot(2);
+				bRun = false;
+				StopAiming();
+
+				if (CurrentSkill)
+					CurrentSkill->DeactivateSkill();
+
+				DownedTime = 30;
+
+				AController* const KilledPlayer = (Controller != NULL) ? Controller : Cast<AController>(GetOwner());
+				GetWorld()->GetAuthGameMode<AOrionGameMode>()->HandleStats(EventInstigator, KilledPlayer, this, DamageType);
+
+				DownedDamageEvent = DamageEvent;
+				DownedEventInstigator = nullptr;// EventInstigator;
+				DownedDamageCauser = nullptr;// DamageCauser;
+
+				GetWorldTimerManager().SetTimer(DownedTimer, this, &AOrionCharacter::TickDownedTime, 1.0f, false);
 			}
-			//see if we want to blow some body pieces off
 			else
-				HandleGibs(Damage, DamageEvent, Damager);
+			{
+				Die(ActualDamage, DamageEvent, EventInstigator, DamageCauser);
+
+				if (DamageType && DamageType->bGibAll)
+				{
+					const FPointDamageEvent *RealEvent = (FPointDamageEvent*)&DamageEvent;
+					GibAll(RealEvent->HitInfo.ImpactPoint, Damager);
+
+					AOrionDinoPawn *DeadDino = Cast<AOrionDinoPawn>(this);
+					if (DeadDino && DeadDino->DinoName.ToString().ToUpper() == TEXT("TRIKE"))
+					{
+						if (Damager && Damager->GetAchievements())
+							Damager->GetAchievements()->UnlockAchievement(ACH_INHUMANE, Damager);
+					}
+				}
+				//see if we want to blow some body pieces off
+				else
+					HandleGibs(Damage, DamageEvent, Damager);
+			}
 		}
 		else
 		{
@@ -1720,6 +1790,57 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	return ActualDamage;
 }
 
+void AOrionCharacter::TickDownedTime()
+{
+	DownedTime--;
+
+	if (DownedTime <= 0)
+	{
+		bDowned = false;
+		Die(50.0f, DownedDamageEvent, DownedEventInstigator, DownedDamageCauser);
+	}
+	else
+		GetWorldTimerManager().SetTimer(DownedTimer, this, &AOrionCharacter::TickDownedTime, 1.0f, false);
+}
+
+void AOrionCharacter::OnRep_Downed()
+{
+	if (bDowned)
+	{
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+		if(PC)
+			PC->SendTutorialMessage(TEXT("DOWNED"), TEXT("YOU HAVE BEEN DOWNED, WAIT FOR A TEAMMATE TO REVIVE YOU!"));
+
+		//pistol only
+		EquipWeaponFromSlot(2);
+		bRun = false;
+		StopAiming();
+
+		if (CurrentSkill)
+			CurrentSkill->DeactivateSkill();
+	}
+	else
+	{
+
+	}
+}
+
+bool AOrionCharacter::CanBeDowned(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser)
+{
+	UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject());
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	if (DamageType && PRI)
+	{
+		if (bFatality || bLatchedOnto || bKnockedDown || PRI->bIsABot)
+			return false;
+
+		return true;
+	}
+
+	return false;
+}
+
 bool AOrionCharacter::Die(float KillingDamage, FDamageEvent const& DamageEvent, AController* Killer, AActor* DamageCauser)
 {
 	/*if (!CanDie(KillingDamage, DamageEvent, Killer, DamageCauser))
@@ -1736,7 +1857,7 @@ bool AOrionCharacter::Die(float KillingDamage, FDamageEvent const& DamageEvent, 
 	UDamageType const* const DamageType = DamageEvent.DamageTypeClass ? DamageEvent.DamageTypeClass->GetDefaultObject<UDamageType>() : GetDefault<UDamageType>();
 	Killer = GetDamageInstigator(Killer, *DamageType);
 
-	UOrionDamageType *dType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass);
+	UOrionDamageType *dType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject());
 
 	if (dType && dType->WeaponName != TEXT(""))
 	{
@@ -1773,6 +1894,9 @@ bool AOrionCharacter::Die(float KillingDamage, FDamageEvent const& DamageEvent, 
 
 	AController* const KilledPlayer = (Controller != NULL) ? Controller : Cast<AController>(GetOwner());
 	GetWorld()->GetAuthGameMode<AOrionGameMode>()->Killed(Killer, KilledPlayer, this, DamageType);
+
+	if (Killer && Killer->IsValidLowLevel())
+		GetWorld()->GetAuthGameMode<AOrionGameMode>()->HandleStats(Killer, KilledPlayer, this, DamageType);
 
 	NetUpdateFrequency = GetDefault<AOrionCharacter>()->NetUpdateFrequency;
 	GetCharacterMovement()->ForceReplicationUpdate();
@@ -1958,6 +2082,9 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	if (bLatchedOnto)
 		bLatchedOnto = false;
 
+	if (bKnockedDown)
+		bKnockedDown = false;
+
 	GetMesh()->DetachFromParent(true);
 
 	UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass->GetDefaultObject());
@@ -1980,7 +2107,11 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	Flight2Mesh->SetRenderCustomDepth(false);
 
 	if (CurrentSkill)
+	{
 		CurrentSkill->DeactivateSkill();
+		CurrentSkill->Destroy();
+		CurrentSkill = nullptr;
+	}
 
 	if (CurrentWeapon)
 		CurrentWeapon->StopFire();
@@ -2551,6 +2682,9 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 			if (Buff->HealPercent > 0.0f)
 			{
 				Health = FMath::Min(HealthMax, Health + (Buff->HealPercent * HealthMax));
+
+				LastHealTime = GetWorld()->GetTimeSeconds();
+				HealTarget = 5.0f;
 			}
 
 			//reset the ticker
@@ -2691,9 +2825,37 @@ void AOrionCharacter::OnRep_Fatality()
 	PerformFatality(FatalityAnim.AttackerAnim, FatalityAnim.VictimAnim, FatalityAnim.Victim, FatalityAnim.bRemove);
 }
 
+void AOrionCharacter::HandleKnockedDown()
+{
+	if (Role == ROLE_Authority)
+	{
+		if (bKnockedDown && (!Knocker || !Knocker->IsValidLowLevel()))
+		{
+			if (Health > 0)
+				EventGetUp();
+
+			//bKnockedDown = false;
+			Knocker = nullptr;
+		}
+		else if (Knocker && Knocker->IsValidLowLevel())
+		{
+			if (Knocker->Health <= 0.0f)
+			{
+				if (Health > 0)
+					EventGetUp();
+
+				//bKnockedDown = false;
+				Knocker = nullptr;
+			}
+		}
+	}
+}
+
 void AOrionCharacter::Tick(float DeltaSeconds)
 {
 	Super::Tick(DeltaSeconds);
+
+	UpdateGrenadeTarget(DeltaSeconds);
 
 	UpdateRootYaw(DeltaSeconds);
 
@@ -2706,6 +2868,8 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 	HandleBuffs(DeltaSeconds);
 
 	HandleHealEffects(DeltaSeconds);
+
+	HandleKnockedDown();
 
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
@@ -2730,7 +2894,7 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 		CreateHealthBar();
 
 	//recharge shields
-	if (Role == ROLE_Authority)
+	if (Role == ROLE_Authority && !bDowned)
 	{
 		float Rate = 1.0f;
 
@@ -2738,7 +2902,7 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 		if (PC)
 			Rate = 1.0f + float(PC->GetSkillValue(SKILL_SHIELDREGENSPEED)) / 100.0f;
 
-		if (Shield < ShieldMax && GetWorld()->TimeSeconds - LastTakeHitTime >= 10.0f)
+		if (Health >= HealthMax && Shield < ShieldMax && GetWorld()->TimeSeconds - LastTakeHitTime >= 10.0f)
 		{
 			Shield = FMath::Min(ShieldMax, Shield + DeltaSeconds * Rate * (ShieldMax / 10.0f));
 
@@ -2771,6 +2935,22 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 	//hax for now
 	//if (CurrentWeapon == NULL && Inventory.Num() > 0)
 	//	EquipWeapon(Inventory[0]);
+}
+
+bool AOrionCharacter::HasOrbEffect(EOrbType Type)
+{
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	if (PRI)
+	{
+		for (int32 i = 0; i < PRI->OrbEffects.Num(); i++)
+		{
+			if (PRI->OrbEffects[i].Type == Type)
+				return true;
+		}
+	}
+
+	return false;
 }
 
 void AOrionCharacter::HandleHealEffects(float DeltaTime)
@@ -2914,11 +3094,57 @@ void AOrionCharacter::TossGrenade()
 	if (GetWorldTimerManager().IsTimerActive(GrenadeTimer))
 		return;
 
+	if (bDowned)
+		return;
+
 	if (ShouldIgnoreControls())
 		return;
 
 	if (GrenadeCooldown.Energy < GrenadeCooldown.SecondsToRecharge)
 		return;
+
+	if (false)
+	{
+		//spawn the grenade target
+		if (!GrenadeTarget && GrenadeTargetClass)
+		{
+			FActorSpawnParameters SpawnInfo;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+			SpawnInfo.Owner = this;
+
+			GrenadeTarget = GetWorld()->SpawnActor<ADecalActor>(GrenadeTargetClass, AimPos, FRotator::ZeroRotator, SpawnInfo);
+			if (GrenadeTarget)
+				GrenadeTarget->SetActorHiddenInGame(false);
+		}
+
+		if (!GrenadeTarget)
+		{
+			return;
+		}
+
+		if (bTargetingGrenade)
+		{
+			bTargetingGrenade = false;
+			if (GrenadeTarget)
+				GrenadeTarget->SetActorHiddenInGame(true);
+		}
+		else
+		{
+			bTargetingGrenade = true;
+			if (GrenadeTarget)
+				GrenadeTarget->SetActorHiddenInGame(false);
+		}
+	}
+	else
+	{
+		GrenadeTargetLocation = AimPos;
+		ThrowGrenadeAtLocation();
+	}
+}
+
+void AOrionCharacter::ThrowGrenadeAtLocation()
+{
+	bTargetingGrenade = false;
 
 	FWeaponAnim GrenAnim;
 	GrenAnim.Pawn3P = GrenadeAnim;
@@ -3012,6 +3238,9 @@ void AOrionCharacter::TryToActivateSkill()
 	if (ShouldIgnoreControls())
 		return;
 
+	if (bDowned)
+		return;
+
 	if (Role < ROLE_Authority)
 		ServerActivateSkill();
 	else
@@ -3026,6 +3255,9 @@ bool AOrionCharacter::ServerActivateSkill_Validate()
 void AOrionCharacter::ServerActivateSkill_Implementation()
 {
 	//try to activate our current skill
+	if (bDowned)
+		return;
+
 	ActivateSkill();
 }
 
@@ -3080,6 +3312,9 @@ void AOrionCharacter::OnNextWeapon()
 	if (ShouldIgnoreControls())
 		return;
 
+	if (bDowned)
+		return;
+
 	AOrionPlayerController* MyPC = Cast<AOrionPlayerController>(Controller);
 	if (MyPC)// && MyPC->IsGameInputAllowed())
 	{
@@ -3116,6 +3351,9 @@ void AOrionCharacter::OnNextWeapon()
 void AOrionCharacter::OnPrevWeapon()
 {
 	if (ShouldIgnoreControls())
+		return;
+
+	if (bDowned)
 		return;
 
 	AOrionPlayerController* MyPC = Cast<AOrionPlayerController>(Controller);
@@ -3201,7 +3439,9 @@ void AOrionCharacter::BehindView()
 
 bool AOrionCharacter::ShouldIgnoreControls()
 {
-	return IsRolling() || bBlinking || bShoulderCamera || bShipCamera || bFatality || bFinishingMove || bLatchedOnto;
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	return IsRolling() || bBlinking || bShoulderCamera || bShipCamera || bFatality || bFinishingMove || bLatchedOnto || bKnockedDown || (PC && PC->bMenuOpen);
 }
 
 void AOrionCharacter::Duck()
@@ -3812,6 +4052,16 @@ void AOrionCharacter::StopSprint()
 void AOrionCharacter::DoMelee()
 {
 	if (ShouldIgnoreControls())
+	{
+		if (bKnockedDown)
+		{
+			CancelGrenadeTarget();
+			CurrentWeapon->Melee();
+		}
+		return;
+	}
+
+	if (bDowned)
 		return;
 
 	//no interupting grenade animation
@@ -3820,6 +4070,8 @@ void AOrionCharacter::DoMelee()
 
 	if (CurrentWeapon)
 	{
+		CancelGrenadeTarget();
+
 		CurrentWeapon->Melee();
 	}
 }
@@ -3888,10 +4140,25 @@ bool AOrionCharacter::IsTopDown()
 	return false;
 }
 
+void AOrionCharacter::CancelGrenadeTarget()
+{
+	if (bTargetingGrenade)
+	{
+		bTargetingGrenade = false;
+		if (GrenadeTarget)
+			GrenadeTarget->SetActorHiddenInGame(true);
+	}
+}
+
 void AOrionCharacter::StartAiming()
 {
 	if (ShouldIgnoreControls())
 		return;
+
+	if (bDowned)
+		return;
+
+	CancelGrenadeTarget();
 
 	//no interupting grenade animation
 	if (GetWorldTimerManager().IsTimerActive(GrenadeTimer))
@@ -3938,6 +4205,14 @@ void AOrionCharacter::OnFire()
 		return;
 
 	StopSprint();
+
+	if (bTargetingGrenade && GrenadeTarget)
+	{
+		GrenadeTarget->SetActorHiddenInGame(true);
+		GrenadeTargetLocation = GrenadeTarget->GetActorLocation();
+		ThrowGrenadeAtLocation();
+		return;
+	}
 
 	if (CurrentWeapon)
 	{

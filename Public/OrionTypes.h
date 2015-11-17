@@ -3,7 +3,11 @@
 
 class AOrionInventory;
 
-#define WITH_CHEATS 0
+#if WITH_EDITOR
+	#define WITH_CHEATS 0
+#else
+	#define WITH_CHEATS 0
+#endif
 
 #define ORION_SURFACE_Default		SurfaceType_Default
 #define ORION_SURFACE_Concrete		SurfaceType1
@@ -651,6 +655,8 @@ struct FPhotonServerInfo
 		FString Ticket;
 	UPROPERTY(BlueprintReadWrite, Category = Photon)
 		FString Privacy;
+	UPROPERTY(BlueprintReadWrite, Category = Photon)
+		FString LobbyID;
 };
 
 UENUM(BlueprintType)

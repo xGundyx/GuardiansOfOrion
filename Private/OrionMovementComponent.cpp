@@ -94,25 +94,25 @@ float UOrionMovementComponent::GetMaxSpeed() const
 {
 	float SpeedMod = Super::GetMaxSpeed();
 
-	const AOrionCharacter* OrionCharacterOwner = Cast<AOrionCharacter>(PawnOwner);
-
-	float SprintRate = 1.0f;
-	float AimRate = 1.0f;
+	AOrionCharacter* OrionCharacterOwner = Cast<AOrionCharacter>(PawnOwner);
 
 	if (OrionCharacterOwner)
 	{
 		AOrionPlayerController *PC = Cast<AOrionPlayerController>(OrionCharacterOwner->Controller);
 		if (PC)
 		{
-			SprintRate = 1.0f + float(PC->GetSkillValue(SKILL_SPRINTSPEED)) / 100.0f;
-			AimRate = 1.0f + float(PC->GetSkillValue(SKILL_AIMSPEED)) / 100.0f;
+			OrionCharacterOwner->SprintRate = 1.0f + float(PC->GetSkillValue(SKILL_SPRINTSPEED)) / 100.0f;
+			OrionCharacterOwner->AimRate = 1.0f + float(PC->GetSkillValue(SKILL_AIMSPEED)) / 100.0f;
 
 			if (OrionCharacterOwner->CurrentSkill && OrionCharacterOwner->CurrentSkill->IsCloaking())
-				SpeedMod *= 1.0f + float(PC->GetSkillValue(SKILL_CLOAKSPEED)) / 100.0f;
-
-			if (PC->HasOrbEffect(ORB_SPEED))
-				SpeedMod *= 1.5f;
+				OrionCharacterOwner->CloakRate = 1.0f + float(PC->GetSkillValue(SKILL_CLOAKSPEED)) / 100.0f;
 		}
+
+		if (OrionCharacterOwner->CurrentSkill && OrionCharacterOwner->CurrentSkill->IsCloaking())
+			SpeedMod *= OrionCharacterOwner->CloakRate;
+
+		if (OrionCharacterOwner->HasOrbEffect(ORB_SPEED))
+			SpeedMod *= 1.5f;
 	}
 
 	if (OrionCharacterOwner)
@@ -140,24 +140,26 @@ float UOrionMovementComponent::GetMaxSpeed() const
 		}
 		else
 		{
-			if (OrionCharacterOwner->bFly)
+			if (OrionCharacterOwner->bDowned)
+				SpeedMod *= 0.2f;
+			else if (OrionCharacterOwner->bFly)
 				SpeedMod *= OrionCharacterOwner->bLanding ? 5.0 :12.0;
 			else if (OrionCharacterOwner->bDuck)
 			{
 				SpeedMod *= 0.4f;
 				if (OrionCharacterOwner->bAim)
-					SpeedMod *= 0.625 * AimRate;
+					SpeedMod *= 0.625 * OrionCharacterOwner->AimRate;
 			}
 			else if (OrionCharacterOwner->bRun && IsMovingOnGround())
-				SpeedMod *= 1.15f * SprintRate;
+				SpeedMod *= 1.15f * OrionCharacterOwner->SprintRate;
 			else if (OrionCharacterOwner->bAim)
-				SpeedMod *= 0.4 * AimRate;
+				SpeedMod *= 0.4 * OrionCharacterOwner->AimRate;
 			else
 				SpeedMod *= 0.75f;// 0.55f;
 
 			//move faster if overcharging
-			if (OrionCharacterOwner->IsOvercharging())
-				SpeedMod *= 1.25f;
+			////if (OrionCharacterOwner->IsOvercharging())
+			////	SpeedMod *= 1.25f;
 		}
 	}
 
