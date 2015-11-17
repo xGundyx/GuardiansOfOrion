@@ -272,7 +272,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Stats)
 		void SetInitialized(bool bInit) { bInitialized = bInit; }
 
-	UPROPERTY(Replicated, BlueprintReadWrite, Category = Stats)
+	UPROPERTY(/*Replicated, */BlueprintReadWrite, Category = Stats)
 		TArray<FPlayerStats> aStats;
 
 	void AddStatValue(EStatID ID, int32 Value);

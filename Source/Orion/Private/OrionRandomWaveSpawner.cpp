@@ -143,7 +143,7 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], AActor *F
 	else
 		FocusActor = Focus;
 
-	FailedToSpawn.Empty();
+	//FailedToSpawn.Empty();
 
 	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
 
@@ -164,12 +164,15 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], AActor *F
 
 			FVector vStart = GetWorld()->GetNavigationSystem()->ProjectPointToNavigation(GetWorld(), GetActorLocation(), (ANavigationData *)0, DefaultFilterClass, FVector(100.0f, 100.0f, 100.0f));
 
-			Loc = GetWorld()->GetNavigationSystem()->GetRandomReachablePointInRadius(GetWorld(), vStart, 5000.0f/*SpawnRadius*/, (ANavigationData*)0, DefaultFilterClass);
+			Loc = GetWorld()->GetNavigationSystem()->GetRandomPointInNavigableRadius/*GetRandomReachablePointInRadius*/(GetWorld(), vStart, 5000.0f/*SpawnRadius*/, (ANavigationData*)0, DefaultFilterClass);
 
 			TSharedPtr<const FNavigationQueryFilter> QueryFilter = UNavigationQueryFilter::GetQueryFilter(GetWorld()->GetNavigationSystem()->MainNavData, DefaultFilterClass);
 
-			if (!GetWorld()->GetNavigationSystem()->TestPathSync(FPathFindingQuery(nullptr, GetWorld()->GetNavigationSystem()->MainNavData, GetActorLocation(), Loc, QueryFilter)))
+			if (!GetWorld()->GetNavigationSystem()->TestPathSync(FPathFindingQuery(nullptr, GetWorld()->GetNavigationSystem()->MainNavData, vStart, Loc, QueryFilter)))
+			{
+				Game->SpawnTypes[i]++;
 				continue;
+			}
 
 			bool bExit = false;
 			for (TActorIterator<AOrionPlayerController> Itr(GetWorld()); Itr && !bExit; ++Itr)

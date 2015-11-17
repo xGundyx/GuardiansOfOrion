@@ -43,6 +43,15 @@ FVector2D AOrionDinoPawn::GetAim(float DeltaTime)
 		return FVector2D(AimYaw, AimPitch);
 	}
 
+	AOrionCharacter *pEnemy = Cast<AOrionCharacter>(Target);
+
+	if (pEnemy && pEnemy->bKnockedDown)
+	{
+		AimYaw = 0.0f;
+		AimPitch = 0.25f;
+		return FVector2D(AimYaw, AimPitch);
+	}
+
 	GetPawnMesh()->GetSocketWorldLocationAndRotation(FName("Aim"), pos, rot);
 
 	//make sure the target isn't too far away

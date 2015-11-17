@@ -85,7 +85,6 @@ bool AOrionAbility::ActivateSkill()
 {
 	if (!bIsSkillActive && Energy > 5.0f)
 	{
-		DoActivateEffects();
 		if (bOneShotAbility)
 		{
 			if (Energy >= OneShotEnergyCost)
@@ -93,10 +92,17 @@ bool AOrionAbility::ActivateSkill()
 				Energy -= OneShotEnergyCost;
 				//bIsSkillActive = true;
 				TimeSinceLastActive = GetWorld()->TimeSeconds;
+
+				DoActivateEffects();
 			}
+			else
+				return false;
 		}
 		else
+		{
+			DoActivateEffects();
 			bIsSkillActive = true;
+		}
 		return true;
 	}
 

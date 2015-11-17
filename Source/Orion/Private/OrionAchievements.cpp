@@ -86,7 +86,7 @@ void AOrionAchievements::Init()
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("NAMOR MASTER IV"), TEXT("namormasterfour"), TEXT("KILL 100 NAMORS"), ACH_NAMORSKILLEDIV, STAT_NAMORKILL, 100, NULL, TEXT(""), 100));
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("NAMOR MASTER V"), TEXT("namormasterfive"), TEXT("KILL 200 NAMORS"), ACH_NAMORSKILLEDV, STAT_NAMORKILL, 200, NULL, TEXT(""), 250));
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("ROBOT ORB MASTER I"), TEXT("robotorbmasterone"), TEXT("KILL 10 ROBOT ORBS"), ACH_ROBOTORBSKILLEDI, STAT_ORBKILL, 10, NULL, TEXT(""), 50));
-	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("ROBOT ORB MASTER II"), TEXT("robotorbmastertwo"), TEXT("KILL 50 ROBOT ORBS"), ACH_ROBOTORBSKILLEDII, STAT_ORBKILL, 00, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("ROBOT ORB MASTER II"), TEXT("robotorbmastertwo"), TEXT("KILL 50 ROBOT ORBS"), ACH_ROBOTORBSKILLEDII, STAT_ORBKILL, 50, NULL, TEXT(""), 100));
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("ROBOT ORB MASTER III"), TEXT("robotorbmasterthree"), TEXT("KILL 100 ROBOT ORBS"), ACH_ROBOTORBSKILLEDIII, STAT_ORBKILL, 100, NULL, TEXT(""), 100));
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("ROBOT ORB MASTER IV"), TEXT("robotorbmasterfour"), TEXT("KILL 500 ROBOT ORBS"), ACH_ROBOTORBSKILLEDIV, STAT_ORBKILL, 500, NULL, TEXT(""), 100));
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("ROBOT ORB MASTER V"), TEXT("robotorbmasterfive"), TEXT("KILL 1000 ROBOT ORBS"), ACH_ROBOTORBSKILLEDV, STAT_ORBKILL, 1000, NULL, TEXT(""), 250));
@@ -190,7 +190,7 @@ void AOrionAchievements::UnlockAchievement(int32 AchID, AOrionPlayerController *
 	AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
 
 	if (PRI)
-		UPlayFabRequestProxy::ServerAddUserVirtualCurrency(PRI->PlayFabID, TEXT("TC"), Achievements[AchID].Name);
+		UPlayFabRequestProxy::ServerAddUserVirtualCurrency(PRI->PlayFabID, TEXT("TC"), Achievements[AchID].Coins);
 
 	EventSavePlayerAchievements(PC);
 #endif
@@ -238,37 +238,37 @@ void AOrionAchievements::CheckForLevelUnlocks(int32 NewLevel, AOrionPlayerContro
 	case 0:
 		if (NewLevel >= 10)
 			UnlockAchievement(ACH_ASSAULTLEVEL10, PC);
-		else if (NewLevel >= 20)
+		if (NewLevel >= 20)
 			UnlockAchievement(ACH_ASSAULTLEVEL20, PC);
-		else if (NewLevel >= 30)
+		if (NewLevel >= 30)
 			UnlockAchievement(ACH_ASSAULTLEVEL30, PC);
-		else if (NewLevel >= 40)
+		if (NewLevel >= 40)
 			UnlockAchievement(ACH_ASSAULTLEVEL40, PC);
-		else if (NewLevel >= 50)
+		if (NewLevel >= 50)
 			UnlockAchievement(ACH_ASSAULTLEVEL50, PC);
 		break;
 	case 1:
 		if (NewLevel >= 10)
 			UnlockAchievement(ACH_SUPPORTLEVEL10, PC);
-		else if (NewLevel >= 20)
+		if (NewLevel >= 20)
 			UnlockAchievement(ACH_SUPPORTLEVEL20, PC);
-		else if (NewLevel >= 30)
+		if (NewLevel >= 30)
 			UnlockAchievement(ACH_SUPPORTLEVEL30, PC);
-		else if (NewLevel >= 40)
+		if (NewLevel >= 40)
 			UnlockAchievement(ACH_SUPPORTLEVEL40, PC);
-		else if (NewLevel >= 50)
+		if (NewLevel >= 50)
 			UnlockAchievement(ACH_SUPPORTLEVEL50, PC);
 		break;
 	case 2:
 		if (NewLevel >= 10)
 			UnlockAchievement(ACH_RECONLEVEL10, PC);
-		else if (NewLevel >= 20)
+		if (NewLevel >= 20)
 			UnlockAchievement(ACH_RECONLEVEL20, PC);
-		else if (NewLevel >= 30)
+		if (NewLevel >= 30)
 			UnlockAchievement(ACH_RECONLEVEL30, PC);
-		else if (NewLevel >= 40)
+		if (NewLevel >= 40)
 			UnlockAchievement(ACH_RECONLEVEL40, PC);
-		else if (NewLevel >= 50)
+		if (NewLevel >= 50)
 			UnlockAchievement(ACH_RECONLEVEL50, PC);
 		break;
 	}
@@ -309,7 +309,7 @@ void AOrionAchievements::UpdateUnlocks()
 			AOrionPRI *PRI = Cast<AOrionPRI>(PCOwner->PlayerState);
 
 			if (PRI)
-				UPlayFabRequestProxy::ServerAddUserVirtualCurrency(PRI->PlayFabID, TEXT("TC"), Achievements[i].Name);
+				UPlayFabRequestProxy::ServerAddUserVirtualCurrency(PRI->PlayFabID, TEXT("TC"), Achievements[i].Coins);
 
 			bUnlocked = true;
 		}

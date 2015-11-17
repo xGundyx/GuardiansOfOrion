@@ -235,6 +235,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Animation)
 		FWeaponAnim MeleeAnim;
 
+	UPROPERTY(EditDefaultsOnly, Category = Animation)
+		FWeaponAnim MeleeKnockDownAnim;
+
 	//UPROPERTY(EditDefaultsOnly, Category = Animation)
 	//	FWeaponAnim SprintAnim;
 

@@ -169,7 +169,8 @@ void UOrionPathFollowingComponent::FollowPathSegment(float DeltaTime)
 		return;
 	}*/
 
-	CharacterMoveComp->SetMovementMode(MOVE_Walking);
+	if (CharacterMoveComp->MovementMode == MOVE_Flying)
+		CharacterMoveComp->SetMovementMode(MOVE_Walking);
 
 	Super::FollowPathSegment(DeltaTime);
 }

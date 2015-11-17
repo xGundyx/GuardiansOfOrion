@@ -540,15 +540,20 @@ void AOrionWeaponLink::HandleLinkTargets(AOrionCharacter *Target, float DeltaSec
 	if (P && P->bIsHealableMachine)
 	{
 		if (P && P->Health < P->HealthMax)
-			P->Health += DeltaSeconds * Rate * P->HealthMax / 20.0f;
+			P->Health = FMath::Min(P->HealthMax, P->Health +  DeltaSeconds * Rate * P->HealthMax / 20.0f);
 	}
 	//if the target is a teammate, heal them up
 	else if (GRI && GRI->OnSameTeam(PRI1, PRI2))
 	{
 		if (P && P->Health < P->HealthMax)
-			P->Health += DeltaSeconds * Rate * P->HealthMax / 10.0f;
+		{
+			P->Health = FMath::Min(P->HealthMax, P->Health + DeltaSeconds * Rate * P->HealthMax / 10.0f);
+
+			if (P->bDowned && P->Health >= P->HealthMax)
+				P->bDowned = false;
+		}
 		else if (P && P->Shield < P->ShieldMax)
-			P->Shield += DeltaSeconds * Rate * P->ShieldMax / 10.0f;
+			P->Shield = FMath::Min(P->ShieldMax, P->Shield + DeltaSeconds * Rate * P->ShieldMax / 10.0f);
 	}
 	//if the target is an enemy, hurt/slow them
 	else if (GRI && !GRI->OnSameTeam(PRI1, PRI2))
@@ -670,15 +675,20 @@ void AOrionWeaponLink::HandleTarget(float DeltaSeconds)
 			Rate += float(PC->GetSkillValue(SKILL_REGENENERGY)) / 100.0f;
 
 		if (P && P->Health < P->HealthMax)
-			P->Health += DeltaSeconds * Rate * P->HealthMax / 20.0f;
+			P->Health = FMath::Min(P->HealthMax, P->Health + DeltaSeconds * Rate * P->HealthMax / 20.0f);
 	}
 	//if the target is a teammate, heal them up
 	else if (GRI && GRI->OnSameTeam(PRI1, PRI2))
 	{
 		if (P && P->Health < P->HealthMax)
-			P->Health += DeltaSeconds * Rate * P->HealthMax / 10.0f;
+		{
+			P->Health = FMath::Min(P->HealthMax, P->Health + DeltaSeconds * Rate * P->HealthMax / 10.0f);
+
+			if (P->Health >= P->HealthMax)
+				P->bDowned = false;
+		}
 		else if (P && P->Shield < P->ShieldMax)
-			P->Shield += DeltaSeconds * Rate * P->ShieldMax / 10.0f;
+			P->Shield = FMath::Min(P->ShieldMax, P->Shield + DeltaSeconds * Rate * P->ShieldMax / 10.0f);
 	}
 	//if the target is an enemy, hurt/slow them
 	else if (GRI && !GRI->OnSameTeam(PRI1, PRI2))
