@@ -17,6 +17,9 @@ public:
 
 	void InitMaterials() override {}
 	void BeginPlay() override;
+	virtual void Tick(float DeltaSeconds) override;
+
+	float RandomVoiceInterval;
 
 	UFUNCTION(BlueprintCallable, Category = Hover)
 		virtual float GetFinRotation(float DeltaTime);

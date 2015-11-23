@@ -103,6 +103,11 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Spawn)
 		int32 WarmupTime;
 
+	bool bLobbyCreated;
+
+	UFUNCTION(BlueprintCallable, Category = Voice)
+		virtual void PlayRandomVoiceFromPlayer(EVoiceType Type);
+
 	//how many seconds does a match last
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Spawn)
 		int32 TimeLimit;

@@ -38,4 +38,19 @@ public:
 
 	UPROPERTY(config)
 		TArray<FString> Tutorials;
+
+	UPROPERTY(config)
+		bool TutorialsEnabled;
+
+	UPROPERTY(config)
+		bool GoreEnabled;
+
+	UPROPERTY(config)
+		bool ToggleSprintEnabled;
+
+	UPROPERTY(config)
+		bool AchievementNotifiesEnabled;
+
+	UPROPERTY(config)
+		bool ControllerRumbleEnabled;
 };

@@ -100,6 +100,7 @@ void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionGRI, bStatsEnabled);
 	DOREPLIFETIME(AOrionGRI, Difficulty);
 	DOREPLIFETIME(AOrionGRI, MapName);
+	DOREPLIFETIME(AOrionGRI, PhotonGUID);
 }
 
 void AOrionGRI::HandleVictoryDefeat()

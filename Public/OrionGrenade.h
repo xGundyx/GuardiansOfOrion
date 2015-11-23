@@ -14,6 +14,9 @@ public:
 	void Init(FVector dir);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Grenade)
+		TEnumAsByte<EVoiceType> VoiceType;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Grenade)
 		UParticleSystem* ExplosionFX;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Grenade)

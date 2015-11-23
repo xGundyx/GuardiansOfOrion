@@ -23,7 +23,7 @@ public class Orion : ModuleRules
         {
             PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "InputCore", "RHI", "RenderCore", "OnlineSubsystem", "ShaderCore", "Slate", "SlateCore", 
                 "UMG", "Sockets", "Networking", "Json", "JsonUtilities", "OrionVoxel", "UnrealEd", "ProceduralMeshComponent", "PlayFab", "PhotonClient", "Steamworks","OnlineSubsystemSteam", "Landscape",
-                "OnlineSubsystemUtils"//, "MoviePlayer"
+                "OnlineSubsystemUtils", "MoviePlayer", "EngineSettings"
             });
 
            // DynamicallyLoadedModuleNames.Add("OnlineSubsystemSteam");
@@ -32,7 +32,7 @@ public class Orion : ModuleRules
         {
             PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "InputCore", /*"RHI", "RenderCore",*/ "OnlineSubsystem", "ShaderCore", /*"Slate", "SlateCore", */
              "UMG", /*"Sockets", "Networking",*/ "Json", "JsonUtilities", /*"OrionVoxel",*//* "UnrealEd",*/ "ProceduralMeshComponent", "PlayFab", "PhotonClient","Steamworks", "OnlineSubsystemSteam", /*"Landscape"*/
-             "PlayFab", "OnlineSubsystemUtils"//, "MoviePlayer"
+             "PlayFab", "OnlineSubsystemUtils", "MoviePlayer", "EngineSettings"
             });
 
           //  DynamicallyLoadedModuleNames.Add("OnlineSubsystemSteam");

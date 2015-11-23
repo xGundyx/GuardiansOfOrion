@@ -106,6 +106,8 @@ void AOrionGameMode::BeginPlay()
 {
 	Super::BeginPlay();
 
+	bLobbyCreated = false;
+
 #if IS_SERVER
 	GetWorldTimerManager().SetTimer(ExitTimer, this, &AOrionGameMode::TickExitTimer, 1.0f, true);
 #endif
@@ -257,6 +259,7 @@ void AOrionGameMode::Tick(float DeltaSeconds)
 void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APawn* KilledPawn, const UDamageType* DamageType)
 {
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Killer);
+	AOrionPlayerController *DeadPC = Cast<AOrionPlayerController>(KilledPlayer);
 
 	//HandleStats(Killer, KilledPlayer, KilledPawn, DamageType);
 
@@ -268,6 +271,36 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 	//assists
 	AOrionCharacter *DeadPawn = Cast<AOrionCharacter>(KilledPawn);
 	AOrionDinoPawn *DeadDino = Cast<AOrionDinoPawn>(KilledPawn);
+
+	//when a downed player gets a kill, give them %20 life for small dinos, and full revive for large dinos
+	if (PC && DeadDino)
+	{
+		AOrionCharacter *Pawn = Cast<AOrionCharacter>(PC->GetPawn());
+
+		if (Pawn && DeadDino && DeadDino->bIsBigDino)
+			Pawn->PlayVoice(VOICE_BOSSKILL);
+
+		if (Pawn && Pawn->bDowned)
+		{
+			Pawn->Health = FMath::Min(Pawn->HealthMax, Pawn->Health + (Pawn->HealthMax * (DeadDino->bIsBigDino ? 1.0f : 0.4f)));
+
+			if (Pawn->Health >= Pawn->HealthMax)
+				Pawn->Revived();
+		}
+	}
+
+	if (DeadPC)
+	{
+		PlayRandomVoiceFromPlayer(VOICE_TEAMMATEDOWN);
+
+		if (AIC)
+		{
+			AOrionDroidPawn *Droid = Cast<AOrionDroidPawn>(AIC->GetPawn());
+
+			if (Droid)
+				Droid->PlayVoice(VOICE_BOSSKILL);
+		}
+	}
 
 	if (PC && DeadDino && DeadDino->DinoName.ToString().ToUpper() == TEXT("TREX"))
 	{
@@ -351,6 +384,10 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 			AwardXPToAllPlayers(Dino->ExpValue * 2);
 		}
 	}
+}
+
+void AOrionGameMode::PlayRandomVoiceFromPlayer(EVoiceType Type)
+{
 }
 
 void AOrionGameMode::AwardXPToAllPlayers(int32 Amount)
@@ -499,21 +536,29 @@ void AOrionGameMode::HandleStats(AController* Killer, AController* KilledPlayer,
 				};
 			}
 			KillerPRI->Kills++;
+
+			if (KillerPRI->Kills % 25 == 0)
+			{
+				AOrionCharacter *KillerPawn = Cast<AOrionCharacter>(KillerPC->GetPawn());
+				if (KillerPawn)
+					KillerPawn->PlayVoice(VOICE_CANTTOUCHTHIS);
+			}
+
 		}
 		if (KilledPRI)
 		{
-			if (KillerPC && KillerPC->GetStats())
+			if (KilledPC && KilledPC->GetStats())
 			{
-				switch (KillerPC->ClassIndex)
+				switch (KilledPC->ClassIndex)
 				{
 				case 0:
-					KillerPC->GetStats()->AddStatValue(STAT_DEATHSASASSAULT, 1);
+					KilledPC->GetStats()->AddStatValue(STAT_DEATHSASASSAULT, 1);
 					break;
 				case 1:
-					KillerPC->GetStats()->AddStatValue(STAT_DEATHSASSUPPORT, 1);
+					KilledPC->GetStats()->AddStatValue(STAT_DEATHSASSUPPORT, 1);
 					break;
 				case 2:
-					KillerPC->GetStats()->AddStatValue(STAT_DEATHSASRECON, 1);
+					KilledPC->GetStats()->AddStatValue(STAT_DEATHSASRECON, 1);
 					break;
 				};
 			}
@@ -608,11 +653,11 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 		int32 NumPlayers = GRI->PlayerList.Num();
 
 		if (NumPlayers >= 4)
-			Damage /= 2.5f;
+			Damage /= 2.0f;
 		else if (NumPlayers >= 3)
-			Damage /= 1.75f;
+			Damage /= 1.5f;
 		else if (NumPlayers >= 2)
-			Damage /= 1.35f;
+			Damage /= 1.25f;
 
 		//also adjust based on game difficulty
 		if (Difficulty == DIFF_EASY)
@@ -723,7 +768,7 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 			PRI->LobbyTicket = pfTicket;
 			PRI->CharacterClass = pfClass;
 			PRI->ClassType = pfClass;
-			PRI->ServerInfo = ServerInfo;
+			//PRI->ServerInfo = ServerInfo;
 		}
 
 #if IS_SERVER
@@ -776,7 +821,12 @@ void AOrionGameMode::PlayerAuthed(class AOrionPlayerController *PC, bool bSucces
 		UPlayFabRequestProxy::ServerNotifyMatchmakerPlayerJoined(PRI->PlayFabID, LobbyID);
 	}
 
-	PC->CreateInGameLobby(ServerInfo);
+	if(!bLobbyCreated)
+		PC->CreateInGameLobby(ServerInfo);
+	else
+		PC->SetServerInfo(ServerInfo); //needed for situation when the original host leaves and new host needs the info
+
+	bLobbyCreated = true;
 #endif
 
 	//login was successfull, let the player spawn
@@ -798,40 +848,45 @@ void AOrionGameMode::SetInitialTeam(APlayerController *PC)
 
 void AOrionGameMode::Logout(AController* Exiting)
 {
-	SaveAllUsersStats();
+	if (Cast<AOrionPlayerController>(Exiting))
+	{
+		SaveAllUsersStats();
 
-	//update playerlist
-	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+		//update playerlist
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
 
-	if (GRI)
-		GRI->PlayerList.Remove(Cast<AOrionPRI>(Exiting->PlayerState));
+		if (GRI)
+			GRI->PlayerList.Remove(Cast<AOrionPRI>(Exiting->PlayerState));
 
 #if IS_SERVER
-	//tell the playfab matchmaker that this player is leaving (needed for proper dedicated server shutdown)
-	AOrionPRI *PRI = Cast<AOrionPRI>(Exiting->PlayerState);
+		//tell the playfab matchmaker that this player is leaving (needed for proper dedicated server shutdown)
+		AOrionPRI *PRI = Cast<AOrionPRI>(Exiting->PlayerState);
 
-	if (PRI)
-	{
-		UPlayFabRequestProxy::ServerNotifyMatchmakerPlayerLeft(PRI->PlayFabID, LobbyID);
-	}
+		if (PRI)
+		{
+			UPlayFabRequestProxy::ServerNotifyMatchmakerPlayerLeft(PRI->PlayFabID, LobbyID);
+		}
 
-	//if there are 0 players left after this player leaves, close the server
-	TArray<AActor*> Controllers;
-	int32 Counter = 0;
+		//if there are 0 players left after this player leaves, close the server
+		TArray<AActor*> Controllers;
+		int32 Counter = 0;
 
-	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
 
-	for (int32 i = 0; i < Controllers.Num(); i++)
-	{
-		AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
-		if (C && C != Exiting)
-			Counter++;
-	}
+		for (int32 i = 0; i < Controllers.Num(); i++)
+		{
+			AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
+			if (C && C != Exiting)
+				Counter++;
+		}
 
-	if (GEngine && Counter == 0)
-		GEngine->Exec(nullptr, TEXT("QUIT"), *GLog);
-	return;
+		if (GEngine && Counter == 0)
+		{
+			GEngine->Exec(nullptr, TEXT("QUIT"), *GLog);
+			return;
+		}
 #endif
+	}
 
 	Super::Logout(Exiting);
 }
@@ -879,6 +934,10 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 			AOrionPlayerController *PC = *ActorItr;
 
 			if (!PC)
+				continue;
+
+			//this is mainly so orbs don't spawn all over spectator screens
+			if (!Cast<AOrionCharacter>(PC->GetPawn()))
 				continue;
 
 			float OrbChance = 5.0f;

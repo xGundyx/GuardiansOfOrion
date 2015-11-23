@@ -8,6 +8,8 @@
 #include "OrionMovementComponent.h"
 #include "OrionAbility.h"
 #include "OrionBuff.h"
+#include "OrionWeaponLink.h"
+#include "OrionGameUserSettings.h"
 //#include "OrionAIController.h"
 #include "OrionProjectile.h"
 #include "OrionShipPawn.h"
@@ -294,6 +296,7 @@ void AOrionCharacter::BeginPlay()
 	Super::BeginPlay();
 
 	bShoulderCamera = true;
+	TimesDowned = 0;
 
 	TotalDamageReceived = 0.0f;
 
@@ -628,6 +631,78 @@ void AOrionCharacter::SpawnDefaultAbilities()
 			CurrentSkill = GetWorld()->SpawnActor<AOrionAbility>(AbilityClasses[i], SpawnInfo);
 			//only do one ability for now
 			break;
+		}
+	}
+}
+
+void AOrionCharacter::PlayHarvesterVoice(EVoiceType Type)
+{
+	if (Role != ROLE_Authority)
+		return;
+
+	if (!bIsHealableMachine)
+		return;
+
+	if (!VoiceClass)
+		return;
+
+	if (GetWorld()->TimeSeconds - LastVoiceTime < 4.0f)
+		return;
+
+	VoiceRep.Type = Type;
+	VoiceRep.bToggle = !VoiceRep.bToggle;
+
+#if !IS_SERVER
+	OnRep_VoiceType();
+#else
+	LastVoiceTime = GetWorld()->TimeSeconds;
+#endif
+}
+
+void AOrionCharacter::PlayVoice(EVoiceType Type)
+{
+	if (Role != ROLE_Authority)
+		return;
+
+	if (Health <= 0 && !bDowned)
+		return;
+	
+	if(bIsHealableMachine)
+		return;
+
+	if (!VoiceClass)
+		return;
+
+	if (GetWorld()->TimeSeconds - LastVoiceTime < 4.0f)
+		return;
+
+	VoiceRep.Type = Type;
+	VoiceRep.bToggle = !VoiceRep.bToggle;
+
+#if !IS_SERVER
+	OnRep_VoiceType();
+#else
+	LastVoiceTime = GetWorld()->TimeSeconds;
+#endif
+}
+
+void AOrionCharacter::OnRep_VoiceType()
+{
+	if (!VoiceClass)
+		return;
+
+	TArray<FVoiceHelper> Voices = VoiceClass.GetDefaultObject()->Voices;
+
+	for (int32 i = 0; i < Voices.Num(); i++)
+	{
+		for (int32 j = 0; j < Voices[i].Voice.Num(); j++)
+		{
+			if (VoiceRep.Type == Voices[i].Type)
+			{
+				UGameplayStatics::PlaySoundAtLocation(GetWorld(), Voices[i].Voice[FMath::RandRange(0, Voices[i].Voice.Num() - 1)], GetActorLocation());
+				LastVoiceTime = GetWorld()->TimeSeconds;
+				return;
+			}
 		}
 	}
 }
@@ -967,9 +1042,11 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, Latcher);
 	DOREPLIFETIME(AOrionCharacter, bKnockedDown);
 	DOREPLIFETIME(AOrionCharacter, Knocker);
+	DOREPLIFETIME(AOrionCharacter, ReviveTarget);
 
 	DOREPLIFETIME(AOrionCharacter, bDowned);
 	DOREPLIFETIME(AOrionCharacter, DownedTime);
+	DOREPLIFETIME(AOrionCharacter, VoiceRep);
 
 	//speed 
 	DOREPLIFETIME(AOrionCharacter, SprintRate);
@@ -996,7 +1073,7 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 
 	DOREPLIFETIME(AOrionCharacter, CurrentShip);
 
-	DOREPLIFETIME(AOrionCharacter, AimPos);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, AimPos, COND_SkipOwner);
 	DOREPLIFETIME(AOrionCharacter, bRolling);
 	DOREPLIFETIME(AOrionCharacter, BlinkPos);
 	DOREPLIFETIME(AOrionCharacter, Level);
@@ -1037,8 +1114,8 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, CurrentSkill);
 	DOREPLIFETIME(AOrionCharacter, CurrentSecondarySkill);
 
-	//DOREPLIFETIME(AOrionCharacter, bShoulderCamera);
-	//DOREPLIFETIME(AOrionCharacter, bShipCamera);
+	DOREPLIFETIME(AOrionCharacter, bShoulderCamera);
+	DOREPLIFETIME(AOrionCharacter, bShipCamera);
 }
 
 void AOrionCharacter::Destroyed()
@@ -1280,6 +1357,15 @@ void AOrionCharacter::GibAll(FVector Center, AOrionPlayerController *PC)
 
 void AOrionCharacter::HandleGibs(float damage, FDamageEvent const& DamageEvent, AOrionPlayerController *Damager)
 {
+#if !IS_SERVER
+	UOrionGameUserSettings *Settings = nullptr;
+
+	if (GEngine && GEngine->GameUserSettings)
+		Settings = Cast<UOrionGameUserSettings>(GEngine->GameUserSettings);
+
+	if (Settings->GoreEnabled == false)
+		return;
+
 	const FPointDamageEvent *RealEvent = (FPointDamageEvent*)&DamageEvent;
 	FName CurrentBone, TargetBone;
 
@@ -1296,6 +1382,10 @@ void AOrionCharacter::HandleGibs(float damage, FDamageEvent const& DamageEvent, 
 			{
 				CurrentBone = RealEvent->HitInfo.BoneName;
 				TargetBone = GetMesh()->GetSocketBoneName(Gib->SocketName);
+
+				AOrionCharacter *KillerPawn = Cast<AOrionCharacter>(Damager->GetPawn());
+				if (KillerPawn)
+					KillerPawn->PlayVoice(VOICE_BOSSKILL);
 
 				while (CurrentBone != NAME_None)
 				{
@@ -1323,6 +1413,7 @@ void AOrionCharacter::HandleGibs(float damage, FDamageEvent const& DamageEvent, 
 			}
 		}
 	}
+#endif
 }
 
 void AOrionCharacter::PlayFootStepSound(USoundCue *Cue, FVector pos)
@@ -1527,6 +1618,13 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	if (bBlinking)
 		return 0.0f;
 
+	//take no damage if waiting for revive
+	if (bDowned)
+		return 0.0f;
+
+	if (GetWorld()->TimeSeconds - LastRevivedTime < 2.0f)
+		return 0.0f;
+
 	for (auto Itr(Buffs.CreateIterator()); Itr; ++Itr)
 	{
 		AOrionBuff *Buff = *Itr;
@@ -1585,7 +1683,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 		AOrionCharacter *AttackerPawn = Cast<AOrionCharacter>(AttackerPC->GetPawn());
 
 		if (AttackerPawn && AttackerPawn->bDowned)
-			Damage *= 0.35f;
+			Damage *= 0.75f;
 	}
 
 	if (bIsBigDino)
@@ -1695,14 +1793,24 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 		if (bShield && Shield <= 0.0f)
 		{
+			if (FMath::RandRange(0, 1) == 1)
+				PlayVoice(VOICE_INEEDBACKUP);
+			else
+				PlayVoice(VOICE_WOUNDED);
+
 			if (PC)
+			{
 				PC->PlayShieldEffect(false);
+			}
 		}
 
 		if (PC)
 			PC->PlayHUDHit();
 
-		Health -= TotalDamage;
+		Health = FMath::Max(0.0f, Health - TotalDamage);
+
+		if (FMath::RandRange(0, 15) == 2)
+			PlayVoice(VOICE_TAKINGDAMAGE);
 
 		AOrionPlayerController *Damager = Cast<AOrionPlayerController>(EventInstigator);
 		if (Damager)
@@ -1710,7 +1818,12 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 			const FPointDamageEvent *RealEvent = (FPointDamageEvent*)&DamageEvent;
 			if (RealEvent)
 			{
-				Damager->AddDamageNumber(OriginalDamage, RealEvent->HitInfo.ImpactPoint);
+				if (DamageType && DamageType->bIsKnife)
+					Damager->AddDamageNumber(OriginalDamage, GetActorLocation());
+				else if (DamageType && DamageType->bGibAll)
+					Damager->AddDamageNumber(OriginalDamage, GetActorLocation());
+				else
+					Damager->AddDamageNumber(OriginalDamage, RealEvent->HitInfo.ImpactPoint);
 			}
 		}
 
@@ -1722,9 +1835,23 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 		{
 			if (CanBeDowned(Damage, DamageEvent, EventInstigator, DamageCauser))
 			{
-				PC->SendTutorialMessage(TEXT("DOWNED"), TEXT("YOU HAVE BEEN DOWNED, WAIT FOR A TEAMMATE TO REVIVE YOU!"));
+				TimesDowned++;
+
+				PC->SendTutorialMessage(TEXT("DOWNED"), TEXT("YOU HAVE BEEN DOWNED, WAIT FOR A TEAMMATE TO REVIVE YOU, OR KILL ENEMIES TO REGAIN HEALTH!"));
+
+				PC->SendTutorialMessage(TEXT("DOWNED AGAIN"), TEXT("EVERY TIME YOU GO DOWN, THE TIMER GETS SHORTER!"));
 
 				bDowned = true;
+
+				AOrionAIController *AI = Cast<AOrionAIController>(EventInstigator);
+				if (AI)
+				{
+					AOrionCharacter *AIPawn = Cast<AOrionCharacter>(AI->GetPawn());
+					if (AIPawn)
+					{
+						AIPawn->PlayVoice(VOICE_BOSSKILL);
+					}
+				}
 
 				//can only use pistol when downed
 				EquipWeaponFromSlot(2);
@@ -1734,7 +1861,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 				if (CurrentSkill)
 					CurrentSkill->DeactivateSkill();
 
-				DownedTime = 30;
+				DownedTime = 40 - (TimesDowned * 10);
 
 				AController* const KilledPlayer = (Controller != NULL) ? Controller : Cast<AController>(GetOwner());
 				GetWorld()->GetAuthGameMode<AOrionGameMode>()->HandleStats(EventInstigator, KilledPlayer, this, DamageType);
@@ -1807,26 +1934,48 @@ void AOrionCharacter::OnRep_Downed()
 {
 	if (bDowned)
 	{
+		//ignore dino collision
+		GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel4, ECR_Ignore);
+
 		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
-		if(PC)
+		if (PC)
+		{
 			PC->SendTutorialMessage(TEXT("DOWNED"), TEXT("YOU HAVE BEEN DOWNED, WAIT FOR A TEAMMATE TO REVIVE YOU!"));
 
-		//pistol only
-		EquipWeaponFromSlot(2);
-		bRun = false;
-		StopAiming();
+			//pistol only
+			EquipWeaponFromSlot(2);
+			bRun = false;
+			StopAiming();
 
-		if (CurrentSkill)
-			CurrentSkill->DeactivateSkill();
+			if (CurrentSkill)
+				CurrentSkill->DeactivateSkill();
+		}
+		//get local player and tell them how to revive players
+		else
+		{
+			PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
+
+			if (PC)
+				PC->SendTutorialMessage(TEXT("TEAMMATE DOWN"), TEXT("A TEAMMATE HAS DIED, HEAL THEM WITH YOUR REGEN GUN OR HOLD x8xRELOADx8x NEAR THEIR BODY"));
+		}
 	}
 	else
 	{
-
+		//reset dino collision
+		GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel4, ECR_Block);
 	}
 }
 
 bool AOrionCharacter::CanBeDowned(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser)
 {
+	//limit to only happen on dedis for now
+	if (GetNetMode() != NM_DedicatedServer)
+		return false;
+
+	//3 revives per life
+	if (TimesDowned >= 3)
+		return false;
+
 	UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject());
 	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
 
@@ -2676,10 +2825,10 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 				else if (!cOwner && PRI->GetTeamIndex() != Buff->TeamIndex)
 					TakeDamage(Buff->Damage, PointDmg, Controller, this);
 			}
-			else if (Buff->Damage < 0.0f)
+			else if (Buff->Damage < 0.0f && !bDowned)
 				Heal(int32(-Buff->Damage));
 
-			if (Buff->HealPercent > 0.0f)
+			if (Buff->HealPercent > 0.0f && !bDowned)
 			{
 				Health = FMath::Min(HealthMax, Health + (Buff->HealPercent * HealthMax));
 
@@ -2747,6 +2896,17 @@ void AOrionCharacter::AddBuff(TSubclassOf<AOrionBuff> BuffClass, AController *cO
 	}
 }
 
+void AOrionCharacter::MakeSureDead()
+{
+	if (Health >= 0)
+	{
+		FDamageEvent dEvent = FDamageEvent::FDamageEvent();
+		dEvent.DamageTypeClass = UOrionDamageType::StaticClass();
+
+		Die(10000000.0f, dEvent, nullptr, this);
+	}
+}
+
 void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAnim, AOrionCharacter *TheVictim, bool bHideOnFatality)
 {
 	if (Role == ROLE_Authority)
@@ -2762,6 +2922,9 @@ void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAni
 		{
 			TheVictim->bFatality = true;
 			TheVictim->bFatalityRemove = bHideOnFatality;
+
+			FTimerHandle Handle;
+			GetWorldTimerManager().SetTimer(Handle, TheVictim, &AOrionCharacter::MakeSureDead, 3.5f, false);
 
 			AOrionPlayerController *PC = Cast<AOrionPlayerController>(TheVictim->Controller);
 
@@ -2836,6 +2999,9 @@ void AOrionCharacter::HandleKnockedDown()
 
 			//bKnockedDown = false;
 			Knocker = nullptr;
+
+			//reset dino collision
+			GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel4, ECR_Block);
 		}
 		else if (Knocker && Knocker->IsValidLowLevel())
 		{
@@ -2846,9 +3012,91 @@ void AOrionCharacter::HandleKnockedDown()
 
 				//bKnockedDown = false;
 				Knocker = nullptr;
+
+				//reset dino collision
+				GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel4, ECR_Block);
 			}
 		}
 	}
+}
+
+void AOrionCharacter::HandleRevivingTeammates(float DeltaSeconds)
+{
+	if (Role == ROLE_Authority && ReviveTarget)
+	{
+		float Rate = 1.0f;
+
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+		if (PC)
+			Rate = 1.0f + float(PC->GetSkillValue(SKILL_REVIVESPEED)) / 100.0f;
+
+		ReviveTarget->Health = FMath::Min(ReviveTarget->HealthMax, ReviveTarget->Health + DeltaSeconds * 0.5f * Rate * ReviveTarget->HealthMax);
+
+		if (ReviveTarget->Health >= ReviveTarget->HealthMax)
+		{
+			ReviveTarget->Revived();
+			ReviveTarget = nullptr;
+			return;
+		}
+
+		//check to see if we need to break revive
+		float dist = (GetActorLocation() - ReviveTarget->GetActorLocation()).Size();
+
+		bool bBreak = false;
+
+		//50 units of leeway
+		if (dist > 250.0f)
+			bBreak = true;
+		else if (Health <= 0.0)
+			bBreak = true;
+		else if (bFatality || bKnockedDown || bLatchedOnto)
+			bBreak = true;
+
+		if (bBreak)
+		{
+			ReviveTarget = nullptr;
+		}
+	}
+}
+
+void AOrionCharacter::Revived()
+{
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+	if (GRI)
+	{
+		AOrionCharacter *Best = nullptr;
+		float Dist = 1000000.0f;
+
+		for (int32 i = 0; i < GRI->PlayerList.Num(); i++)
+		{
+			if (GRI->PlayerList[i]->ControlledPawn == this)
+				continue;
+
+			if (GRI->PlayerList[i]->ControlledPawn == nullptr)
+				continue;
+
+			float d = (GetActorLocation() - GRI->PlayerList[i]->ControlledPawn->GetActorLocation()).SizeSquared();
+
+			if (d < Dist)
+			{
+				Best = GRI->PlayerList[i]->ControlledPawn;
+				Dist = d;
+			}
+		}
+
+		if (Best)
+		{
+			Best->PlayVoice(VOICE_REVIVE);
+		}
+	}
+
+	if (GetWorldTimerManager().IsTimerActive(DownedTimer))
+		GetWorldTimerManager().ClearTimer(DownedTimer);
+
+	LastRevivedTime = GetWorld()->TimeSeconds;
+
+	bDowned = false;
 }
 
 void AOrionCharacter::Tick(float DeltaSeconds)
@@ -2870,6 +3118,8 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 	HandleHealEffects(DeltaSeconds);
 
 	HandleKnockedDown();
+
+	HandleRevivingTeammates(DeltaSeconds);
 
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
@@ -3056,7 +3306,7 @@ void AOrionCharacter::SetupPlayerInputComponent(class UInputComponent* InputComp
 	InputComponent->BindAction("Duck", IE_Released, this, &AOrionCharacter::UnDuck);
 
 	InputComponent->BindAction("Run", IE_Pressed, this, &AOrionCharacter::Sprint);
-	InputComponent->BindAction("Run", IE_Released, this, &AOrionCharacter::StopSprint);
+	InputComponent->BindAction("Run", IE_Released, this, &AOrionCharacter::ButtonStopSprint);
 
 	InputComponent->BindAction("Fire", IE_Pressed, this, &AOrionCharacter::OnFire);
 	InputComponent->BindAction("Fire", IE_Released, this, &AOrionCharacter::OnStopFire);
@@ -3137,6 +3387,9 @@ void AOrionCharacter::TossGrenade()
 	}
 	else
 	{
+		if (CurrentWeapon)
+			CurrentWeapon->StopFire();
+
 		GrenadeTargetLocation = AimPos;
 		ThrowGrenadeAtLocation();
 	}
@@ -3149,6 +3402,8 @@ void AOrionCharacter::ThrowGrenadeAtLocation()
 	FWeaponAnim GrenAnim;
 	GrenAnim.Pawn3P = GrenadeAnim;
 	GrenAnim.bHideWeapon = true;
+
+	bThrowingGrenade = true;
 
 	float Len = OrionPlayAnimMontage(GrenAnim, 1.0f, TEXT(""), true, false, true);
 
@@ -3192,6 +3447,8 @@ void AOrionCharacter::ActuallyTossGrenade(FVector dir)
 			AOrionGrenade *Grenade = GetWorld()->SpawnActor<AOrionGrenade>(GrenadeClass, pos + FVector(0.0f, 0.0f, 25.0f) + dir.GetSafeNormal() * 75.0f, dir.Rotation(), SpawnInfo);
 			if (Grenade)
 			{
+				PlayVoice(Grenade->VoiceType);
+
 				Grenade->Init(dir);
 				Grenade->SetFuseTime(Grenade->LifeTime);
 
@@ -3221,6 +3478,8 @@ void AOrionCharacter::DoGrenade()
 		ServerTossGrenade(dir * 1000.0f);
 	else
 		ActuallyTossGrenade(dir * 1000.0f);
+
+	bThrowingGrenade = false;
 }
 
 bool AOrionCharacter::ServerPlayAnimMontage_Validate(const FWeaponAnim Animation, float InPlayRate, FName StartSectionName, bool bShouldReplicate, bool bReplicateToOwner, bool bStopOtherAnims)
@@ -3273,6 +3532,9 @@ void AOrionCharacter::ActivateSkill()
 		{
 			if (CurrentSkill->ActivateSkill())
 			{
+				if (Cast<AOrionWeaponLink>(CurrentWeapon))
+					CurrentWeapon->StopFire();
+
 				AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
 				AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 				if (Role == ROLE_Authority && PRI && PRI->ClassType == "RECON" && PC && PC->GetSkillValue(SKILL_CLOAKTEAMMATES) > 0)
@@ -3980,8 +4242,18 @@ void AOrionCharacter::GamepadSprint()
 
 void AOrionCharacter::Sprint()
 {
+	UOrionGameUserSettings *Settings = nullptr;
+
+	if (GEngine && GEngine->GameUserSettings)
+		Settings = Cast<UOrionGameUserSettings>(GEngine->GameUserSettings);
+
+	bool bToggle = false;
+
+	if (Settings->ToggleSprintEnabled == true)
+		bToggle = true;
+
 	if (Role < ROLE_Authority)
-		ServerRun(true);
+		ServerRun(bToggle ? !bRun : true);
 
 	if (bDuck)
 	{
@@ -3991,7 +4263,7 @@ void AOrionCharacter::Sprint()
 	OnStopFire();
 	StopAiming();
 
-	bRun = true;
+	bRun = bToggle ? !bRun : true;
 }
 
 float AOrionCharacter::PlayOneShotAnimation(UAnimMontage *Anim)
@@ -4049,6 +4321,22 @@ void AOrionCharacter::StopSprint()
 	bRun = false;
 }
 
+void AOrionCharacter::ButtonStopSprint()
+{
+	UOrionGameUserSettings *Settings = nullptr;
+
+	if (GEngine && GEngine->GameUserSettings)
+		Settings = Cast<UOrionGameUserSettings>(GEngine->GameUserSettings);
+
+	if (Settings->ToggleSprintEnabled == true)
+		return;
+
+	if (Role < ROLE_Authority)
+		ServerRun(false);
+
+	bRun = false;
+}
+
 void AOrionCharacter::DoMelee()
 {
 	if (ShouldIgnoreControls())
@@ -4076,14 +4364,78 @@ void AOrionCharacter::DoMelee()
 	}
 }
 
+void AOrionCharacter::ResetStopSpecialMove()
+{
+	bStopSpecialMove = true;
+}
+
+void AOrionCharacter::ServerSetReviveTarget_Implementation(AOrionCharacter *Target)
+{
+	//make sure it's valid
+	if (!Target || !Target->IsValidLowLevel())
+	{
+		ReviveTarget = nullptr;
+		return;
+	}
+
+	float dist = (GetActorLocation() - Target->GetActorLocation()).Size();
+
+	if (dist < 200.0f)
+		ReviveTarget = Target;
+}
+
+bool AOrionCharacter::CheckForTeammatesToRevive()
+{
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+	if (bDowned)
+		return false;
+
+	if (GRI)
+	{
+		for (int32 i = 0; i < GRI->PlayerList.Num(); i++)
+		{
+			if (!GRI->PlayerList[i] || !GRI->PlayerList[i]->IsValidLowLevel())
+				continue;
+
+			AOrionCharacter *Pawn = GRI->PlayerList[i]->ControlledPawn;
+
+			if (Pawn && Pawn->bDowned)
+			{
+				float dist = (GetActorLocation() - Pawn->GetActorLocation()).Size();
+
+				if (dist < 200.0f)
+				{
+					if (Role < ROLE_Authority)
+						ServerSetReviveTarget(Pawn);
+					else
+						ReviveTarget = Pawn;
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
+}
+
 void AOrionCharacter::Reload()
 {
 	if (ShouldIgnoreControls())
 		return;
 
+	if (bThrowingGrenade)
+		return;
+
 	//no interupting grenade animation
 	if (GetWorldTimerManager().IsTimerActive(GrenadeTimer))
 		return;
+
+	//see if there is anyone around us that we can revive
+	if (CheckForTeammatesToRevive())
+	{
+		return;
+	}
 
 	if (CurrentWeapon)
 	{
@@ -4155,6 +4507,9 @@ void AOrionCharacter::StartAiming()
 	if (ShouldIgnoreControls())
 		return;
 
+	if (bThrowingGrenade)
+		return;
+
 	if (bDowned)
 		return;
 
@@ -4193,6 +4548,9 @@ void AOrionCharacter::OnStopFire()
 void AOrionCharacter::OnFire()
 {
 	if (ShouldIgnoreControls())
+		return;
+
+	if (bThrowingGrenade)
 		return;
 
 	//no interupting grenade animation

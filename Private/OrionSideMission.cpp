@@ -64,10 +64,10 @@ void AOrionSideMission::SpawnMissionEnemies(FSpawnNumbers TypesToSpawn, AActor *
 	Types[SPAWN_RECON] = TypesToSpawn.NumRecon;
 	Types[SPAWN_DEMO] = TypesToSpawn.NumDemo;
 	Types[SPAWN_TECH] = TypesToSpawn.NumTech;
-	//Types[SPAWN_GRUMPS] = TypesToSpawn.NumTech;
 	Types[SPAWN_ALLO] = TypesToSpawn.NumAllo;
 	Types[SPAWN_PARA] = TypesToSpawn.NumPara;
 	Types[SPAWN_STEG] = TypesToSpawn.NumSteg;
+	Types[SPAWN_GRUMPS] = TypesToSpawn.NumGrumps;
 
 	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
 

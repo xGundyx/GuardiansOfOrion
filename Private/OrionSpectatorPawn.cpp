@@ -62,12 +62,12 @@ void AOrionSpectatorPawn::SetupPlayerInputComponent(class UInputComponent* Input
 
 	InputComponent->BindAction("Fire", IE_Pressed, this, &AOrionSpectatorPawn::OnFire);
 	InputComponent->BindAction("Aim", IE_Pressed, this, &AOrionSpectatorPawn::OnAim);
-	InputComponent->BindAction("Reload", IE_Pressed, this, &AOrionSpectatorPawn::OnReload);
+	InputComponent->BindAction("ThrowGrenade", IE_Pressed, this, &AOrionSpectatorPawn::OnReload);
 	InputComponent->BindAction("ActivateSkill", IE_Pressed, this, &AOrionSpectatorPawn::OnAbility);
 
 	InputComponent->BindAction("Gamepad_Fire", IE_Pressed, this, &AOrionSpectatorPawn::OnFire);
 	InputComponent->BindAction("Gamepad_Aim", IE_Pressed, this, &AOrionSpectatorPawn::OnAim);
-	InputComponent->BindAction("Gamepad_Reload", IE_Pressed, this, &AOrionSpectatorPawn::OnReload);
+	InputComponent->BindAction("Gamepad_ThrowGrenade", IE_Pressed, this, &AOrionSpectatorPawn::OnReload);
 	InputComponent->BindAction("Gamepad_ActivateSkill", IE_Pressed, this, &AOrionSpectatorPawn::OnAbility);
 
 	InputComponent->BindAction("Gamepad_Roll", IE_Pressed, this, &AOrionSpectatorPawn::CameraUp);

@@ -256,7 +256,7 @@ void AOrionPRI::AddOrbEffect(EOrbType Type, float Duration)
 			Orb.Color = FVector(30.0f, 0.0f, 30.0f);
 			break;
 		case ORB_STRENGTH:
-			Orb.Color = FVector(30.0f, 15.0f, 0.0f);
+			Orb.Color = FVector(30.0f, 7.5f, 0.0f);
 			break;
 		}
 

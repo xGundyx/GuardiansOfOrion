@@ -230,10 +230,59 @@ void AOrionPlayerController::ConnectToIP(FString IP)
 	ConsoleCommand(newURL, true);
 }
 
+//tell the server what our photon guid is, so other players can join it
+void AOrionPlayerController::HandleGUID(FString GUID)
+{
+	if (bLobbyLeader)
+	{
+		ServerSendGUID(GUID);
+	}
+}
+
+void AOrionPlayerController::ServerSendGUID_Implementation(const FString &ID)
+{
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+	if (GRI)
+	{
+		GRI->PhotonGUID = ID;
+	}
+}
+
+void AOrionPlayerController::SetServerInfo_Implementation(FPhotonServerInfo Info)
+{
+	ServerInfo = Info;
+}
+
 void AOrionPlayerController::CreateInGameLobby_Implementation(FPhotonServerInfo Info)
 {
 #if !IS_SERVER
-	ServerInfo = Info;
+	if (Info.LobbyID != TEXT(""))
+	{
+		ServerInfo = Info;
+		if (UPhotonProxy::GetListener())
+		{
+			UPhotonProxy::GetListener()->PCOwner = this;
+
+			UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
+
+			//create a new room that other players can join
+			if (GI)
+			{
+				FString RoomName = GI->PlayFabName;// Info.RoomName;
+				RoomName.Append(TEXT("'s Server"));
+
+				FString ChatRoom = "";// ServerInfo.RoomName;
+				//ChatRoom.Append(TEXT("Chat"));
+
+				FString Version = GetBuildVersion();
+
+				bLobbyLeader = true;
+
+				UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*Info.MapName), TCHAR_TO_UTF8(*Info.Difficulty), "Survival", TCHAR_TO_UTF8(*Info.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*Info.LobbyID), TCHAR_TO_UTF8(*ChatRoom), TCHAR_TO_UTF8(*Version), "");
+			}
+		}
+	}
 #endif
 }
 
@@ -272,11 +321,17 @@ void AOrionPlayerController::GetAudioListenerPosition(FVector& OutLocation, FVec
 		FVector ViewLocation = GetPawn()->GetActorLocation() + FVector(0.0f, 0.0f, 45.0f);
 		FRotator ViewRotation = GetPawn()->GetActorRotation();
 
-		const FRotationTranslationMatrix ViewRotationMatrix(ViewRotation, ViewLocation);
+		//const FRotationTranslationMatrix ViewRotationMatrix(ViewRotation, ViewLocation);
 
-		OutLocation = ViewLocation - ViewRotation.Vector() * 50.0f;
-		OutFrontDir = ViewRotationMatrix.GetUnitAxis(EAxis::X);
-		OutRightDir = ViewRotationMatrix.GetUnitAxis(EAxis::Y);
+		OutLocation = ViewLocation;// -ViewRotation.Vector() * 50.0f;
+		//OutFrontDir = ViewRotationMatrix.GetUnitAxis(EAxis::X);
+		//OutRightDir = ViewRotationMatrix.GetUnitAxis(EAxis::Y);
+
+		FRotator YawRotation(0, 45.0f, 0);
+
+		// Get forward vector
+		OutFrontDir = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
+		OutRightDir = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 	}
 	else
 		Super::GetAudioListenerPosition(OutLocation, OutFrontDir, OutRightDir);
@@ -714,6 +769,26 @@ void AOrionPlayerController::ClientAddXPNumber_Implementation(int32 XP, FVector 
 	AddXPNumber(XP, Pos);
 }
 
+void AOrionPlayerController::SlowMotion(float Value) 
+{ 
+	UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
+	if (GI && GI->PlayFabID == "C93236F8795D15C7" || GI->PlayFabID == "E43BB9D949860565")
+		ServerSlowMotion(Value); 
+}
+
+void AOrionPlayerController::ClientPlayForceFeedback_Implementation(class UForceFeedbackEffect* ForceFeedbackEffect, bool bLooping, FName Tag)
+{
+	UOrionGameUserSettings *Settings = nullptr;
+
+	if (GEngine && GEngine->GameUserSettings)
+		Settings = Cast<UOrionGameUserSettings>(GEngine->GameUserSettings);
+
+	if (Settings->ControllerRumbleEnabled == false)
+		return;
+
+	Super::ClientPlayForceFeedback_Implementation(ForceFeedbackEffect, bLooping, Tag);
+}
+
 void AOrionPlayerController::PlayShieldEffect(bool bFull)
 {
 	if (IsLocalPlayerController())
@@ -810,7 +885,9 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 	//if(PRI)
 	//	ServerInfo = PRI->ServerInfo;
 
-	if (IsLocalPlayerController() && bAuthenticated && ServerInfo.LobbyID != TEXT("") && GetWorld()->GetTimeSeconds() - LastLobbyTime >= 1.0f)
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+	if (IsLocalPlayerController() && bAuthenticated && GRI && GRI->PhotonGUID != TEXT("") && GetWorld()->GetTimeSeconds() - LastLobbyTime >= 1.0f)
 	{
 		LastLobbyTime = GetWorld()->GetTimeSeconds();
 
@@ -818,14 +895,16 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 		{
 			UPhotonProxy::GetListener()->PCOwner = this;
 
-			UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
-
-			//create a new room that other players can join
-			if (GI)
+			//do nothing if we're already in the room
+			if (!UPhotonProxy::GetListener()->IsInRoom(TCHAR_TO_UTF8(*GRI->PhotonGUID)))
 			{
-				FString RoomName = ServerInfo.LobbyID;
-				//RoomName.Append(TEXT("'s Server"));
-				UPhotonProxy::GetListener()->JoinRoom(TCHAR_TO_UTF8(*RoomName), true);
+				UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
+
+				//create a new room that other players can join
+				if (GI)
+				{
+					UPhotonProxy::GetListener()->JoinRoom(TCHAR_TO_UTF8(*GRI->PhotonGUID), false);
+				}
 			}
 		}
 	}
@@ -1375,28 +1454,35 @@ TArray<FOptionsData> AOrionPlayerController::GetGameplayOptions()
 	TArray<FOptionsData> Options;
 	FOptionsData NewOption;
 
+	UOrionGameUserSettings *Settings = nullptr;
+
+	if (GEngine && GEngine->GameUserSettings)
+		Settings = Cast<UOrionGameUserSettings>(GEngine->GameUserSettings);
+
+	if (!Settings)
+		return Options;
+
 	NewOption.Options.Empty();
-	NewOption.Title = TEXT("COMING SOON 1");
+	NewOption.Title = TEXT("TUTORIAL");
+	NewOption.Value = Settings->TutorialsEnabled ? "ENABLED" : "DISABLED";
 	NewOption.Options.Add("DISABLED");
 	NewOption.Options.Add("ENABLED");
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("COMING SOON 2");
+	NewOption.Title = TEXT("GORE");
+	NewOption.Value = Settings->GoreEnabled ? "ENABLED" : "DISABLED";
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("COMING SOON 3");
+	NewOption.Title = TEXT("TOGGLE SPRINT");
+	NewOption.Value = Settings->ToggleSprintEnabled ? "ENABLED" : "DISABLED";
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("COMING SOON 4");
+	NewOption.Title = TEXT("ACHIEVEMENT NOTIFIES");
+	NewOption.Value = Settings->AchievementNotifiesEnabled ? "ENABLED" : "DISABLED";
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("COMING SOON 5");
-	Options.Add(NewOption);
-
-	NewOption.Title = TEXT("COMING SOON 6");
-	Options.Add(NewOption);
-
-	NewOption.Title = TEXT("COMING SOON 7");
+	NewOption.Title = TEXT("CONTROLLER RUMBLE");
+	NewOption.Value = Settings->ControllerRumbleEnabled ? "ENABLED" : "DISABLED";
 	Options.Add(NewOption);
 
 	return Options;
@@ -1674,7 +1760,17 @@ TArray<FString> AOrionPlayerController::GetPrivacySettings()
 
 FString AOrionPlayerController::GetBuildVersion()
 {
-	return TEXT("Beta0.3");
+	return TEXT("Beta0.5");
+}
+
+FString AOrionPlayerController::GetReviveButtonKeyboard()
+{
+	return UOrionGameSettingsManager::GetKeyForAction("Reload", false, 0.0f);
+}
+
+int32 AOrionPlayerController::GetReviveButtonController()
+{
+	return ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Reload", false, 0.0f));
 }
 
 TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
@@ -1742,7 +1838,7 @@ TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
 	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 	
-	NewOption.Title = TEXT("RELOAD");
+	NewOption.Title = TEXT("RELOAD / REVIVE");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("Reload", false, 0.0f);
 	NewOption.Action = TEXT("Reload");
 	NewOption.Scale = 0.0f;
@@ -1907,7 +2003,7 @@ TArray<FControllerOptionsData> AOrionPlayerController::GetControllerOptions()
 	NewOption.Action = TEXT("Gamepad_Blink");
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("RELOAD/USE");
+	NewOption.Title = TEXT("RELOAD / REVIVE");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Reload", false, 0.0f));
 	NewOption.Action = TEXT("Gamepad_Reload");
 	Options.Add(NewOption);
@@ -1972,6 +2068,30 @@ TArray<FControllerOptionsData> AOrionPlayerController::GetControllerOptions()
 	//Options.Add(NewOption);
 
 	return Options;
+}
+
+void AOrionPlayerController::ResetControllerLayout()
+{
+	UOrionGameSettingsManager::RebindKey("Gamepad_Roll", "Gamepad_FaceButton_Bottom", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_Run", "Gamepad_LeftThumbStick", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_Reload", "Gamepad_FaceButton_Left", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_Fire", "Gamepad_RightTrigger", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_Aim", "Gamepad_LeftTrigger", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_Melee", "Gamepad_RightThumbStick", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_ActivateSkill", "Gamepad_LeftShoulder", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_WeaponSlot3", "Gamepad_DPad_Down", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_LastWeapon", "Gamepad_FaceButton_Top", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_ThrowGrenade", "Gamepad_RightShoulder", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_OpenInventory", "Gamepad_DPad_Up", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_OpoenCharacterSelect", "Gamepad_Special_right", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_OpenSkillTree", "Gamepad_DPad_Right", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_OpenScores", "Gamepad_Special_Left", "Button", 1.0f);
+
+	UOrionGameSettingsManager::SaveInput();
+}
+
+void AOrionPlayerController::ResetKeyboardLayout()
+{
 }
 
 void AOrionPlayerController::StartFire(uint8 FireModeNum)
@@ -2874,6 +2994,14 @@ void AOrionPlayerController::SendTutorialMessage(FString Title, FString Desc)
 {
 	if (IsLocalPlayerController())
 	{
+		UOrionGameUserSettings *Settings = nullptr;
+
+		if (GEngine && GEngine->GameUserSettings)
+			Settings = Cast<UOrionGameUserSettings>(GEngine->GameUserSettings);
+
+		if (Settings->TutorialsEnabled == false)
+			return;
+
 		if (GetWorld()->GetTimeSeconds() - LastTutorialTime >= 10.0f)
 		{
 			if (!UOrionGameSettingsManager::GetTutorial(Title))
@@ -3102,11 +3230,13 @@ void AOrionPlayerController::TickPhoton()
 			UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetGameInstance());
 			if (!Game && GRI && GI)
 			{
+				FString RoomName = GI->PlayFabName;// Info.RoomName;
+				RoomName.Append(TEXT("'s Server"));
 				FString Version = GetBuildVersion();
 				FString Wave = GRI->WaveNum > 9 ? FString::Printf(TEXT("WAVE %i"), GRI->WaveNum) : FString::Printf(TEXT("WAVE 0%i"), GRI->WaveNum);
 				UPhotonProxy::GetListener()->SetLobbySettings(TCHAR_TO_UTF8(*ServerInfo.MapName), TCHAR_TO_UTF8(*ServerInfo.Difficulty), "SURVIVAL",
-					TCHAR_TO_UTF8(*ServerInfo.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*GI->LobbyTicket), TCHAR_TO_UTF8(*Wave), TCHAR_TO_UTF8(*Version),
-					TCHAR_TO_UTF8(*ServerInfo.RoomName));
+					TCHAR_TO_UTF8(*ServerInfo.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*ServerInfo.LobbyID), TCHAR_TO_UTF8(*Wave), TCHAR_TO_UTF8(*Version),
+					TCHAR_TO_UTF8(*RoomName));
 			}
 		}
 	}
@@ -3174,6 +3304,14 @@ void AOrionPlayerController::IceAge()
 #endif
 void AOrionPlayerController::UnlockAchievement_Implementation(const FString &Header, const FString &Body)
 {
+	UOrionGameUserSettings *Settings = nullptr;
+
+	if (GEngine && GEngine->GameUserSettings)
+		Settings = Cast<UOrionGameUserSettings>(GEngine->GameUserSettings);
+
+	if (Settings->AchievementNotifiesEnabled == false)
+		return;
+
 	FNotificationHelper Notify;
 	Notify.Header = Header;
 	Notify.Body = Body;

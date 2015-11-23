@@ -4,6 +4,27 @@
 #include "OrionGameSettingsManager.generated.h"
 
 USTRUCT(BlueprintType)
+struct FOrionGameplaySettings
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay Settings")
+		bool Tutorial;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay Settings")
+		bool Gore;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay Settings")
+		bool ToggleSprint;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay Settings")
+		bool AchievementNotify;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay Settings")
+		bool Rumble;
+};
+
+USTRUCT(BlueprintType)
 struct FQualitySettings
 {
 	GENERATED_USTRUCT_BODY()
@@ -154,4 +175,11 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Audio Settings")
 		static void SetAudioLevels(FOrionAudioSettings InSettings);
+
+	//gameplay settings
+	UFUNCTION(BlueprintCallable, Category = "Gameplay Settings")
+		static FOrionGameplaySettings GetGameplaySettings();
+
+	UFUNCTION(BlueprintCallable, Category = "Gameplay Settings")
+		static void SetGameplaySettings(FOrionGameplaySettings InSettings);
 };
