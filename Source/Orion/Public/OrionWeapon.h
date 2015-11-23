@@ -512,6 +512,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Sound)
 		USoundCue* ZoomOutSound;
 
+	void InitClip();
+
 	/** play weapon sounds */
 	UAudioComponent* PlayWeaponSound(USoundCue* Sound);
 

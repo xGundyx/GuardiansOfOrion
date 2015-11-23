@@ -8,7 +8,6 @@
 AOrionDroidPawn::AOrionDroidPawn(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-
 }
 
 float AOrionDroidPawn::GetFinRotation(float DeltaTime)
@@ -141,4 +140,36 @@ void AOrionDroidPawn::BeginPlay()
 	Super::BeginPlay();
 
 	DoBlinkEffect(true, GetActorLocation());
+
+	RandomVoiceInterval = FMath::FRandRange(10.0f, 20.0f);
+}
+
+void AOrionDroidPawn::Tick(float DeltaSeconds)
+{
+	Super::Tick(DeltaSeconds);
+
+	if (GetWorld()->TimeSeconds - LastVoiceTime > RandomVoiceInterval)
+	{
+		RandomVoiceInterval = FMath::FRandRange(10.0f, 20.0f);
+
+		TArray<int32> RandomVoices;
+
+		RandomVoices.Add(VOICE_LOOKATMEGO);
+		RandomVoices.Add(VOICE_CANTTOUCHTHIS);
+		RandomVoices.Add(VOICE_AFFIRMATIVE);
+		RandomVoices.Add(VOICE_NEGATIVE);
+		RandomVoices.Add(VOICE_SITTIGHT);
+		RandomVoices.Add(VOICE_IMONIT);
+
+		RandomVoices.Add(VOICE_TAKEOBJECTIVE);
+		RandomVoices.Add(VOICE_MOVEOUT);
+		RandomVoices.Add(VOICE_GOGOGO);
+		RandomVoices.Add(VOICE_REQUESTBACKUP);
+		RandomVoices.Add(VOICE_COVERINGFIRE);
+		RandomVoices.Add(VOICE_INEEDBACKUP);
+		RandomVoices.Add(VOICE_STICKTOGETHER);
+
+		int32 index = FMath::RandRange(0, RandomVoices.Num() - 1);
+		PlayVoice(EVoiceType(RandomVoices[index]));
+	}
 }

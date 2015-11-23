@@ -84,6 +84,9 @@ public:
 		TArray<FTeamInfo> Teams;
 
 	UPROPERTY(Replicated, BlueprintReadOnly)
+		FString PhotonGUID;
+
+	UPROPERTY(Replicated, BlueprintReadOnly)
 		int32 DinosAliveInWave;
 
 	UPROPERTY(Replicated, BlueprintReadOnly)

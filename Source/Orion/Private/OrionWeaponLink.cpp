@@ -392,7 +392,7 @@ void AOrionWeaponLink::HandleChainTargets(float DeltaSeconds)
 				if (!P || !P->IsValidLowLevel() || (LinkTarget->GetActorLocation() - P->GetActorLocation()).Size() > 500.0f)
 					bRemove = true;
 				//make sure the linktarget is still alive
-				else if (P->Health <= 0.0f)
+				else if (P->Health <= 0.0f && !P->bDowned)
 					bRemove = true;
 
 				if (bRemove)
@@ -438,7 +438,7 @@ void AOrionWeaponLink::HandleChainTargets(float DeltaSeconds)
 				if ((Pawn->GetActorLocation() - LinkTarget->GetActorLocation()).Size() > 400.0f)
 					continue;
 
-				if (Pawn->Health <= 0.0f)
+				if (Pawn->Health <= 0.0f && !Pawn->bDowned)
 					continue;
 
 				if (ChainLinkTargets.Find(Pawn) == INDEX_NONE)
@@ -550,7 +550,7 @@ void AOrionWeaponLink::HandleLinkTargets(AOrionCharacter *Target, float DeltaSec
 			P->Health = FMath::Min(P->HealthMax, P->Health + DeltaSeconds * Rate * P->HealthMax / 10.0f);
 
 			if (P->bDowned && P->Health >= P->HealthMax)
-				P->bDowned = false;
+				P->Revived();
 		}
 		else if (P && P->Shield < P->ShieldMax)
 			P->Shield = FMath::Min(P->ShieldMax, P->Shield + DeltaSeconds * Rate * P->ShieldMax / 10.0f);
@@ -597,7 +597,7 @@ bool AOrionWeaponLink::CanLink(ACharacter *Target)
 		return true;
 	else if (!Target || !Target->IsValidLowLevel())
 		return false;
-	else if (P && (P->Health <= 0 || P->bFatality))
+	else if (P && !P->bDowned && (P->Health <= 0 || P->bFatality))
 		return false;
 
 	return true;
@@ -685,7 +685,7 @@ void AOrionWeaponLink::HandleTarget(float DeltaSeconds)
 			P->Health = FMath::Min(P->HealthMax, P->Health + DeltaSeconds * Rate * P->HealthMax / 10.0f);
 
 			if (P->Health >= P->HealthMax)
-				P->bDowned = false;
+				P->Revived();
 		}
 		else if (P && P->Shield < P->ShieldMax)
 			P->Shield = FMath::Min(P->ShieldMax, P->Shield + DeltaSeconds * Rate * P->ShieldMax / 10.0f);

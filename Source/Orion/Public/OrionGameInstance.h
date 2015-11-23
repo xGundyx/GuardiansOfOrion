@@ -33,4 +33,12 @@ public:
 		FString CharacterClass;
 	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
 		FString ServerIP;
+
+	UFUNCTION(BlueprintCallable, Category = Loading)
+		void ShowLoadingScreen();
+
+	UFUNCTION(BlueprintCallable, Category = Loading)
+		void StopLoadingScreen();
+
+	void StartGameInstance() override;
 };

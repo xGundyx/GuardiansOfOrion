@@ -10,6 +10,7 @@
 #include "Perception/PawnSensingComponent.h"
 //#include "AI/Navigation/NavigationInvokerComponent.h"
 //#include "OrionHoverVehicle.h"
+#include "OrionVoice.h"
 #include "OrionCharacter.generated.h"
 
 class AOrionHoverVehicle;
@@ -22,6 +23,18 @@ class AOrionPlayerController;
 class AOrionAbility;
 class AOrionGrenade;
 class AOrionBuff;
+
+USTRUCT()
+struct FVoiceReplication
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY()
+		bool bToggle;
+
+	UPROPERTY()
+		TEnumAsByte<EVoiceType> Type;
+};
 
 USTRUCT()
 struct FBlinkHelper
@@ -492,6 +505,8 @@ public:
 		bool bIsHiddenFromView;
 
 	void SetAIType(EAIType type) { AIType = type; }
+
+	bool bThrowingGrenade;
 
 	virtual void DoGrenade();
 	virtual void TossGrenade();
@@ -1176,6 +1191,10 @@ public:
 	void GamepadSprint();
 	void Sprint();
 	void StopSprint();
+	void ButtonStopSprint();
+
+	//hax for when fatality breaks
+	void MakeSureDead();
 
 	void Reload();
 
@@ -1184,8 +1203,14 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_IsElite, BlueprintReadOnly, Category = AI)
 		bool bIsElite;
 
+	//set this to true in order to stop a special finishing move, like the jeckyl tongue
+	UPROPERTY(BlueprintReadWrite, Category = AI)
+		bool bStopSpecialMove;
+
+	void ResetStopSpecialMove();
+
 	UPROPERTY(Replicated)
-		FVector AimPos;
+		FVector_NetQuantize/*FVector*/ AimPos;
 
 	UFUNCTION(server, reliable, WithValidation)
 		void ServerActivateSkill();
@@ -1199,6 +1224,23 @@ public:
 	void ActivateSkill();
 
 	void SpawnDefaultAbilities();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Voice)
+		TSubclassOf<AOrionVoice> VoiceClass;
+
+	UFUNCTION(BlueprintCallable, Category = Voice)
+		void PlayVoice(EVoiceType Type);
+
+	UFUNCTION(BlueprintCallable, Category = Voice)
+		void PlayHarvesterVoice(EVoiceType Type);
+
+	UFUNCTION()
+		void OnRep_VoiceType();
+
+	UPROPERTY(ReplicatedUsing = OnRep_VoiceType)
+		FVoiceReplication VoiceRep;
+
+	float LastVoiceTime;
 
 	//array for future use if we want multiple abilities on one character
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Skill)
@@ -1269,6 +1311,11 @@ public:
 		void ServerSetAimPos(FVector pos);
 		bool ServerSetAimPos_Validate(FVector pos);
 		void ServerSetAimPos_Implementation(FVector pos);
+
+	UFUNCTION(server, reliable, WithValidation)
+		void ServerSetReviveTarget(AOrionCharacter *Target);
+		bool ServerSetReviveTarget_Validate(AOrionCharacter *Target) { return true; }
+		void ServerSetReviveTarget_Implementation(AOrionCharacter *Target);
 
 	bool ShouldIgnoreControls();
 
@@ -1385,6 +1432,9 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_Downed, BlueprintReadWrite, Category = Speed)
 		bool bDowned;
 
+	float LastRevivedTime;
+	bool CheckForTeammatesToRevive();
+
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = Speed)
 		int32 DownedTime;
 
@@ -1409,11 +1459,19 @@ public:
 
 	bool HasOrbEffect(EOrbType Type);
 
-	UPROPERTY(/*Replicated, */BlueprintReadOnly, Category = Spawn)
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Spawn)
 		bool bShoulderCamera;
 
-	UPROPERTY(/*Replicated, */BlueprintReadOnly, Category = Spawn)
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Spawn)
 		bool bShipCamera;
+
+	int32 TimesDowned;
+
+	UPROPERTY(Replicated)
+		AOrionCharacter *ReviveTarget;
+
+	void HandleRevivingTeammates(float DeltaSeconds);
+	void Revived();
 
 	/** currently equipped weapon */
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_NextWeapon)

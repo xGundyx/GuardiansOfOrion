@@ -127,6 +127,19 @@ void AOrionWeapon::PostInitializeComponents()
 	DetachMeshFromPawn();
 }
 
+void AOrionWeapon::InitClip()
+{
+	if (MyPawn)
+	{
+		int32 ClipDelta = FMath::Min(GetClipSize() - AmmoInClip, Ammo - AmmoInClip);
+
+		if (ClipDelta > 0)
+		{
+			AmmoInClip += ClipDelta;
+		}
+	}
+}
+
 FVector AOrionWeapon::GetLeftHandOffset() const
 {
 	return InstantConfig.LeftHandOffset;
@@ -412,6 +425,15 @@ float AOrionWeapon::DoMelee()
 
 	GetWorldTimerManager().SetTimer(MeleeTimer, this, &AOrionWeapon::ResetMelee, Len, false);
 
+	//if we are being tongued, cut it and cancel it
+	if (Role == ROLE_Authority && MyPawn && MyPawn->bLatchedOnto)
+	{
+		MyPawn->bStopSpecialMove = true;
+
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, MyPawn, &AOrionCharacter::ResetStopSpecialMove, 1.0f, false);
+	}
+
 	return Len;
 }
 
@@ -627,7 +649,7 @@ void AOrionWeapon::FireWeapon()
 		}
 	}
 
-	if (InstantConfig.bAutomatic)
+	if (InstantConfig.bAutomatic && MyPawn && !MyPawn->bDowned)
 		GetWorldTimerManager().SetTimer(FireTimer, this, &AOrionWeapon::FireWeapon, FireRate, false);
 
 	LastFireTime = GetWorld()->GetTimeSeconds();
@@ -1677,6 +1699,8 @@ void AOrionWeapon::SetOwningPawn(AOrionCharacter* NewOwner)
 		MyPawn = NewOwner;
 		// net owner for RPC calls
 		SetOwner(NewOwner);
+
+		InitClip();
 	}
 }
 

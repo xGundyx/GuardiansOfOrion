@@ -65,6 +65,8 @@ public:
 	int32 StuckCounter;
 	FVector LastStuckPos;
 
+	bool bInitialSpot;
+
 	UBlackboardComponent *GetBlackboard();
 
 	UFUNCTION(BlueprintCallable, Category = Target)

@@ -20,6 +20,8 @@ AOrionAIController::AOrionAIController(const FObjectInitializer& ObjectInitializ
 
 	TimesStuck = 0;
 	bCanBeStuck = true;
+
+	bInitialSpot = false;
 }
 
 void AOrionAIController::Possess(APawn* aPawn)
@@ -457,6 +459,48 @@ UBlackboardComponent *AOrionAIController::GetBlackboard()
 
 void AOrionAIController::SetEnemy(APawn *pEnemy)
 {
+	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
+
+	if (Game && !bInitialSpot)
+	{
+		AOrionCharacter *Pawn = Cast<AOrionCharacter>(GetPawn());
+		AOrionDinoPawn *Dino = Cast<AOrionDinoPawn>(GetPawn());
+		AOrionDroidPawn *Droid = Cast<AOrionDroidPawn>(GetPawn());
+
+		FName PawnName;
+
+		if (Dino)
+			PawnName = Dino->DinoName;
+		else if (Droid)
+			PawnName = Droid->DroidName;
+
+		if (FMath::FRandRange(0, 5) == 2)
+			Game->PlayRandomVoiceFromPlayer(VOICE_WHATISTHAT);
+		else if (PawnName == "TREX")
+			Game->PlayRandomVoiceFromPlayer(VOICE_TREX);
+		else if (PawnName == "NAMOR")
+			Game->PlayRandomVoiceFromPlayer(VOICE_NAMOR);
+		else if (PawnName == "KRUGER")
+			Game->PlayRandomVoiceFromPlayer(VOICE_KRUGER);
+		else if (PawnName == "ANKY")
+			Game->PlayRandomVoiceFromPlayer(VOICE_ANKY);
+		else if (PawnName == "TRIKE")
+			Game->PlayRandomVoiceFromPlayer(VOICE_TRIKE);
+		else if (PawnName == "JECKYL")
+			Game->PlayRandomVoiceFromPlayer(VOICE_JECKYL);
+		else if (PawnName == "ORB")
+			Game->PlayRandomVoiceFromPlayer(VOICE_ORB);
+		else if (PawnName == "GRUMPS")
+			Game->PlayRandomVoiceFromPlayer(VOICE_GRUMPS);
+		else if (PawnName == "BONES")
+			Game->PlayRandomVoiceFromPlayer(VOICE_BONES);
+		else if (Pawn)
+			Pawn->PlayVoice(VOICE_INCOMING);
+
+	}
+
+	bInitialSpot = true;
+
 	//EventSetBlackboardEnemy(pEnemy);
 	UBlackboardComponent *BlackBoard = GetBlackboard();
 
@@ -690,6 +734,10 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 			return;
 
 		if (pPawn->bIsHiddenFromView)
+			return;
+
+		//ignore players waiting for revives
+		if (pPawn->bDowned)
 			return;
 
 		if (!pPawn->IsOnShip() && pPawn->Health > 0)

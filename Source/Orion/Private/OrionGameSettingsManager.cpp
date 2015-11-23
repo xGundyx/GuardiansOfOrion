@@ -87,6 +87,37 @@ void UOrionGameSettingsManager::SetAudioLevels(FOrionAudioSettings InSettings)
 		Settings->SaveConfig();
 }
 
+FOrionGameplaySettings UOrionGameSettingsManager::GetGameplaySettings()
+{
+	if (!Settings)
+		InitSettings();
+
+	FOrionGameplaySettings OutGameplay;
+
+	OutGameplay.Tutorial = Settings->TutorialsEnabled;
+	OutGameplay.Gore = Settings->GoreEnabled;
+	OutGameplay.ToggleSprint = Settings->ToggleSprintEnabled;
+	OutGameplay.AchievementNotify = Settings->AchievementNotifiesEnabled;
+	OutGameplay.Rumble= Settings->ControllerRumbleEnabled;
+
+	return OutGameplay;
+}
+
+void UOrionGameSettingsManager::SetGameplaySettings(FOrionGameplaySettings InSettings)
+{
+	if (!Settings)
+		InitSettings();
+
+	Settings->TutorialsEnabled = InSettings.Tutorial;
+	Settings->GoreEnabled = InSettings.Gore;
+	Settings->ToggleSprintEnabled = InSettings.ToggleSprint;
+	Settings->AchievementNotifiesEnabled = InSettings.AchievementNotify;
+	Settings->ControllerRumbleEnabled = InSettings.Rumble;
+
+	if (Settings)
+		Settings->SaveConfig();
+}
+
 FScreenSettings UOrionGameSettingsManager::GetScreenSettings()
 {
 	if (!Settings)

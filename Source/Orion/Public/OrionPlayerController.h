@@ -359,16 +359,16 @@ public:
 		void ServerIceAge();
 		bool ServerIceAge_Validate() { return true; }
 		void ServerIceAge_Implementation();
+#endif
 
 	//server hacks for now
 	UFUNCTION(exec)
-		void SlowMotion(float Value) { ServerSlowMotion(Value); }
+		void SlowMotion(float Value);
 
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerSlowMotion(float Value);
 		bool ServerSlowMotion_Validate(float Value) { return true; }
 		void ServerSlowMotion_Implementation(float Value) { GetWorldSettings()->TimeDilation =  Value; }
-#endif
 
 	UFUNCTION(exec)
 		void ToggleHUD();
@@ -406,8 +406,16 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SetLastCharID"))
 		void EventSetLastCharacterID();
 
+	UFUNCTION(BlueprintCallable, Category = UI)
+		void ResetControllerLayout();
+	UFUNCTION(BlueprintCallable, Category = UI)
+		void ResetKeyboardLayout();
+
 	UFUNCTION(client, reliable)
 		void CreateInGameLobby(FPhotonServerInfo Info);
+
+	UFUNCTION(client, reliable)
+		void SetServerInfo(FPhotonServerInfo Info);
 
 	UFUNCTION(client, reliable)
 		void UnlockAchievement(const FString &Header, const FString &Body);
@@ -577,6 +585,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Menu)
 		TArray<FOptionsValueData> GetSoundOptions();
 
+	void ClientPlayForceFeedback_Implementation(class UForceFeedbackEffect* ForceFeedbackEffect, bool bLooping, FName Tag) override;
+
 	UFUNCTION(BlueprintCallable, Category = Menu)
 		TArray<FKeyboardOptionsData> GetKeyboardOptions();
 
@@ -630,10 +640,25 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Photon)
 		void LeaveLobby();
 
+	UFUNCTION(BlueprintCallable, Category = Button)
+		FString GetReviveButtonKeyboard();
+
+	UFUNCTION(BlueprintCallable, Category = Button)
+		int32 GetReviveButtonController();
+
 	int32 GetMaxLevel();
 
 	//UFUNCTION(BlueprintCallable, Category = Loading)
 	//	void PlayLoadingScreen(UUserWidget *Widget);
+
+	bool bLobbyLeader;
+
+	void HandleGUID(FString GUID);
+
+	UFUNCTION(Server, reliable, WithValidation)
+		void ServerSendGUID(const FString &ID);
+		bool ServerSendGUID_Validate(const FString &ID) { return true; }
+		void ServerSendGUID_Implementation(const FString &ID);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Photon)
 		void UpdateLobbySettings(const FString& MapName, const FString& Difficulty, const FString& Gamemode, const FString& Privacy, const FString& IP, const FString& Ticket, const FString& Progress, const FString& Version, const FString &GUID, const FString& RoomName);
