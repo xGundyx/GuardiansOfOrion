@@ -31,7 +31,7 @@ public class Orion : ModuleRules
         else
         {
             PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "InputCore", /*"RHI", "RenderCore",*/ "OnlineSubsystem", "ShaderCore", /*"Slate", "SlateCore", */
-             "UMG", /*"Sockets", "Networking",*/ "Json", "JsonUtilities", /*"OrionVoxel",*//* "UnrealEd",*/ "ProceduralMeshComponent", "PlayFab", "PhotonClient","Steamworks", "OnlineSubsystemSteam", /*"Landscape"*/
+             "UMG", /*"Sockets", "Networking",*/ "Json", "JsonUtilities", /*"OrionVoxel",*//* "UnrealEd",*/ "ProceduralMeshComponent", "PlayFab", "PhotonClient","Steamworks", "OnlineSubsystemSteam", "Landscape",
              "PlayFab", "OnlineSubsystemUtils", "MoviePlayer", "EngineSettings"
             });
 

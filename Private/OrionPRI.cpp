@@ -19,6 +19,11 @@ void AOrionPRI::SeamlessTravelTo(APlayerState * NewPlayerState)
 
 }
 
+void AOrionPRI::ServerSetTyping_Implementation(bool bTyping)
+{
+	bIsTyping = bTyping;
+}
+
 int32 AOrionPRI::GetXPIntoLevel()
 {
 	int XP = 0;
@@ -154,8 +159,24 @@ void AOrionPRI::UpdateOrbFX()
 		ControlledPawn->EventStopTrailFX();
 }
 
+void AOrionPRI::UpdateHUDStatus()
+{
+	if (bIsTyping)
+		HUDStatus = HUD_TYPING;
+	else if (ControlledPawn && ControlledPawn->bDowned)
+		HUDStatus = HUD_DOWNED;
+	else if (ControlledPawn && ControlledPawn->Shield <= 0.0f)
+		HUDStatus = HUD_MEDIC;
+	else if (ControlledPawn && GetWorld()->TimeSeconds - ControlledPawn->LastVoiceTime < 3.0f)
+		HUDStatus = HUD_RADIO;
+	else
+		HUDStatus = HUD_NONE;
+}
+
 void AOrionPRI::UpdateOrbEffects()
 {
+	UpdateHUDStatus();
+
 	bool bUpdate = false;
 	for (int32 i = 0; i < OrbEffects.Num(); i++)
 	{
@@ -256,7 +277,7 @@ void AOrionPRI::AddOrbEffect(EOrbType Type, float Duration)
 			Orb.Color = FVector(30.0f, 0.0f, 30.0f);
 			break;
 		case ORB_STRENGTH:
-			Orb.Color = FVector(30.0f, 7.5f, 0.0f);
+			Orb.Color = FVector(30.0f, 1.5f, 0.0f);
 			break;
 		}
 
@@ -334,6 +355,7 @@ void AOrionPRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionPRI, bOnShip);
 	DOREPLIFETIME(AOrionPRI, TeamIndex);
 	DOREPLIFETIME(AOrionPRI, ControlledPawn);
+	DOREPLIFETIME(AOrionPRI, HUDStatus);
 
 	//playfab ids and stuff
 	DOREPLIFETIME(AOrionPRI, PlayFabID);

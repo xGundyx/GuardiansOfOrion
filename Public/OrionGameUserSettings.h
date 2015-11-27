@@ -46,9 +46,6 @@ public:
 		bool GoreEnabled;
 
 	UPROPERTY(config)
-		bool ToggleSprintEnabled;
-
-	UPROPERTY(config)
 		bool AchievementNotifiesEnabled;
 
 	UPROPERTY(config)

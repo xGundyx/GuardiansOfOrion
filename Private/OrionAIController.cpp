@@ -8,6 +8,7 @@
 #include "OrionDinoPawn.h"
 #include "OrionDroidPawn.h"
 #include "OrionPathFollowingComponent.h"
+#include "OrionMovementComponent.h"
 #include "OrionGameMode.h"
 
 AOrionAIController::AOrionAIController(const FObjectInitializer& ObjectInitializer)
@@ -74,7 +75,23 @@ void AOrionAIController::HandleStuck()
 
 	//check if we haven't moved since our last checkup
 	if ((LastStuckPos - GetPawn()->GetActorLocation()).Size() < 1.0f)
+	{
 		StuckCounter++;
+
+		if (StuckCounter >= 4)
+		{
+			//give them a little nudge
+			UOrionMovementComponent *Comp = Cast<UOrionMovementComponent>(GetPawn()->GetMovementComponent());
+			if (Comp)
+			{
+				FVector force = FMath::VRand();
+				force.Z = 0.0f;
+				force.Normalize();
+
+				Comp->AddImpulse(force * 500.0f + FVector(0.0f, 0.0f, 250.0f), true);
+			}
+		}
+	}
 	else
 		StuckCounter = 0;
 

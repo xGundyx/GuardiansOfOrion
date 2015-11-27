@@ -328,7 +328,7 @@ public:
 	//UFUNCTION(exec)
 	//	void TestSkillTree() {EventOpenSkillTree();}
 
-	void OpenSkillTree() { EventOpenSkillTree(); }
+	void OpenSkillTree() { /*EventOpenSkillTree();*/ }
 
 	UPROPERTY(BlueprintReadWrite, Category = Movement)
 		bool bMenuOpen;
@@ -339,11 +339,10 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ToggleSkillTree"))
 		void EventOpenSkillTree();
 
-#if WITH_CHEATS
 	//
 	UFUNCTION(exec)
 		void SpawnSkeletalActor(FName Type, int32 Index);
-
+#if WITH_CHEATS
 	UFUNCTION(exec)
 		void ChangeDifficulty(int32 Index);
 
@@ -369,6 +368,12 @@ public:
 		void ServerSlowMotion(float Value);
 		bool ServerSlowMotion_Validate(float Value) { return true; }
 		void ServerSlowMotion_Implementation(float Value) { GetWorldSettings()->TimeDilation =  Value; }
+
+	UFUNCTION(Reliable, client)
+		void PlaySlowMotionSound(float Length);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "PlaySlowMotion"))
+		void EventPlaySlowMotionSound(float Length);
 
 	UFUNCTION(exec)
 		void ToggleHUD();
@@ -411,6 +416,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = UI)
 		void ResetKeyboardLayout();
 
+	UPROPERTY(BlueprintReadWrite, Category = PHOTON)
+		bool bPhotonReady;
+
 	UFUNCTION(client, reliable)
 		void CreateInGameLobby(FPhotonServerInfo Info);
 
@@ -434,6 +442,9 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ShowNotification"))
 		void EventShowNotification(const FString &Header, const FString &Body);
+
+	UFUNCTION(exec)
+		void TestLobby();
 
 	UFUNCTION(exec)
 		virtual void HideWeapons();
@@ -646,6 +657,12 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Button)
 		int32 GetReviveButtonController();
 
+	UFUNCTION(BlueprintCallable, Category = Button)
+		FString GetMeleeButtonKeyboard();
+
+	UFUNCTION(BlueprintCallable, Category = Button)
+		int32 GetMeleeButtonController();
+
 	int32 GetMaxLevel();
 
 	//UFUNCTION(BlueprintCallable, Category = Loading)
@@ -701,6 +718,9 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ShowScoreScreen"))
 		void ShowScoreScreen(bool bShow);
+
+	void TryToCreateLobbyAgain();
+	void CreateLobbyForReal();
 
 	void ShowScores();
 	void HideScores();

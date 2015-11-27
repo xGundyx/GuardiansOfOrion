@@ -79,6 +79,15 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 	bDelayedStart = true;
 
 	DinoKillZ = -100000.0f;
+
+	InactivePlayerStateLifeSpan = 0.1f;
+}
+
+//no saving data on disconnects
+void AOrionGameMode::AddInactivePlayer(APlayerState* PlayerState, APlayerController* PC)
+{
+	if (PlayerState)
+		PlayerState->Destroy();
 }
 
 void AOrionGameMode::TickExitTimer()
@@ -271,18 +280,19 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 	//assists
 	AOrionCharacter *DeadPawn = Cast<AOrionCharacter>(KilledPawn);
 	AOrionDinoPawn *DeadDino = Cast<AOrionDinoPawn>(KilledPawn);
+	AOrionDroidPawn *DeadDroid = Cast<AOrionDroidPawn>(KilledPawn);
 
 	//when a downed player gets a kill, give them %20 life for small dinos, and full revive for large dinos
-	if (PC && DeadDino)
+	if (PC && (DeadDino || DeadDroid))
 	{
 		AOrionCharacter *Pawn = Cast<AOrionCharacter>(PC->GetPawn());
 
-		if (Pawn && DeadDino && DeadDino->bIsBigDino)
+		if (Pawn && DeadPawn && DeadPawn->bIsBigDino)
 			Pawn->PlayVoice(VOICE_BOSSKILL);
 
 		if (Pawn && Pawn->bDowned)
 		{
-			Pawn->Health = FMath::Min(Pawn->HealthMax, Pawn->Health + (Pawn->HealthMax * (DeadDino->bIsBigDino ? 1.0f : 0.4f)));
+			Pawn->Health = FMath::Min(Pawn->HealthMax, Pawn->Health + (Pawn->HealthMax * (DeadPawn->bIsBigDino ? 1.0f : 0.4f)));
 
 			if (Pawn->Health >= Pawn->HealthMax)
 				Pawn->Revived();
@@ -304,6 +314,8 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 
 	if (PC && DeadDino && DeadDino->DinoName.ToString().ToUpper() == TEXT("TREX"))
 	{
+		PlaySlowMotion(5.0f);
+
 		PC->LastTRexKill = GetWorld()->GetTimeSeconds();
 
 		if (PC->LastTRexKill - PC->LastNamorKill <= 5.0f)
@@ -889,6 +901,29 @@ void AOrionGameMode::Logout(AController* Exiting)
 	}
 
 	Super::Logout(Exiting);
+}
+
+void AOrionGameMode::PlaySlowMotion(float Length)
+{
+	if (GetWorldSettings()->TimeDilation != 1.0f)
+		return;
+
+	GetWorldSettings()->TimeDilation = 0.25f;
+
+	TArray<AActor*> Controllers;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		Cast<AOrionPlayerController>(Controllers[i])->PlaySlowMotionSound(Length * 0.25f);
+	}
+
+	GetWorldTimerManager().SetTimer(SlowMotionTimer, this, &AOrionGameMode::StopSlowMotion, Length * 0.25f, true);
+}
+
+void AOrionGameMode::StopSlowMotion()
+{
+	GetWorldSettings()->TimeDilation = 1.0f;
 }
 
 //spawned from killing various types of enemies, vehicles, opening things, etc.

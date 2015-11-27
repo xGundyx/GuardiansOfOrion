@@ -242,6 +242,21 @@ void AOrionWeapon::Tick(float DeltaSeconds)
 		if (AmmoInClip == 0 && WeaponState != WEAP_RELOADING && Ammo > 0 && CanReload())
 			StartReload();
 	}
+
+	if (MyPawn && MyPawn->GetWeapon() != this)
+	{
+		if (LaserAimPSC)
+		{
+			LaserAimPSC->DeactivateSystem();
+			LaserAimPSC = nullptr;
+		}
+
+		if (Mesh1P->bHiddenInGame == false)
+			Mesh1P->SetHiddenInGame(true);
+
+		if (Mesh3P->bHiddenInGame == false)
+			Mesh3P->SetHiddenInGame(true);
+	}
 }
 
 void AOrionWeapon::HandleZooms(float DeltaSeconds)
@@ -649,7 +664,9 @@ void AOrionWeapon::FireWeapon()
 		}
 	}
 
-	if (InstantConfig.bAutomatic && MyPawn && !MyPawn->bDowned)
+	bool bShouldRefire = InstantConfig.WeaponSlot == 2 || (MyPawn && !MyPawn->bDowned);
+
+	if (InstantConfig.bAutomatic && bShouldRefire)
 		GetWorldTimerManager().SetTimer(FireTimer, this, &AOrionWeapon::FireWeapon, FireRate, false);
 
 	LastFireTime = GetWorld()->GetTimeSeconds();

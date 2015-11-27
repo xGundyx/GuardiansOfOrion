@@ -87,6 +87,18 @@ public:
 	UFUNCTION(BlueprintCallable, Category = RPG)
 		int32 GetCharacterLevel(ECharacterClass CharacterType);
 
+	UFUNCTION(BlueprintCallable, server, Reliable, WithValidation, Category = HUD)
+		void ServerSetTyping(bool bTyping);
+		bool ServerSetTyping_Validate(bool bTyping) { return true; }
+		void ServerSetTyping_Implementation(bool bTyping);
+
+	bool bIsTyping;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = HUD)
+		TEnumAsByte<EHUDStatusType> HUDStatus;
+
+	void UpdateHUDStatus();
+
 	bool bInitialized;
 
 	UFUNCTION()
