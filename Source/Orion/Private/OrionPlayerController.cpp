@@ -260,27 +260,47 @@ void AOrionPlayerController::CreateInGameLobby_Implementation(FPhotonServerInfo 
 	if (Info.LobbyID != TEXT(""))
 	{
 		ServerInfo = Info;
-		if (UPhotonProxy::GetListener())
+
+		CreateLobbyForReal();
+	}
+#endif
+}
+
+void AOrionPlayerController::TryToCreateLobbyAgain()
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, this, &AOrionPlayerController::CreateLobbyForReal, 0.1f, false);
+}
+
+void AOrionPlayerController::CreateLobbyForReal()
+{
+#if !IS_SERVER
+	if (!bPhotonReady)
+	{
+		TryToCreateLobbyAgain();
+		return;
+	}
+
+	if (UPhotonProxy::GetListener())
+	{
+		UPhotonProxy::GetListener()->PCOwner = this;
+
+		UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
+
+		//create a new room that other players can join
+		if (GI)
 		{
-			UPhotonProxy::GetListener()->PCOwner = this;
+			FString RoomName = GI->PlayFabName;// Info.RoomName;
+			RoomName.Append(TEXT("'s Server"));
 
-			UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
+			FString ChatRoom = "";// ServerInfo.RoomName;
+			//ChatRoom.Append(TEXT("Chat"));
 
-			//create a new room that other players can join
-			if (GI)
-			{
-				FString RoomName = GI->PlayFabName;// Info.RoomName;
-				RoomName.Append(TEXT("'s Server"));
+			FString Version = GetBuildVersion();
 
-				FString ChatRoom = "";// ServerInfo.RoomName;
-				//ChatRoom.Append(TEXT("Chat"));
+			bLobbyLeader = true;
 
-				FString Version = GetBuildVersion();
-
-				bLobbyLeader = true;
-
-				UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*Info.MapName), TCHAR_TO_UTF8(*Info.Difficulty), "Survival", TCHAR_TO_UTF8(*Info.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*Info.LobbyID), TCHAR_TO_UTF8(*ChatRoom), TCHAR_TO_UTF8(*Version), "");
-			}
+			UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*ServerInfo.MapName), TCHAR_TO_UTF8(*ServerInfo.Difficulty), "Survival", TCHAR_TO_UTF8(*ServerInfo.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*ServerInfo.LobbyID), TCHAR_TO_UTF8(*ChatRoom), TCHAR_TO_UTF8(*Version), "");
 		}
 	}
 #endif
@@ -569,6 +589,10 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 	{
 		AOrionCharacter *newPawn = Cast<AOrionCharacter>(GetPawn());
 		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+		//hax fix for now, remove when team games are ready and not broken
+		PRI->SetTeamIndex(0);
+
 		if (newPawn && PRI && PRI->InventoryManager)
 		{
 			if (NextSpawnClass > -1)
@@ -769,6 +793,11 @@ void AOrionPlayerController::ClientAddXPNumber_Implementation(int32 XP, FVector 
 	AddXPNumber(XP, Pos);
 }
 
+void AOrionPlayerController::PlaySlowMotionSound_Implementation(float Length)
+{
+	EventPlaySlowMotionSound(Length);
+}
+
 void AOrionPlayerController::SlowMotion(float Value) 
 { 
 	UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
@@ -859,6 +888,35 @@ bool AOrionPlayerController::HasOrbEffect(EOrbType Type)
 	return false;
 }
 
+void AOrionPlayerController::TestLobby()
+{
+#if !IS_SERVER
+	//if (ServerInfo.LobbyID != TEXT(""))
+	//{
+		/*if (UPhotonProxy::GetListener())
+		{
+			UPhotonProxy::GetListener()->PCOwner = this;
+
+			UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
+
+			//create a new room that other players can join
+			if (GI)
+			{
+				FString RoomName = ServerInfo.RoomName;
+				RoomName.Append(TEXT("'s Server"));
+
+				FString ChatRoom = "";// ServerInfo.RoomName;
+				//ChatRoom.Append(TEXT("Chat"));
+
+				FString Version = GetBuildVersion();
+
+				UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), "GOO-RELIC", "MEDIUM", "Survival", "", TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*GI->LobbyTicket), TCHAR_TO_UTF8(*ChatRoom), TCHAR_TO_UTF8(*Version), "");
+			}
+		}*/
+	//}
+#endif
+}
+
 //only gets called on the local controller
 void AOrionPlayerController::PlayerTick(float DeltaTime)
 {
@@ -887,7 +945,7 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
 
-	if (IsLocalPlayerController() && bAuthenticated && GRI && GRI->PhotonGUID != TEXT("") && GetWorld()->GetTimeSeconds() - LastLobbyTime >= 1.0f)
+	if (bPhotonReady && IsLocalPlayerController() && bAuthenticated && GRI && GRI->PhotonGUID != TEXT("") && GetWorld()->GetTimeSeconds() - LastLobbyTime >= 1.0f)
 	{
 		LastLobbyTime = GetWorld()->GetTimeSeconds();
 
@@ -1352,9 +1410,9 @@ bool AOrionPlayerController::CreateAndGiveInventoryItem(TSharedPtr<FJsonObject> 
 	return false;
 }
 
-#if WITH_CHEATS
 void AOrionPlayerController::SpawnSkeletalActor(FName Type, int32 Index)
 {
+#if WITH_EDITOR
 	for (int32 i = 0; i < AnimationTests.Num(); i++)
 	{
 		if (AnimationTests[i].Type == Type)
@@ -1438,8 +1496,8 @@ void AOrionPlayerController::SpawnSkeletalActor(FName Type, int32 Index)
 			return;
 		}
 	}
-}
 #endif
+}
 
 //this version is for the actual in game inventory, server version
 #if IS_SERVER
@@ -1473,9 +1531,9 @@ TArray<FOptionsData> AOrionPlayerController::GetGameplayOptions()
 	NewOption.Value = Settings->GoreEnabled ? "ENABLED" : "DISABLED";
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("TOGGLE SPRINT");
-	NewOption.Value = Settings->ToggleSprintEnabled ? "ENABLED" : "DISABLED";
-	Options.Add(NewOption);
+	//NewOption.Title = TEXT("TOGGLE SPRINT");
+	//NewOption.Value = Settings->ToggleSprintEnabled ? "ENABLED" : "DISABLED";
+	//Options.Add(NewOption);
 
 	NewOption.Title = TEXT("ACHIEVEMENT NOTIFIES");
 	NewOption.Value = Settings->AchievementNotifiesEnabled ? "ENABLED" : "DISABLED";
@@ -1752,7 +1810,7 @@ TArray<FString> AOrionPlayerController::GetPrivacySettings()
 	TArray<FString> PrivacySettings;
 
 	PrivacySettings.Add(TEXT("PRIVACY - PRIVATE"));
-	PrivacySettings.Add(TEXT("PRIVACY - FRIENDS ONLY"));
+	PrivacySettings.Add(TEXT("PRIVACY - FRIENDS"));
 	PrivacySettings.Add(TEXT("PRIVACY - PUBLIC"));
 
 	return PrivacySettings;
@@ -1760,7 +1818,7 @@ TArray<FString> AOrionPlayerController::GetPrivacySettings()
 
 FString AOrionPlayerController::GetBuildVersion()
 {
-	return TEXT("Beta0.5");
+	return TEXT("Beta0.51");
 }
 
 FString AOrionPlayerController::GetReviveButtonKeyboard()
@@ -1771,6 +1829,16 @@ FString AOrionPlayerController::GetReviveButtonKeyboard()
 int32 AOrionPlayerController::GetReviveButtonController()
 {
 	return ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Reload", false, 0.0f));
+}
+
+FString AOrionPlayerController::GetMeleeButtonKeyboard()
+{
+	return UOrionGameSettingsManager::GetKeyForAction("Melee", false, 0.0f);
+}
+
+int32 AOrionPlayerController::GetMeleeButtonController()
+{
+	return ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Melee", false, 0.0f));
 }
 
 TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
@@ -1934,11 +2002,11 @@ TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
 	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("SHOW SKILLTREE");
+	/*NewOption.Title = TEXT("SHOW SKILLTREE");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("OpenSkillTree", false, 0.0f);
 	NewOption.Action = TEXT("OpenSkillTree");
 	NewOption.Scale = 0.0f;
-	Options.Add(NewOption);
+	Options.Add(NewOption);*/
 
 	return Options;
 }
@@ -2053,10 +2121,10 @@ TArray<FControllerOptionsData> AOrionPlayerController::GetControllerOptions()
 	NewOption.Action = TEXT("Gamepad_OpenCharacterSelect");
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("SHOW SKILLTREE");
+	/*NewOption.Title = TEXT("SHOW SKILLTREE");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_OpenSkillTree", false, 0.0f));
 	NewOption.Action = TEXT("Gamepad_OpenSkillTree");
-	Options.Add(NewOption);
+	Options.Add(NewOption);*/
 
 	NewOption.Title = TEXT("SHOW SCORES");
 	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_OpenScores", false, 0.0f));
@@ -2583,6 +2651,7 @@ void AOrionPlayerController::BeginPlay()
 	Super::BeginPlay();
 
 	bHereFromStart = false;
+	bPhotonReady = false;
 
 #if !IS_SERVER
 	if (IsLocalPlayerController())
@@ -2918,6 +2987,9 @@ int32 AOrionPlayerController::GetSkillValue(ESkillTreeUnlocks Skill)
 		return 0;
 
 	return CharacterSkills[Skill].Points * FMath::Max(1, CharacterSkills[Skill].Modifier);
+
+	//for testing
+	//return CharacterSkills[Skill].MaxPoints * FMath::Max(1, CharacterSkills[Skill].Modifier);
 }
 
 void AOrionPlayerController::ServerSetSkillTreeValuesForUse_Implementation()
@@ -3134,7 +3206,7 @@ UTexture2D *AOrionPlayerController::GetFriendAvatar(TSharedRef<FOnlineFriend> Fr
 
 			//Filling the buffer with the RGBA Stream from the Steam Avatar and creating a UTextur2D to parse the RGBA Steam in
 			SteamUtils()->GetImageRGBA(Picture, (uint8*)oAvatarRGBA, 4 * Height * Width * sizeof(char));
-			UTexture2D* Avatar = UTexture2D::CreateTransient(Width, Height, PF_B8G8R8A8);
+			UTexture2D* Avatar = UTexture2D::CreateTransient(Width, Height, PF_R8G8B8A8);
 
 			//MAGIC!
 			uint8* MipData = (uint8*)Avatar->PlatformData->Mips[0].BulkData.Lock(LOCK_READ_WRITE);

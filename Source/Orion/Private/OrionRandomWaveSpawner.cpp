@@ -1,5 +1,6 @@
 #include "Orion.h"
 #include "OrionGameMode.h"
+#include "Landscape.h"
 #include "OrionRandomWaveSpawner.h"
 
 ////TArray< TSubclassOf<class AOrionCharacter> > AOrionRandomWaveSpawner::SpawnClasses;
@@ -165,6 +166,24 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], AActor *F
 			FVector vStart = GetWorld()->GetNavigationSystem()->ProjectPointToNavigation(GetWorld(), GetActorLocation(), (ANavigationData *)0, DefaultFilterClass, FVector(100.0f, 100.0f, 100.0f));
 
 			Loc = GetWorld()->GetNavigationSystem()->GetRandomPointInNavigableRadius/*GetRandomReachablePointInRadius*/(GetWorld(), vStart, 5000.0f/*SpawnRadius*/, (ANavigationData*)0, DefaultFilterClass);
+
+			//quick trace to make sure we will be spawning on landscape, don't want dinos spawning on static meshes
+			FCollisionQueryParams TraceParams("DinoHelper", false);
+			TraceParams.bTraceAsyncScene = false;
+			TraceParams.bReturnPhysicalMaterial = false;
+
+			FHitResult Hit(ForceInit);
+			if (GetWorld())
+			{
+				GetWorld()->LineTraceSingleByChannel(Hit, Loc + FVector(0.0f, 0.0f, 15.0f), Loc - FVector(0.0f, 0.0f, 200.0f), COLLISION_WEAPON, TraceParams);
+				if (GetWorld()->SweepSingleByChannel(Hit, Loc + FVector(0.0f, 0.0f, 15.0f), Loc - FVector(0.0f, 0.0f, 200.0f), FQuat::Identity, ECollisionChannel::ECC_Pawn, FCollisionShape::MakeSphere(5), TraceParams))
+				{
+					if (!Cast<ALandscape>(Hit.GetActor()))
+						continue;
+				}
+				else
+					continue;
+			}
 
 			TSharedPtr<const FNavigationQueryFilter> QueryFilter = UNavigationQueryFilter::GetQueryFilter(GetWorld()->GetNavigationSystem()->MainNavData, DefaultFilterClass);
 

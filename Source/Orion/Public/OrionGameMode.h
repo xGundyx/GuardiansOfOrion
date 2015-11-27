@@ -108,6 +108,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Voice)
 		virtual void PlayRandomVoiceFromPlayer(EVoiceType Type);
 
+	void AddInactivePlayer(APlayerState* PlayerState, APlayerController* PC) override;
+
+	void PlaySlowMotion(float Length);
+	void StopSlowMotion();
+
+	FTimerHandle SlowMotionTimer;
+
 	//how many seconds does a match last
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Spawn)
 		int32 TimeLimit;

@@ -676,6 +676,8 @@ void AOrionCharacter::PlayVoice(EVoiceType Type)
 	if (GetWorld()->TimeSeconds - LastVoiceTime < 4.0f)
 		return;
 
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
 	VoiceRep.Type = Type;
 	VoiceRep.bToggle = !VoiceRep.bToggle;
 
@@ -1047,6 +1049,7 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, bDowned);
 	DOREPLIFETIME(AOrionCharacter, DownedTime);
 	DOREPLIFETIME(AOrionCharacter, VoiceRep);
+	DOREPLIFETIME(AOrionCharacter, VoiceClass);
 
 	//speed 
 	DOREPLIFETIME(AOrionCharacter, SprintRate);
@@ -1365,6 +1368,7 @@ void AOrionCharacter::HandleGibs(float damage, FDamageEvent const& DamageEvent, 
 
 	if (Settings->GoreEnabled == false)
 		return;
+#endif
 
 	const FPointDamageEvent *RealEvent = (FPointDamageEvent*)&DamageEvent;
 	FName CurrentBone, TargetBone;
@@ -1382,10 +1386,6 @@ void AOrionCharacter::HandleGibs(float damage, FDamageEvent const& DamageEvent, 
 			{
 				CurrentBone = RealEvent->HitInfo.BoneName;
 				TargetBone = GetMesh()->GetSocketBoneName(Gib->SocketName);
-
-				AOrionCharacter *KillerPawn = Cast<AOrionCharacter>(Damager->GetPawn());
-				if (KillerPawn)
-					KillerPawn->PlayVoice(VOICE_BOSSKILL);
 
 				while (CurrentBone != NAME_None)
 				{
@@ -1405,6 +1405,10 @@ void AOrionCharacter::HandleGibs(float damage, FDamageEvent const& DamageEvent, 
 						GibRep.Socket = Gib->SocketName;
 						GibRep.Velocity = vel;
 
+						AOrionCharacter *KillerPawn = Cast<AOrionCharacter>(Damager->GetPawn());
+						if (KillerPawn)
+							KillerPawn->PlayVoice(VOICE_BOSSKILL);
+
 						return;
 					}
 
@@ -1413,7 +1417,6 @@ void AOrionCharacter::HandleGibs(float damage, FDamageEvent const& DamageEvent, 
 			}
 		}
 	}
-#endif
 }
 
 void AOrionCharacter::PlayFootStepSound(USoundCue *Cue, FVector pos)
@@ -1428,6 +1431,16 @@ void AOrionCharacter::PlayFootStepSound(USoundCue *Cue, FVector pos)
 
 void AOrionCharacter::OnRep_Gibs()
 {
+#if !IS_SERVER
+	UOrionGameUserSettings *Settings = nullptr;
+
+	if (GEngine && GEngine->GameUserSettings)
+		Settings = Cast<UOrionGameUserSettings>(GEngine->GameUserSettings);
+
+	if (Settings->GoreEnabled == false)
+		return;
+#endif
+
 	FVector pos;
 	FRotator rot;
 
@@ -1919,9 +1932,9 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 void AOrionCharacter::TickDownedTime()
 {
-	DownedTime--;
+	DownedTime = FMath::Max(0, DownedTime - 1);
 
-	if (DownedTime <= 0)
+	if (DownedTime <= 0 && GetWorld()->TimeSeconds - LastHealTime > 1.5f)
 	{
 		bDowned = false;
 		Die(50.0f, DownedDamageEvent, DownedEventInstigator, DownedDamageCauser);
@@ -2223,6 +2236,8 @@ void AOrionCharacter::CreateHealthBar()
 
 void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& DamageEvent, class APawn* PawnInstigator, class AActor* DamageCauser)
 {
+	bDowned = false;
+
 	if (bIsDying)
 	{
 		return;
@@ -2992,6 +3007,12 @@ void AOrionCharacter::HandleKnockedDown()
 {
 	if (Role == ROLE_Authority)
 	{
+		if (bLatchedOnto && (!Latcher || !Latcher->IsValidLowLevel() || Latcher->Health <= 0.0f))
+		{
+			bLatchedOnto = false;
+			Latcher = nullptr;
+		}
+
 		if (bKnockedDown && (!Knocker || !Knocker->IsValidLowLevel()))
 		{
 			if (Health > 0)
@@ -3020,6 +3041,14 @@ void AOrionCharacter::HandleKnockedDown()
 	}
 }
 
+void AOrionCharacter::OnRep_Knocker()
+{
+	if (Knocker)
+		GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel4, ECR_Ignore);
+	else if (Health > 0)
+		GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel4, ECR_Block);
+}
+
 void AOrionCharacter::HandleRevivingTeammates(float DeltaSeconds)
 {
 	if (Role == ROLE_Authority && ReviveTarget)
@@ -3031,6 +3060,7 @@ void AOrionCharacter::HandleRevivingTeammates(float DeltaSeconds)
 			Rate = 1.0f + float(PC->GetSkillValue(SKILL_REVIVESPEED)) / 100.0f;
 
 		ReviveTarget->Health = FMath::Min(ReviveTarget->HealthMax, ReviveTarget->Health + DeltaSeconds * 0.5f * Rate * ReviveTarget->HealthMax);
+		ReviveTarget->LastHealTime = GetWorld()->TimeSeconds;
 
 		if (ReviveTarget->Health >= ReviveTarget->HealthMax)
 		{
@@ -3097,6 +3127,14 @@ void AOrionCharacter::Revived()
 	LastRevivedTime = GetWorld()->TimeSeconds;
 
 	bDowned = false;
+
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, this, &AOrionCharacter::PlayRevivedVoice, 1.0f, false);
+}
+
+void AOrionCharacter::PlayRevivedVoice()
+{
+	PlayVoice(VOICE_AFFIRMATIVE);
 }
 
 void AOrionCharacter::Tick(float DeltaSeconds)
@@ -3306,7 +3344,7 @@ void AOrionCharacter::SetupPlayerInputComponent(class UInputComponent* InputComp
 	InputComponent->BindAction("Duck", IE_Released, this, &AOrionCharacter::UnDuck);
 
 	InputComponent->BindAction("Run", IE_Pressed, this, &AOrionCharacter::Sprint);
-	InputComponent->BindAction("Run", IE_Released, this, &AOrionCharacter::ButtonStopSprint);
+	InputComponent->BindAction("Run", IE_Released, this, &AOrionCharacter::StopSprint);
 
 	InputComponent->BindAction("Fire", IE_Pressed, this, &AOrionCharacter::OnFire);
 	InputComponent->BindAction("Fire", IE_Released, this, &AOrionCharacter::OnStopFire);
@@ -4030,7 +4068,7 @@ void AOrionCharacter::ServerDoRoll_Implementation(ERollDir rDir, FRotator rRot)
 
 	if (CurrentWeapon)
 	{
-		CurrentWeapon->CancelReload();
+		////CurrentWeapon->CancelReload();
 		CurrentWeapon->StopFire();
 	}
 
@@ -4082,10 +4120,8 @@ void AOrionCharacter::DoRoll()
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (AnimInstance != NULL)
 		{
-			if (CurrentWeapon && CurrentWeapon->WeaponState == WEAP_RELOADING)
-			{
-				CurrentWeapon->CancelReload();
-			}
+			////if (CurrentWeapon && CurrentWeapon->WeaponState == WEAP_RELOADING)
+				////CurrentWeapon->CancelReload();
 
 			//prevent upper body from doing wacky things
 			OnStopFire();
@@ -4242,7 +4278,7 @@ void AOrionCharacter::GamepadSprint()
 
 void AOrionCharacter::Sprint()
 {
-	UOrionGameUserSettings *Settings = nullptr;
+	/*UOrionGameUserSettings *Settings = nullptr;
 
 	if (GEngine && GEngine->GameUserSettings)
 		Settings = Cast<UOrionGameUserSettings>(GEngine->GameUserSettings);
@@ -4250,10 +4286,10 @@ void AOrionCharacter::Sprint()
 	bool bToggle = false;
 
 	if (Settings->ToggleSprintEnabled == true)
-		bToggle = true;
+		bToggle = true;*/
 
 	if (Role < ROLE_Authority)
-		ServerRun(bToggle ? !bRun : true);
+		ServerRun(true);
 
 	if (bDuck)
 	{
@@ -4263,7 +4299,7 @@ void AOrionCharacter::Sprint()
 	OnStopFire();
 	StopAiming();
 
-	bRun = bToggle ? !bRun : true;
+	bRun = true;
 }
 
 float AOrionCharacter::PlayOneShotAnimation(UAnimMontage *Anim)
@@ -4315,22 +4351,6 @@ bool AOrionCharacter::IsAiming() const
 
 void AOrionCharacter::StopSprint()
 {
-	if (Role < ROLE_Authority)
-		ServerRun(false);
-
-	bRun = false;
-}
-
-void AOrionCharacter::ButtonStopSprint()
-{
-	UOrionGameUserSettings *Settings = nullptr;
-
-	if (GEngine && GEngine->GameUserSettings)
-		Settings = Cast<UOrionGameUserSettings>(GEngine->GameUserSettings);
-
-	if (Settings->ToggleSprintEnabled == true)
-		return;
-
 	if (Role < ROLE_Authority)
 		ServerRun(false);
 

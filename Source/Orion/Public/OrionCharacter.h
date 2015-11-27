@@ -1191,7 +1191,8 @@ public:
 	void GamepadSprint();
 	void Sprint();
 	void StopSprint();
-	void ButtonStopSprint();
+
+	void PlayRevivedVoice();
 
 	//hax for when fatality breaks
 	void MakeSureDead();
@@ -1225,7 +1226,7 @@ public:
 
 	void SpawnDefaultAbilities();
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Voice)
+	UPROPERTY(Replicated, EditDefaultsOnly, BlueprintReadWrite, Category = Voice)
 		TSubclassOf<AOrionVoice> VoiceClass;
 
 	UFUNCTION(BlueprintCallable, Category = Voice)
@@ -1269,7 +1270,10 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = Skill)
 		bool bKnockedDown;
 
-	UPROPERTY(Replicated, BlueprintReadWrite, Category = Skill)
+	UFUNCTION()
+		void OnRep_Knocker();
+
+	UPROPERTY(ReplicatedUsing=OnRep_Knocker, BlueprintReadWrite, Category = Skill)
 		AOrionCharacter *Knocker;
 
 	void HandleKnockedDown();

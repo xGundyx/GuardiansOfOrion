@@ -311,7 +311,8 @@ void AOrionWeaponLink::Tick(float DeltaSeconds)
 				P->HealTarget = 5.0f;
 			}
 		}
-		else if (LinkTarget)
+
+		if (LinkTarget && LinkTarget != MyPawn)
 		{
 			HandleChainTargets(DeltaSeconds);
 
@@ -379,6 +380,8 @@ void AOrionWeaponLink::HandleChainTargets(float DeltaSeconds)
 	
 	if (PC)
 	{
+		bool bLatch = PC->GetSkillValue(SKILL_BEAMLENGTH) == PC->CharacterSkills[SKILL_BEAMLENGTH].MaxPoints * PC->CharacterSkills[SKILL_BEAMLENGTH].Modifier;
+
 		if (PC->GetSkillValue(SKILL_REGENCHAIN) > 0)
 		{
 			//validate any chain targets we may already have
@@ -439,6 +442,12 @@ void AOrionWeaponLink::HandleChainTargets(float DeltaSeconds)
 					continue;
 
 				if (Pawn->Health <= 0.0f && !Pawn->bDowned)
+					continue;
+
+				if (!CanLink(Pawn))
+					continue;
+
+				if (Pawn->PlayerState == nullptr || (!bLatch && Pawn->PlayerState->bIsABot))
 					continue;
 
 				if (ChainLinkTargets.Find(Pawn) == INDEX_NONE)

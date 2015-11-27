@@ -96,7 +96,6 @@ FOrionGameplaySettings UOrionGameSettingsManager::GetGameplaySettings()
 
 	OutGameplay.Tutorial = Settings->TutorialsEnabled;
 	OutGameplay.Gore = Settings->GoreEnabled;
-	OutGameplay.ToggleSprint = Settings->ToggleSprintEnabled;
 	OutGameplay.AchievementNotify = Settings->AchievementNotifiesEnabled;
 	OutGameplay.Rumble= Settings->ControllerRumbleEnabled;
 
@@ -110,7 +109,6 @@ void UOrionGameSettingsManager::SetGameplaySettings(FOrionGameplaySettings InSet
 
 	Settings->TutorialsEnabled = InSettings.Tutorial;
 	Settings->GoreEnabled = InSettings.Gore;
-	Settings->ToggleSprintEnabled = InSettings.ToggleSprint;
 	Settings->AchievementNotifiesEnabled = InSettings.AchievementNotify;
 	Settings->ControllerRumbleEnabled = InSettings.Rumble;
 

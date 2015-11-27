@@ -805,6 +805,16 @@ struct FFriendListData
 };
 
 UENUM(BlueprintType)
+enum EHUDStatusType
+{
+	HUD_NONE,
+	HUD_TYPING,
+	HUD_DOWNED,
+	HUD_RADIO,
+	HUD_MEDIC
+};
+
+UENUM(BlueprintType)
 enum EVoiceType
 {
 	VOICE_GRENADE,//
