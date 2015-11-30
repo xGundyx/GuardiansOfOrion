@@ -165,7 +165,7 @@ void AOrionPRI::UpdateHUDStatus()
 		HUDStatus = HUD_TYPING;
 	else if (ControlledPawn && ControlledPawn->bDowned)
 		HUDStatus = HUD_DOWNED;
-	else if (ControlledPawn && ControlledPawn->Shield <= 0.0f)
+	else if (ControlledPawn && ControlledPawn->Shield <= 0.0f && ControlledPawn->Health < ControlledPawn->HealthMax)
 		HUDStatus = HUD_MEDIC;
 	else if (ControlledPawn && GetWorld()->TimeSeconds - ControlledPawn->LastVoiceTime < 3.0f)
 		HUDStatus = HUD_RADIO;

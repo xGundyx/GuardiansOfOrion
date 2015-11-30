@@ -1818,7 +1818,7 @@ TArray<FString> AOrionPlayerController::GetPrivacySettings()
 
 FString AOrionPlayerController::GetBuildVersion()
 {
-	return TEXT("Beta0.51");
+	return TEXT("EA1.0");
 }
 
 FString AOrionPlayerController::GetReviveButtonKeyboard()
@@ -2151,8 +2151,8 @@ void AOrionPlayerController::ResetControllerLayout()
 	UOrionGameSettingsManager::RebindKey("Gamepad_LastWeapon", "Gamepad_FaceButton_Top", "Button", 1.0f);
 	UOrionGameSettingsManager::RebindKey("Gamepad_ThrowGrenade", "Gamepad_RightShoulder", "Button", 1.0f);
 	UOrionGameSettingsManager::RebindKey("Gamepad_OpenInventory", "Gamepad_DPad_Up", "Button", 1.0f);
-	UOrionGameSettingsManager::RebindKey("Gamepad_OpoenCharacterSelect", "Gamepad_Special_right", "Button", 1.0f);
-	UOrionGameSettingsManager::RebindKey("Gamepad_OpenSkillTree", "Gamepad_DPad_Right", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_OpenCharacterSelect", "Gamepad_Special_right", "Button", 1.0f);
+	//UOrionGameSettingsManager::RebindKey("Gamepad_OpenSkillTree", "Gamepad_DPad_Right", "Button", 1.0f);
 	UOrionGameSettingsManager::RebindKey("Gamepad_OpenScores", "Gamepad_Special_Left", "Button", 1.0f);
 
 	UOrionGameSettingsManager::SaveInput();
@@ -2255,6 +2255,7 @@ void AOrionPlayerController::OpenLobby(FString MapName, FString MapDifficulty, F
 
 void AOrionPlayerController::CreateLobbySession(FString RoomName)
 {
+	return;
 	if (SteamAPI_Init())
 	{
 		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
@@ -2271,13 +2272,16 @@ void AOrionPlayerController::CreateLobbySession(FString RoomName)
 			Settings.bIsDedicated = false;
 			Settings.bUsesStats = false;
 			Settings.bAllowInvites = true;
-			Settings.bUsesPresence = false;
-			Settings.bAllowJoinViaPresence = false;
+			Settings.bUsesPresence = true;
+			Settings.bAllowJoinViaPresence = true;
 			Settings.bAllowJoinViaPresenceFriendsOnly = false;
 			Settings.bAntiCheatProtected = false;
 			//Settings.BuildUniqueId = 3;
 
 			Settings.Settings.Add(TEXT("ROOMNAME"), RoomName);
+
+			FString ConnectionURL = FString::Printf(TEXT("?SteamConnectIP=\"%s\""), *RoomName);
+			Settings.Settings.Add(TEXT("connect"), ConnectionURL);
 
 			IOnlineSessionPtr Sess = OnlineSub->GetSessionInterface();
 
@@ -2327,6 +2331,7 @@ void AOrionPlayerController::OnSessionCreated(FName SessionName, bool bSuccessfu
 
 void AOrionPlayerController::DestroyLobbySession()
 {
+	return;
 	if (SteamAPI_Init())
 	{
 		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
@@ -2380,7 +2385,7 @@ void AOrionPlayerController::LeaveLobby()
 
 		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
 
-		if (OnlineSub)
+		/*if (OnlineSub)
 		{
 			IOnlineSessionPtr Sess = OnlineSub->GetSessionInterface();
 
@@ -2388,9 +2393,29 @@ void AOrionPlayerController::LeaveLobby()
 				return;
 
 			Sess->EndSession("Lobby");
-		}
+		}*/
 	}
 #endif
+}
+
+void AOrionPlayerController::SetLobbyName(FString lName)
+{
+	LobbyName = lName;
+
+	if (SteamAPI_Init())
+	{
+		FString ConnectionURL = FString::Printf(TEXT("?SteamConnectIP=\"%s\""), *LobbyName);
+		if (SteamFriends()->SetRichPresence("connect", TCHAR_TO_UTF8(*ConnectionURL)))
+		{
+			SteamFriends()->SetRichPresence("ROOMNAME", TCHAR_TO_UTF8(*LobbyName));
+			//UE_LOG(LogTemp, Log, TEXT("Rich Presence Info %s"), *lName);
+
+			if (lName == "")
+			{
+				SteamFriends()->ClearRichPresence();
+			}
+		}
+	}
 }
 
 void AOrionPlayerController::InviteFriendToLobby(FString FriendSteamID)
@@ -2790,7 +2815,7 @@ void AOrionPlayerController::OnAcceptFriendInvite(int32 UserNum, bool bWasSucces
 		{
 			IPresence->GetCachedPresence(FriendId, Presence);
 
-			FString LobbyID = Presence->Status.Properties[TEXT("LobbyInfo")].ToString();
+			FString LobbyID = Presence->Status.Properties[TEXT("ROOMNAME")].ToString();
 
 			JoinLobby(LobbyID);
 
@@ -2813,7 +2838,7 @@ void AOrionPlayerController::OnFriendInviteAccepted(const FUniqueNetId& UserID, 
 		{
 			IPresence->GetCachedPresence(FriendID, Presence);
 
-			FString LobbyID = Presence->Status.Properties[TEXT("LobbyInfo")].ToString();
+			FString LobbyID = Presence->Status.Properties[TEXT("ROOMNAME")].ToString();
 
 			JoinLobby(LobbyID);
 
@@ -2825,6 +2850,31 @@ void AOrionPlayerController::OnFriendInviteAccepted(const FUniqueNetId& UserID, 
 
 void AOrionPlayerController::OnInviteAccepted(const bool bWasSuccessful, const int32 LocalUserNum, TSharedPtr<const FUniqueNetId> FriendID, const FOnlineSessionSearchResult &SessionToJoin)
 {
+	//add some error here?
+	if (!SessionToJoin.Session.SessionSettings.Settings.Contains("ROOMNAME"))
+	{
+		if (SteamAPI_Init())
+		{
+			const uint8* OutBytes = FriendID.Get()->GetBytes();
+
+			CSteamID steamID = (*(uint64*)OutBytes);
+
+			const char* ID = SteamFriends()->GetFriendRichPresence(steamID, "ROOMNAME");
+
+			int32 Num = SteamFriends()->GetFriendRichPresenceKeyCount(steamID);
+
+			/*for (int32 i = 0; i < Num; i++)
+			{
+				const char* Test = SteamFriends()->GetFriendRichPresenceKeyByIndex(steamID, i);
+
+				UE_LOG(LogTemp, Log, TEXT("GundyInviteAcceptedReal: %s"), Test);
+			}*/
+
+			JoinLobby(ID);
+		}
+		return;
+	}
+
 	FString LobbyID = SessionToJoin.Session.SessionSettings.Settings.Find(FName("ROOMNAME"))->ToString();
 
 	//trim off the end shenanigans
@@ -2838,6 +2888,48 @@ void AOrionPlayerController::OnInviteAccepted(const bool bWasSuccessful, const i
 	JoinLobby(LobbyID);
 
 	UE_LOG(LogTemp, Log, TEXT("Invite Accepted to Lobby: %s"), *LobbyID);
+
+	/*IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
+
+	if (OnlineSub)
+	{
+		TSharedPtr<FOnlineUserPresence> Presence;
+
+		IOnlinePresencePtr IPresence = OnlineSub->GetPresenceInterface();
+
+		if (IPresence.IsValid())
+		{
+			IPresence->GetCachedPresence(*FriendID.Get(), Presence);
+
+			FString LobbyID = Presence->Status.Properties[TEXT("ROOMNAME")].ToString();
+
+			JoinLobby(LobbyID);
+
+			UE_LOG(LogTemp, Log, TEXT("GundyInviteAcceptedReal: %s"), *LobbyID);
+		}
+		else
+		{
+			if (SteamAPI_Init())
+			{
+				const uint8* OutBytes = FriendID.Get()->GetBytes();
+
+				CSteamID steamID(*(uint64*)OutBytes);
+
+				const char* ID = SteamFriends()->GetFriendRichPresence(steamID, "ROOMNAME");
+
+				int32 Num = SteamFriends()->GetFriendRichPresenceKeyCount(steamID);
+
+				for (int32 i = 0; i < Num; i++)
+				{
+					const char* Test = SteamFriends()->GetFriendRichPresenceKeyByIndex(steamID, i);
+
+					UE_LOG(LogTemp, Log, TEXT("GundyInviteAcceptedReal: %s"), Test);
+				}
+				
+				JoinLobby(ID);
+			}
+		}
+	}*/
 }
 
 void AOrionPlayerController::OnInviteReceived(const FUniqueNetId& UserId, const FUniqueNetId& FromId, const FString& AppId, const FOnlineSessionSearchResult& InviteResult)

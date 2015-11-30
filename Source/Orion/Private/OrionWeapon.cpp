@@ -422,8 +422,10 @@ float AOrionWeapon::DoMelee()
 
 	float Len = 0.1f;
 	
-	if(MyPawn && MyPawn->bKnockedDown)
+	if (MyPawn && MyPawn->bKnockedDown)
 		Len = PlayWeaponAnimation(MeleeKnockDownAnim, Role == ROLE_Authority);
+	else if (MyPawn && MyPawn->bLatchedOnto)
+		Len = PlayWeaponAnimation(MyPawn->CutTongueAnim, Role == ROLE_Authority);
 	else
 		Len = PlayWeaponAnimation(MeleeAnim, Role == ROLE_Authority);
 
@@ -443,13 +445,22 @@ float AOrionWeapon::DoMelee()
 	//if we are being tongued, cut it and cancel it
 	if (Role == ROLE_Authority && MyPawn && MyPawn->bLatchedOnto)
 	{
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, this, &AOrionWeapon::BreakTongue, Len, false);
+	}
+
+	return Len;
+}
+
+void AOrionWeapon::BreakTongue()
+{
+	if (MyPawn && MyPawn->bLatchedOnto)
+	{
 		MyPawn->bStopSpecialMove = true;
 
 		FTimerHandle Handle;
 		GetWorldTimerManager().SetTimer(Handle, MyPawn, &AOrionCharacter::ResetStopSpecialMove, 1.0f, false);
 	}
-
-	return Len;
 }
 
 void AOrionWeapon::ResetMelee()

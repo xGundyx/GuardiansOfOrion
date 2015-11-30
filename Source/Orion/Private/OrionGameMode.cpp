@@ -312,9 +312,12 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 		}
 	}
 
+	if (DeadPC)
+		PlaySlowMotion(7.0f);
+
 	if (PC && DeadDino && DeadDino->DinoName.ToString().ToUpper() == TEXT("TREX"))
 	{
-		PlaySlowMotion(5.0f);
+		PlaySlowMotion(7.0f);
 
 		PC->LastTRexKill = GetWorld()->GetTimeSeconds();
 
@@ -786,7 +789,10 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 #if IS_SERVER
 		PC->ValidateLobbyTicket(LobbyID, pfTicket);
 #else
-		PC->ValidatePlayFabInfo(pfID, pfSession);
+		//can't do this here, it requires the secret key
+		//PC->ValidatePlayFabInfo(pfID, pfSession);
+		//hax for now
+		PlayerAuthed(PC, true);
 #endif
 
 		if (pfClass == TEXT("ASSAULT"))
@@ -918,7 +924,7 @@ void AOrionGameMode::PlaySlowMotion(float Length)
 		Cast<AOrionPlayerController>(Controllers[i])->PlaySlowMotionSound(Length * 0.25f);
 	}
 
-	GetWorldTimerManager().SetTimer(SlowMotionTimer, this, &AOrionGameMode::StopSlowMotion, Length * 0.25f, true);
+	GetWorldTimerManager().SetTimer(SlowMotionTimer, this, &AOrionGameMode::StopSlowMotion, Length * 0.25f, false);
 }
 
 void AOrionGameMode::StopSlowMotion()

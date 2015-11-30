@@ -92,7 +92,8 @@ public:
 		bool ServerSetTyping_Validate(bool bTyping) { return true; }
 		void ServerSetTyping_Implementation(bool bTyping);
 
-	bool bIsTyping;
+	UPROPERTY(BlueprintReadWrite, Category = HUD)
+		bool bIsTyping;
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = HUD)
 		TEnumAsByte<EHUDStatusType> HUDStatus;
