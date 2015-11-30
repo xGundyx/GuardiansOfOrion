@@ -73,12 +73,39 @@ void AOrionAIController::HandleStuck()
 	if (!GetPawn() || !bCanBeStuck)
 		return;
 
+	//if we're a flier and have somehow flown way outside of the playable area, just respawn us
+	if (P->IsFlying())
+	{
+		if (Game && Game->OOBVolume)
+		{
+			if (!Game->OOBVolume->EncompassesPoint(P->GetActorLocation(), 2500.0f))
+			{
+				P->OutOfBoundsCounter++;
+
+				if (P->OutOfBoundsCounter >= 10)
+				{
+					Game->AddSpawn(P);
+
+					FDamageEvent dEvent = FDamageEvent::FDamageEvent();
+					dEvent.DamageTypeClass = UOrionDamageType::StaticClass();
+
+					P->Die(10000000.0f, dEvent, nullptr, P);
+					return;
+				}
+			}
+			else
+			{
+				P->OutOfBoundsCounter = -1;
+			}
+		}
+	}
+
 	//check if we haven't moved since our last checkup
 	if ((LastStuckPos - GetPawn()->GetActorLocation()).Size() < 1.0f)
 	{
 		StuckCounter++;
 
-		if (StuckCounter >= 4)
+		/*if (StuckCounter >= 4)
 		{
 			//give them a little nudge
 			UOrionMovementComponent *Comp = Cast<UOrionMovementComponent>(GetPawn()->GetMovementComponent());
@@ -90,7 +117,7 @@ void AOrionAIController::HandleStuck()
 
 				Comp->AddImpulse(force * 500.0f + FVector(0.0f, 0.0f, 250.0f), true);
 			}
-		}
+		}*/
 	}
 	else
 		StuckCounter = 0;
@@ -116,7 +143,9 @@ void AOrionAIController::ResetStuck()
 
 		TimesStuck++;
 
-		if (TimesStuck >= 5)
+		AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
+
+		if (TimesStuck >= 5 || (P && P->IsFlying()))
 		{
 			//destroy and re-add to the spawn queue
 			AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
@@ -128,6 +157,19 @@ void AOrionAIController::ResetStuck()
 				dEvent.DamageTypeClass = UOrionDamageType::StaticClass();
 
 				P->Die(10000000.0f, dEvent, nullptr, P);
+			}
+		}
+		else
+		{
+			//give them a little nudge
+			UOrionMovementComponent *Comp = Cast<UOrionMovementComponent>(GetPawn()->GetMovementComponent());
+			if (Comp)
+			{
+				FVector force = FMath::VRand();
+				force.Z = 0.0f;
+				force.Normalize();
+
+				Comp->AddImpulse(force * 500.0f + FVector(0.0f, 0.0f, 250.0f), true);
 			}
 		}
 	}

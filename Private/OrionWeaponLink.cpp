@@ -323,6 +323,11 @@ void AOrionWeaponLink::Tick(float DeltaSeconds)
 		}
 	}
 
+	if (LinkTarget && MyPawn && MyPawn->GetWeapon() != this)
+	{
+		OnUnEquip();
+	}
+
 	if (LinkTarget == nullptr && ChainBeamPSC.Num() > 0)
 		StopAllChainBeams();
 
@@ -549,33 +554,33 @@ void AOrionWeaponLink::HandleLinkTargets(AOrionCharacter *Target, float DeltaSec
 	if (P && P->bIsHealableMachine)
 	{
 		if (P && P->Health < P->HealthMax)
-			P->Health = FMath::Min(P->HealthMax, P->Health +  DeltaSeconds * Rate * P->HealthMax / 20.0f);
+			P->Health = FMath::Min(P->HealthMax, P->Health +  DeltaSeconds * Rate * P->HealthMax / 40.0f);
 	}
 	//if the target is a teammate, heal them up
 	else if (GRI && GRI->OnSameTeam(PRI1, PRI2))
 	{
 		if (P && P->Health < P->HealthMax)
 		{
-			P->Health = FMath::Min(P->HealthMax, P->Health + DeltaSeconds * Rate * P->HealthMax / 10.0f);
+			P->Health = FMath::Min(P->HealthMax, P->Health + DeltaSeconds * Rate * P->HealthMax / 20.0f);
 
 			if (P->bDowned && P->Health >= P->HealthMax)
 				P->Revived();
 		}
 		else if (P && P->Shield < P->ShieldMax)
-			P->Shield = FMath::Min(P->ShieldMax, P->Shield + DeltaSeconds * Rate * P->ShieldMax / 10.0f);
+			P->Shield = FMath::Min(P->ShieldMax, P->Shield + DeltaSeconds * Rate * P->ShieldMax / 20.0f);
 	}
 	//if the target is an enemy, hurt/slow them
 	else if (GRI && !GRI->OnSameTeam(PRI1, PRI2))
 	{
 		if (P && P->Health > 0)
 		{
-			P->Health -= DeltaSeconds * 150.0f;
+			P->Health -= DeltaSeconds * 75.0f;
 			if (P->Health <= 0)
 			{
 				FPointDamageEvent PointDmg;
 
 				PointDmg.DamageTypeClass = UOrionDamageType::StaticClass();
-				PointDmg.Damage = 150.0f;
+				PointDmg.Damage = 75.0f;
 				PointDmg.ShotDirection = FVector(0.0f);
 
 				P->Die(150.0f, PointDmg, MyPawn->Controller, MyPawn);

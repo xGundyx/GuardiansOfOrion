@@ -59,6 +59,10 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	if (KnifeHit.Object)
 		KnifeHitSound = Cast<USoundCue>(KnifeHit.Object);
 
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> JetBurn(TEXT("ParticleSystem'/Game/KY_MagicEffects03/Particles/P_fireLv_1.P_fireLv_1'"));
+	if (JetBurn.Object)
+		JetpackBurnFX = Cast<UParticleSystem>(JetBurn.Object);
+
 	// Default offset from the character location for projectiles to spawn
 	GunOffset = FVector(100.0f, 30.0f, 10.0f);
 
@@ -1677,6 +1681,11 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 	if (PC)
 	{
+		if (PC->GetSkillValue(SKILL_CLOAKTEAMMATES) > 0)
+		{
+			Damage *= 0.5f;
+		}
+
 		if (PC->GetAchievements() && (bLatchedOnto || DamageType->WeaponName.ToUpper() == TEXT("JECKYL")))
 			PC->GetAchievements()->UnlockAchievement(ACH_JECKYLFATALITY, PC);
 
@@ -1784,6 +1793,9 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 	if (ActualDamage > 0.f)
 	{
+		if (DamageType && DamageType->WeaponName == "Jetpack")
+			UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), JetpackBurnFX, GetActorLocation());
+
 		//add this player to our assist tracker
 		if (AttackerPC)
 			Assisters.AddUnique(AttackerPC);
@@ -3575,7 +3587,7 @@ void AOrionCharacter::ActivateSkill()
 
 				AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
 				AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
-				if (Role == ROLE_Authority && PRI && PRI->ClassType == "RECON" && PC && PC->GetSkillValue(SKILL_CLOAKTEAMMATES) > 0)
+				/*if (Role == ROLE_Authority && PRI && PRI->ClassType == "RECON" && PC && PC->GetSkillValue(SKILL_CLOAKTEAMMATES) > 0)
 				{
 					TArray<AActor*> Controllers;
 
@@ -3597,7 +3609,7 @@ void AOrionCharacter::ActivateSkill()
 							}
 						}
 					}
-				}
+				}*/
 			}
 		}
 		else
@@ -4366,6 +4378,10 @@ void AOrionCharacter::DoMelee()
 			CancelGrenadeTarget();
 			CurrentWeapon->Melee();
 		}
+		else if (bLatchedOnto)
+		{
+			CurrentWeapon->Melee();
+		}
 		return;
 	}
 
@@ -4386,7 +4402,7 @@ void AOrionCharacter::DoMelee()
 
 void AOrionCharacter::ResetStopSpecialMove()
 {
-	bStopSpecialMove = true;
+	bStopSpecialMove = false;// true;
 }
 
 void AOrionCharacter::ServerSetReviveTarget_Implementation(AOrionCharacter *Target)

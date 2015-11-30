@@ -196,6 +196,16 @@ void UOrionMovementComponent::CalcVelocity(float DeltaTime, float Friction, bool
 		}
 	}
 
+	if (OrionCharacterOwner)
+	{
+		AOrionAIController *C = Cast<AOrionAIController>(OrionCharacterOwner->Controller);
+
+		if (C && C->bIsStuck)
+		{
+
+		}
+	}
+
 	Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
 
 	//rare crash

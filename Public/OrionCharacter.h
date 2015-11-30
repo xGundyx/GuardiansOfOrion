@@ -601,6 +601,9 @@ public:
 	AOrionCharacter *Finisher;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
+		class UParticleSystem* JetpackBurnFX;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
 		class UParticleSystemComponent* ShieldFX;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
@@ -1090,6 +1093,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Controller)
 		APlayerController *GetPlayerController();
+
+	UPROPERTY(EditDefaultsOnly, Category = Animation)
+		FWeaponAnim CutTongueAnim;
 
 	UFUNCTION(BlueprintCallable, Category = Animation)
 		float OrionPlayAnimMontage(const FWeaponAnim Animation, float InPlayRate = 1.0f, FName StartSectionName = FName(""), bool bShouldReplicate = true, bool bReplicateToOwner = false, bool bStopOtherAnims = false);// override;

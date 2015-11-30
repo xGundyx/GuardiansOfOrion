@@ -54,7 +54,7 @@ public:
 		bool bIsStuck;
 
 	virtual void HandleStuck();
-	void ResetStuck();
+	virtual void ResetStuck();
 
 	UPROPERTY(BlueprintReadWrite, Category = AI)
 		bool bCanBeStuck;

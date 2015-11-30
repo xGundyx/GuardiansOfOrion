@@ -793,6 +793,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Raptor)
 		void DoPounceTutorial();
 
+	void SetLobbyName(FString lName);
 	FString LobbyName;
 
 	UFUNCTION(BlueprintCallable, Category = Steam)

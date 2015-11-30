@@ -376,6 +376,8 @@ public:
 	virtual void FireWeapon();
 	virtual void FireBurst();
 
+	void BreakTongue();
+
 	UPROPERTY()
 		float CurrentFiringSpread;
 

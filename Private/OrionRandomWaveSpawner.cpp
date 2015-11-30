@@ -179,10 +179,16 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], AActor *F
 				if (GetWorld()->SweepSingleByChannel(Hit, Loc + FVector(0.0f, 0.0f, 15.0f), Loc - FVector(0.0f, 0.0f, 200.0f), FQuat::Identity, ECollisionChannel::ECC_Pawn, FCollisionShape::MakeSphere(5), TraceParams))
 				{
 					if (!Cast<ALandscape>(Hit.GetActor()))
+					{
+						Game->SpawnTypes[i]++;
 						continue;
+					}
 				}
 				else
+				{
+					Game->SpawnTypes[i]++;
 					continue;
+				}
 			}
 
 			TSharedPtr<const FNavigationQueryFilter> QueryFilter = UNavigationQueryFilter::GetQueryFilter(GetWorld()->GetNavigationSystem()->MainNavData, DefaultFilterClass);
