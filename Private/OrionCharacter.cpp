@@ -1932,7 +1932,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 				PC->GetAchievements()->UnlockAchievement(ACH_UNKILLABLE, PC);
 
 			AOrionDroidPawn *Droid = Cast<AOrionDroidPawn>(DamageCauser);
-			if (PC && PC->GetAchievements() && Droid && Droid->DroidName.ToString().ToUpper() == TEXT("ORB") && bDirectGrenadeHit)
+			if (Game && Game->Difficulty >= DIFF_INSANE && PC && PC->GetAchievements() && Droid && Droid->DroidName.ToString().ToUpper() == TEXT("ORB") && bDirectGrenadeHit)
 				PC->GetAchievements()->UnlockAchievement(ACH_IRONBALLS, PC);
 		}
 	}
@@ -4080,7 +4080,8 @@ void AOrionCharacter::ServerDoRoll_Implementation(ERollDir rDir, FRotator rRot)
 
 	if (CurrentWeapon)
 	{
-		////CurrentWeapon->CancelReload();
+		if (CurrentWeapon->InstantConfig.bSingleShellReload)
+			CurrentWeapon->CancelReload();
 		CurrentWeapon->StopFire();
 	}
 
@@ -4132,8 +4133,8 @@ void AOrionCharacter::DoRoll()
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (AnimInstance != NULL)
 		{
-			////if (CurrentWeapon && CurrentWeapon->WeaponState == WEAP_RELOADING)
-				////CurrentWeapon->CancelReload();
+			if (CurrentWeapon && CurrentWeapon->InstantConfig.bSingleShellReload && CurrentWeapon->WeaponState == WEAP_RELOADING)
+				CurrentWeapon->CancelReload();
 
 			//prevent upper body from doing wacky things
 			OnStopFire();

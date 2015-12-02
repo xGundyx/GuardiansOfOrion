@@ -24,6 +24,8 @@ public:
 
 	virtual void AddSpawn(AOrionCharacter* P) {}
 
+	void CloseGame();
+
 	virtual void SetSpawnTimer() {}
 
 	void AddChatMessage(const FString &msg);

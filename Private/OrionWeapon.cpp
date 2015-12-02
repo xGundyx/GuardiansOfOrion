@@ -1048,6 +1048,9 @@ void AOrionWeapon::StartShellReload()
 
 void AOrionWeapon::ReloadNextShell()
 {
+	if (MyPawn && MyPawn->GetWeapon() != this)
+		return;
+
 	AmmoInClip++;
 	StartShellReload();
 }
@@ -1081,6 +1084,9 @@ void AOrionWeapon::StopReload()
 
 void AOrionWeapon::ReloadWeapon()
 {
+	if (MyPawn && MyPawn->GetWeapon() != this)
+		return;
+
 	int32 ClipDelta = FMath::Min(GetClipSize() - AmmoInClip, Ammo - AmmoInClip);
 
 	if (ClipDelta > 0)

@@ -117,6 +117,8 @@ public:
 
 	void UpdateOrbFX();
 
+	virtual void Destroyed() override;
+
 private:
 	UPROPERTY(Replicated)
 		int32 TeamIndex;

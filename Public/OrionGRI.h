@@ -89,7 +89,10 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly)
 		int32 DinosAliveInWave;
 
-	UPROPERTY(Replicated, BlueprintReadOnly)
+	UFUNCTION()
+		void OnRep_WaveNum();
+
+	UPROPERTY(ReplicatedUsing = OnRep_WaveNum, BlueprintReadOnly)
 		int32 WaveNum;
 
 	UPROPERTY(Replicated, BlueprintReadOnly)

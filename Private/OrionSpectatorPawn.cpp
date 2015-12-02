@@ -15,7 +15,27 @@ void AOrionSpectatorPawn::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResul
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
 	if (PC && PC->OverviewCamera)
+	{
 		PC->OverviewCamera->GetCameraView(DeltaTime, OutResult);
+		PC->bSpawnHax = false;
+	}
+	else if (PC && PC->bSpawnHax)
+	{
+		TArray<AActor*> Camera;
+
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionCinematicCamera::StaticClass(), Camera);
+
+		if (Camera.Num() > 0)
+		{
+			OutResult.Location = Camera[0]->GetActorLocation();
+			OutResult.Rotation = Camera[0]->GetActorRotation();;
+		}
+		else
+		{
+			OutResult.Location = FVector(0.0f, 0.0f, 10000.0f);
+			OutResult.Rotation = FRotator(-90.0f, 0.0f, 0.0f);
+		}
+	}
 	else if (SpecViewTarget && SpecViewTarget->ControlledPawn)
 		return SpecViewTarget->ControlledPawn->CalcCamera(DeltaTime, OutResult);
 	else if (PC && PC->Ragdoll && PC->Ragdoll->IsValidLowLevel())
