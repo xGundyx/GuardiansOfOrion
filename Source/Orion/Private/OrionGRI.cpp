@@ -64,6 +64,14 @@ void AOrionGRI::RemoveRagdoll(AOrionCharacter *Ragdoll)
 	ActiveRagdolls.Remove(Ragdoll);
 }
 
+void AOrionGRI::OnRep_WaveNum()
+{
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
+
+	if (PC)
+		PC->EventSetWave(WaveNum < 10 ? FString::Printf(TEXT("WAVE 0%i"), WaveNum) : FString::Printf(TEXT("WAVE %i"), WaveNum));
+}
+
 void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);

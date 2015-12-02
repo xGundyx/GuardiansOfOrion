@@ -60,34 +60,34 @@ struct FLobbyData
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Lobby)
 		FString ServerName;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Lobby)
 		FString Difficulty;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Lobby)
 		FString MapName;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Lobby)
 		FString PlayerCount;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Lobby)
 		FString Progress;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Lobby)
 		FString Ping;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Lobby)
 		FString IP;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Lobby)
 		FString LobbyTicket;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Lobby)
 		FString GUID;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Lobby)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Lobby)
 		FString RoomName;
 };
 
@@ -319,6 +319,15 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "DrawFriends"))
 		void EventDrawFriends();
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SetServerInfo"))
+		void EventSetServerInfo();
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SetWave"))
+		void EventSetWave(const FString& Wave);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "JoinServer"))
+		void EventJoinServerID(const FString &ID);
+
 	AOrionWeather* TheSun;
 	bool bHideWeapons;
 
@@ -402,7 +411,10 @@ public:
 		void EventServerGetSkillTreeInfo();
 
 	float LastLobbyTime;
-	FPhotonServerInfo ServerInfo;
+
+	UPROPERTY(BlueprintReadWrite, Category = Playfab)
+		FPhotonServerInfo ServerInfo;
+
 	void CreateServerRoom();
 
 	UFUNCTION(client, reliable)
@@ -663,7 +675,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Button)
 		int32 GetMeleeButtonController();
 
-	int32 GetMaxLevel();
+	UFUNCTION(BlueprintCallable, Category = Playfab)
+		int32 GetMaxLevel();
 
 	//UFUNCTION(BlueprintCallable, Category = Loading)
 	//	void PlayLoadingScreen(UUserWidget *Widget);
@@ -775,6 +788,8 @@ public:
 	UFUNCTION(exec)
 		void SpawnWave();
 #endif
+
+	bool bSpawnHax;
 
 	//delegates for steam friends stuff
 	void OnInviteAccepted(const bool bWasSuccessful, const int32 LocalUserNum, TSharedPtr<const FUniqueNetId> FriendID, const FOnlineSessionSearchResult &SessionToJoin);
@@ -892,6 +907,10 @@ public:
 	//list of visible lobbies for us to choose from
 	UPROPERTY(BlueprintReadWrite, Category = Photon)
 		TArray<FLobbyData> Lobbies;
+
+	//list of in game servers
+	UPROPERTY(BlueprintReadWrite, Category = Photon)
+		TArray<FLobbyData> GameServers;
 
 	void TickPhoton();
 

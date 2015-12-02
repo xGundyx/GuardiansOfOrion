@@ -159,6 +159,19 @@ void AOrionPRI::UpdateOrbFX()
 		ControlledPawn->EventStopTrailFX();
 }
 
+void AOrionPRI::Destroyed()
+{
+/*#if IS_SERVER
+	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
+
+	if (Game && !bIsABot)
+	{
+		UPlayFabRequestProxy::ServerNotifyMatchmakerPlayerLeft(PlayFabID, Game->LobbyID);
+	}
+#endif*/
+	Super::Destroyed();
+}
+
 void AOrionPRI::UpdateHUDStatus()
 {
 	if (bIsTyping)

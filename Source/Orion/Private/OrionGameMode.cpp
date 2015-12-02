@@ -633,6 +633,9 @@ void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FS
 	//ServerInfo.Ticket = UGameplayStatics::ParseOption(Options, TEXT("LobbyTicket"));
 	ServerInfo.Privacy = UGameplayStatics::ParseOption(Options, TEXT("Privacy"));
 	ServerInfo.LobbyID = LobbyID;
+
+	//if (GRI)
+	//	GRI->PhotonGUID = LobbyID;
 }
 
 float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, struct FDamageEvent const& DamageEvent, class AController *EventInstigator, class AActor *DamageCauser)
@@ -851,6 +854,9 @@ void AOrionGameMode::PlayerAuthed(class AOrionPlayerController *PC, bool bSucces
 	PC->bAuthenticated = true;
 	PC->ClientSetAuthed(true);
 	PC->InitStatsAndAchievements();
+
+	//this is for people who load and get authenticated really slow
+	SetSpawnTimer();
 }
 
 void AOrionGameMode::SetInitialTeam(APlayerController *PC)
@@ -900,13 +906,21 @@ void AOrionGameMode::Logout(AController* Exiting)
 
 		if (GEngine && Counter == 0)
 		{
-			GEngine->Exec(nullptr, TEXT("QUIT"), *GLog);
+			//GEngine->Exec(nullptr, TEXT("QUIT"), *GLog);
+			FTimerHandle Handle;
+			GetWorldTimerManager().SetTimer(Handle, this, &AOrionGameMode::CloseGame, 5.0f, false);
 			return;
 		}
 #endif
 	}
 
 	Super::Logout(Exiting);
+}
+
+void AOrionGameMode::CloseGame()
+{
+	if (GEngine)
+		GEngine->Exec(nullptr, TEXT("QUIT"), *GLog);
 }
 
 void AOrionGameMode::PlaySlowMotion(float Length)

@@ -64,6 +64,8 @@ AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObjectI
 	LastNotificationTime = -20.0f;
 
 	LastTutorialTime = -20.0f;
+
+	bSpawnHax = true;
 }
 
 void AOrionPlayerController::AttemptLogin(FString UserName, FString Password)
@@ -252,6 +254,12 @@ void AOrionPlayerController::ServerSendGUID_Implementation(const FString &ID)
 void AOrionPlayerController::SetServerInfo_Implementation(FPhotonServerInfo Info)
 {
 	ServerInfo = Info;
+
+	EventSetServerInfo();
+
+	SetLobbyName(Info.LobbyID);
+
+	//ServerSendGUID(Info.LobbyID);
 }
 
 void AOrionPlayerController::CreateInGameLobby_Implementation(FPhotonServerInfo Info)
@@ -261,7 +269,13 @@ void AOrionPlayerController::CreateInGameLobby_Implementation(FPhotonServerInfo 
 	{
 		ServerInfo = Info;
 
-		CreateLobbyForReal();
+		EventSetServerInfo();
+
+		SetLobbyName(Info.LobbyID);
+
+		//ServerSendGUID(Info.LobbyID);
+
+		//CreateLobbyForReal();
 	}
 #endif
 }
@@ -432,9 +446,29 @@ void AOrionPlayerController::CalcCamera(float DeltaTime, struct FMinimalViewInfo
 	else if (Ragdoll && Ragdoll->IsValidLowLevel())
 		Ragdoll->CalcCamera(DeltaTime, OutResult);
 	else if (OverviewCamera)
+	{
 		OverviewCamera->GetCameraView(DeltaTime, OutResult);
+		bSpawnHax = false;
+	}
 	else if (MyPawn && MyPawn->bNotSpawnedYet)
 		return;
+	else if (bSpawnHax)
+	{
+		TArray<AActor*> Camera;
+
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionCinematicCamera::StaticClass(), Camera);
+
+		if (Camera.Num() > 0)
+		{
+			OutResult.Location = Camera[0]->GetActorLocation();
+			OutResult.Rotation = Camera[0]->GetActorRotation();;
+		}
+		else
+		{
+			OutResult.Location = FVector(0.0f, 0.0f, 10000.0f);
+			OutResult.Rotation = FRotator(-90.0f, 0.0f, 0.0f);
+		}
+	}
 	else
 		Super::CalcCamera(DeltaTime, OutResult);
 }
@@ -943,7 +977,7 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 	//if(PRI)
 	//	ServerInfo = PRI->ServerInfo;
 
-	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+	/*AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
 
 	if (bPhotonReady && IsLocalPlayerController() && bAuthenticated && GRI && GRI->PhotonGUID != TEXT("") && GetWorld()->GetTimeSeconds() - LastLobbyTime >= 1.0f)
 	{
@@ -961,11 +995,11 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 				//create a new room that other players can join
 				if (GI)
 				{
-					UPhotonProxy::GetListener()->JoinRoom(TCHAR_TO_UTF8(*GRI->PhotonGUID), false);
+					UPhotonProxy::GetListener()->JoinRoom(TCHAR_TO_UTF8(*GRI->PhotonGUID), false);// , true);
 				}
 			}
 		}
-	}
+	}*/
 #else
 #endif
 }
@@ -2745,6 +2779,9 @@ void AOrionPlayerController::BeginPlay()
 			//FOnSingleSessionResultCompleteDelegate OnFindFriendDelegate = FOnSingleSessionResultCompleteDelegate::CreateUObject(this, &AOrionPlayerController::OnFindFriend);
 			//FOnSingleSessionResultComplete.AddUObject(this, &AOrionPlayerController::OnJoinGame);
 		}
+
+		//clear our steam rich presence if needed
+		SetLobbyName("");
 	}
 #endif
 
@@ -2861,16 +2898,17 @@ void AOrionPlayerController::OnInviteAccepted(const bool bWasSuccessful, const i
 
 			const char* ID = SteamFriends()->GetFriendRichPresence(steamID, "ROOMNAME");
 
-			int32 Num = SteamFriends()->GetFriendRichPresenceKeyCount(steamID);
+			/*int32 Num = SteamFriends()->GetFriendRichPresenceKeyCount(steamID);
 
-			/*for (int32 i = 0; i < Num; i++)
+			for (int32 i = 0; i < Num; i++)
 			{
 				const char* Test = SteamFriends()->GetFriendRichPresenceKeyByIndex(steamID, i);
 
 				UE_LOG(LogTemp, Log, TEXT("GundyInviteAcceptedReal: %s"), Test);
 			}*/
 
-			JoinLobby(ID);
+			EventJoinServerID(ID);
+			//JoinLobby(ID);
 		}
 		return;
 	}
@@ -2885,7 +2923,8 @@ void AOrionPlayerController::OnInviteAccepted(const bool bWasSuccessful, const i
 		LobbyID = LobbyID.Left(index);
 	}
 
-	JoinLobby(LobbyID);
+	//JoinLobby(LobbyID);
+	EventJoinServerID(LobbyID);
 
 	UE_LOG(LogTemp, Log, TEXT("Invite Accepted to Lobby: %s"), *LobbyID);
 
@@ -3518,8 +3557,9 @@ void AOrionPlayerController::ShowLevelUpMessage_Implementation(int32 NewLevel)
 	Notify.Header = TEXT("LEVEL UP");
 	Notify.Body = FString::Printf(TEXT("LEVEL %i"), NewLevel);
 
-	if (IsLocalPlayerController())
-		SendTutorialMessage("LEVELING UP", "YOU HAVE LEVELED UP!  PRESS x8xLEVELx8x TO SPEND YOUR SKILL POINTS");
+	//remove this until the button is brought back?
+	////if (IsLocalPlayerController())
+	////	SendTutorialMessage("LEVELING UP", "YOU HAVE LEVELED UP!  PRESS x8xLEVELx8x TO SPEND YOUR SKILL POINTS");
 
 	Notifications.Add(Notify);
 }
