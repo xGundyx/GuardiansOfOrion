@@ -23,6 +23,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AOE)
 		class USphereComponent* SphereMesh;
 
+	UFUNCTION(BlueprintCallable, Category = AOE)
+		void SetDuration(float Length);
+
 	//particle effect to play inside
 		UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AOE)
 		UParticleSystem *AOEEffect;

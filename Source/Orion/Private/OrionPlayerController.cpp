@@ -255,6 +255,11 @@ void AOrionPlayerController::SetServerInfo_Implementation(FPhotonServerInfo Info
 {
 	ServerInfo = Info;
 
+	UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
+
+	if (GI)
+		ServerInfo.RoomName = GI->PlayFabName.Append("'S SERVER");
+
 	EventSetServerInfo();
 
 	SetLobbyName(Info.LobbyID);
@@ -268,6 +273,11 @@ void AOrionPlayerController::CreateInGameLobby_Implementation(FPhotonServerInfo 
 	if (Info.LobbyID != TEXT(""))
 	{
 		ServerInfo = Info;
+
+		UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
+
+		if (GI)
+			ServerInfo.RoomName = GI->PlayFabName.Append("'S SERVER");
 
 		EventSetServerInfo();
 
@@ -613,6 +623,22 @@ void AOrionPlayerController::ClientSetLastCharacterID_Implementation(const FStri
 	EventSetLastCharacterID();
 }
 
+//call this re-init inputs
+void AOrionPlayerController::ResetInput()
+{
+	/*SetupInputComponent();
+
+	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
+
+	if (P)
+		P->ResetInput();*/
+
+	for (TObjectIterator<UPlayerInput> It; It; ++It)
+	{
+		It->ForceRebuildingKeyMaps(true);
+	}
+}
+
 void AOrionPlayerController::Possess(APawn* aPawn)
 {
 	Ragdoll = nullptr;
@@ -737,7 +763,7 @@ bool AOrionPlayerController::InputKey(FKey Key, EInputEvent EventType, float Amo
 {
 	bool bRet = Super::InputKey(Key, EventType, AmountDepressed, bGamepad);
 
-	if (EventType == EInputEvent::IE_Pressed)
+	//if (EventType == EInputEvent::IE_Pressed)
 		EventPressKey(Key, bGamepad);
 
 	return bRet;
@@ -959,7 +985,11 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 #if !IS_SERVER
 	//UOrionTCPLink::Update();
 	//UClientConnector::Update();
-	UPhotonProxy::Update(DeltaTime);
+
+	//photon only in menu for now
+	if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
+		UPhotonProxy::Update(DeltaTime);
+
 	ProcessNotifications();
 
 	int32 x, y;
@@ -1852,7 +1882,7 @@ TArray<FString> AOrionPlayerController::GetPrivacySettings()
 
 FString AOrionPlayerController::GetBuildVersion()
 {
-	return TEXT("EA1.0");
+	return TEXT("EA1.0.1");
 }
 
 FString AOrionPlayerController::GetReviveButtonKeyboard()
@@ -1895,13 +1925,13 @@ TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
 	NewOption.Title = TEXT("MOVE LEFT");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("MoveRight", true, -1.0f);
 	NewOption.Action = TEXT("MoveRight");
-	NewOption.Scale = 1.0f;
+	NewOption.Scale = -1.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("MOVE RIGHT");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("MoveRight", true, 1.0f);
 	NewOption.Action = TEXT("MoveRight");
-	NewOption.Scale = -1.0f;
+	NewOption.Scale = 1.0f;
 	Options.Add(NewOption);
 
 	NewOption.Title = TEXT("ROLL");
@@ -3117,7 +3147,7 @@ int32 AOrionPlayerController::GetSkillValue(ESkillTreeUnlocks Skill)
 	if (CharacterSkills.Num() <= int32(Skill))
 		return 0;
 
-	return CharacterSkills[Skill].Points * FMath::Max(1, CharacterSkills[Skill].Modifier);
+	return FMath::Clamp(CharacterSkills[Skill].Points, 0, 10) * FMath::Max(1, CharacterSkills[Skill].Modifier);
 
 	//for testing
 	//return CharacterSkills[Skill].MaxPoints * FMath::Max(1, CharacterSkills[Skill].Modifier);

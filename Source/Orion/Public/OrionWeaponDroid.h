@@ -16,7 +16,7 @@ public:
 	AOrionWeaponDroid(const FObjectInitializer& ObjectInitializer);
 
 	void AttachMeshToPawn() override;
-	float PlayWeaponAnimation(const FWeaponAnim& Animation, bool bReplicate) override;
+	float PlayWeaponAnimation(const FWeaponAnim& Animation, bool bReplicate, float Scale = 1.0f) override;
 	FVector GetBarrelLocation(FName SocketName) override;
 	void StartFire() override;
 	void StopFire() override;

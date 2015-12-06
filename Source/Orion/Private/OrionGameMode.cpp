@@ -292,7 +292,7 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 
 		if (Pawn && Pawn->bDowned)
 		{
-			Pawn->Health = FMath::Min(Pawn->HealthMax, Pawn->Health + (Pawn->HealthMax * (DeadPawn->bIsBigDino ? 1.0f : 0.4f)));
+			Pawn->Health = FMath::Min(Pawn->HealthMax, Pawn->Health + (Pawn->HealthMax * (DeadPawn->bIsBigDino || Difficulty <= DIFF_MEDIUM ? 1.0f : 0.4f)));
 
 			if (Pawn->Health >= Pawn->HealthMax)
 				Pawn->Revived();
@@ -312,7 +312,7 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 		}
 	}
 
-	if (DeadPC)
+	if (DeadPC && !DeadPawn->bFatality)
 		PlaySlowMotion(7.0f);
 
 	if (PC && DeadDino && DeadDino->DinoName.ToString().ToUpper() == TEXT("TREX"))
@@ -323,6 +323,10 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 
 		if (PC->LastTRexKill - PC->LastNamorKill <= 5.0f)
 			PC->GetAchievements()->UnlockAchievement(ACH_TREXNAMOR, PC);
+	}
+	else if (PC && DeadDroid && DeadDroid->DroidName.ToString().ToUpper() == TEXT("GRUMPS"))
+	{
+		PlaySlowMotion(7.0f);
 	}
 	else if (PC && DeadDino && DeadDino->DinoName.ToString().ToUpper() == TEXT("NAMOR"))
 	{
@@ -608,7 +612,7 @@ void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FS
 	LobbyID = UGameplayStatics::ParseOption(Options, TEXT("LobbyID"));
 
 	//server name
-	ServerInfo.RoomName = UGameplayStatics::ParseOption(Options, TEXT("ServerName"));
+	ServerInfo.RoomName = UGameplayStatics::ParseOption(Options, TEXT("ServerName")).Append("'S SERVER");
 	ServerInfo.MapName = MapName;
 	switch(Difficulty)
 	{

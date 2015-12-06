@@ -577,6 +577,11 @@ public:
 
 	void UpdatePlayerRingColor();
 
+	bool bIsGrenadeActive;
+	void SetGrenadeActive(float ActiveTime);
+	FTimerHandle GrenadeActiveTimer;
+	void ResetGrenadeActive();
+
 	//for recharging shields
 	float LastTakeHitTime;
 
@@ -596,6 +601,7 @@ public:
 		bool bFatalityRemove;
 
 	bool bFinishingMove;
+	void ResetFatality();
 
 	//pointer to the enemy that is finishing us (mainly for camera work)
 	AOrionCharacter *Finisher;
@@ -1474,6 +1480,8 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Spawn)
 		bool bShipCamera;
+
+	void ResetInput();
 
 	int32 TimesDowned;
 

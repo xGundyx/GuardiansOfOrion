@@ -550,11 +550,16 @@ void AOrionWeaponLink::HandleLinkTargets(AOrionCharacter *Target, float DeltaSec
 	if (PC)
 		Rate = 1.0f + float(PC->GetSkillValue(SKILL_FASTERHEALING)) / 100.0f;
 
+	float nPlayers = 1;
+
+	if (GRI)
+		nPlayers = GRI->PlayerList.Num();
+
 	//if the target is the generator, heal it up
 	if (P && P->bIsHealableMachine)
 	{
 		if (P && P->Health < P->HealthMax)
-			P->Health = FMath::Min(P->HealthMax, P->Health +  DeltaSeconds * Rate * P->HealthMax / 40.0f);
+			P->Health = FMath::Min(P->HealthMax, P->Health + DeltaSeconds * Rate * P->HealthMax / 40.0f * (nPlayers == 1 ? 2.0f : 1.0f));
 	}
 	//if the target is a teammate, heal them up
 	else if (GRI && GRI->OnSameTeam(PRI1, PRI2))
@@ -682,6 +687,11 @@ void AOrionWeaponLink::HandleTarget(float DeltaSeconds)
 	if (PC)
 		Rate = 1.0f + float(PC->GetSkillValue(SKILL_FASTERHEALING)) / 100.0f;
 
+	float nPlayers = 1;
+
+	if (GRI)
+		nPlayers = GRI->PlayerList.Num();
+
 	//if the target is the generator, heal it up
 	if (P && P->bIsHealableMachine)
 	{
@@ -689,7 +699,7 @@ void AOrionWeaponLink::HandleTarget(float DeltaSeconds)
 			Rate += float(PC->GetSkillValue(SKILL_REGENENERGY)) / 100.0f;
 
 		if (P && P->Health < P->HealthMax)
-			P->Health = FMath::Min(P->HealthMax, P->Health + DeltaSeconds * Rate * P->HealthMax / 20.0f);
+			P->Health = FMath::Min(P->HealthMax, P->Health + DeltaSeconds * Rate * P->HealthMax / 20.0f * (nPlayers == 1 ? 2.0f : 1.0f));
 	}
 	//if the target is a teammate, heal them up
 	else if (GRI && GRI->OnSameTeam(PRI1, PRI2))

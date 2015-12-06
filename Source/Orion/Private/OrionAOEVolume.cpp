@@ -92,6 +92,14 @@ void AOrionAOEVolume::BeginPlay()
 	GetWorldTimerManager().SetTimer(Handle, this, &AOrionAOEVolume::ReTickPlayers, 1.5f, true);
 }
 
+void AOrionAOEVolume::SetDuration(float Length)
+{
+	Duration = Length;
+
+	FTimerHandle DestroyHandle;
+	GetWorldTimerManager().SetTimer(DestroyHandle, this, &AOrionAOEVolume::DestroyAOE, Duration, false);
+}
+
 void AOrionAOEVolume::DestroyAOE()
 {
 	if (AOEPSC)

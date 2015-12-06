@@ -195,7 +195,7 @@ public:
 		TSubclassOf<class AActor> ProjectileClass;
 
 	/** play weapon animations */
-	virtual float PlayWeaponAnimation(const FWeaponAnim& Animation, bool bReplicate);
+	virtual float PlayWeaponAnimation(const FWeaponAnim& Animation, bool bReplicate, float Scale = 1.0f);
 
 	/** stop playing weapon animations */
 	virtual void StopWeaponAnimation(const FWeaponAnim& Animation);
