@@ -291,7 +291,11 @@ void AOrionCharacter::OnRep_Spawned()
 		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
 		if (PC)
+		{
 			PC->EventBlackFade();
+			bShoulderCamera = true;
+			PC->EventHUDSpawn(true);
+		}
 	}
 }
 
@@ -441,7 +445,7 @@ void AOrionCharacter::ServerSetAimYaw_Implementation(float yaw, float pitch)
 
 void AOrionCharacter::AddHealth(int32 Amount)
 {
-	Health = FMath::Min(HealthMax, Health + Amount);
+	Health = FMath::Max(0.0f, FMath::Min(HealthMax, Health + Amount));
 }
 
 void AOrionCharacter::AddShield(int32 Amount)
@@ -887,7 +891,7 @@ void AOrionCharacter::ReallyDoEquip()
 	CurrentWeapon = NextWeapon;
 
 	// equip new one
-	if (NextWeapon)
+	if (NextWeapon && NextWeapon->IsValidLowLevel())
 	{
 		if (Role == ROLE_Authority)
 			NextWeapon->SetOwningPawn(this);	// Make sure weapon's MyPawn is pointing back to us. During replication, we can't guarantee APawn::CurrentWeapon will rep after AWeapon::MyPawn!
@@ -1121,8 +1125,8 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, CurrentSkill);
 	DOREPLIFETIME(AOrionCharacter, CurrentSecondarySkill);
 
-	DOREPLIFETIME(AOrionCharacter, bShoulderCamera);
-	DOREPLIFETIME(AOrionCharacter, bShipCamera);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, bShoulderCamera, COND_SkipOwner);
+	//DOREPLIFETIME(AOrionCharacter, bShipCamera);
 }
 
 void AOrionCharacter::Destroyed()
@@ -1708,6 +1712,14 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 			Damage *= 0.75f;
 	}
 
+	if (DamageType && DamageType->bIsKnife)
+	{
+		if (AttackerPC)
+		{
+			Damage *= 1.0f + (AttackerPC->GetSkillValue(SKILL_MELEEDAMAGE) / 100.0f);
+		}
+	}
+
 	if (bIsBigDino)
 	{
 		if (AttackerPC)
@@ -1879,6 +1891,9 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 				}
 
 				//can only use pistol when downed
+				if(CurrentWeapon)
+					CurrentWeapon->StopFire();
+
 				EquipWeaponFromSlot(2);
 				bRun = false;
 				StopAiming();
@@ -1994,8 +2009,8 @@ void AOrionCharacter::OnRep_Downed()
 bool AOrionCharacter::CanBeDowned(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser)
 {
 	//limit to only happen on dedis for now
-	if (GetNetMode() != NM_DedicatedServer)
-		return false;
+	////if (GetNetMode() != NM_DedicatedServer)
+	////	return false;
 
 	//3 revives per life
 	if (TimesDowned >= 3)
@@ -2944,6 +2959,11 @@ void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAni
 		FatalityAnim.bRemove = bHideOnFatality;
 		FatalityAnim.bToggle = !FatalityAnim.bToggle;
 
+		AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
+
+		if (Game)
+			Game->PlaySlowMotion(7.0f);
+
 		//make the victim lose control over themselves
 		if (TheVictim)
 		{
@@ -2972,6 +2992,11 @@ void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAni
 					FString DinoName = Cast<AOrionDroidPawn>(TheVictim)->DroidName.ToString().ToUpper();
 				}
 			}
+
+			AOrionPRI *VictimPRI = Cast<AOrionPRI>(TheVictim->PlayerState);
+
+			if (VictimPRI)
+				VictimPRI->Deaths++;
 		}
 	}
 
@@ -3006,7 +3031,15 @@ void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAni
 	FWeaponAnim aAnim;
 	aAnim.Pawn3P = Anim;
 
-	OrionPlayAnimMontage(aAnim, 1.0f, TEXT(""), false, false, true);
+	float Len = FMath::Max(0.1f, OrionPlayAnimMontage(aAnim, 1.0f, TEXT(""), false, false, true));
+
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, this, &AOrionCharacter::ResetFatality, Len * 2.0f, false);
+}
+
+void AOrionCharacter::ResetFatality()
+{
+	bFinishingMove = false;
 }
 
 void AOrionCharacter::OnRep_Fatality()
@@ -3288,8 +3321,12 @@ void AOrionCharacter::UpdateCooldowns(float DeltaTime)
 
 	if (Role == ROLE_Authority)
 	{
-		float Rate = 1.0f + float(PC->GetSkillValue(SKILL_GRENADECOOLDOWN)) / 25.0f;
-		GrenadeCooldown.Energy = FMath::Min(GrenadeCooldown.Energy + DeltaTime * Rate, float(GrenadeCooldown.SecondsToRecharge * (PC->GetSkillValue(SKILL_EXTRAGRENADE) > 0 ? 2 : 1)));
+		//don't recharge grenade energy while smoke is active
+		if (!bIsGrenadeActive)
+		{
+			float Rate = 1.0f + float(PC->GetSkillValue(SKILL_GRENADECOOLDOWN)) / 25.0f;
+			GrenadeCooldown.Energy = FMath::Min(GrenadeCooldown.Energy + DeltaTime * Rate, float(GrenadeCooldown.SecondsToRecharge * (PC->GetSkillValue(SKILL_EXTRAGRENADE) > 0 ? 2 : 1)));
+		}
 
 		BlinkCooldown.Energy = FMath::Min(BlinkCooldown.Energy + DeltaTime, float(BlinkCooldown.SecondsToRecharge * (PC->GetSkillValue(SKILL_EXTRABLINK) > 0 ? 2 : 1)));
 
@@ -3473,6 +3510,17 @@ void AOrionCharacter::ServerTossGrenade_Implementation(FVector dir)
 	ActuallyTossGrenade(dir);
 }
 
+void AOrionCharacter::SetGrenadeActive(float ActiveTime)
+{
+	bIsGrenadeActive = true;
+	GetWorldTimerManager().SetTimer(GrenadeActiveTimer, this, &AOrionCharacter::ResetGrenadeActive, ActiveTime, false);
+}
+
+void AOrionCharacter::ResetGrenadeActive()
+{
+	bIsGrenadeActive = false;
+}
+
 //throw this bitch
 void AOrionCharacter::ActuallyTossGrenade(FVector dir)
 {
@@ -3497,6 +3545,16 @@ void AOrionCharacter::ActuallyTossGrenade(FVector dir)
 			AOrionGrenade *Grenade = GetWorld()->SpawnActor<AOrionGrenade>(GrenadeClass, pos + FVector(0.0f, 0.0f, 25.0f) + dir.GetSafeNormal() * 75.0f, dir.Rotation(), SpawnInfo);
 			if (Grenade)
 			{
+				if (Grenade->GrenadeName.ToUpper() == TEXT("SMOKE"))
+				{
+					float Life = Grenade->FXTime + Grenade->LifeTime;
+					AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+					if (PC)
+						Life += float(PC->GetSkillValue(SKILL_GRENADECOOLDOWN));
+
+					SetGrenadeActive(Life);
+				}
+
 				PlayVoice(Grenade->VoiceType);
 
 				Grenade->Init(dir);
@@ -4051,6 +4109,21 @@ void AOrionCharacter::DoBlinkEffect(bool bOn, FVector pos)
 bool AOrionCharacter::ServerDoRoll_Validate(ERollDir rDir, FRotator rRot)
 {
 	return true;
+}
+
+void AOrionCharacter::ResetInput()
+{
+	DestroyPlayerInputComponent();
+	PawnClientRestart();
+	/*APlayerController* PC = Cast<APlayerController>(Controller);
+	if (PC && PC->IsLocalController())
+	{
+		// Set up player input component, if there isn't one already.
+		if (InputComponent)
+		{
+			SetupPlayerInputComponent(InputComponent);
+		}
+	}*/
 }
 
 void AOrionCharacter::ServerDoRoll_Implementation(ERollDir rDir, FRotator rRot)

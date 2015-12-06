@@ -1019,7 +1019,7 @@ void AOrionWeapon::StartReload(bool bFromReplication)
 		else
 		{
 			GetWorldTimerManager().SetTimer(ReloadStopTimer, this, &AOrionWeapon::StopReload, AnimDuration, false);
-			if (Role == ROLE_Authority)
+			//if (Role == ROLE_Authority)
 			{
 				GetWorldTimerManager().SetTimer(ReloadTimer, this, &AOrionWeapon::ReloadWeapon, FMath::Max(0.1f, AnimDuration - 0.1f), false);
 			}
@@ -1537,7 +1537,7 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 		LastFireSoundTime = GetWorld()->GetTimeSeconds();
 
 		if (MyPawn && !MyPawn->bDowned)
-			PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim, false);//Role == ROLE_Authority);
+			PlayWeaponAnimation(MyPawn->bAim ? AimFireAnim : FireAnim, false);//Role == ROLE_Authority);
 		PlayWeaponSound(FireSound);
 	}
 }
@@ -1623,7 +1623,7 @@ void AOrionWeapon::OnEquip()
 
 	BurstCounter = 0;
 
-	float Duration = PlayWeaponAnimation(EquipAnim, false);// Role == ROLE_Authority);
+	float Duration = PlayWeaponAnimation(EquipAnim, false, 2.0f);// Role == ROLE_Authority);
 
 	if (Duration <= 0.0f)
 	{
@@ -1675,7 +1675,7 @@ float AOrionWeapon::OnUnEquip()
 	StopAiming();
 	//bIsEquipped = false;
 
-	if (bPendingReload)
+	if (bPendingReload || WeaponState == WEAP_RELOADING)
 	{
 		StopWeaponAnimation(ReloadAnim);
 		bPendingReload = false;
@@ -1698,7 +1698,7 @@ float AOrionWeapon::OnUnEquip()
 		GetWorldTimerManager().ClearTimer(this, &AOrionWeapon::OnEquipFinished);
 	}*/
 
-	float Duration = PlayWeaponAnimation(HolsterAnim, false);// Role == ROLE_Authority);
+	float Duration = PlayWeaponAnimation(HolsterAnim, false, 2.0f);// Role == ROLE_Authority);
 
 	if (Duration <= 0.0f)
 	{
@@ -1774,11 +1774,11 @@ void AOrionWeapon::OnRep_Knifing()
 	KnifeMesh->SetHiddenInGame(!bKnifing);
 }
 
-float AOrionWeapon::PlayWeaponAnimation(const FWeaponAnim& Animation, bool bReplicate)
+float AOrionWeapon::PlayWeaponAnimation(const FWeaponAnim& Animation, bool bReplicate, float Scale)
 {
 	float Duration = 0.01f;
 
-	float Rate = 1.0f;
+	float Rate = Scale;
 
 	if (MyPawn && WeaponState == WEAP_RELOADING)
 	{
@@ -1855,7 +1855,7 @@ void AOrionWeapon::SimulateWeaponFire()
 	//if (!bLoopedFireAnim || !bPlayingFireAnim)
 	//{
 	if (MyPawn && !MyPawn->bDowned)
-		PlayWeaponAnimation(bAiming ? AimFireAnim : FireAnim, false);//Role == ROLE_Authority);
+		PlayWeaponAnimation(MyPawn->bAim ? AimFireAnim : FireAnim, false);//Role == ROLE_Authority);
 	//	bPlayingFireAnim = true;
 	//}
 

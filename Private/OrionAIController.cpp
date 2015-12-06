@@ -626,7 +626,7 @@ void AOrionAIController::CheckEnemyStatus()
 		else if (pEnemy->Health <= 0)
 			bRemoveEnemy = true;
 		//can't see players inside smoke
-		else if (pEnemy->bIsHiddenFromView || pPawn->bIsHiddenFromView)
+		else if (pEnemy->bIsHiddenFromView && !pEnemy->bIsHealableMachine && !pPawn->bIsBigDino)// || pPawn->bIsHiddenFromView)
 			bRemoveEnemy = true;
 	}
 
@@ -739,11 +739,11 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
 
 	//if we're inside a blocking volume like smoke, ignore things we see
-	if (P && P->bIsHiddenFromView)
-		return;
+	//if (P && P->bIsHiddenFromView)
+	//	return;
 
 	//ignore stuff inside smoke
-	if (pPawn && pPawn->bIsHiddenFromView)
+	if (pPawn && pPawn->bIsHiddenFromView && !pPawn->bIsHealableMachine && !pPawn->bIsBigDino)
 		return;
 
 	if (pPawn && P && pPawn->bIsHealableMachine && GRI)

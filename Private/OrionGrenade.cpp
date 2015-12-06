@@ -31,12 +31,20 @@ AOrionGrenade::AOrionGrenade(const FObjectInitializer& ObjectInitializer) : Supe
 	Damage = 1000;
 	DamageRadius = 1250.0f;
 	LifeTime = 2.5f;
+	FXTime = 10.0f;
 	bIsMiniGrenade = false;
 
 	ExplosionScale = 1.0f;
 
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
+}
+
+void AOrionGrenade::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AOrionGrenade, bIsMiniGrenade);
 }
 
 void AOrionGrenade::Init(FVector dir)
@@ -73,7 +81,7 @@ void AOrionGrenade::Explode()
 		UParticleSystemComponent *PSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionFX, GetActorLocation());
 		if (PSC)
 		{
-			float Life = 15.0f;
+			float Life = FXTime * (bIsMiniGrenade ? 0.25f : 1.0f);// .0f;
 			float Scale = ExplosionScale * (bIsMiniGrenade ? 0.25f : 1.0f);
 
 			if (GetOwner() && Cast<AOrionCharacter>(GetOwner()))
@@ -81,13 +89,13 @@ void AOrionGrenade::Explode()
 				AOrionPlayerController *PC = Cast<AOrionPlayerController>(Cast<AOrionCharacter>(GetOwner())->Controller);
 				if (PC)
 				{
-					Life += PC->GetSkillValue(SKILL_SPRINTSPEED);
+					Life += float(PC->GetSkillValue(SKILL_GRENADECOOLDOWN)) * (bIsMiniGrenade ? 0.25f : 1.0f);
 					Scale *= 1.0f + float(PC->GetSkillValue(SKILL_GRENADERADIUS)) / 100.0f;
 				}
 			}
 
 			PSC->SetWorldScale3D(FVector(Scale));
-			PSC->SetFloatParameter("LifeTime", 15.0f);
+			PSC->SetFloatParameter("LifeTime", Life);
 		}
 	}
 

@@ -38,12 +38,15 @@ public:
 		float LifeTime;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Grenade)
+		float FXTime;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Grenade)
 		float ExplosionScale;
 
-	UPROPERTY(BlueprintReadWrite, Category = Grenade)
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Grenade)
 		bool bIsMiniGrenade;
 
-	UPROPERTY(BlueprintReadWrite, Category = Grenade)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Grenade)
 		FString GrenadeName;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)

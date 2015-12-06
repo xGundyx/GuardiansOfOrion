@@ -887,6 +887,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = Spawn)
 		void EventBlackFade();
 
+	UFUNCTION(BlueprintCallable, Category = Options)
+		void ResetInput();
+
 	UPROPERTY(BlueprintReadOnly, Category = Lobby)
 		int32 LobbyPlayerNumber;
 
