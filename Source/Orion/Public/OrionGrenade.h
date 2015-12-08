@@ -46,6 +46,12 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = Grenade)
 		bool bIsMiniGrenade;
 
+	UPROPERTY(Replicated)
+		float GrenadeLife;
+
+	UPROPERTY(Replicated)
+		float GrenadeScale;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Grenade)
 		FString GrenadeName;
 

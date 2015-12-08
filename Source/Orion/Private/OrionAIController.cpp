@@ -626,7 +626,9 @@ void AOrionAIController::CheckEnemyStatus()
 		else if (pEnemy->Health <= 0)
 			bRemoveEnemy = true;
 		//can't see players inside smoke
-		else if (pEnemy->bIsHiddenFromView && !pEnemy->bIsHealableMachine && !pPawn->bIsBigDino)// || pPawn->bIsHiddenFromView)
+		else if (pEnemy->HiddenFromViewLevel == 2)// || pPawn->bIsHiddenFromView)
+			bRemoveEnemy = true;
+		else if (pEnemy->HiddenFromViewLevel == 1 && !pEnemy->bIsHealableMachine && !pPawn->bIsBigDino)// || pPawn->bIsHiddenFromView)
 			bRemoveEnemy = true;
 	}
 
@@ -743,7 +745,9 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 	//	return;
 
 	//ignore stuff inside smoke
-	if (pPawn && pPawn->bIsHiddenFromView && !pPawn->bIsHealableMachine && !pPawn->bIsBigDino)
+	if (pPawn && pPawn->HiddenFromViewLevel == 2)
+		return;
+	else if (pPawn && pPawn->HiddenFromViewLevel == 1 && !pPawn->bIsHealableMachine && !pPawn->bIsBigDino)
 		return;
 
 	if (pPawn && P && pPawn->bIsHealableMachine && GRI)
@@ -792,7 +796,7 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 		if (pPawn->CurrentSecondarySkill && pPawn->CurrentSecondarySkill->IsCloaking())
 			return;
 
-		if (pPawn->bIsHiddenFromView)
+		if (pPawn->HiddenFromViewLevel > 0)
 			return;
 
 		//ignore players waiting for revives

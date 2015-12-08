@@ -14,7 +14,12 @@ UOrionGameSettingsManager::UOrionGameSettingsManager(const FObjectInitializer& O
 void UOrionGameSettingsManager::InitSettings()
 {
 	if (GEngine)
+	{
 		Settings = Cast<UOrionGameUserSettings>(GEngine->GameUserSettings);
+
+		if (Settings)
+			Settings->InitValues();
+	}
 }
 
 void UOrionGameSettingsManager::InitInputSettings()
@@ -175,6 +180,15 @@ bool UOrionGameSettingsManager::RebindKey(FString ActionName, FKey NewKey, FName
 		InitInputSettings();
 
 	TArray<FInputActionKeyMapping>& Actions = InputSettings->ActionMappings;
+
+	FInputActionKeyMapping SkillTree("OpenSkillTree", FKey("K"));
+	InputSettings->RemoveActionMapping(SkillTree);
+
+	FInputActionKeyMapping VoiceChat("StartVoiceChat", FKey("LeftAlt"));
+	InputSettings->RemoveActionMapping(VoiceChat);
+
+	FInputActionKeyMapping GameSkillTree("Gamepad_OpenSkillTree", FKey("Gamepad_DPad_Right"));
+	InputSettings->RemoveActionMapping(GameSkillTree);
 
 	bool bFound = false;
 	for (FInputActionKeyMapping& Each : Actions)

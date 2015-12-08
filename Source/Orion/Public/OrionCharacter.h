@@ -501,8 +501,9 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = "AI")
 		TEnumAsByte<EAIType> AIType;
 
+	//0 means off, 1 means concealed for small dinos/characters, 2 means concealed for large dinos
 	UPROPERTY(BlueprintReadOnly, Category = "AI")
-		bool bIsHiddenFromView;
+		int32 HiddenFromViewLevel;
 
 	void SetAIType(EAIType type) { AIType = type; }
 
@@ -528,6 +529,7 @@ public:
 		bool ServerTossGrenade_Validate(FVector dir);
 		void ServerTossGrenade_Implementation(FVector dir);
 
+	void RapidFireGrenades();
 	void ActuallyTossGrenade(FVector dir);
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Grenade)

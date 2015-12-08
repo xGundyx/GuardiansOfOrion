@@ -45,6 +45,8 @@ void AOrionGrenade::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & Out
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AOrionGrenade, bIsMiniGrenade);
+	DOREPLIFETIME(AOrionGrenade, GrenadeLife);
+	DOREPLIFETIME(AOrionGrenade, GrenadeScale);
 }
 
 void AOrionGrenade::Init(FVector dir)
@@ -81,21 +83,8 @@ void AOrionGrenade::Explode()
 		UParticleSystemComponent *PSC = UGameplayStatics::SpawnEmitterAtLocation(GetWorld(), ExplosionFX, GetActorLocation());
 		if (PSC)
 		{
-			float Life = FXTime * (bIsMiniGrenade ? 0.25f : 1.0f);// .0f;
-			float Scale = ExplosionScale * (bIsMiniGrenade ? 0.25f : 1.0f);
-
-			if (GetOwner() && Cast<AOrionCharacter>(GetOwner()))
-			{
-				AOrionPlayerController *PC = Cast<AOrionPlayerController>(Cast<AOrionCharacter>(GetOwner())->Controller);
-				if (PC)
-				{
-					Life += float(PC->GetSkillValue(SKILL_GRENADECOOLDOWN)) * (bIsMiniGrenade ? 0.25f : 1.0f);
-					Scale *= 1.0f + float(PC->GetSkillValue(SKILL_GRENADERADIUS)) / 100.0f;
-				}
-			}
-
-			PSC->SetWorldScale3D(FVector(Scale));
-			PSC->SetFloatParameter("LifeTime", Life);
+			PSC->SetWorldScale3D(FVector(GrenadeScale));
+			PSC->SetFloatParameter("LifeTime", GrenadeLife);
 		}
 	}
 

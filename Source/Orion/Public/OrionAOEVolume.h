@@ -48,7 +48,7 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AOE)
 		float Duration;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AOE)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AOE)
 		TSubclassOf<class AOrionBuff> BuffClass;
 
 	UFUNCTION()

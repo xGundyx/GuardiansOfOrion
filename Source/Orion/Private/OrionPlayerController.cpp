@@ -763,7 +763,7 @@ bool AOrionPlayerController::InputKey(FKey Key, EInputEvent EventType, float Amo
 {
 	bool bRet = Super::InputKey(Key, EventType, AmountDepressed, bGamepad);
 
-	//if (EventType == EInputEvent::IE_Pressed)
+	if (!bGamepad || EventType == EInputEvent::IE_Pressed)
 		EventPressKey(Key, bGamepad);
 
 	return bRet;
@@ -1882,7 +1882,7 @@ TArray<FString> AOrionPlayerController::GetPrivacySettings()
 
 FString AOrionPlayerController::GetBuildVersion()
 {
-	return TEXT("EA1.0.1");
+	return TEXT("EA1.0.2");
 }
 
 FString AOrionPlayerController::GetReviveButtonKeyboard()
@@ -2745,6 +2745,11 @@ void AOrionPlayerController::BeginPlay()
 #if !IS_SERVER
 	if (IsLocalPlayerController())
 	{
+		//FInputModeGameAndUI Data;
+		//Data.SetLockMouseToViewport(true);
+
+		//SetInputMode(Data);
+
 		SendTutorialMessage(TEXT("WAITING TO SPAWN"), TEXT("YOU ARE WAITING TO SPAWN.  GAME WILL COMMENCE SHORTLY"));
 
 		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);

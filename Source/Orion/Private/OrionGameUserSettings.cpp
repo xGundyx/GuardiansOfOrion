@@ -10,6 +10,15 @@
 	TEXT(" 50..100, default: 100"),
 	ECVF_ScalabilityGroup);*/
 
+void UOrionGameUserSettings::InitValues()
+{
+	/*static auto BloomQ = IConsoleManager::Get().FindConsoleVariable(TEXT("r.BloomQuality"));
+	BloomQuality = BloomQ->GetInt();
+
+	static auto MotionQ = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MotionBlurQuality"));
+	MotionBlurQuality = MotionQ->GetInt();*/
+}
+
 void UOrionGameUserSettings::ApplyNonResolutionSettings()
 {
 	ValidateSettings();
@@ -23,6 +32,12 @@ void UOrionGameUserSettings::ApplyNonResolutionSettings()
 		CVar->Set(IsVSyncEnabled(), ECVF_SetByGameSetting);
 	}
 
+	/*static auto BloomCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.BloomQuality"));
+	BloomCVar->Set(2, ECVF_SetByGameSetting);// BloomQuality, ECVF_SetByGameSetting);
+
+	static auto MotionCVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.MotionBlurQuality"));
+	MotionCVar->Set(2, ECVF_SetByGameSetting);// MotionBlurQuality, ECVF_SetByGameSetting);*/
+
 	// in init those are loaded earlier, after that we apply consolevariables.ini
 	if (GEngine->IsInitialized())
 	{
@@ -30,6 +45,9 @@ void UOrionGameUserSettings::ApplyNonResolutionSettings()
 	}
 
 	IConsoleManager::Get().CallAllConsoleVariableSinks();
+
+	if (GEngine)
+		GEngine->SaveConfig();
 
 	//custom game settings get set here
 	/*IConsoleVariable* CVar = IConsoleManager::Get().FindConsoleVariable(TEXT("r.Streaming.Poolsize"));
