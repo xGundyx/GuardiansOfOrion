@@ -18,6 +18,8 @@ public:
 
 	TArray<FString> GetSupportedResolutions();
 
+	void InitValues();
+
 	UPROPERTY(config)
 		float MasterVolume;
 
@@ -50,4 +52,7 @@ public:
 
 	UPROPERTY(config)
 		bool ControllerRumbleEnabled;
+
+	int32 BloomQuality;
+	int32 MotionBlurQuality;
 };

@@ -303,6 +303,9 @@ void AOrionCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
+	//FTimerHandle Handle;
+	//GetWorldTimerManager().SetTimer(Handle, this, &AOrionCharacter::RapidFireGrenades, 0.1, true);
+
 	bShoulderCamera = true;
 	TimesDowned = 0;
 
@@ -854,6 +857,9 @@ void AOrionCharacter::SetCurrentWeapon(class AOrionWeapon* NewWeapon, class AOri
 		PC->EventSelectWeapon(NewWeapon->InstantConfig.WeaponSlot, NewWeapon->GetWeaponName());
 	}
 
+	if (Cast<AOrionWeaponLink>(NewWeapon) && bAim)
+		bAim = false;
+
 	//if we're already putting our weapon down, just set the next weapon and don't trigger any anims
 	if (GetWorldTimerManager().IsTimerActive(UnEquipTimer))
 	{
@@ -1012,12 +1018,12 @@ void AOrionCharacter::OnRep_Buffs()
 
 void AOrionCharacter::UpdateBuffFX()
 {
-	if (BuffFX)
+	/*if (BuffFX)
 	{
 		bool bFound = false;
 		for (int32 i = 0; i < Buffs.Num(); i++)
 		{
-			if (Buffs[i] && Buffs[i]->Effect)
+			if (Buffs[i] && Buffs[i]->IsValidLowLevel() && Buffs[i]->Effect)
 			{
 				BuffFX->AttachTo(GetMesh(), "Aura");
 				BuffFX->SetTemplate(Buffs[i]->Effect);
@@ -1033,7 +1039,7 @@ void AOrionCharacter::UpdateBuffFX()
 		{
 			BuffFX->DeactivateSystem();
 		}
-	}
+	}*/
 }
 
 void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
@@ -1368,6 +1374,9 @@ void AOrionCharacter::GibAll(FVector Center, AOrionPlayerController *PC)
 
 void AOrionCharacter::HandleGibs(float damage, FDamageEvent const& DamageEvent, AOrionPlayerController *Damager)
 {
+	if (!Damager || !Damager->IsValidLowLevel())
+		return;
+
 #if !IS_SERVER
 	UOrionGameUserSettings *Settings = nullptr;
 
@@ -1459,7 +1468,7 @@ void AOrionCharacter::OnRep_Gibs()
 
 void AOrionCharacter::SpawnGibs(int32 index, FVector pos, FRotator rot, FVector dir)
 {
-	if (index >= Gibs.Num())
+	if (index >= Gibs.Num() || !Gibs[index].Gib)
 		return;
 
 	//spawn the actual gib into the world
@@ -1471,6 +1480,9 @@ void AOrionCharacter::SpawnGibs(int32 index, FVector pos, FRotator rot, FVector 
 
 	if (NewGib)
 	{
+		if (NewGib->Mesh == nullptr)
+			return;
+
 		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
 
 		if (GRI && Role == ROLE_Authority)
@@ -1986,6 +1998,9 @@ void AOrionCharacter::OnRep_Downed()
 			EquipWeaponFromSlot(2);
 			bRun = false;
 			StopAiming();
+
+			if (CurrentWeapon)
+				CurrentWeapon->StopFire();
 
 			if (CurrentSkill)
 				CurrentSkill->DeactivateSkill();
@@ -2827,7 +2842,7 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 	if (!GRI || !PRI)
 		return;
 
-	bool bHiddenFromView = false;
+	int32 HiddenLevel = 0;
 
 	for (auto Itr(Buffs.CreateIterator()); Itr; ++Itr)
 	{
@@ -2841,7 +2856,7 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 
 		//see if we're hidden from enemy AI view
 		if (Buff->bBlockSight)
-			bHiddenFromView = true;
+			HiddenLevel = Buff->UpgradeLevel;
 
 		//check if we need to tick damage or anything
 		Buff->TickTimer -= DeltaSeconds;
@@ -2898,11 +2913,14 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 		}
 	}
 
-	bIsHiddenFromView = bHiddenFromView;
+	HiddenFromViewLevel = HiddenLevel;
 }
 
 void AOrionCharacter::AddBuff(TSubclassOf<AOrionBuff> BuffClass, AController *cOwner, int32 TeamIndex)
 {
+	if (Role < ROLE_Authority)
+		return;
+
 	//only living players can be buffed/debuffed
 	if (Health <= 0)
 		return;
@@ -2977,9 +2995,9 @@ void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAni
 
 			if (PC && PC->GetAchievements())
 			{
-				if (Cast<AOrionDinoPawn>(TheVictim))
+				if (Cast<AOrionDinoPawn>(this))
 				{
-					FString DinoName = Cast<AOrionDinoPawn>(TheVictim)->DinoName.ToString().ToUpper();
+					FString DinoName = Cast<AOrionDinoPawn>(this)->DinoName.ToString().ToUpper();
 					if (DinoName == TEXT("TREX"))
 						PC->GetAchievements()->UnlockAchievement(ACH_TREXFATALITY, PC);
 					else if (DinoName == TEXT("KRUGER"))
@@ -2987,9 +3005,9 @@ void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAni
 					else if (DinoName == TEXT("JECKYL"))
 						PC->GetAchievements()->UnlockAchievement(ACH_JECKYLFATALITY, PC);
 				}
-				else if (Cast<AOrionDroidPawn>(TheVictim))
+				else if (Cast<AOrionDroidPawn>(this))
 				{
-					FString DinoName = Cast<AOrionDroidPawn>(TheVictim)->DroidName.ToString().ToUpper();
+					FString DinoName = Cast<AOrionDroidPawn>(this)->DroidName.ToString().ToUpper();
 				}
 			}
 
@@ -3521,6 +3539,13 @@ void AOrionCharacter::ResetGrenadeActive()
 	bIsGrenadeActive = false;
 }
 
+void AOrionCharacter::RapidFireGrenades()
+{
+	//FVector dir = FMath::VRand();
+	//GrenadeCooldown.Energy = 10000;
+	//ActuallyTossGrenade(dir);
+}
+
 //throw this bitch
 void AOrionCharacter::ActuallyTossGrenade(FVector dir)
 {
@@ -3530,7 +3555,7 @@ void AOrionCharacter::ActuallyTossGrenade(FVector dir)
 	if (Role == ROLE_Authority)
 	{
 		GrenadeCooldown.Energy -= GrenadeCooldown.SecondsToRecharge;
-
+		
 		if (GrenadeClass)
 		{
 			FActorSpawnParameters SpawnInfo;
@@ -3555,12 +3580,21 @@ void AOrionCharacter::ActuallyTossGrenade(FVector dir)
 					SetGrenadeActive(Life);
 				}
 
+				AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+				Grenade->GrenadeLife = Grenade->FXTime;
+				Grenade->GrenadeScale = Grenade->ExplosionScale;
+
+				if (PC)
+				{
+					Grenade->GrenadeLife += float(PC->GetSkillValue(SKILL_GRENADECOOLDOWN));
+					Grenade->GrenadeScale *= 1.0f + float(PC->GetSkillValue(SKILL_GRENADERADIUS));
+				}
+
 				PlayVoice(Grenade->VoiceType);
 
 				Grenade->Init(dir);
 				Grenade->SetFuseTime(Grenade->LifeTime);
-
-				AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
 				if (PC && PC->GetStats())
 				{
@@ -4019,6 +4053,12 @@ void AOrionCharacter::Blink(FVector dir)
 							Grenade->Init(FVector(0.0f, 0.0f, 1.0f));
 							Grenade->bIsMiniGrenade = true;
 							Grenade->SetFuseTime(0.5f);
+
+							Grenade->GrenadeLife = Grenade->FXTime * 0.25f;
+							Grenade->GrenadeScale = Grenade->ExplosionScale * 0.25f;
+
+							Grenade->GrenadeLife += float(PC->GetSkillValue(SKILL_GRENADECOOLDOWN)) * 0.25f;
+							Grenade->GrenadeScale *= 1.0f + float(PC->GetSkillValue(SKILL_GRENADERADIUS)) / 100.0f;
 						}
 					}
 

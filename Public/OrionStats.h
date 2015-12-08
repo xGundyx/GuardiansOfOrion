@@ -279,6 +279,14 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Stats)
 		void SetStatValues(TArray<FPlayerStats> StatsRead);
+
+	void SaveAllStats();
+
+	UPROPERTY(BlueprintReadWrite, Category = Playfab)
+		bool bSaveInProgress;
+
+	FTimerHandle SaveTimer;
+	AOrionPlayerController *SaveStatsPC;
 	
 private:
 	bool bInitialized;

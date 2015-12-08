@@ -190,6 +190,8 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 	bInitialized = false;
 
 	bReplicates = true;
+
+	bSaveInProgress = false;
 }
 
 /*void AOrionStats::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
@@ -227,11 +229,26 @@ void AOrionStats::AddStatValue(EStatID ID, int32 Value)
 	}
 }
 
+void AOrionStats::SaveAllStats()
+{
+	FlushPlayerStats(SaveStatsPC);
+}
+
 void AOrionStats::FlushPlayerStats(AOrionPlayerController* PC)
 {
 #if IS_SERVER
-	if(bInitialized)
+	if(bInitialized && PC)
 	{
+		//if we have a save already in progress, just delay us
+		if(bSaveInProgress)
+		{
+			SaveStatsPC = PC;
+			GetWorldTimerManager().SetTimer(SaveTimer, this, &AOrionStats::SaveAllStats, 0.1f, false);
+			return;
+		}
+
+		SaveStatsPC = nullptr;
+
 		EventSavePlayerStats(PC);
 
 		//reset all stat values to non dirty

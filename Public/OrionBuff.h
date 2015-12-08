@@ -62,6 +62,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Buff)
 		bool bBlockSight;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Buff)
+		int32 UpgradeLevel;
+
 	UPROPERTY(BlueprintReadOnly, Category = Buff)
 		float LastRefreshedTime;
 
