@@ -674,7 +674,7 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 	{
 		int32 NumPlayers = GRI->PlayerList.Num();
 
-		if (NumPlayers >= 4)
+		if (NumPlayers >= 4 || Difficulty == DIFF_REDIKULOUS)
 			Damage /= 2.0f;
 		else if (NumPlayers >= 3)
 			Damage /= 1.5f;
@@ -691,14 +691,14 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 		else if (Difficulty == DIFF_INSANE)
 			Damage *= 0.8f;
 		else if (Difficulty == DIFF_REDIKULOUS)
-			Damage *= 0.7f;
+			Damage *= 0.6f;
 	}
 	else
 	{
 		//adjust damage to humans
 		int32 NumPlayers = GRI->PlayerList.Num();
 
-		if (NumPlayers >= 4)
+		if (NumPlayers >= 4 || Difficulty == DIFF_REDIKULOUS)
 			Damage *= 1.5f;
 		else if (NumPlayers >= 3)
 			Damage *= 1.25f;

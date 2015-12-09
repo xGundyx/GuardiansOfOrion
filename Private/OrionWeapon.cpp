@@ -592,6 +592,8 @@ void AOrionWeapon::FireProjectile(FName SocketName, FVector Direction)
 		{
 			Proj->Init(Direction);
 			Proj->SetFuseTime(2.5f);
+			Proj->GrenadeLife = Grenade->FXTime;
+			Proj->GrenadeScale = Grenade->ExplosionScale;
 		}
 	}
 }
