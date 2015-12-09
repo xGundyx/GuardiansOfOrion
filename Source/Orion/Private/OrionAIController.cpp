@@ -630,6 +630,9 @@ void AOrionAIController::CheckEnemyStatus()
 			bRemoveEnemy = true;
 		else if (pEnemy->HiddenFromViewLevel == 1 && !pEnemy->bIsHealableMachine && !pPawn->bIsBigDino)// || pPawn->bIsHiddenFromView)
 			bRemoveEnemy = true;
+		//ignored downed
+		else if (pEnemy->bDowned)
+			bRemoveEnemy = true;
 	}
 
 	if (bRemoveEnemy)

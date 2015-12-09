@@ -935,6 +935,7 @@ public:
 		void ServerBlink_Implementation(FVector Pos);
 
 	//UPROPERTY(Replicated)
+	UPROPERTY(BlueprintReadWrite, Category = RPG)
 		bool bBlinking;
 
 	float LastTeleportTime;
