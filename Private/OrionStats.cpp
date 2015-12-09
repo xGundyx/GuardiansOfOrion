@@ -187,6 +187,9 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 
 	aStats.Add(FPlayerStats(STAT_ASSISTS, TEXT("Assists")));
 
+	aStats.Add(FPlayerStats(STAT_TOTALKILLS, TEXT("totalkills")));
+	aStats.Add(FPlayerStats(STAT_ACHIEVEMENTPOINTS, TEXT("achpoints")));
+
 	bInitialized = false;
 
 	bReplicates = true;

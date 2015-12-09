@@ -275,6 +275,7 @@ public:
 	void CheckForStatUnlocks();
 	void CheckOrbs();
 	void CheckForSlayer();
+	void UpdatePoints();
 
 	UPROPERTY(BlueprintReadOnly, Category = Achievements)
 		TArray<FAchievement> Achievements;
