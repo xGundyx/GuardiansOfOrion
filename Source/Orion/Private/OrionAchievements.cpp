@@ -190,10 +190,12 @@ void AOrionAchievements::UnlockAchievement(int32 AchID, AOrionPlayerController *
 
 	AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
 
-	if (PRI)
-		UPlayFabRequestProxy::ServerAddUserVirtualCurrency(PRI->PlayFabID, TEXT("TC"), Achievements[AchID].Coins);
+	////if (PRI)
+	////	UPlayFabRequestProxy::ServerAddUserVirtualCurrency(PRI->PlayFabID, TEXT("TC"), Achievements[AchID].Coins);
 
 	EventSavePlayerAchievements(PC);
+
+	UpdatePoints();
 #endif
 }
 
@@ -215,6 +217,25 @@ void AOrionAchievements::SetAchievementValues(TArray<FAchievement> AchievementsR
 	}
 
 	bInitialized = true;
+
+	UpdatePoints();
+}
+
+void AOrionAchievements::UpdatePoints()
+{
+	if (PCOwner && PCOwner->GetStats())
+	{
+		int32 TotalPoints = 0;
+
+		for (int32 j = 0; j < Achievements.Num(); j++)
+		{
+			if (Achievements[j].bUnlocked)
+				TotalPoints += Achievements[j].Coins;
+		}
+
+		PCOwner->GetStats()->aStats[STAT_ACHIEVEMENTPOINTS].StatValue = TotalPoints;
+		PCOwner->GetStats()->aStats[STAT_ACHIEVEMENTPOINTS].bDirty = true;
+	}
 }
 
 void AOrionAchievements::CheckForLevelUnlocks(int32 NewLevel, AOrionPlayerController *PC)
@@ -312,15 +333,18 @@ void AOrionAchievements::UpdateUnlocks()
 
 			AOrionPRI *PRI = Cast<AOrionPRI>(PCOwner->PlayerState);
 
-			if (PRI)
-				UPlayFabRequestProxy::ServerAddUserVirtualCurrency(PRI->PlayFabID, TEXT("TC"), Achievements[i].Coins);
+			////if (PRI)
+			////	UPlayFabRequestProxy::ServerAddUserVirtualCurrency(PRI->PlayFabID, TEXT("TC"), Achievements[i].Coins);
 
 			bUnlocked = true;
 		}
 	}
 
 	if (bUnlocked)
+	{
 		EventSavePlayerAchievements(PCOwner);
+		UpdatePoints();
+	}
 #endif
 }
 
@@ -368,6 +392,9 @@ void AOrionAchievements::CheckForSlayer()
 
 		if (TotalKills >= 100000)
 			UnlockAchievement(ACH_DINOSLAYER, PCOwner);
+
+		PCOwner->GetStats()->aStats[STAT_TOTALKILLS].StatValue = TotalKills;
+		PCOwner->GetStats()->aStats[STAT_TOTALKILLS].bDirty = true;
 	}
 }
 

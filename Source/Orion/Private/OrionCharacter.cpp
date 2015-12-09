@@ -3588,7 +3588,7 @@ void AOrionCharacter::ActuallyTossGrenade(FVector dir)
 				if (PC)
 				{
 					Grenade->GrenadeLife += float(PC->GetSkillValue(SKILL_GRENADECOOLDOWN));
-					Grenade->GrenadeScale *= 1.0f + float(PC->GetSkillValue(SKILL_GRENADERADIUS));
+					Grenade->GrenadeScale *= 1.0f + (float(PC->GetSkillValue(SKILL_GRENADERADIUS) / 100.0f));
 				}
 
 				PlayVoice(Grenade->VoiceType);

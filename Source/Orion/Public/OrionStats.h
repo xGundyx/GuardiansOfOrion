@@ -210,6 +210,10 @@ enum EStatID// : uint8
 	//overalls
 	STAT_ASSISTS,
 
+	//for leaderboards
+	STAT_TOTALKILLS,
+	STAT_ACHIEVEMENTPOINTS,
+
 	STAT_MAX,
 	STAT_ERROR
 };
