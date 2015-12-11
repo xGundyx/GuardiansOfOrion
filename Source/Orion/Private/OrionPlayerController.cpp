@@ -3298,9 +3298,9 @@ FString AOrionPlayerController::GetSteamID()
 		//set the lobby info to blank so we don't try to join an old match that wasn't closed properly
 		SetConnectInfo(TEXT("0"));
 
-		CSteamID steamID = SteamUser()->GetSteamID();
+		//CSteamID steamID = SteamUser()->GetSteamID();
 
-		uint64 Return = steamID.CSteamID::ConvertToUint64();
+		//uint64 Return = steamID.CSteamID::ConvertToUint64();
 
 		//Return ID as String if Found
 		//FString ID = FString::Printf(TEXT("%016llX"), Return);

@@ -81,14 +81,14 @@ struct FFlyableOctree
 		std::string path;
 
 		path = Locator.substr(0, Locator.length() - InverseLookup.length());
-		for (int32 i = 0; i < InverseLookup.length(); i++)
+		for (size_t i = 0; i < InverseLookup.length(); i++)
 		{
 			path += InverseLookup.substr(InverseLookup.length() - 1 - i, 1);
 		}
 
 		//now that we have our path, trace down and see what we get!
 		FFlyableOctree *Current = GetRoot();
-		int32 Counter = 1;
+		size_t Counter = 1;
 		while (path.length() > Counter)
 		{
 			std::string num = path.substr(Counter, 1);
@@ -135,7 +135,7 @@ struct FFlyableOctree
 
 		for (int32 i = 0; i < 6; i++)
 		{
-			int32 counter = 1;
+			size_t counter = 1;
 			//using our Locator, find us some neighbors
 			int32 a = atoi(Locator.substr(Locator.length() - counter, 1).c_str());
 			counter++;
