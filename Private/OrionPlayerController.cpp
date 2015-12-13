@@ -1636,6 +1636,7 @@ TArray<FOptionsData> AOrionPlayerController::GetCreateCharacterOptions()
 
 	return Options;
 }
+
 TArray<FOptionsData> AOrionPlayerController::GetVideoOptions(bool Basic)
 {
 	TArray<FOptionsData> Options;
@@ -1666,7 +1667,8 @@ TArray<FOptionsData> AOrionPlayerController::GetVideoOptions(bool Basic)
 		NewOption.Options.Add("16:10");
 		NewOption.Options.Add("16:9");
 		NewOption.Options.Add("4:3");
-		NewOption.Value = Aspect < 1.35f ? "4:3" : ( Aspect < 1.62f ? "16:10" : "16:9");
+		NewOption.Options.Add("ALL");
+		NewOption.Value = Aspect == 1.6f ? "16:10" : (FMath::Abs(Aspect - 1.333333f) < 0.001f ? "4:3" : (FMath::Abs(Aspect - 1.777778f) < 0.001f ? "16:9" : "ALL"));// < 1.35f ? "4:3" : (Aspect < 1.62f ? "16:10" : "16:9");
 		Options.Add(NewOption);
 
 		int32 Window = int32(Settings->GetFullscreenMode());
@@ -3454,6 +3456,10 @@ void AOrionPlayerController::ReadFriendsDelegate(int32 LocalUserNum, bool bSucce
 void AOrionPlayerController::TickPhoton()
 {
 #if !IS_SERVER
+	//only tick photon during the main menu
+	if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) == nullptr)
+		return;
+
 	if (UPhotonProxy::GetListener())
 	{
 		UPhotonProxy::GetListener()->PCOwner = this;
