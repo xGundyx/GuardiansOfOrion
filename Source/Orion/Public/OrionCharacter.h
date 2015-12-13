@@ -1285,6 +1285,9 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = Skill)
 		bool bKnockedDown;
 
+	UPROPERTY(BlueprintReadWrite, Category = Skill)
+		float LastLickedTime;
+
 	UFUNCTION()
 		void OnRep_Knocker();
 
