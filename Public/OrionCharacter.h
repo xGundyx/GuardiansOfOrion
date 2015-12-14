@@ -209,7 +209,8 @@ struct FWeaponAnim
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
 		UAnimMontage* Weapon3P;
 
-	bool bHideWeapon;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Animation)
+		bool bHideWeapon;
 
 	FWeaponAnim()
 		: Weapon1P(NULL)
@@ -1541,7 +1542,6 @@ protected:
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 	// End of APawn interface
 
-private:
 	FTimerHandle EquipTimer;
 	FTimerHandle UnEquipTimer;
 	FTimerHandle RollTimer;

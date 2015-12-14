@@ -2450,8 +2450,8 @@ void AOrionCharacter::OnRep_ReplicatedAnimation()
 	Info.Weapon3P = ReplicatedAnimation.Weapon3PMontage;
 	Info.bHideWeapon = ReplicatedAnimation.bHideWeapon;
 
-	if (ReplicatedAnimation.bStopAllOtherAnims)
-		StopAllAnimMontages();
+	//if (ReplicatedAnimation.bStopAllOtherAnims)
+	//	StopAllAnimMontages();
 
 	OrionPlayAnimMontage(Info, ReplicatedAnimation.Rate, ReplicatedAnimation.SectionName);
 }
@@ -2530,7 +2530,7 @@ float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float I
 
 			if (CurrentWeapon && Animation.bHideWeapon)
 			{
-				CurrentWeapon->SetActorHiddenInGame(true);
+				CurrentWeapon->GetWeaponMesh(false)->SetHiddenInGame(true);
 				GetWorldTimerManager().SetTimer(GrenadeHideTimer, this, &AOrionCharacter::UnhideWeapon, Duration * 0.9f, false);
 			}
 
@@ -2544,7 +2544,7 @@ float AOrionCharacter::OrionPlayAnimMontage(const FWeaponAnim Animation, float I
 void AOrionCharacter::UnhideWeapon()
 {
 	if (CurrentWeapon)
-		CurrentWeapon->SetActorHiddenInGame(false);
+		CurrentWeapon->GetWeaponMesh(false)->SetHiddenInGame(false);
 }
 
 void AOrionCharacter::EatFood(AOrionFood *Food)
@@ -3719,6 +3719,10 @@ void AOrionCharacter::OnNextWeapon()
 	if (bDowned)
 		return;
 
+	//no interupting grenade animation
+	if (GetWorldTimerManager().IsTimerActive(GrenadeTimer))
+		return;
+
 	AOrionPlayerController* MyPC = Cast<AOrionPlayerController>(Controller);
 	if (MyPC)// && MyPC->IsGameInputAllowed())
 	{
@@ -3758,6 +3762,10 @@ void AOrionCharacter::OnPrevWeapon()
 		return;
 
 	if (bDowned)
+		return;
+
+	//no interupting grenade animation
+	if (GetWorldTimerManager().IsTimerActive(GrenadeTimer))
 		return;
 
 	AOrionPlayerController* MyPC = Cast<AOrionPlayerController>(Controller);
