@@ -394,6 +394,10 @@ void AOrionWeapon::Melee()
 	if (WeaponState == WEAP_MELEE)
 		return;
 
+	//no melee during weapon switches?
+	if (WeaponState == WEAP_EQUIPPING || WeaponState == WEAP_PUTTINGDOWN)
+		return;
+
 	StopFire();
 
 	if (Role < ROLE_Authority)
@@ -1651,6 +1655,8 @@ void AOrionWeapon::OnEquipFinished()
 	bIsEquipped = true;
 	bPendingEquip = false;
 
+	WeaponState = WEAP_IDLE;
+
 	if (MyPawn)
 	{
 		// try to reload empty clip
@@ -1659,8 +1665,6 @@ void AOrionWeapon::OnEquipFinished()
 			StartReload();
 		}
 	}
-
-	WeaponState = WEAP_IDLE;
 }
 
 void AOrionWeapon::OnUnEquipFinished()
@@ -1718,7 +1722,7 @@ float AOrionWeapon::OnUnEquip()
 	//EquipStartedTime = GetWorld()->GetTimeSeconds();
 	//EquipDuration = Duration;
 
-	GetWorldTimerManager().SetTimer(EquipTimer, this, &AOrionWeapon::OnUnEquipFinished, Duration, false);
+	GetWorldTimerManager().SetTimer(EquipTimer, this, &AOrionWeapon::OnUnEquipFinished, Duration * 0.95f, false);
 
 	WeaponState = WEAP_PUTTINGDOWN;
 

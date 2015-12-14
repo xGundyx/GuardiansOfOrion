@@ -1846,6 +1846,7 @@ TArray<FString> AOrionPlayerController::GetMaps()
 	Maps.Add(TEXT("GOO-RELIC"));
 	Maps.Add(TEXT("GOO-OUTBACK"));
 	Maps.Add(TEXT("GOO-ARID"));
+	Maps.Add(TEXT("GOO-SUMMIT"));
 
 	return Maps;
 }
@@ -1884,7 +1885,7 @@ TArray<FString> AOrionPlayerController::GetPrivacySettings()
 
 FString AOrionPlayerController::GetBuildVersion()
 {
-	return TEXT("EA1.0.2");
+	return TEXT("EA1.0.3");
 }
 
 FString AOrionPlayerController::GetReviveButtonKeyboard()

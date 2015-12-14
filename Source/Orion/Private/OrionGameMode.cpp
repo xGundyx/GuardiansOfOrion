@@ -691,7 +691,7 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 		else if (Difficulty == DIFF_INSANE)
 			Damage *= 0.8f;
 		else if (Difficulty == DIFF_REDIKULOUS)
-			Damage *= 0.6f;
+			Damage *= 0.5f;
 	}
 	else
 	{
@@ -713,9 +713,9 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 		else if (Difficulty == DIFF_HARD)
 			Damage *= 1.3f;
 		else if (Difficulty == DIFF_INSANE)
-			Damage *= 1.8f;
+			Damage *= 2.5f;
 		else if (Difficulty == DIFF_REDIKULOUS)
-			Damage *= 4.0f;
+			Damage *= 5.0f;
 	}
 
 	return Damage;
