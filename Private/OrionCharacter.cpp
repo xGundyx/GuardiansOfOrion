@@ -1195,6 +1195,7 @@ void AOrionCharacter::DetachFromShip()
 {
 	FWeaponAnim Info;
 	Info.Pawn3P = ExitShipAnim;
+
 	float length = OrionPlayAnimMontage(Info, 1.0f, TEXT(""), false/*true*/, false/*true*/, false);
 
 	DetachRootComponentFromParent(true);
@@ -1716,13 +1717,13 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 	AOrionPlayerController *AttackerPC = Cast<AOrionPlayerController>(EventInstigator);
 
-	if (AttackerPC)
+	/*if (AttackerPC)
 	{
 		AOrionCharacter *AttackerPawn = Cast<AOrionCharacter>(AttackerPC->GetPawn());
 
 		if (AttackerPawn && AttackerPawn->bDowned)
 			Damage *= 0.75f;
-	}
+	}*/
 
 	if (DamageType && DamageType->bIsKnife)
 	{
@@ -2999,7 +3000,12 @@ void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAni
 				{
 					FString DinoName = Cast<AOrionDinoPawn>(this)->DinoName.ToString().ToUpper();
 					if (DinoName == TEXT("TREX"))
+					{
 						PC->GetAchievements()->UnlockAchievement(ACH_TREXFATALITY, PC);
+
+						//trex gets some hp back on eats
+						Health = FMath::Min(HealthMax, Health + 0.15f * HealthMax);
+					}
 					else if (DinoName == TEXT("KRUGER"))
 						PC->GetAchievements()->UnlockAchievement(ACH_KRUGERFATALITY, PC);
 					else if (DinoName == TEXT("JECKYL"))
@@ -3025,6 +3031,8 @@ void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAni
 	{
 		FWeaponAnim vAnim;
 		vAnim.Pawn3P = EnemyAnim;
+
+		TheVictim->StopAllAnimMontages();
 
 		TheVictim->OrionPlayAnimMontage(vAnim, 1.0f, TEXT(""), false, false, true);
 
