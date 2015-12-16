@@ -2820,6 +2820,10 @@ void AOrionPlayerController::BeginPlay()
 
 		//clear our steam rich presence if needed
 		SetLobbyName("");
+
+		//if we're no in the main menu, reset photon junk
+		if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) == nullptr)
+			UPhotonProxy::Reset();
 	}
 #endif
 

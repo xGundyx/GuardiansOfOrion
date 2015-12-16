@@ -608,7 +608,7 @@ void AOrionAIController::CheckEnemyStatus()
 	if (pEnemy && pPawn)
 	{
 		//don't lose our enemy if we're in the middle of finishing them off
-		if (pPawn->bFinishingMove)
+		if (pPawn->bFinishingMove || pPawn->GetCurrentMontage())
 			return;
 
 		//ignored downed generators
@@ -746,6 +746,10 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 	//if we're inside a blocking volume like smoke, ignore things we see
 	//if (P && P->bIsHiddenFromView)
 	//	return;
+
+	//no changing enemies during attacks/fatalities
+	if (P && P->GetCurrentMontage())
+		return;
 
 	//ignore stuff inside smoke
 	if (pPawn && pPawn->HiddenFromViewLevel == 2)
