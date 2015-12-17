@@ -717,6 +717,12 @@ public:
 	//pointer to ragdoll for camera when we die
 	AOrionCharacter *Ragdoll;
 
+	UPROPERTY(BlueprintReadWrite, Category = Camera)
+		bool bThirdPersonCamera;
+
+	UFUNCTION(exec)
+		void ToggleThirdPerson();
+
 	UFUNCTION(client, reliable)
 		void ClientAddXPNumber(int32 Damage, FVector Pos);
 
@@ -825,6 +831,11 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Chat)
 		void OrionSendChatMessage(const FString &msg);
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerSetThirdPersonCamera(bool bOn);
+		bool ServerSetThirdPersonCamera_Validate(bool bOn) { return true; }
+		void ServerSetThirdPersonCamera_Implementation(bool bOn);
 
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerSendChatMessage(const FString &msg);

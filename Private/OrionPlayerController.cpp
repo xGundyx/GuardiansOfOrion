@@ -360,7 +360,19 @@ void AOrionPlayerController::ClearUMG()
 
 void AOrionPlayerController::GetAudioListenerPosition(FVector& OutLocation, FVector& OutFrontDir, FVector& OutRightDir)
 {
-	if (GetPawn())
+	if (bThirdPersonCamera && GetPawn())
+	{
+		FVector ViewLocation = GetPawn()->GetActorLocation() + FVector(0.0f, 0.0f, 45.0f);
+		FRotator ViewRotation = GetControlRotation();
+
+		OutLocation = ViewLocation;
+
+		const FRotationTranslationMatrix ViewRotationMatrix(ViewRotation, ViewLocation);
+
+		OutFrontDir = ViewRotationMatrix.GetUnitAxis(EAxis::X);
+		OutRightDir = ViewRotationMatrix.GetUnitAxis(EAxis::Y);
+	}
+	else if (GetPawn())
 	{
 		FVector ViewLocation = GetPawn()->GetActorLocation() + FVector(0.0f, 0.0f, 45.0f);
 		FRotator ViewRotation = GetPawn()->GetActorRotation();
@@ -2854,6 +2866,42 @@ void AOrionPlayerController::BeginPlay()
 #endif
 }
 
+void AOrionPlayerController::ToggleThirdPerson() 
+{ 
+	bThirdPersonCamera = !bThirdPersonCamera; 
+
+	if (!bThirdPersonCamera)
+	{
+		bShowMouseCursor = true;
+
+		FInputModeGameOnly Data;
+		//Data.SetLockMouseToViewport(true);
+
+		SetInputMode(Data);
+	}
+	else
+	{
+		bShowMouseCursor = false;
+	}
+
+	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
+
+	if (P)
+		P->bThirdPersonCamera = bThirdPersonCamera;
+
+	ServerSetThirdPersonCamera(bThirdPersonCamera);
+}
+
+void AOrionPlayerController::ServerSetThirdPersonCamera_Implementation(bool bOn)
+{
+	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
+
+	if (P)
+		P->bThirdPersonCamera = bOn;
+
+	bThirdPersonCamera = bOn;
+}
+
 void AOrionPlayerController::OnFindSession(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& SearchResult)
 {
 	FString LobbyID = SearchResult.Session.SessionSettings.Settings.Find(FName("ROOMNAME"))->ToString();
@@ -3313,7 +3361,7 @@ FString AOrionPlayerController::GetSteamID()
 		//FString ID = FString::Printf(TEXT("%016llX"), Return);
 		//FString ID = FString::Printf(TEXT("%llu"), Return);
 		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
-		FString ID;
+		FString ID = "";
 
 		if (OnlineSub)
 		{

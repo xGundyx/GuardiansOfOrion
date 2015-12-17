@@ -100,7 +100,7 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 	InstantConfig.RecoilScale = 1.0f;
 	InstantConfig.TimeBetweenShots = 0.1;
 	InstantConfig.WeaponIndex = 0;
-	InstantConfig.WeaponRange = 3000.0f;
+	InstantConfig.WeaponRange = 6000.0f;
 	InstantConfig.WeaponScale = 0.5f;
 
 	InventoryType = ITEM_PRIMARYWEAPON;
@@ -622,7 +622,7 @@ void AOrionWeapon::FireSpecial(FName SocketName, FVector Direction)
 	const FVector AimDir = GetAdjustedAim();
 	const FVector StartTrace = GetBarrelLocation(SocketName);
 	const FVector ShootDir = Direction;
-	const FVector EndTrace = StartTrace + ShootDir * FMath::Min(3000.0f, InstantConfig.WeaponRange);
+	const FVector EndTrace = StartTrace + ShootDir * FMath::Min(6000.0f, InstantConfig.WeaponRange);
 
 	const FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
 	ProcessInstantHit(Impact, StartTrace, ShootDir, RandomSeed, CurrentSpread);
@@ -713,7 +713,7 @@ void AOrionWeapon::FireWeapon()
 		const FVector AimDir = GetAdjustedAim();
 		const FVector StartTrace = GetCameraDamageStartLocation(AimDir);
 		const FVector ShootDir = WeaponRandomStream.VRandCone(AimDir, ConeHalfAngle, ConeHalfAngle);
-		const FVector EndTrace = StartTrace + ShootDir * FMath::Max(3000.0f, InstantConfig.WeaponRange);
+		const FVector EndTrace = StartTrace + ShootDir * FMath::Max(6000.0f, InstantConfig.WeaponRange);
 
 		const FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
 		ProcessInstantHit(Impact, StartTrace, ShootDir, RandomSeed, CurrentSpread);
@@ -857,6 +857,21 @@ FVector AOrionWeapon::GetAdjustedAim() const
 {
 	AController* const PlayerController = Instigator ? Instigator->Controller : NULL;
 	FVector FinalAim = FVector::ZeroVector;
+
+	if (Instigator)
+	{
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Instigator->Controller);
+		if (PC && PC->bThirdPersonCamera)
+		{
+			FVector CamLoc;
+			FRotator CamRot;
+			PlayerController->GetPlayerViewPoint(CamLoc, CamRot);
+			FinalAim = CamRot.Vector();
+
+			return FinalAim;
+		}
+	}
+
 	//top down aims in the general direction the pawn is facing
 	if (MyPawn && MyPawn->IsTopDown())
 	{
@@ -1239,7 +1254,7 @@ void AOrionWeapon::ProcessInstantHit_Confirmed(const FHitResult& Impact, const F
 		if (Impact.GetActor() != NULL)
 			DealDamage(Impact, ShootDir);
 
-		const FVector EndTrace = Origin + ShootDir * FMath::Max(3000.0f, InstantConfig.WeaponRange);
+		const FVector EndTrace = Origin + ShootDir * FMath::Max(6000.0f, InstantConfig.WeaponRange);
 		const FVector EndPoint = Impact.GetActor() ? Impact.ImpactPoint : EndTrace;
 
 		HitNotify.Origin = EndPoint;// Origin;
@@ -1253,7 +1268,7 @@ void AOrionWeapon::ProcessInstantHit_Confirmed(const FHitResult& Impact, const F
 	// play FX locally
 	if (GetNetMode() != NM_DedicatedServer)
 	{
-		const FVector EndTrace = Origin + ShootDir * FMath::Max(3000.0f, InstantConfig.WeaponRange);
+		const FVector EndTrace = Origin + ShootDir * FMath::Max(6000.0f, InstantConfig.WeaponRange);
 		const FVector EndPoint = Impact.GetActor() ? Impact.ImpactPoint : EndTrace;
 
 		SpawnTrailEffect(EndPoint);
@@ -1450,7 +1465,7 @@ void AOrionWeapon::ServerNotifyMiss_Implementation(FVector ShootDir, int32 Rando
 	// play FX locally
 	if (GetNetMode() != NM_DedicatedServer)
 	{
-		const FVector EndTrace = Origin + ShootDir * FMath::Max(3000.0f, InstantConfig.WeaponRange);
+		const FVector EndTrace = Origin + ShootDir * FMath::Max(6000.0f, InstantConfig.WeaponRange);
 		SpawnTrailEffect(EndTrace);
 	}
 }
@@ -1523,8 +1538,8 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 
 		if (TracerPSC)
 		{
-			TracerPSC->SetWorldScale3D(FVector(1.0));
-			TracerPSC->SetFloatParameter("BulletLife", FMath::Min(1.0f, ((Origin - EndPoint).Size() / 3000.0f)) - 0.05f);
+			TracerPSC->SetWorldScale3D((MyPawn && MyPawn->bThirdPersonCamera) ? FVector(0.5f) :FVector(1.0));
+			TracerPSC->SetFloatParameter("BulletLife", FMath::Min(1.0f, ((Origin - EndPoint).Size() / 6000.0f)) - 0.05f);
 		}
 	}
 
@@ -1534,7 +1549,7 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 		if (MuzzlePSC > 0)
 		{
 			//MuzzlePSC->SetVectorParameter(FName("FlashScale"), FVector(InstantConfig.MuzzleScale));
-			MuzzlePSC->SetWorldScale3D(FVector(InstantConfig.MuzzleScale * (MyPawn && MyPawn->IsTopDown() ? 2.5 : 1.0)));
+			MuzzlePSC->SetWorldScale3D(FVector(InstantConfig.MuzzleScale * (MyPawn && MyPawn->IsTopDown() && !MyPawn->bThirdPersonCamera ? 2.5 : 1.0)));
 		}
 	}
 
