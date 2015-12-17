@@ -189,7 +189,7 @@ void UOrionMovementComponent::CalcVelocity(float DeltaTime, float Friction, bool
 			Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
 			return;
 		}
-		else if (!OrionCharacterOwner->IsTopDown() && OrionCharacterOwner->IsSprinting() && IsMovingOnGround())
+		else if ((OrionCharacterOwner->ThirdPersonCameraComponent || !OrionCharacterOwner->IsTopDown()) && OrionCharacterOwner->IsSprinting() && IsMovingOnGround())
 		{
 			Velocity = OrionCharacterOwner->GetActorRotation().Vector()*GetMaxSpeed();
 			return;

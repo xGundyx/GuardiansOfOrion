@@ -992,6 +992,9 @@ public:
 	AOrionWeapon *GetWeaponFromType(EItemType Type);
 	void CheckWeaponEquipped();
 
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Camera)
+		bool bThirdPersonCamera;
+
 	UFUNCTION(reliable, client, Category = Inventory)
 		void ClientEquipWeapon(class AOrionWeapon* Weapon);
 

@@ -494,13 +494,13 @@ void AOrionCharacter::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 
 		X *= CameraDist;
 
-		if (Health > 0)
-		{
+		//if (Health > 0)
+		//{
 			CamStart = GetMesh()->GetBoneLocation(FName("Chr01_Spine02"));
 			CamStart.Z += GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() - 18.0;
 			if (bDuck)
 				CamStart.Z += 25.0;
-		}
+		//}
 
 		OutResult.Location = CamStart - X*CameraOffset.X + CameraOffset.Y*Y + CameraOffset.Z*Z;
 
@@ -1059,6 +1059,7 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, bKnockedDown);
 	DOREPLIFETIME(AOrionCharacter, Knocker);
 	DOREPLIFETIME(AOrionCharacter, ReviveTarget);
+	DOREPLIFETIME(AOrionCharacter, bThirdPersonCamera);
 
 	DOREPLIFETIME(AOrionCharacter, bDowned);
 	DOREPLIFETIME(AOrionCharacter, DownedTime);
@@ -2696,6 +2697,7 @@ void AOrionCharacter::PossessedBy(class AController* InController)
 		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 		if (PC)
 		{
+			bThirdPersonCamera = PC->bThirdPersonCamera;
 			/*AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
 			if (PRI && PRI->InventoryManager)
 			{
@@ -4360,9 +4362,18 @@ void AOrionCharacter::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 		NewControlRotation.Pitch = CurrentRotation.Pitch;
 	}
 
-	if (!bUseControllerRotationYaw)
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC && PC->bThirdPersonCamera)
 	{
-		NewControlRotation.Yaw = CurrentRotation.Yaw;
+
+	}
+	else
+	{
+		if (!bUseControllerRotationYaw)
+		{
+			NewControlRotation.Yaw = CurrentRotation.Yaw;
+		}
 	}
 
 	if (!bUseControllerRotationRoll)
@@ -4376,7 +4387,9 @@ void AOrionCharacter::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 		NewControlRotation.Roll = 0.0f;
 	}
 
-	if (RotationRate > 0.1f)
+	/*if(GetCharacterMovement()->MovementMode != MOVE_Flying && IsSprinting())
+		SetActorRotation(GetMovementComponent()->Velocity.Rotation());
+	else */if (RotationRate > 0.1f)
 		SetActorRotation(FMath::RInterpTo(GetActorRotation(), NewControlRotation, DeltaTime, RotationRate));
 	else
 		SetActorRotation(NewControlRotation);

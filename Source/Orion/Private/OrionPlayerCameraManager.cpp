@@ -20,9 +20,14 @@ void AOrionPlayerCameraManager::UpdateCamera(float DeltaTime)
 {
 	AOrionCharacter* MyPawn = PCOwner ? Cast<AOrionCharacter>(PCOwner->GetPawn()) : NULL;
 	AActor* MyDropPod = PCOwner ? Cast<AOrionPlayerController>(PCOwner)->DropPod : NULL;
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(PCOwner);
 	if (MyPawn)// && MyPawn->IsFirstPerson())
 	{
-		if (MyPawn->IsTopDown())
+		if (PC && PC->bThirdPersonCamera)
+		{
+
+		}
+		else if (MyPawn->IsTopDown())
 		{
 			Super::UpdateCamera(DeltaTime);
 			return;
@@ -33,7 +38,7 @@ void AOrionPlayerCameraManager::UpdateCamera(float DeltaTime)
 		else
 			TargetingFOV = 60.0f;
 
-		const float TargetFOV = MyPawn->IsAiming() ? TargetingFOV : (MyPawn->IsSprinting() ? RunningFOV : NormalFOV);
+		const float TargetFOV = MyPawn->IsAiming() ? TargetingFOV : (MyPawn->IsSprinting() ? 75.0f : 90.0f); //MyPawn->IsAiming() ? TargetingFOV : (MyPawn->IsSprinting() ? RunningFOV : NormalFOV);
 		DefaultFOV = FMath::FInterpTo(DefaultFOV, TargetFOV, DeltaTime, 7.5f);
 	}
 	else if (MyDropPod)
