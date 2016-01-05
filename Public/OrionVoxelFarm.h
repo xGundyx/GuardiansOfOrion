@@ -1,6 +1,6 @@
 #pragma once
 #include "GameFramework/Actor.h"
-#if WITH_EDITOR
+#if 0//WITH_EDITOR
 #include "OrionVoxelMain.h"
 #endif
 #include "ProceduralMeshComponent.h"
@@ -64,7 +64,7 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = Voxel)
 		int32 RandomSeed;
 
-#if WITH_EDITOR
+#if 0// WITH_EDITOR
 	void Tick(float DeltaSeconds) override;
 	void BeginPlay() override;
 	void BeginDestroy() override;

@@ -69,7 +69,7 @@ public:
 		bool bChargingAttack;
 
 	//running at an enemy doing a charge attack
-	UPROPERTY(BlueprintReadWrite, Category = AI)
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = AI)
 		bool bChargeAttack;
 
 	UPROPERTY(BlueprintReadWrite, Category = AI)

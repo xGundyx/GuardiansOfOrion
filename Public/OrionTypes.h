@@ -558,7 +558,6 @@ enum ECharacterClass
 	CLASS_ASSAULT,
 	CLASS_SUPPORT,
 	CLASS_RECON,
-	CLASS_DEMO,
 	CLASS_TECH
 };
 
@@ -657,6 +656,10 @@ struct FPhotonServerInfo
 		FString Privacy;
 	UPROPERTY(BlueprintReadWrite, Category = Photon)
 		FString LobbyID;
+	UPROPERTY(BlueprintReadWrite, Category = Photon)
+		FString TOD;
+	UPROPERTY(BlueprintReadWrite, Category = Photon)
+		FString GameMode;
 };
 
 UENUM(BlueprintType)
@@ -706,6 +709,10 @@ enum ESkillTreeUnlocks
 	SKILL_CLOAKREGEN,
 	SKILL_CLOAKDURATION,
 	SKILL_CLOAKTEAMMATES,
+	SKILL_TURRETSPEED,
+	SKILL_TURRETDURATION,
+	SKILL_TURRETRANGE,
+	SKILL_TURRETDAMAGE,
 
 	SKILL_NUMPLUSONE
 };

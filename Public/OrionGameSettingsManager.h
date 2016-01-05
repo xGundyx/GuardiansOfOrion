@@ -22,6 +22,9 @@ struct FOrionGameplaySettings
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay Settings")
 		bool Rumble;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay Settings")
+		bool ThirdPerson;
 };
 
 USTRUCT(BlueprintType)

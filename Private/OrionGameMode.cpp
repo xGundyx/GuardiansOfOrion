@@ -2,6 +2,7 @@
 
 #include "Orion.h"
 #include "OrionGameMode.h"
+#include "OrionGameMenu.h"
 #include "OrionHUD.h"
 #include "OrionDinoPawn.h"
 #include "OrionCharacter.h"
@@ -67,6 +68,8 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 	bAlwaysShowCursor = false;
 
 	bTopDown = false;
+
+	bSinglePlayer = false;
 
 	//no team means every player is on the same side
 	bTeamGame = false;
@@ -290,9 +293,9 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 		if (Pawn && DeadPawn && DeadPawn->bIsBigDino)
 			Pawn->PlayVoice(VOICE_BOSSKILL);
 
-		if (Pawn && Pawn->bDowned)
+		if (Pawn && DeadPawn && Pawn->bDowned)
 		{
-			Pawn->Health = FMath::Min(Pawn->HealthMax, Pawn->Health + (Pawn->HealthMax * (DeadPawn->bIsBigDino || Difficulty <= DIFF_MEDIUM ? 1.0f : 0.4f)));
+			Pawn->Health = FMath::Min(Pawn->HealthMax, Pawn->Health + (Pawn->HealthMax * ((DeadPawn->bIsBigDino || (!IsSlaughter() && Difficulty <= DIFF_MEDIUM)) ? 1.0f : 0.4f)));
 
 			if (Pawn->Health >= Pawn->HealthMax)
 				Pawn->Revived();
@@ -312,7 +315,7 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 		}
 	}
 
-	if (DeadPC && !DeadPawn->bFatality)
+	if (DeadPC && DeadPawn && !DeadPawn->bFatality)
 		PlaySlowMotion(7.0f);
 
 	if (PC && DeadDino && DeadDino->DinoName.ToString().ToUpper() == TEXT("TREX"))
@@ -359,13 +362,16 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 						case 2:
 							C->GetStats()->AddStatValue(STAT_ASSISTSASRECON, 1);
 							break;
+						case 3:
+							C->GetStats()->AddStatValue(STAT_ASSISTSASTECH, 1);
+							break;
 						};
 
 						C->GetStats()->AddStatValue(STAT_ASSISTS, 1);
 					}
 					AssistPRI->Assists++;
 
-					if (AssistPRI->Assists >= 200 && C->GetAchievements())
+					if (AssistPRI->Assists >= 200 && C && C->GetAchievements())
 						C->GetAchievements()->UnlockAchievement(ACH_200ASSIST, C);
 				}
 			}
@@ -482,6 +488,8 @@ EStatID AOrionGameMode::GetStatID(AController *KilledController, bool bVictim)
 			return bVictim ? (AI->bIsElite ? STAT_ELITESUPPORTDEATH : STAT_SUPPORTDEATH) : (AI->bIsElite ? STAT_ELITESUPPORTKILL : STAT_SUPPORTKILL);
 		else if (AI->AIName == TEXT("Recon"))
 			return bVictim ? (AI->bIsElite ? STAT_ELITERECONDEATH : STAT_RECONDEATH) : (AI->bIsElite ? STAT_ELITERECONKILL : STAT_RECONKILL);
+		else if (AI->AIName == TEXT("Tech"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITETECHDEATH : STAT_TECHDEATH) : (AI->bIsElite ? STAT_ELITETECHKILL : STAT_TECHKILL);
 	}
 
 	return STAT_ERROR;
@@ -552,11 +560,14 @@ void AOrionGameMode::HandleStats(AController* Killer, AController* KilledPlayer,
 				case 2:
 					KillerPC->GetStats()->AddStatValue(STAT_KILLSASRECON, 1);
 					break;
+				case 3:
+					KillerPC->GetStats()->AddStatValue(STAT_KILLSASTECH, 1);
+					break;
 				};
 			}
 			KillerPRI->Kills++;
 
-			if (KillerPRI->Kills % 25 == 0)
+			if (KillerPRI->Kills % 25 == 0 && KillerPC)
 			{
 				AOrionCharacter *KillerPawn = Cast<AOrionCharacter>(KillerPC->GetPawn());
 				if (KillerPawn)
@@ -578,6 +589,9 @@ void AOrionGameMode::HandleStats(AController* Killer, AController* KilledPlayer,
 					break;
 				case 2:
 					KilledPC->GetStats()->AddStatValue(STAT_DEATHSASRECON, 1);
+					break;
+				case 3:
+					KilledPC->GetStats()->AddStatValue(STAT_DEATHSASTECH, 1);
 					break;
 				};
 			}
@@ -608,6 +622,9 @@ void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FS
 	else
 		Difficulty = DIFF_MEDIUM;
 
+	FString TOD = UGameplayStatics::ParseOption(Options, TEXT("TOD"));
+	bNightTime = TOD.ToUpper().Equals(TEXT("NIGHT"));
+
 	//read in our PlayFab LobbyID
 	LobbyID = UGameplayStatics::ParseOption(Options, TEXT("LobbyID"));
 
@@ -632,6 +649,11 @@ void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FS
 		ServerInfo.Difficulty = TEXT("REDIKULOUS");
 		break;
 	}
+
+	FString Type = UGameplayStatics::ParseOption(Options, TEXT("GameType"));
+
+	if (Type.ToUpper() == "SINGLEPLAYER")
+		bSinglePlayer = true;
 
 	//ServerInfo.IP = UGameplayStatics::ParseOption(Options, TEXT("IP"));
 	//ServerInfo.Ticket = UGameplayStatics::ParseOption(Options, TEXT("LobbyTicket"));
@@ -672,7 +694,7 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 	//adjust damage based on amount of players in game, mainly just for coop games:p
 	if (GRI && PawnToDamage->PlayerState && PawnToDamage->PlayerState->bIsABot)
 	{
-		int32 NumPlayers = GRI->PlayerList.Num();
+		int32 NumPlayers = GetOrionNumPlayers();// GRI->PlayerList.Num();
 
 		if (NumPlayers >= 4 || Difficulty == DIFF_REDIKULOUS)
 			Damage /= 2.0f;
@@ -808,6 +830,8 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 			PC->ClassIndex = 1;
 		else if (pfClass == TEXT("RECON"))
 			PC->ClassIndex = 2;
+		else if (pfClass == TEXT("TECH"))
+			PC->ClassIndex = 3;
 		else
 			PC->ClassIndex = 0;
 	}
@@ -846,10 +870,13 @@ void AOrionGameMode::PlayerAuthed(class AOrionPlayerController *PC, bool bSucces
 		UPlayFabRequestProxy::ServerNotifyMatchmakerPlayerJoined(PRI->PlayFabID, LobbyID);
 	}
 
-	if(!bLobbyCreated)
-		PC->CreateInGameLobby(ServerInfo);
-	else
-		PC->SetServerInfo(ServerInfo); //needed for situation when the original host leaves and new host needs the info
+	if (!bSinglePlayer)
+	{
+		if (!bLobbyCreated)
+			PC->CreateInGameLobby(ServerInfo);
+		else
+			PC->SetServerInfo(ServerInfo); //needed for situation when the original host leaves and new host needs the info
+	}
 
 	bLobbyCreated = true;
 #endif

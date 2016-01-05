@@ -1,7 +1,9 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
 #include "Orion.h"
+#include "OrionGameLoadingScreen.h"
 #include "OrionGameMenu.h"
+#include "OrionGameInstance.h"
 
 AOrionGameMenu::AOrionGameMenu(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
@@ -38,4 +40,19 @@ void AOrionGameMenu::InitGame(const FString& MapName, const FString& Options, FS
 	Super::InitGame(MapName, Options, ErrorMessage);
 
 	LobbyIP = UGameplayStatics::ParseOption(Options, TEXT("SteamConnectIP"));
+}
+
+void AOrionGameMenu::DisplayLoadingScreen()
+{
+	UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
+
+	if (GI)
+	{
+		GI->bLoading = true;
+	}
+	/*IOrionGameLoadingScreenModule* LoadingScreenModule = FModuleManager::LoadModulePtr<IOrionGameLoadingScreenModule>("OrionGameLoadingScreen");
+	if (LoadingScreenModule != NULL)
+	{
+		LoadingScreenModule->StartInGameLoadingScreen();
+	}*/
 }

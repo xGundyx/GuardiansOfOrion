@@ -133,6 +133,10 @@ void AOrionPlayerController::SetupInputComponent()
 	//skilltree
 	InputComponent->BindAction("OpenSkillTree", IE_Pressed, this, &AOrionPlayerController::OpenSkillTree);
 	InputComponent->BindAction("Gamepad_OpenSkillTree", IE_Pressed, this, &AOrionPlayerController::OpenSkillTree);
+
+	//camera mode change
+	InputComponent->BindAction("ToggleCamera", IE_Pressed, this, &AOrionPlayerController::ToggleThirdPerson);
+	InputComponent->BindAction("Gamepad_ToggleCamera", IE_Pressed, this, &AOrionPlayerController::ToggleThirdPerson);
 }
 
 void AOrionPlayerController::ShowCharacterSelect()
@@ -299,7 +303,7 @@ void AOrionPlayerController::TryToCreateLobbyAgain()
 void AOrionPlayerController::CreateLobbyForReal()
 {
 #if !IS_SERVER
-	if (!bPhotonReady)
+	/*if (!bPhotonReady)
 	{
 		TryToCreateLobbyAgain();
 		return;
@@ -324,9 +328,9 @@ void AOrionPlayerController::CreateLobbyForReal()
 
 			bLobbyLeader = true;
 
-			UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*ServerInfo.MapName), TCHAR_TO_UTF8(*ServerInfo.Difficulty), "Survival", TCHAR_TO_UTF8(*ServerInfo.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*ServerInfo.LobbyID), TCHAR_TO_UTF8(*ChatRoom), TCHAR_TO_UTF8(*Version), "");
+			UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*ServerInfo.MapName), TCHAR_TO_UTF8(*ServerInfo.Difficulty), "Survival", TCHAR_TO_UTF8(*ServerInfo.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*ServerInfo.LobbyID), TCHAR_TO_UTF8(*ChatRoom), TCHAR_TO_UTF8(*Version), "", TCHAR_TO_UTF8(*TOD));
 		}
-	}
+	}*/
 #endif
 }
 
@@ -414,7 +418,8 @@ void AOrionPlayerController::Destroyed()
 #if IS_SERVER
 	//UOrionTCPLink::SaveCharacter(this);
 #else
-	LeaveLobby();
+	if(Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
+		LeaveLobby();
 #endif
 
 	//cleanup our menus so we don't get a garbage collection crash
@@ -726,6 +731,10 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 				PRI->ClassType = TEXT("RECON");
 				PRI->CharacterClass = TEXT("RECON");
 				break;
+			case 3:
+				PRI->ClassType = TEXT("TECH");
+				PRI->CharacterClass = TEXT("TECH");
+				break;
 			default:
 				PRI->ClassType = TEXT("NONE");
 				PRI->CharacterClass = TEXT("NONE");
@@ -760,6 +769,8 @@ int32 AOrionPlayerController::GetClassIndex()
 		return 1;
 	else if (ClassType == TEXT("RECON"))
 		return 2;
+	else if (ClassType == TEXT("TECH"))
+		return 3;
 
 	return 0;
 }
@@ -805,6 +816,9 @@ void AOrionPlayerController::ChangeClass(int32 index)
 		break;
 	case 2: //recon
 		P->SetClassArmor(2);
+		break;
+	case 3: //tech
+		P->SetClassArmor(3);
 		break;
 	};
 
@@ -1049,7 +1063,7 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 void AOrionPlayerController::CreateServerRoom()
 {
 #if !IS_SERVER
-	if (ServerInfo.LobbyID != TEXT(""))
+	/*if (ServerInfo.LobbyID != TEXT(""))
 	{
 		if (UPhotonProxy::GetListener())
 		{
@@ -1071,7 +1085,7 @@ void AOrionPlayerController::CreateServerRoom()
 				UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*ServerInfo.MapName), TCHAR_TO_UTF8(*ServerInfo.Difficulty), "Survival", TCHAR_TO_UTF8(*ServerInfo.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*GI->LobbyTicket), TCHAR_TO_UTF8(*ChatRoom), TCHAR_TO_UTF8(*Version), TCHAR_TO_UTF8(*ServerInfo.LobbyID));
 			}
 		}
-	}
+	}*/
 #endif
 }
 
@@ -1120,6 +1134,8 @@ void AOrionPlayerController::SendPlayerInfoToPhoton()
 				Level = CalculateLevel(PRI->SupportXP);
 			else if (GI->CharacterClass == TEXT("RECON"))
 				Level = CalculateLevel(PRI->ReconXP);
+			else if (GI->CharacterClass == TEXT("TECH"))
+				Level = CalculateLevel(PRI->TechXP);
 
 			FString strLevel = FString::Printf(TEXT("%i"),Level);
 
@@ -1227,6 +1243,13 @@ void AOrionPlayerController::AddXP(int32 Value)
 			Stats->AddStatValue(STAT_RECONEXP, Value); 
 			PRI->ReconXP = Stats->aStats[STAT_RECONEXP].StatValue;
 			NewCharacterXP = Stats->aStats[STAT_RECONEXP].StatValue;
+		}
+		else if (ClassIndex == 3)
+		{
+			OldCharacterXP = Stats->aStats[STAT_TECHEXP].StatValue;
+			Stats->AddStatValue(STAT_TECHEXP, Value);
+			PRI->TechXP = Stats->aStats[STAT_TECHEXP].StatValue;
+			NewCharacterXP = Stats->aStats[STAT_TECHEXP].StatValue;
 		}
 
 		int32 OldLevel = CalculateLevel(OldCharacterXP);
@@ -1619,13 +1642,17 @@ TArray<FOptionsData> AOrionPlayerController::GetGameplayOptions()
 	NewOption.Value = Settings->ControllerRumbleEnabled ? "ENABLED" : "DISABLED";
 	Options.Add(NewOption);
 
+	//NewOption.Title = TEXT("THIRD PERSON CAMERA");
+	//NewOption.Value = Settings->ThirdPersonEnabled ? "ENABLED" : "DISABLED";
+	//Options.Add(NewOption);
+
 	return Options;
 }
 
 TArray<FOptionsData> AOrionPlayerController::GetCreateCharacterOptions()
 {
 	TArray<FOptionsData> Options;
-	FOptionsData NewOption;
+	/*FOptionsData NewOption;
 
 	NewOption.Options.Empty();
 	NewOption.Title = TEXT("CLASS");
@@ -1644,7 +1671,7 @@ TArray<FOptionsData> AOrionPlayerController::GetCreateCharacterOptions()
 	NewOption.Title = TEXT("SUIT COLOR");
 	NewOption.Options.Add("AQUA");
 	NewOption.Options.Add("NAVY BLUE");
-	Options.Add(NewOption);
+	Options.Add(NewOption);*/
 
 	return Options;
 }
@@ -1871,6 +1898,7 @@ TArray<FString> AOrionPlayerController::GetCharacters()
 	Characters.Add(TEXT("ASSAULT"));
 	Characters.Add(TEXT("SUPPORT"));
 	Characters.Add(TEXT("RECON"));
+	Characters.Add(TEXT("TECH"));
 
 	return Characters;
 }
@@ -1879,6 +1907,7 @@ TArray<FString> AOrionPlayerController::GetGameModeSettings()
 {
 	TArray<FString> GameModes;
 
+	GameModes.Add(TEXT("MODE - SLAUGHTER"));
 	GameModes.Add(TEXT("MODE - SURVIVAL"));
 
 	return GameModes;
@@ -1897,7 +1926,7 @@ TArray<FString> AOrionPlayerController::GetPrivacySettings()
 
 FString AOrionPlayerController::GetBuildVersion()
 {
-	return TEXT("EA1.0.3");
+	return TEXT("EA1.1.0");
 }
 
 FString AOrionPlayerController::GetReviveButtonKeyboard()
@@ -2087,6 +2116,12 @@ TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
 	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);*/
 
+	NewOption.Title = TEXT("TOGGLE CAMERA VIEW");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("ToggleCamera", false, 0.0f);
+	NewOption.Action = TEXT("ToggleCamera");
+	NewOption.Scale = 0.0f;
+	Options.Add(NewOption);
+
 	return Options;
 }
 
@@ -2214,6 +2249,11 @@ TArray<FControllerOptionsData> AOrionPlayerController::GetControllerOptions()
 	//NewOption.Button = BUTTON_HOME;
 	//Options.Add(NewOption);
 
+	NewOption.Title = TEXT("TOGGLE CAMERA");
+	NewOption.Button = ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_ToggleCamera", false, 0.0f));
+	NewOption.Action = TEXT("Gamepad_ToggleCamera");
+	Options.Add(NewOption);
+
 	return Options;
 }
 
@@ -2226,13 +2266,14 @@ void AOrionPlayerController::ResetControllerLayout()
 	UOrionGameSettingsManager::RebindKey("Gamepad_Aim", "Gamepad_LeftTrigger", "Button", 1.0f);
 	UOrionGameSettingsManager::RebindKey("Gamepad_Melee", "Gamepad_RightThumbStick", "Button", 1.0f);
 	UOrionGameSettingsManager::RebindKey("Gamepad_ActivateSkill", "Gamepad_LeftShoulder", "Button", 1.0f);
-	UOrionGameSettingsManager::RebindKey("Gamepad_WeaponSlot3", "Gamepad_DPad_Down", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_WeaponSlot3", "Gamepad_DPad_Up", "Button", 1.0f);
 	UOrionGameSettingsManager::RebindKey("Gamepad_LastWeapon", "Gamepad_FaceButton_Top", "Button", 1.0f);
 	UOrionGameSettingsManager::RebindKey("Gamepad_ThrowGrenade", "Gamepad_RightShoulder", "Button", 1.0f);
-	UOrionGameSettingsManager::RebindKey("Gamepad_OpenInventory", "Gamepad_DPad_Up", "Button", 1.0f);
+	//UOrionGameSettingsManager::RebindKey("Gamepad_OpenInventory", "Gamepad_DPad_Up", "Button", 1.0f);
 	UOrionGameSettingsManager::RebindKey("Gamepad_OpenCharacterSelect", "Gamepad_Special_right", "Button", 1.0f);
 	//UOrionGameSettingsManager::RebindKey("Gamepad_OpenSkillTree", "Gamepad_DPad_Right", "Button", 1.0f);
 	UOrionGameSettingsManager::RebindKey("Gamepad_OpenScores", "Gamepad_Special_Left", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_ToggleCamera", "Gamepad_DPad_Down", "Button", 1.0f);
 
 	UOrionGameSettingsManager::SaveInput();
 }
@@ -2300,13 +2341,14 @@ int32 AOrionPlayerController::GetMaxLevel()
 		XP = PRI->AssaultXP;
 		XP = FMath::Max(XP, PRI->SupportXP);
 		XP = FMath::Max(XP, PRI->ReconXP);
+		XP = FMath::Max(XP, PRI->TechXP);
 	}
 
 	return CalculateLevel(XP);
 }
 
 //let photon handle this, so players can join and talk before a match actually starts, will allow multiple platforms to mingle
-void AOrionPlayerController::OpenLobby(FString MapName, FString MapDifficulty, FString Gamemode, FString Privacy)
+void AOrionPlayerController::OpenLobby(FString MapName, FString MapDifficulty, FString Gamemode, FString Privacy, FString TOD)
 {
 #if !IS_SERVER
 	if (UPhotonProxy::GetListener())
@@ -2326,7 +2368,7 @@ void AOrionPlayerController::OpenLobby(FString MapName, FString MapDifficulty, F
 
 			FString Version = GetBuildVersion();
 
-			UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*MapDifficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), "", "", TCHAR_TO_UTF8(*ChatRoom), TCHAR_TO_UTF8(*Version), "");
+			UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*MapDifficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), "", "", TCHAR_TO_UTF8(*ChatRoom), TCHAR_TO_UTF8(*Version), "", TCHAR_TO_UTF8(*TOD));
 		}
 	}
 #endif
@@ -2619,12 +2661,12 @@ void AOrionPlayerController::JoinChatRoom(FString Room)
 #endif
 }
 
-void AOrionPlayerController::FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket, FString Wave, FString Version, FString RoomName)
+void AOrionPlayerController::FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket, FString Wave, FString Version, FString RoomName, FString TOD)
 {
 #if !IS_SERVER
 	if (UPhotonProxy::GetListener())
 	{
-		UPhotonProxy::GetListener()->SetLobbySettings(TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*Difficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), TCHAR_TO_UTF8(*IP), TCHAR_TO_UTF8(*Ticket), TCHAR_TO_UTF8(*Wave), TCHAR_TO_UTF8(*Version), TCHAR_TO_UTF8(*RoomName));
+		UPhotonProxy::GetListener()->SetLobbySettings(TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*Difficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), TCHAR_TO_UTF8(*IP), TCHAR_TO_UTF8(*Ticket), TCHAR_TO_UTF8(*Wave), TCHAR_TO_UTF8(*Version), TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*TOD));
 	}
 #endif
 }
@@ -2757,6 +2799,8 @@ void AOrionPlayerController::BeginPlay()
 	bHereFromStart = false;
 	bPhotonReady = false;
 
+	AOrionGameMenu *Menu = Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode());
+
 #if !IS_SERVER
 	if (IsLocalPlayerController())
 	{
@@ -2777,8 +2821,11 @@ void AOrionPlayerController::BeginPlay()
 
 		//UOrionTCPLink::GetCharacterData(this);
 
-		FTimerHandle Handle;
-		GetWorldTimerManager().SetTimer(Handle, this, &AOrionPlayerController::TickPhoton, 0.5f, true);
+		if (Menu)
+		{
+			FTimerHandle Handle;
+			GetWorldTimerManager().SetTimer(Handle, this, &AOrionPlayerController::TickPhoton, 0.5f, true);
+		}
 
 		GetWorldTimerManager().SetTimer(TutorialTimer, this, &AOrionPlayerController::TickGenericTutorials, 35.0f, false);
 
@@ -2836,6 +2883,8 @@ void AOrionPlayerController::BeginPlay()
 		//if we're no in the main menu, reset photon junk
 		if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) == nullptr)
 			UPhotonProxy::Reset();
+
+		SetThirdPerson();
 	}
 #endif
 
@@ -2859,29 +2908,78 @@ void AOrionPlayerController::BeginPlay()
 	}
 
 #if !IS_SERVER
-	AOrionGameMenu *Menu = Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode());
-
 	if (Menu && !Menu->LobbyIP.IsEmpty())
 		JoinLobby(Menu->LobbyIP);
 #endif
+}
+
+void AOrionPlayerController::SetThirdPerson()
+{
+	if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) != nullptr)
+	{
+		bThirdPersonCamera = false;
+
+		bShowMouseCursor = true;
+
+		//FInputModeGameOnly Data;
+		//Data.SetLockMouseToViewport(true);
+
+		//SetInputMode(Data);
+
+		return;
+	}
+
+	UOrionGameUserSettings *Settings = nullptr;
+
+	if (GEngine && GEngine->GameUserSettings)
+		Settings = Cast<UOrionGameUserSettings>(GEngine->GameUserSettings);
+
+	if (Settings)
+		bThirdPersonCamera = Settings->ThirdPersonEnabled;
+	else
+		bThirdPersonCamera = false;
+
+	if (Role < ROLE_Authority)
+		ServerSetThirdPersonCamera(bThirdPersonCamera);
 }
 
 void AOrionPlayerController::ToggleThirdPerson() 
 { 
 	bThirdPersonCamera = !bThirdPersonCamera; 
 
+	float Length = 0.75f - FMath::Min(GetWorld()->TimeSeconds - LastCameraToggleTime, 0.75f);
+
+	LastCameraToggleTime = GetWorld()->TimeSeconds - Length;
+
 	if (!bThirdPersonCamera)
 	{
-		bShowMouseCursor = true;
+		//bShowMouseCursor = true;
+
+		//FInputModeGameOnly Data;
+		//Data.SetLockMouseToViewport(true);
+
+		//SetInputMode(Data);
+	}
+	else
+	{
+		//bShowMouseCursor = false;
 
 		FInputModeGameOnly Data;
 		//Data.SetLockMouseToViewport(true);
 
 		SetInputMode(Data);
 	}
-	else
+
+	//save for us
+	UOrionGameUserSettings *Settings = nullptr;
+
+	if (GEngine && GEngine->GameUserSettings)
+		Settings = Cast<UOrionGameUserSettings>(GEngine->GameUserSettings);
+
+	if (Settings)
 	{
-		bShowMouseCursor = false;
+		Settings->ThirdPersonEnabled = bThirdPersonCamera;
+		Settings->SaveConfig();
 	}
 
 	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
@@ -3398,7 +3496,8 @@ void AOrionPlayerController::GetFriends()
 
 			FOnReadFriendsListComplete ReadFriendsDelegate = FOnReadFriendsListComplete::CreateUObject(this, &AOrionPlayerController::ReadFriendsDelegate);
 
-			FriendsInt->ReadFriendsList(0, EFriendsLists::ToString(EFriendsLists::Default), ReadFriendsDelegate);
+			if (FriendsInt.IsValid())
+				FriendsInt->ReadFriendsList(0, EFriendsLists::ToString(EFriendsLists::Default), ReadFriendsDelegate);
 		}
 	}
 }
@@ -3531,9 +3630,9 @@ void AOrionPlayerController::TickPhoton()
 				RoomName.Append(TEXT("'s Server"));
 				FString Version = GetBuildVersion();
 				FString Wave = GRI->WaveNum > 9 ? FString::Printf(TEXT("WAVE %i"), GRI->WaveNum) : FString::Printf(TEXT("WAVE 0%i"), GRI->WaveNum);
-				UPhotonProxy::GetListener()->SetLobbySettings(TCHAR_TO_UTF8(*ServerInfo.MapName), TCHAR_TO_UTF8(*ServerInfo.Difficulty), "SURVIVAL",
+				UPhotonProxy::GetListener()->SetLobbySettings(TCHAR_TO_UTF8(*ServerInfo.MapName), TCHAR_TO_UTF8(*ServerInfo.Difficulty), TCHAR_TO_UTF8(*ServerInfo.GameMode),
 					TCHAR_TO_UTF8(*ServerInfo.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*ServerInfo.LobbyID), TCHAR_TO_UTF8(*Wave), TCHAR_TO_UTF8(*Version),
-					TCHAR_TO_UTF8(*RoomName));
+					TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*ServerInfo.TOD));
 			}
 		}
 	}
@@ -3573,7 +3672,9 @@ void AOrionPlayerController::InitStatsAndAchievements()
 //#if IS_SERVER
 		if (Stats && Role == ROLE_Authority)
 		{
-			Stats->ReadPlayerStats(this);
+			if (!Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
+				Stats->ReadPlayerStats(this);
+
 			Stats->PCOwner = this;
 		}
 //#endif
@@ -3586,7 +3687,9 @@ void AOrionPlayerController::InitStatsAndAchievements()
 //#if IS_SERVER
 		if (Stats && Role == ROLE_Authority)
 		{
-			Achievements->ReadPlayerAchievements(this);
+			if (!Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
+				Achievements->ReadPlayerAchievements(this);
+			
 			Achievements->PCOwner = this;
 		}
 //#endif

@@ -13,6 +13,137 @@ UOrionMovementComponent::UOrionMovementComponent(const FObjectInitializer& Objec
 	//bReplicates = true;
 }
 
+FOrionNetworkPredictionData_Client_Character::FOrionNetworkPredictionData_Client_Character(const UCharacterMovementComponent& ClientMovement) 
+	: FNetworkPredictionData_Client_Character(ClientMovement)
+{
+}
+
+FNetworkPredictionData_Client* UOrionMovementComponent::GetPredictionData_Client() const
+{
+	// Should only be called on client in network games
+	check(CharacterOwner != NULL);
+	check(CharacterOwner->Role < ROLE_Authority);
+	check(GetNetMode() == NM_Client);
+
+	if (!ClientPredictionData)
+	{
+		UOrionMovementComponent* MutableThis = const_cast<UOrionMovementComponent*>(this);
+		MutableThis->ClientPredictionData = new FOrionNetworkPredictionData_Client_Character(*this);
+	}
+
+	return ClientPredictionData;
+}
+
+FSavedMovePtr FOrionNetworkPredictionData_Client_Character::AllocateNewMove()
+{
+	return FSavedMovePtr(new FOrionSavedMove_Character());
+}
+
+uint8 FOrionSavedMove_Character::GetCompressedFlags() const
+{
+	uint8 Result = 0;
+
+	if (bExitShip)
+	{
+		Result |= FLAG_Custom_0;
+	}
+
+	return Result;
+}
+
+void UOrionMovementComponent::UpdateFromCompressedFlags(uint8 Flags)
+{
+	if (!CharacterOwner)
+	{
+		return;
+	}
+
+	if ((Flags & FSavedMove_Character::FLAG_WantsToCrouch) != 0)
+	{
+		AOrionCharacter *P = Cast<AOrionCharacter>(CharacterOwner);
+
+		if (P && !P->bExitShip)
+		{
+			FWeaponAnim Info;
+			Info.Pawn3P = P->ExitShipAnim;
+
+			P->bExitShip = true;
+
+			float length = 1.1f;
+
+			length = P->OrionPlayAnimMontage(Info, 1.0f, TEXT(""), false, false, true);
+		}
+	}
+}
+
+void FOrionSavedMove_Character::Clear()
+{
+	bPressedJump = false;
+	bWantsToCrouch = false;
+	bForceMaxAccel = false;
+	bForceNoCombine = false;
+	bOldTimeStampBeforeReset = false;
+
+	TimeStamp = 0.f;
+	DeltaTime = 0.f;
+	CustomTimeDilation = 1.0f;
+	JumpKeyHoldTime = 0.0f;
+	MovementMode = 0;
+
+	StartLocation = FVector::ZeroVector;
+	StartRelativeLocation = FVector::ZeroVector;
+	StartVelocity = FVector::ZeroVector;
+	StartFloor = FFindFloorResult();
+	StartRotation = FRotator::ZeroRotator;
+	StartControlRotation = FRotator::ZeroRotator;
+	StartBaseRotation = FQuat::Identity;
+	StartCapsuleRadius = 0.f;
+	StartCapsuleHalfHeight = 0.f;
+	StartBase = NULL;
+	StartBoneName = NAME_None;
+
+	SavedLocation = FVector::ZeroVector;
+	SavedRotation = FRotator::ZeroRotator;
+	SavedRelativeLocation = FVector::ZeroVector;
+	Acceleration = FVector::ZeroVector;
+	SavedControlRotation = FRotator::ZeroRotator;
+	EndBase = NULL;
+	EndBoneName = NAME_None;
+
+	RootMotionMontage = NULL;
+	RootMotionTrackPosition = 0.f;
+	RootMotionMovement.Clear();
+
+	bExitShip = false;
+}
+
+void FOrionSavedMove_Character::SetMoveFor(ACharacter* Character, float InDeltaTime, FVector const& NewAccel, class FNetworkPredictionData_Client_Character & ClientData)
+{
+	DeltaTime = InDeltaTime;
+
+	SetInitialPosition(Character);
+
+	AccelMag = NewAccel.Size();
+	AccelNormal = (AccelMag > SMALL_NUMBER ? NewAccel / AccelMag : FVector::ZeroVector);
+
+	// Round value, so that client and server match exactly (and so we can send with less bandwidth). This rounded value is copied back to the client in ReplicateMoveToServer.
+	// This is done after the AccelMag and AccelNormal are computed above, because those are only used client-side for combining move logic and need to remain accurate.
+	Acceleration = Character->GetCharacterMovement()->RoundAcceleration(NewAccel);
+
+	bPressedJump = Character->bPressedJump;
+	JumpKeyHoldTime = Character->JumpKeyHoldTime;
+	bWantsToCrouch = Character->GetCharacterMovement()->bWantsToCrouch;
+	bForceMaxAccel = Character->GetCharacterMovement()->bForceMaxAccel;
+	MovementMode = Character->GetCharacterMovement()->PackNetworkMovementMode();
+
+	AOrionCharacter *P = Cast<AOrionCharacter>(Character);
+
+	if (P)
+		bExitShip = P->bExitShip;
+
+	TimeStamp = ClientData.CurrentTimeStamp;
+}
+
 /*void UOrionMovementComponent::ServerMove_Implementation(
 	float TimeStamp,
 	FVector_NetQuantize100 InAccel,
@@ -117,7 +248,9 @@ float UOrionMovementComponent::GetMaxSpeed() const
 
 	if (OrionCharacterOwner)
 	{
-		if (Cast<AOrionDinoPawn>(PawnOwner))
+		if (OrionCharacterOwner->bStunned)
+			SpeedMod = 0.0f;
+		else if (Cast<AOrionDinoPawn>(PawnOwner))
 		{
 			SpeedMod *= 1.0f;
 		}
@@ -185,13 +318,21 @@ void UOrionMovementComponent::CalcVelocity(float DeltaTime, float Friction, bool
 		if (OrionCharacterOwner->IsRolling())
 		{
 			//Velocity.Normalize();
-			//Velocity = Velocity*0.0f;
-			Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
+			//Velocity = Velocity*1200.0f;
+			Super::CalcVelocity(DeltaTime, 0.0f, false, 0.0f);// Friction, bFluid, BrakingDeceleration);
 			return;
 		}
-		else if ((OrionCharacterOwner->ThirdPersonCameraComponent || !OrionCharacterOwner->IsTopDown()) && OrionCharacterOwner->IsSprinting() && IsMovingOnGround())
+		else if ((OrionCharacterOwner->bThirdPersonCamera || !OrionCharacterOwner->IsTopDown()) && OrionCharacterOwner->IsSprinting() && IsMovingOnGround())
 		{
-			Velocity = OrionCharacterOwner->GetActorRotation().Vector()*GetMaxSpeed();
+			Super::CalcVelocity(DeltaTime, Friction, bFluid, BrakingDeceleration);
+
+			//rare crash
+			if (Velocity.ContainsNaN())
+				Velocity = FVector(0.0f);
+
+			if (OrionCharacterOwner->bRun && !OrionCharacterOwner->bBlinking && (Velocity.Size2D() < 1.0f || FVector::DotProduct(Velocity.GetSafeNormal(), OrionCharacterOwner->GetActorRotation().Vector()) < 0.5f))
+				OrionCharacterOwner->StopSprint();
+			//Velocity = OrionCharacterOwner->GetActorRotation().Vector()*GetMaxSpeed();
 			return;
 		}
 	}

@@ -78,6 +78,21 @@ public:
 	virtual void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 
+	bool bSinglePlayer;
+
+	virtual int32 GetOrionNumPlayers() 
+	{
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
+
+		if (Difficulty == DIFF_REDIKULOUS)
+			return 4;
+
+		if (GRI)
+			return GRI->PlayerList.Num();
+
+		return 4;
+	}
+
 	virtual void SetShip(AOrionShipPawn *Ship, int32 Index){}
 
 	UPROPERTY(BlueprintReadOnly, Category = Game)
@@ -86,13 +101,17 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = Game)
 		bool bTopDown;
 
-	float ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, struct FDamageEvent const& DamageEvent, class AController *EventInstigator, class AActor *DamageCauser);
+	virtual float ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, struct FDamageEvent const& DamageEvent, class AController *EventInstigator, class AActor *DamageCauser);
 
 	void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
+
+	virtual bool IsSlaughter() { return false; }
 
 	void InitGRI();
 	void WarmupOver();
 	void StartMatch() override;
+
+	bool bNightTime;
 
 	virtual void SpawnWave() {}
 

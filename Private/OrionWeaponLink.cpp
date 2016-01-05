@@ -169,7 +169,7 @@ void AOrionWeaponLink::OnRep_ChainLinks()
 		Target.LinkTarget = Link;
 		Target.BeamPSC = nullptr;
 
-		if (ChainBeamPSC.Find(Target) == INDEX_NONE)
+		if (ChainBeamPSC.Find(Target) == INDEX_NONE && LinkTarget)
 		{
 			Target.BeamPSC = UGameplayStatics::SpawnEmitterAttached(BeamFX, LinkTarget->GetMesh(), "AutoAim");
 
@@ -625,6 +625,9 @@ bool AOrionWeaponLink::CanLink(ACharacter *Target)
 void AOrionWeaponLink::ValidateLinkTarget(float DeltaSeconds)
 {
 	bool bExit = false;
+
+	if (LinkTarget && !LinkTarget->IsValidLowLevel())
+		LinkTarget = nullptr;
 
 	if (!LinkTarget || !MyPawn)
 		return;

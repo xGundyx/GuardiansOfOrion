@@ -8,22 +8,25 @@
 UOrionGameInstance::UOrionGameInstance(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	bLoading = false;
 }
 
 void UOrionGameInstance::ShowLoadingScreen()
 {
-	FLoadingScreenAttributes LoadingScreen;
+	bLoading = true;
+	/*FLoadingScreenAttributes LoadingScreen;
 
 	LoadingScreen.bAutoCompleteWhenLoadingCompletes = false;
 	LoadingScreen.WidgetLoadingScreen = FLoadingScreenAttributes::NewTestLoadingScreenWidget(); // <-- test screen that comes with UE
 
 	GetMoviePlayer()->SetupLoadingScreen(LoadingScreen);
-	GetMoviePlayer()->PlayMovie();
+	GetMoviePlayer()->PlayMovie();*/
 }
 
 void UOrionGameInstance::StopLoadingScreen()
 {
-	GetMoviePlayer()->StopMovie();
+	bLoading = false;
+	//GetMoviePlayer()->StopMovie();
 }
 
 //overridden to 

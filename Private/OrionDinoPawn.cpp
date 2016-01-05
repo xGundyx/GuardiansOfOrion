@@ -16,16 +16,27 @@ AOrionDinoPawn::AOrionDinoPawn(const FObjectInitializer& ObjectInitializer)
 	ShieldMax = 0.0f;
 }
 
+void AOrionDinoPawn::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	// everyone
+	DOREPLIFETIME(AOrionDinoPawn, bChargeAttack);
+}
+
 FVector2D AOrionDinoPawn::GetAim(float DeltaTime)
 {
 	FVector pos;
 	FRotator rot;
 	APawn *Target;
 
+	if (bStunned)
+		return FVector2D(0.0f, -0.5f);
+
 	if (bChargeAttack)
 		return FVector2D(0.0f, -0.5f);
 
-	if (bFinishingMove)
+	if (bFinishingMove || bFatality)
 		return FVector2D(0.0f, 0.0f);
 
 	if (!Controller)

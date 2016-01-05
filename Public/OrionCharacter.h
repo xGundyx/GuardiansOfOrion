@@ -516,6 +516,19 @@ public:
 	virtual void UpdateGrenadeTarget(float DeltaSeconds) {}
 	virtual void CancelGrenadeTarget();
 
+	UFUNCTION()
+		void OnRep_Stun();
+
+	UPROPERTY(ReplicatedUsing = OnRep_Stun, BlueprintReadWrite, Category = RPG)
+		bool bStunned;
+
+	FTimerHandle StunTimer;
+
+	UFUNCTION(BlueprintCallable, Category = RPG)
+		void Stunned(float Duration);
+
+	void EndStun();
+
 	FVector GrenadeTargetLocation;
 
 	//press G to bring up target, and fire to throw at the target
@@ -603,8 +616,18 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Fatality)
 		bool bFatalityRemove;
 
-	bool bFinishingMove;
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Fatality)
+		bool bFinishingMove;
+	
 	void ResetFatality();
+
+	bool CheckForCompySlice();
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Fatality)
+		AOrionCharacter *FatalityVictim;
+
+	UFUNCTION(BlueprintCallable, Category = Fatality)
+		void CutOffLimb(EGibType Limb);
 
 	//pointer to the enemy that is finishing us (mainly for camera work)
 	AOrionCharacter *Finisher;
@@ -617,6 +640,16 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
 		class UParticleSystemComponent* EliteFX;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
+		class UParticleSystem* StunnedFX;
+
+	UParticleSystemComponent *StunnedPSC;
+
+	UPROPERTY(EditDefaultsOnly, Category = Mesh)
+		float StunScale;
+
+	void PlayStunEffect(bool bOn);
 
 	void ShowEliteFX(bool bShow);
 
@@ -673,6 +706,14 @@ public:
 
 	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = Camera)
 		bool bAim;
+
+	FVector CameraTarget3P;
+	FVector CameraTargetISO;
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerCompySlice(AOrionCharacter *Target);
+		bool ServerCompySlice_Validate(AOrionCharacter *Target) { return true; }
+		void ServerCompySlice_Implementation(AOrionCharacter *Target);
 
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerDuck(bool bNewDuck);
@@ -744,6 +785,15 @@ public:
 	* @param Weapon	Weapon to remove.
 	*/
 	void RemoveWeapon(class AOrionWeapon* Weapon);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = AI)
+		bool bCanAttackJetpackers;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Compy)
+		UAnimMontage* PlayerSliceAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Compy)
+		UAnimMontage* CompySliceAnim;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		UAnimMontage* DeathAnim;
@@ -1202,6 +1252,10 @@ public:
 	void StopAiming();
 
 	void DoMelee();
+	void UnMelee();
+	void EndMelee();
+
+	FTimerHandle MeleeHoldTimer;
 
 	void Duck();
 	void UnDuck();
@@ -1229,8 +1283,11 @@ public:
 
 	void ResetStopSpecialMove();
 
-	UPROPERTY(Replicated)
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Aim)
 		FVector_NetQuantize/*FVector*/ AimPos;
+
+	//zoom in closer during aiming
+	float ThirdPersonAdjust;
 
 	UFUNCTION(server, reliable, WithValidation)
 		void ServerActivateSkill();
@@ -1348,6 +1405,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AI)
 		bool bIsBigDino;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AI)
+		bool bCanBreakDestruction;
+
 	UPROPERTY(BlueprintReadWrite, Category = Projectile)
 		class AOrionProjectile *SpecialProjectile;
 
@@ -1387,6 +1447,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, Category = Inventory)
 		TArray<TSubclassOf<class AOrionWeapon> > DefaultReconInventoryClasses;
+
+	UPROPERTY(EditDefaultsOnly, Category = Inventory)
+		TArray<TSubclassOf<class AOrionWeapon> > DefaultTechInventoryClasses;
 
 	void SpawnClassWeapons(int32 ClassIndex);
 
@@ -1504,6 +1567,11 @@ public:
 	/** currently equipped weapon */
 	UPROPERTY(Transient, ReplicatedUsing = OnRep_NextWeapon)
 	class AOrionWeapon* NextWeapon;
+
+	bool bExitShip;
+
+	UPROPERTY(BlueprintReadWrite, Category = AI)
+		bool bTempAlwaysRotate;
 
 protected:
 	UFUNCTION()

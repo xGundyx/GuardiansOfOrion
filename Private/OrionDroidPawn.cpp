@@ -40,13 +40,13 @@ void AOrionDroidPawn::HandleSpecialWeaponFire(FName SocketName)
 			if (C && C->GetEnemy())
 			{
 				FVector TossVelocity;
-				if (UGameplayStatics::SuggestProjectileVelocity(GetWorld(), TossVelocity, pos + GetActorRotation().Vector() * 50.0f, C->GetEnemy()->GetActorLocation(), 2000.0f, false))
+				if (UGameplayStatics::SuggestProjectileVelocity(GetWorld(), TossVelocity, pos + GetActorRotation().Vector() * 50.0f, C->GetEnemy()->GetActorLocation(), 800.0f, false))
 					dir = TossVelocity;
 				else
-					dir = (GetActorRotation().Vector() + FVector(0.0f, 0.0f, 0.5f)).GetSafeNormal() * 2000.0f;
+					dir = (GetActorRotation().Vector() + FVector(0.0f, 0.0f, 0.5f)).GetSafeNormal() * 800.0f;
 			}
 			else
-				dir = (GetActorRotation().Vector() + FVector(0.0f, 0.0f, 0.5f)).GetSafeNormal() * 2000.0f;
+				dir = (GetActorRotation().Vector() + FVector(0.0f, 0.0f, 0.5f)).GetSafeNormal() * 800.0f;
 		}
 		else
 			dir = rot.Vector();

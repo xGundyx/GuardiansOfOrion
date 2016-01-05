@@ -1,6 +1,8 @@
 #include "Orion.h"
 #include "OrionAbility.h"
 
+class ALandscape;
+
 AOrionAbility::AOrionAbility(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
@@ -81,6 +83,62 @@ void AOrionAbility::BeginPlay()
 	Super::BeginPlay();
 }
 
+//try to spawn our ability, only spawnable on landscape
+//called on client, and then sent to server
+void AOrionAbility::TriggerTarget(AOrionCharacter *Pawn)
+{
+	if (!Pawn)
+		return;
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Pawn->Controller);
+
+	if (PC)
+	{
+		FHitResult Hit;
+
+		PC->GetHitResultUnderCursor(ECC_Visibility, false, Hit);
+
+		if (Cast<ALandscape>(Hit.GetActor()))
+		{
+			if((GetActorLocation() - Pawn->GetActorLocation()).Size2D() > 700.0f)
+				return;
+
+			EventTriggerTarget();
+
+			EventHideTarget();
+
+			bTargetting = false;
+
+			//FVector dir = (Hit.Location - Pawn->GetActorLocation()).GetSafeNormal2D();
+
+			if (Role < ROLE_Authority)
+				ServerTriggerTarget(PC, GetActorLocation(), GetActorRotation());// Hit.Location, dir.Rotation());
+			else
+				SpawnItem(PC, GetActorLocation(), GetActorRotation());//Hit.Location, dir.Rotation());
+		}
+	}
+}
+
+void AOrionAbility::ServerTriggerTarget_Implementation(AOrionPlayerController *PC, FVector pos, FRotator rot)
+{
+	SpawnItem(PC, pos, rot);
+}
+
+void AOrionAbility::SpawnItem(AOrionPlayerController *PC, FVector pos, FRotator rot)
+{
+	Energy = 0.0f;
+	//TimeSinceLastActive = GetWorld()->TimeSeconds;
+
+	if (!PlaceableItemClass)
+		return;
+
+	FActorSpawnParameters SpawnInfo;
+	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+	SpawnInfo.Owner = PC;
+
+	GetWorld()->SpawnActor<AOrionPlaceableItem>(PlaceableItemClass, pos, rot, SpawnInfo);
+}
+
 bool AOrionAbility::ActivateSkill()
 {
 	if (!bIsSkillActive && Energy > 5.0f)
@@ -89,6 +147,18 @@ bool AOrionAbility::ActivateSkill()
 		{
 			if (Energy >= OneShotEnergyCost)
 			{
+				if (bTarget)
+				{
+					if (bTargetting)
+						EventHideTarget();
+					else
+						EventShowTarget();
+
+					bTargetting = !bTargetting;
+
+					return true;
+				}
+
 				Energy -= OneShotEnergyCost;
 				//bIsSkillActive = true;
 				TimeSinceLastActive = GetWorld()->TimeSeconds;
