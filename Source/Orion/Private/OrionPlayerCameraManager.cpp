@@ -55,14 +55,24 @@ void AOrionPlayerCameraManager::UpdateCamera(float DeltaTime)
 	}
 }
 
-void AOrionPlayerCameraManager::ProcessViewRotation(float DeltaTime, FRotator& OutViewRotation, FRotator& OutDeltaRot)\
+void AOrionPlayerCameraManager::ProcessViewRotation(float DeltaTime, FRotator& OutViewRotation, FRotator& OutDeltaRot)
 {
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(PCOwner);
+
+	if (PC && PC->bThirdPersonCamera)
+		ViewPitchMin = -45.0f;
+	else
+		ViewPitchMin = -87.0f;
+
 	if (GetNetMode() == NM_DedicatedServer)
 	{
 		Super::ProcessViewRotation(DeltaTime, OutViewRotation, OutDeltaRot);
 		return;
 	}
 	OutViewRotation = OldRotation;
+
+	if (!PC->bThirdPersonCamera)
+		OutViewRotation = PC->GetControlRotation();
 
 	Super::ProcessViewRotation(DeltaTime, OutViewRotation, OutDeltaRot);
 

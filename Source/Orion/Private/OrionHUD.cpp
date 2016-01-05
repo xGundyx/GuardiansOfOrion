@@ -5,18 +5,57 @@
 #include "Engine/Canvas.h"
 #include "TextureResource.h"
 #include "CanvasItem.h"
+#include "SlateBasics.h"
+#include "SlateExtras.h"
+#include "MoviePlayer.h"
+#include "OrionGameInstance.h"
 
 AOrionHUD::AOrionHUD(const FObjectInitializer& ObjectInitializer) : Super(ObjectInitializer)
 {
 	// Set the crosshair texture
 	static ConstructorHelpers::FObjectFinder<UTexture2D> CrosshiarTexObj(TEXT("/Game/Textures/Crosshair"));
 	CrosshairTex = CrosshiarTexObj.Object;
+
+	static ConstructorHelpers::FObjectFinder<UTexture2D> LoadingTexObj(TEXT("/Game/FrontEnd/GOOImages/Loading/GOO-LoadingScreen-Gamepad-1080p"));
+	LoadingTex = LoadingTexObj.Object;
 }
 
+void AOrionHUD::BeginPlay()
+{		
+	/*FLoadingScreenAttributes LoadingScreen;
+	LoadingScreen.bAutoCompleteWhenLoadingCompletes = false;// true;
+	LoadingScreen.bMoviesAreSkippable = false;
+	LoadingScreen.WidgetLoadingScreen = FLoadingScreenAttributes::NewTestLoadingScreenWidget();
+
+	GetMoviePlayer()->SetupLoadingScreen(LoadingScreen);
+	GetMoviePlayer()->PlayMovie();*/
+}
 
 void AOrionHUD::DrawHUD()
 {
 	Super::DrawHUD();
+
+	UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
+
+	if (GI && GI->bLoading)
+	{
+		FCanvasTileItem LoadItem(FVector2D(0.0f, 0.0f), LoadingTex->Resource, FLinearColor::White);
+		LoadItem.BlendMode = SE_BLEND_Opaque;
+		LoadItem.Size = FVector2D(Canvas->SizeX, Canvas->SizeY);
+		//LoadItem.Z = 1000;
+		Canvas->DrawItem(LoadItem);
+	}
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetOwningPlayerController());
+
+	if (PC && (!PC->bThirdPersonCamera || PC->bToggleHUD || PC->OverviewCamera))
+		return;
+
+	//if we're on a ship, remove the crosshair
+	AOrionCharacter *Pawn = Cast<AOrionCharacter>(PC->GetPawn());
+
+	if (Pawn && Pawn->IsOnShip())
+		return;
 
 	// Draw very simple crosshair
 

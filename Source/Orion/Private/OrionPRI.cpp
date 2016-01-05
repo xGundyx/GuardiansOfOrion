@@ -34,6 +34,8 @@ int32 AOrionPRI::GetXPIntoLevel()
 		XP = AssaultXP;
 	else if (ClassType == "RECON")
 		XP = ReconXP;
+	else if (ClassType == "TECH")
+		XP = TechXP;
 	else
 		return 0;
 
@@ -316,6 +318,8 @@ int32 AOrionPRI::GetCharacterLevel(ECharacterClass CharacterType)
 		XP = AssaultXP;
 	else if (CharacterType == ECharacterClass::CLASS_RECON)
 		XP = ReconXP;
+	else if (CharacterType == ECharacterClass::CLASS_TECH)
+		XP = TechXP;
 	else
 		return 1;
 
@@ -332,6 +336,8 @@ int32 AOrionPRI::GetXPToLevel()
 		XP = AssaultXP;
 	else if (ClassType == "RECON")
 		XP = ReconXP;
+	else if (ClassType == "TECH")
+		XP = TechXP;
 	else
 		return 1;
 
@@ -387,6 +393,7 @@ void AOrionPRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionPRI, AssaultXP);
 	DOREPLIFETIME(AOrionPRI, SupportXP);
 	DOREPLIFETIME(AOrionPRI, ReconXP);
+	DOREPLIFETIME(AOrionPRI, TechXP);
 
 	//photon
 	DOREPLIFETIME(AOrionPRI, ServerInfo);

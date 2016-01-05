@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Engine/GameInstance.h"
+#include "OrionLoadingWidget.h"
 #include "OrionGameInstance.generated.h"
 
 /**
@@ -41,4 +42,9 @@ public:
 		void StopLoadingScreen();
 
 	void StartGameInstance() override;
+
+	UPROPERTY(BlueprintReadWrite, Category = Loading)
+		UOrionLoadingWidget *LoadingScreen;
+
+	bool bLoading;
 };

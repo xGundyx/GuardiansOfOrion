@@ -102,7 +102,8 @@ FOrionGameplaySettings UOrionGameSettingsManager::GetGameplaySettings()
 	OutGameplay.Tutorial = Settings->TutorialsEnabled;
 	OutGameplay.Gore = Settings->GoreEnabled;
 	OutGameplay.AchievementNotify = Settings->AchievementNotifiesEnabled;
-	OutGameplay.Rumble= Settings->ControllerRumbleEnabled;
+	OutGameplay.Rumble = Settings->ControllerRumbleEnabled;
+	OutGameplay.ThirdPerson = Settings->ThirdPersonEnabled;
 
 	return OutGameplay;
 }
@@ -116,6 +117,7 @@ void UOrionGameSettingsManager::SetGameplaySettings(FOrionGameplaySettings InSet
 	Settings->GoreEnabled = InSettings.Gore;
 	Settings->AchievementNotifiesEnabled = InSettings.AchievementNotify;
 	Settings->ControllerRumbleEnabled = InSettings.Rumble;
+	Settings->ThirdPersonEnabled = InSettings.ThirdPerson;
 
 	if (Settings)
 		Settings->SaveConfig();

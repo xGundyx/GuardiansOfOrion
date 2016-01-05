@@ -477,7 +477,7 @@ void AOrionAIController::UpdateControlRotation(float DeltaTime, bool bUpdatePawn
 	AOrionCharacter *Pawn = Cast<AOrionCharacter>(GetPawn());
 	AOrionDinoPawn *Dino = Cast<AOrionDinoPawn>(GetPawn());
 
-	if (!FocalPoint.IsZero() && Pawn && (Pawn->GetVelocity().SizeSquared2D() > 10.0f || Pawn->bAlwaysRotate || (Dino && Dino->bChargingAttack)))
+	if (!FocalPoint.IsZero() && Pawn && !Pawn->bStunned && (Pawn->GetVelocity().SizeSquared2D() > 10.0f || Pawn->bAlwaysRotate || Pawn->bTempAlwaysRotate || (Dino && Dino->bChargingAttack)))
 	{
 		FVector Direction = FocalPoint - GetPawn()->GetActorLocation();
 		
@@ -533,7 +533,7 @@ void AOrionAIController::SetEnemy(APawn *pEnemy)
 		else if (Droid)
 			PawnName = Droid->DroidName;
 
-		if (FMath::FRandRange(0, 5) == 2)
+		if (Dino && Dino->bIsBigDino && FMath::RandRange(0, 5) == 2)
 			Game->PlayRandomVoiceFromPlayer(VOICE_WHATISTHAT);
 		else if (PawnName == "TREX")
 			Game->PlayRandomVoiceFromPlayer(VOICE_TREX);
@@ -565,6 +565,10 @@ void AOrionAIController::SetEnemy(APawn *pEnemy)
 
 	if (BlackBoard)
 	{
+		//stop us from doing our current movement so we can move to our new target?
+		if (myEnemy != pEnemy)
+			StopMovement();
+
 		myEnemy = pEnemy;
 		BlackBoard->SetValueAsObject(TEXT("Enemy"), myEnemy);
 	}
@@ -633,6 +637,10 @@ void AOrionAIController::CheckEnemyStatus()
 		//ignored downed
 		else if (pEnemy->bDowned)
 			bRemoveEnemy = true;
+		else if (pEnemy->CurrentSkill && pEnemy->CurrentSkill->IsJetpacking() && !pPawn->bCanAttackJetpackers)
+			bRemoveEnemy = true;
+		else if (!pPawn->bCanAttackJetpackers && !IsValidTarget(pEnemy))
+			return;
 	}
 
 	if (bRemoveEnemy)
@@ -724,6 +732,30 @@ void AOrionAIController::OnHearNoise(APawn *HeardPawn, const FVector &Location, 
 
 }
 
+bool AOrionAIController::IsValidTarget(AOrionCharacter *pTarget)
+{
+	if (!pTarget || !pTarget->IsValidLowLevel())
+		return false;
+
+	if (pTarget->bIsHealableMachine)
+		return true;
+
+	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
+
+	if (!P)
+		return false;
+
+	TSharedPtr<const FNavigationQueryFilter> QueryFilter = UNavigationQueryFilter::GetQueryFilter(GetWorld()->GetNavigationSystem()->MainNavData, P->DefaultFilterClass);
+	if (!GetWorld()->GetNavigationSystem()->TestPathSync(FPathFindingQuery(nullptr, GetWorld()->GetNavigationSystem()->MainNavData, 
+		P->GetActorLocation() - 0.9f * P->GetCapsuleComponent()->GetScaledCapsuleHalfHeight(), pTarget->GetActorLocation() - 0.9f * pTarget->GetCapsuleComponent()->GetScaledCapsuleHalfHeight(), QueryFilter)))
+	{
+		// Point is not on NavMesh or not reachable for some other reason
+		return false;
+	}
+
+	return true;
+}
+
 void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 {
 	//for damage taken bugs
@@ -749,6 +781,19 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 
 	//no changing enemies during attacks/fatalities
 	if (P && P->GetCurrentMontage())
+		return;
+
+	if (!pPawn || !P)
+		return;
+
+	if (P && P->bFinishingMove)
+		return;
+
+	//ignore jetpackers if we must
+	if (pPawn->CurrentSkill && pPawn->CurrentSkill->IsJetpacking() && !P->bCanAttackJetpackers)
+		return;
+
+	if (!P->bCanAttackJetpackers && !IsValidTarget(pPawn))
 		return;
 
 	//ignore stuff inside smoke
@@ -783,7 +828,7 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 		return;
 
 	//if we have an enemy already, only attack if this target is a better choice
-	if (myEnemy && myEnemy->IsValidLowLevel())
+	if (myEnemy && myEnemy->IsValidLowLevel() && !IsValidTarget(Cast<AOrionCharacter>(myEnemy)))
 	{
 		float dist1 = (SeenPawn->GetActorLocation() - GetPawn()->GetActorLocation()).SizeSquared2D();
 		float dist2 = (myEnemy->GetActorLocation() - GetPawn()->GetActorLocation()).SizeSquared2D();

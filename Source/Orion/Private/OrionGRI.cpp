@@ -30,6 +30,28 @@ AOrionGRI::AOrionGRI(const FObjectInitializer& ObjectInitializer)
 	TotalLimbsBlownOff = 0;
 	ServerLocation = TEXT("US-EAST");
 	bStatsEnabled = false;
+
+	HarvKills = 0;
+}
+
+bool AOrionGRI::HarvHasMostKills()
+{
+	TArray<AActor*> Controllers;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
+		if (C)
+		{
+			AOrionPRI *PRI = Cast<AOrionPRI>(C->PlayerState);
+			if (PRI && PRI->Kills >= HarvKills)
+				return false;
+		}
+	}
+
+	return true;
 }
 
 void AOrionGRI::AddRagdoll(AOrionCharacter *Ragdoll)
@@ -109,6 +131,8 @@ void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionGRI, Difficulty);
 	DOREPLIFETIME(AOrionGRI, MapName);
 	DOREPLIFETIME(AOrionGRI, PhotonGUID);
+	DOREPLIFETIME(AOrionGRI, bNightTime);
+	DOREPLIFETIME(AOrionGRI, HarvKills);
 }
 
 void AOrionGRI::HandleVictoryDefeat()
@@ -221,6 +245,10 @@ void AOrionGRI::BeginPlay()
 	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 	Mapper = GetWorld()->SpawnActor<AOrionPlayFabInventoryMapper>(DefaultMapperClass, SpawnInfo);
+
+	AOrionGameMode *G = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
+	if (G)
+		bNightTime = G->bNightTime;
 
 	//spawn us a music manager, only do this client side
 	if (GetWorld()->GetNetMode() == ENetMode::NM_Client || GetWorld()->GetNetMode() == ENetMode::NM_ListenServer || GetWorld()->GetNetMode() == ENetMode::NM_Standalone)

@@ -89,6 +89,15 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly)
 		int32 DinosAliveInWave;
 
+	UPROPERTY(Replicated, BlueprintReadOnly)
+		bool bNightTime;
+
+	//harvester stats
+	UPROPERTY(Replicated, BlueprintReadWrite)
+		int32 HarvKills;
+
+	bool HarvHasMostKills();
+
 	UFUNCTION()
 		void OnRep_WaveNum();
 

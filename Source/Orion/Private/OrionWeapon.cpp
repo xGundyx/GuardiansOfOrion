@@ -318,7 +318,8 @@ void AOrionWeapon::StartAiming(bool bPlaySound)
 
 	//PlayWeaponAnimation(AimAnim);
 
-	if (LaserAimPSC == nullptr && LaserAimFX != nullptr && MyPawn && MyPawn->IsLocallyControlled())
+	//disable lasers for now
+	/*if (LaserAimPSC == nullptr && LaserAimFX != nullptr && MyPawn && MyPawn->IsLocallyControlled())
 	{
 		LaserAimPSC = UGameplayStatics::SpawnEmitterAttached(LaserAimFX, GetWeaponMesh(MyPawn->IsFirstPerson()), "LaserAim");
 		if (LaserAimPSC)
@@ -327,7 +328,7 @@ void AOrionWeapon::StartAiming(bool bPlaySound)
 	}
 
 	if (LaserAimPSC)
-		LaserAimPSC->ActivateSystem();
+		LaserAimPSC->ActivateSystem();*/
 }
 
 void AOrionWeapon::StopAiming()
@@ -713,10 +714,13 @@ void AOrionWeapon::FireWeapon()
 		const FVector AimDir = GetAdjustedAim();
 		const FVector StartTrace = GetCameraDamageStartLocation(AimDir);
 		const FVector ShootDir = WeaponRandomStream.VRandCone(AimDir, ConeHalfAngle, ConeHalfAngle);
-		const FVector EndTrace = StartTrace + ShootDir * FMath::Max(6000.0f, InstantConfig.WeaponRange);
+		const FVector EndTrace = StartTrace + ShootDir * FMath::Min(6000.0f, InstantConfig.WeaponRange);
 
 		const FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
 		ProcessInstantHit(Impact, StartTrace, ShootDir, RandomSeed, CurrentSpread);
+
+		//DrawDebugSphere(GetWorld(), StartTrace, 100, 12, FColor(255, 0, 0, 255), false); 
+		//DrawDebugSphere(GetWorld(), EndTrace, 100, 12, FColor(0, 255, 0, 255), false);
 	}
 
 	CurrentFiringSpread = FMath::Min(InstantConfig.FiringSpreadMax, CurrentFiringSpread + InstantConfig.FiringSpreadIncrement) * GetSpreadModifier();
@@ -919,10 +923,11 @@ FVector AOrionWeapon::GetBarrelLocation(FName SocketName)
 FVector AOrionWeapon::GetCameraDamageStartLocation(const FVector& AimDir) const
 {
 	AController* PC = MyPawn ? MyPawn->Controller : NULL;
+	AOrionPlayerController *MyPC = Cast<AOrionPlayerController>(PC);
 	//ADHAIController* AIPC = MyPawn ? Cast<ADHAIController>(MyPawn->Controller) : NULL;
 	FVector OutStartTrace = FVector::ZeroVector;
 
-	if (MyPawn && MyPawn->IsTopDown())
+	if (MyPawn && MyPawn->IsTopDown() && (!MyPC || !MyPC->bThirdPersonCamera))
 	{
 		OutStartTrace = Instigator->GetActorLocation() + FVector(0, 0, MyPawn->bDowned ? -25 : 25.0f);
 	}
@@ -933,7 +938,7 @@ FVector AOrionWeapon::GetCameraDamageStartLocation(const FVector& AimDir) const
 		PC->GetPlayerViewPoint(OutStartTrace, UnusedRot);
 
 		// Adjust trace so there is nothing blocking the ray between the camera and the pawn, and calculate distance from adjusted start
-		OutStartTrace = OutStartTrace + AimDir * ((Instigator->GetActorLocation() - OutStartTrace) | AimDir);
+		////OutStartTrace = OutStartTrace + AimDir * ((Instigator->GetActorLocation() - OutStartTrace) | AimDir);
 	}
 	/*else if (AIPC)
 	{
@@ -1254,7 +1259,7 @@ void AOrionWeapon::ProcessInstantHit_Confirmed(const FHitResult& Impact, const F
 		if (Impact.GetActor() != NULL)
 			DealDamage(Impact, ShootDir);
 
-		const FVector EndTrace = Origin + ShootDir * FMath::Max(6000.0f, InstantConfig.WeaponRange);
+		const FVector EndTrace = Origin + ShootDir * FMath::Min(6000.0f, InstantConfig.WeaponRange);
 		const FVector EndPoint = Impact.GetActor() ? Impact.ImpactPoint : EndTrace;
 
 		HitNotify.Origin = EndPoint;// Origin;
@@ -1268,8 +1273,8 @@ void AOrionWeapon::ProcessInstantHit_Confirmed(const FHitResult& Impact, const F
 	// play FX locally
 	if (GetNetMode() != NM_DedicatedServer)
 	{
-		const FVector EndTrace = Origin + ShootDir * FMath::Max(6000.0f, InstantConfig.WeaponRange);
-		const FVector EndPoint = Impact.GetActor() ? Impact.ImpactPoint : EndTrace;
+		const FVector EndTrace = Origin + ShootDir * FMath::Min(6000.0f, InstantConfig.WeaponRange);
+		const FVector EndPoint = Impact.bBlockingHit ? Impact.ImpactPoint : EndTrace;// Impact.GetActor() ? Impact.ImpactPoint : EndTrace;
 
 		SpawnTrailEffect(EndPoint);
 		SpawnImpactEffects(Impact);
@@ -1465,13 +1470,16 @@ void AOrionWeapon::ServerNotifyMiss_Implementation(FVector ShootDir, int32 Rando
 	// play FX locally
 	if (GetNetMode() != NM_DedicatedServer)
 	{
-		const FVector EndTrace = Origin + ShootDir * FMath::Max(6000.0f, InstantConfig.WeaponRange);
+		const FVector EndTrace = Origin + ShootDir * FMath::Min(6000.0f, InstantConfig.WeaponRange);
 		SpawnTrailEffect(EndTrace);
 	}
 }
 
 void AOrionWeapon::SpawnImpactEffects(const FHitResult& Impact)
 {
+	if (GetNetMode() == NM_DedicatedServer)
+		return;
+
 	if (ImpactTemplate && Impact.bBlockingHit)
 	{
 		FHitResult UseImpact = Impact;
@@ -1494,6 +1502,8 @@ void AOrionWeapon::SpawnImpactEffects(const FHitResult& Impact)
 		{
 			EffectActor->SurfaceHit = UseImpact;
 			UGameplayStatics::FinishSpawningActor(EffectActor, FTransform(Impact.ImpactNormal.Rotation(), Impact.ImpactPoint));
+
+			EffectActor->SetLifeSpan(5.0f);
 		}
 	}
 }
@@ -1501,7 +1511,7 @@ void AOrionWeapon::SpawnImpactEffects(const FHitResult& Impact)
 void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 {
 	const FVector Origin = GetMuzzleLocation();
-	const FRotator Dir = GetMuzzleDirection().Rotation();
+	//const FRotator Dir = GetMuzzleDirection().Rotation();
 	FVector vDir = (EndPoint - Origin);
 	vDir.Normalize();
 
@@ -1518,9 +1528,9 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 
 	if (TracerFX && dist > 150.0f)
 	{
-		FActorSpawnParameters SpawnInfo;
-		SpawnInfo.Instigator = Instigator;
-		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		//FActorSpawnParameters SpawnInfo;
+		//SpawnInfo.Instigator = Instigator;
+		//SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 		/*AOrionProjectile *Proj = GetWorld()->SpawnActor<AOrionProjectile>(AOrionProjectile::StaticClass(), Origin, vDir.Rotation(), SpawnInfo);
 		if (Proj)
@@ -1538,7 +1548,7 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 
 		if (TracerPSC)
 		{
-			TracerPSC->SetWorldScale3D((MyPawn && MyPawn->bThirdPersonCamera) ? FVector(0.5f) :FVector(1.0));
+			TracerPSC->SetWorldScale3D((MyPawn && MyPawn->bThirdPersonCamera) ? FVector(1.0f) :FVector(1.0));
 			TracerPSC->SetFloatParameter("BulletLife", FMath::Min(1.0f, ((Origin - EndPoint).Size() / 6000.0f)) - 0.05f);
 		}
 	}

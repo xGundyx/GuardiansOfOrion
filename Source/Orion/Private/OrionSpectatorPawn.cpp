@@ -203,7 +203,9 @@ void AOrionSpectatorPawn::TurnAtRate(float Rate)
 
 	if (PC)
 	{
-		if (PC->bDaveyCam)
+		if (PC->bThirdPersonCamera)
+			AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
+		else if (PC->bDaveyCam)
 		{
 			// calculate delta for this frame from the rate information
 			AddControllerYawInput(Rate * BaseTurnRate * GetWorld()->GetDeltaSeconds());
@@ -217,7 +219,9 @@ void AOrionSpectatorPawn::LookUpAtRate(float Rate)
 
 	if (PC)
 	{
-		if (PC->bDaveyCam)
+		if (PC->bThirdPersonCamera)
+			AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());
+		else if (PC->bDaveyCam)
 		{
 			// calculate delta for this frame from the rate information
 			AddControllerPitchInput(Rate * BaseLookUpRate * GetWorld()->GetDeltaSeconds());

@@ -26,5 +26,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = Steam)
 		FString LobbyIP;
 
+	UFUNCTION(BlueprintCallable, Category = Loading)
+		void DisplayLoadingScreen();
+
 	void InitGame(const FString& MapName, const FString& Options, FString& ErrorMessage) override;
 };

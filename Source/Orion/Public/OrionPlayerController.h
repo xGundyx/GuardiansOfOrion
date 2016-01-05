@@ -400,7 +400,7 @@ public:
 
 	FTimerHandle OrbTimer;
 
-	//0 = assault, 1 = support, 2 = recon
+	//0 = assault, 1 = support, 2 = recon, 3 = tech
 	UFUNCTION(exec)
 		virtual void ChangeClass(int32 index);
 
@@ -658,7 +658,7 @@ public:
 		AOrionDropPod *DropPod;
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
-		void OpenLobby(FString MapName, FString MapDifficulty, FString Gamemode, FString Privacy);
+		void OpenLobby(FString MapName, FString MapDifficulty, FString Gamemode, FString Privacy, FString TOD);
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
 		void LeaveLobby();
@@ -681,6 +681,8 @@ public:
 	//UFUNCTION(BlueprintCallable, Category = Loading)
 	//	void PlayLoadingScreen(UUserWidget *Widget);
 
+	float LastCameraToggleTime;
+
 	bool bLobbyLeader;
 
 	void HandleGUID(FString GUID);
@@ -691,12 +693,16 @@ public:
 		void ServerSendGUID_Implementation(const FString &ID);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Photon)
-		void UpdateLobbySettings(const FString& MapName, const FString& Difficulty, const FString& Gamemode, const FString& Privacy, const FString& IP, const FString& Ticket, const FString& Progress, const FString& Version, const FString &GUID, const FString& RoomName);
+		void UpdateLobbySettings(const FString& MapName, const FString& Difficulty, const FString& Gamemode, const FString& Privacy, const FString& IP, const FString& Ticket, const FString& Progress, const FString& Version, const FString &GUID, const FString& RoomName, const FString& TOD);
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
-		void FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket, FString Wave, FString Version, FString RoomName);
+		void FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket, FString Wave, FString Version, FString RoomName, FString TOD);
 
 	void JoinChatRoom(FString Room);
+
+	//update our view to our saved option
+	UFUNCTION(BlueprintCallable, Category = FPS)
+		void SetThirdPerson();
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
 		bool IsLobbyLeader();

@@ -38,6 +38,25 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "StopEffects"))
 		void EventPlayStopEffects();
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ShowTarget"))
+		void EventShowTarget();
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "HideTarget"))
+		void EventHideTarget();
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "TriggerTarget"))
+		void EventTriggerTarget();
+
+	void TriggerTarget(AOrionCharacter *Pawn);
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerTriggerTarget(AOrionPlayerController *PC, FVector pos, FRotator rot);
+		bool ServerTriggerTarget_Validate(AOrionPlayerController *PC, FVector pos, FRotator rot) { return true; }
+		void ServerTriggerTarget_Implementation(AOrionPlayerController *PC, FVector pos, FRotator rot);
+
+	UPROPERTY(EditDefaultsOnly, Category = Skill)
+		TSubclassOf<class AOrionPlaceableItem>PlaceableItemClass;
+
 	UFUNCTION(BlueprintCallable, Category = Skill)
 		bool IsJetpacking() { return Cast<AOrionCharacter>(GetOwner()) && Cast<AOrionCharacter>(GetOwner())->Health > 0.0f && bIsJetpacking; }
 
@@ -48,6 +67,9 @@ public:
 		bool IsOvercharging() { return Cast<AOrionCharacter>(GetOwner()) && Cast<AOrionCharacter>(GetOwner())->Health > 0.0f && bIsOvercharging; }
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
+		bool IsTurreting() { return Cast<AOrionCharacter>(GetOwner()) && Cast<AOrionCharacter>(GetOwner())->Health > 0.0f && bIsTurreting; }
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
 		void SetJetpacking(bool bActive) { bIsJetpacking = bActive; }
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
@@ -55,6 +77,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
 		void SetOvercharging(bool bActive) { bIsOvercharging = bActive; }
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
+		void SetTurreting(bool bActive) { bIsTurreting = bActive; }
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Skill)
 		bool bOneShotAbility;
@@ -72,6 +97,14 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Skill)
 		float RechargeDelay;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Skill)
+		bool bTarget;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Skill)
+		bool bTargetting;
+
+	void SpawnItem(AOrionPlayerController *PC, FVector pos, FRotator rot);
 
 	void DepleteEnergy() { Energy = 0.0f; }
 
@@ -97,4 +130,7 @@ private:
 		bool bIsCloaking;
 	UPROPERTY(Replicated)
 		bool bIsOvercharging;
+
+	//active when we have the turret placer visible
+	bool bIsTurreting;
 };

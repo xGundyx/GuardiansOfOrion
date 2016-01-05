@@ -53,6 +53,9 @@ public:
 	UPROPERTY(config)
 		bool ControllerRumbleEnabled;
 
+	UPROPERTY(config)
+		bool ThirdPersonEnabled;
+
 	int32 BloomQuality;
 	int32 MotionBlurQuality;
 };

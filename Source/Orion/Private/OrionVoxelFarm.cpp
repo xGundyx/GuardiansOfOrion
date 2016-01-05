@@ -12,7 +12,7 @@ AOrionVoxelFarm::AOrionVoxelFarm(const FObjectInitializer& ObjectInitializer)
 	PrimaryActorTick.bCanEverTick = true;
 	RandomSeed = -1;
 }
-#if WITH_EDITOR
+#if 0 //WITH_EDITOR
 //make us tick during level editing
 bool AOrionVoxelFarm::ShouldTickIfViewportsOnly() const
 {

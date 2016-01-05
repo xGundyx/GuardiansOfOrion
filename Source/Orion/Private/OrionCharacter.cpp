@@ -16,6 +16,7 @@
 #include "OrionHoverVehicle.h"
 #include "OrionPRI.h"
 #include "OrionGrenade.h"
+#include "Kismet/KismetSystemLibrary.h"
 #include "OrionSkeletalMeshComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -62,6 +63,10 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	static ConstructorHelpers::FObjectFinder<UParticleSystem> JetBurn(TEXT("ParticleSystem'/Game/KY_MagicEffects03/Particles/P_fireLv_1.P_fireLv_1'"));
 	if (JetBurn.Object)
 		JetpackBurnFX = Cast<UParticleSystem>(JetBurn.Object);
+
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> Stun(TEXT("ParticleSystem'/Game/Dinosaurs/Particles/Stunned/StunnedStars.StunnedStars'"));
+	if (Stun.Object)
+		StunnedFX = Cast<UParticleSystem>(Stun.Object);
 
 	// Default offset from the character location for projectiles to spawn
 	GunOffset = FVector(100.0f, 30.0f, 10.0f);
@@ -271,8 +276,12 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	LeftArmScale = 1.0f;
 	RightArmScale = 1.0f;
 
+	StunScale = 1.0f;
+
 	bFirstPerson = true;
 	UpdatePawnMeshes();
+
+	bCanAttackJetpackers = false;
 
 	FlyingOffset = 100.0f;
 
@@ -282,6 +291,8 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 
 	//mainly for minimap updates
 	bAlwaysRelevant = true;
+
+	bTempAlwaysRotate = false;
 }
 
 void AOrionCharacter::OnRep_Spawned()
@@ -309,6 +320,8 @@ void AOrionCharacter::BeginPlay()
 	bShoulderCamera = true;
 	TimesDowned = 0;
 
+	ThirdPersonAdjust = 1.75f;
+
 	TotalDamageReceived = 0.0f;
 
 	SprintRate = 1.0f;
@@ -321,8 +334,16 @@ void AOrionCharacter::BeginPlay()
 	}
 
 	//spawn our health bar hud element
-	if (GetNetMode() != NM_DedicatedServer)
-		CreateHealthBar();
+	//if (GetNetMode() != NM_DedicatedServer)
+	//	CreateHealthBar();
+
+	UOrionGameUserSettings *Settings = nullptr;
+
+	if (GEngine && GEngine->GameUserSettings)
+		Settings = Cast<UOrionGameUserSettings>(GEngine->GameUserSettings);
+
+	if (Settings)
+		bThirdPersonCamera = Settings->ThirdPersonEnabled;
 }
 
 void AOrionCharacter::OnRep_IsElite()
@@ -476,36 +497,36 @@ void AOrionCharacter::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 	{
 		ThirdPersonCameraComponent->GetCameraView(DeltaTime, OutResult);
 
-		if (Controller)
-			OutResult.Rotation = Controller->GetControlRotation();
-
-		//adjust the camera to always point towards the character
-		//OutResult.Location = CameraOffset*CameraDist;
+		//for spectating
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
+		if (PC)
+			OutResult.Rotation = PC->GetControlRotation();
 
 		FVector CamStart;
 		FVector X, Y, Z;
 
 		X = OutResult.Rotation.Vector();
 		Z = FVector(0.0f, 0.0f, 1.0f);
-		Y = FVector::CrossProduct(Z, GetActorRotation().Vector());
+		Y = FVector::CrossProduct(Z, X);
 		Y.Normalize();
 		Z = FVector::CrossProduct(X, Y);
 		Z.Normalize();
 
-		X *= CameraDist;
+		CamStart = GetMesh()->GetBoneLocation(FName("Chr01_Spine02"));
 
-		//if (Health > 0)
-		//{
-			CamStart = GetMesh()->GetBoneLocation(FName("Chr01_Spine02"));
-			CamStart.Z += GetCapsuleComponent()->GetUnscaledCapsuleHalfHeight() - 18.0;
-			if (bDuck)
-				CamStart.Z += 25.0;
-		//}
+		FVector Offset = CamStart - GetActorLocation();
 
-		OutResult.Location = CamStart - X*CameraOffset.X + CameraOffset.Y*Y + CameraOffset.Z*Z;
+		if (bBlinking)
+		{
+			float TeleportTime = FMath::Max(0.0f, 0.2f - (GetWorld()->GetTimeSeconds() - LastTeleportTime));
 
-		//FRotator rot;
-		//GetMesh()->GetSocketWorldLocationAndRotation(FName("Camera"), OutResult.Location, rot);
+			CamStart = BlinkPos.Start + (1.0f - (TeleportTime / 0.2f)) * (BlinkPos.End - BlinkPos.Start);
+			CamStart += Offset;
+		}
+
+		ThirdPersonAdjust = FMath::Lerp(ThirdPersonAdjust, bFatality ? 4.5f : (bAim ? 1.0f : 1.75f), DeltaTime * 6.0f);
+
+		OutResult.Location = CamStart - X*CameraOffset.X * ThirdPersonAdjust + CameraOffset.Y*Y + CameraOffset.Z*Z;
 
 		CameraLocation = OutResult.Location;
 	}
@@ -601,7 +622,7 @@ void AOrionCharacter::ProcessAimKick(FRotator& OutViewRotation, FRotator& OutDel
 	if (GetWorld()->TimeSeconds - LastAimKickTime>t)
 	{
 		TargetAimKick = FRotator(0, 0, 0);
-		return;
+		//return;
 	}
 	else if (GetWorld()->TimeSeconds - LastAimKickTime>t / 3.0)
 	{
@@ -611,6 +632,19 @@ void AOrionCharacter::ProcessAimKick(FRotator& OutViewRotation, FRotator& OutDel
 	{
 		OutViewRotation = OutViewRotation + AimKick;
 	}
+
+	if (OutViewRotation.Pitch > 87.0f && OutViewRotation.Pitch < 180.0f)
+		OutViewRotation.Pitch = 87.0f;
+
+	if (OutViewRotation.Pitch < 90.0f)
+		OutViewRotation.Pitch += 360.0f;
+
+	OutViewRotation.Pitch = FMath::Clamp(OutViewRotation.Pitch, /*273.0f*/315.0f, 447.0f);
+
+	//OutViewRotation.Pitch -= 180.0f;
+
+	if (OutViewRotation.Pitch > 360.0f)
+		OutViewRotation.Pitch -= 360.0f;
 }
 
 bool AOrionCharacter::IsFirstPerson() const
@@ -748,6 +782,43 @@ void AOrionCharacter::SpawnDefaultInventory()
 	}
 }
 
+void AOrionCharacter::Stunned(float Duration)
+{
+	bStunned = true; 
+	
+	GetWorldTimerManager().SetTimer(StunTimer, this, &AOrionCharacter::EndStun, Duration, false);
+
+	PlayStunEffect(true);
+}
+
+void AOrionCharacter::EndStun()
+{
+	bStunned = false;
+
+	PlayStunEffect(false);
+}
+
+void AOrionCharacter::PlayStunEffect(bool bOn)
+{
+	if (bOn)
+	{
+		StunnedPSC = UGameplayStatics::SpawnEmitterAttached(StunnedFX, GetMesh(), "Stunned");
+
+		if (StunnedPSC)
+			StunnedPSC->SetWorldScale3D(FVector(StunScale));
+	}
+	else if (StunnedPSC)
+	{
+		StunnedPSC->DeactivateSystem();
+		StunnedPSC = nullptr;
+	}
+}
+
+void AOrionCharacter::OnRep_Stun()
+{
+	PlayStunEffect(bStunned);
+}
+
 void AOrionCharacter::SpawnClassWeapons(int32 ClassIndex)
 {
 	FActorSpawnParameters SpawnInfo;
@@ -767,6 +838,9 @@ void AOrionCharacter::SpawnClassWeapons(int32 ClassIndex)
 		break;
 	case 2:
 		WeaponClasses = DefaultReconInventoryClasses;
+		break;
+	case 3:
+		WeaponClasses = DefaultTechInventoryClasses;
 		break;
 	}
 
@@ -1060,6 +1134,8 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, Knocker);
 	DOREPLIFETIME(AOrionCharacter, ReviveTarget);
 	DOREPLIFETIME(AOrionCharacter, bThirdPersonCamera);
+	DOREPLIFETIME(AOrionCharacter, bStunned);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, FatalityVictim, COND_SkipOwner);
 
 	DOREPLIFETIME(AOrionCharacter, bDowned);
 	DOREPLIFETIME(AOrionCharacter, DownedTime);
@@ -1099,6 +1175,7 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, bFatality);
 	DOREPLIFETIME(AOrionCharacter, bFatalityRemove);
 	DOREPLIFETIME(AOrionCharacter, FatalityAnim);
+	DOREPLIFETIME(AOrionCharacter, bFinishingMove);
 	DOREPLIFETIME(AOrionCharacter, GibCenter);
 
 	DOREPLIFETIME_CONDITION(AOrionCharacter, CameraShip, COND_OwnerOnly);
@@ -1197,7 +1274,14 @@ void AOrionCharacter::DetachFromShip()
 	FWeaponAnim Info;
 	Info.Pawn3P = ExitShipAnim;
 
-	float length = OrionPlayAnimMontage(Info, 1.0f, TEXT(""), false/*true*/, false/*true*/, false);
+	float length = 1.1f;
+	
+	//if (IsLocallyControlled() && Role < ROLE_Authority)
+	//	ServerPlayAnimMontage(Info, 1.0f, TEXT(""), true, true, true);
+	
+	//if (IsLocallyControlled())
+	if (Role == ROLE_Authority)
+		length = OrionPlayAnimMontage(Info, 1.0f, TEXT(""), true, true, true);
 
 	DetachRootComponentFromParent(true);
 	GetCharacterMovement()->SetMovementMode(MOVE_Flying);
@@ -1446,6 +1530,31 @@ void AOrionCharacter::PlayFootStepSound(USoundCue *Cue, FVector pos)
 	LastFootStepSound = GetWorld()->GetTimeSeconds();
 
 	UGameplayStatics::PlaySoundAtLocation(GetWorld(), Cue, pos, bRun ? 0.5f : 0.25f, 1.0f);
+}
+
+void AOrionCharacter::CutOffLimb(EGibType Limb)
+{
+	if (Gibs.Num() <= Limb)
+		return;
+
+	AOrionGib *Gib = Cast<AOrionGib>(Gibs[Limb].Gib.GetDefaultObject());
+
+	if (Gib && Gib->Mesh)
+	{
+		FVector pos;
+		FRotator rot;
+
+		FVector vel = FVector(0.0f, 0.0f, 50.0f);
+
+		GetMesh()->GetSocketWorldLocationAndRotation(Gib->SocketName, pos, rot);
+		SpawnGibs(Limb, pos, rot, vel);
+
+		//GibRep.Index = Limb;
+		//GibRep.Socket = Gib->SocketName;
+		//GibRep.Velocity = vel;
+
+		//SpawnGibs(Limb, pos, rot, vel);
+	}
 }
 
 void AOrionCharacter::OnRep_Gibs()
@@ -1769,7 +1878,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	if (!DamageType || !DamageType->bIgnoreModify)
 		Damage = Game ? Game->ModifyDamage(Damage, this, DamageEvent, EventInstigator, DamageCauser) : 0.f;
 
-	if (!bIsBigDino && !bIsHealableMachine && !bLatchedOnto && !bKnockedDown && DamageType && DamageType->bKnockBack && (!CurrentSkill || !CurrentSkill->IsJetpacking()))
+	if (!bIsBigDino && !bIsHealableMachine && !bLatchedOnto && !bKnockedDown && DamageType && !bFatality && !bFinishingMove && DamageType->bKnockBack && (!CurrentSkill || !CurrentSkill->IsJetpacking()))
 	{
 		//if this is a big dino doing the knockback, kill any small dinos caught in the area, and do no knockbacks to other dinos
 		AOrionDinoPawn *EnemyDino = Cast<AOrionDinoPawn>(DamageCauser);
@@ -1872,6 +1981,8 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 				if (DamageType && DamageType->bIsKnife)
 					Damager->AddDamageNumber(OriginalDamage, GetActorLocation());
 				else if (DamageType && DamageType->bGibAll)
+					Damager->AddDamageNumber(OriginalDamage, GetActorLocation());
+				else if (DamageType && DamageType->WeaponName == "Turret")
 					Damager->AddDamageNumber(OriginalDamage, GetActorLocation());
 				else
 					Damager->AddDamageNumber(OriginalDamage, RealEvent->HitInfo.ImpactPoint);
@@ -2059,15 +2170,29 @@ bool AOrionCharacter::Die(float KillingDamage, FDamageEvent const& DamageEvent, 
 
 	Health = FMath::Min(0.0f, Health);
 
+	if (Killer && Killer->GetPawn())
+	{
+		AOrionCharacter *KillerPawn = Cast<AOrionCharacter>(Killer->GetPawn());
+
+		if (KillerPawn && KillerPawn->bIsHealableMachine)
+		{
+			AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+			if (GRI)
+				GRI->HarvKills++;
+		}
+	}
+
 	// if this is an environmental death then refer to the previous killer so that they receive credit (knocked into lava pits, etc)
 	UDamageType const* const DamageType = DamageEvent.DamageTypeClass ? DamageEvent.DamageTypeClass->GetDefaultObject<UDamageType>() : GetDefault<UDamageType>();
 	Killer = GetDamageInstigator(Killer, *DamageType);
 
 	UOrionDamageType *dType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject());
 
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Killer);
+
 	if (dType && dType->WeaponName != TEXT(""))
 	{
-		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Killer);
 		if (PC && PC->GetStats())
 		{
 			if (dType->WeaponName.ToUpper() == TEXT("AUTORIFLE"))
@@ -2082,6 +2207,8 @@ bool AOrionCharacter::Die(float KillingDamage, FDamageEvent const& DamageEvent, 
 				PC->GetStats()->AddStatValue(STAT_SILENCEDSMGKILLS, 1);
 			else if (dType->WeaponName.ToUpper() == TEXT("AUTOPISTOL"))
 				PC->GetStats()->AddStatValue(STAT_AUTOPISTOLKILLS, 1);
+			else if (dType->WeaponName.ToUpper() == TEXT("SMG"))
+				PC->GetStats()->AddStatValue(STAT_SMGKILLS, 1);
 
 			if (dType->WeaponName.ToUpper() == TEXT("FRAGGRENADE"))
 			{
@@ -2261,6 +2388,15 @@ void AOrionCharacter::CreateHealthBar()
 	if (!DefaultHealthBarClass || MyHealthBar || Health <= 0)
 		return;
 
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	if (!PRI)
+	{
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, this, &AOrionCharacter::CreateHealthBar, 0.1f, false);
+		return;
+	}
+
 	//EventCreateHealthBar();
 
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
@@ -2292,6 +2428,8 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 
 	if (bKnockedDown)
 		bKnockedDown = false;
+
+	PlayStunEffect(false);
 
 	GetMesh()->DetachFromParent(true);
 
@@ -2972,6 +3110,15 @@ void AOrionCharacter::MakeSureDead()
 
 void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAnim, AOrionCharacter *TheVictim, bool bHideOnFatality)
 {
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	if (!TheVictim || !TheVictim->IsValidLowLevel())
+		return;
+
+	//don't perform if we are in a state that won't allow it
+	if (bDowned || bLatchedOnto || bKnockedDown)
+		return;
+
 	if (Role == ROLE_Authority)
 	{
 		FatalityAnim.AttackerAnim = Anim;
@@ -2982,7 +3129,7 @@ void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAni
 
 		AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
 
-		if (Game)
+		if (PRI && PRI->bIsABot && Game)
 			Game->PlaySlowMotion(7.0f);
 
 		//make the victim lose control over themselves
@@ -3034,11 +3181,21 @@ void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAni
 		FWeaponAnim vAnim;
 		vAnim.Pawn3P = EnemyAnim;
 
+		if (TheVictim->CurrentWeapon)
+		{
+			if (TheVictim->CurrentWeapon->InstantConfig.bSingleShellReload)
+				TheVictim->CurrentWeapon->CancelReload();
+			TheVictim->CurrentWeapon->StopFire();
+		}
+
 		TheVictim->StopAllAnimMontages();
 
 		TheVictim->OrionPlayAnimMontage(vAnim, 1.0f, TEXT(""), false, false, true);
 
-		TheVictim->GetMesh()->AttachTo(GetMesh(), "Swallow");
+		if (PRI && PRI->bIsABot)
+			TheVictim->GetMesh()->AttachTo(GetMesh(), "Swallow");
+		else
+			TheVictim->GetMesh()->AttachTo(GetMesh(), "CompySlice");
 
 		//hide weapon
 		if (TheVictim->CurrentWeapon)
@@ -3062,12 +3219,13 @@ void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAni
 	float Len = FMath::Max(0.1f, OrionPlayAnimMontage(aAnim, 1.0f, TEXT(""), false, false, true));
 
 	FTimerHandle Handle;
-	GetWorldTimerManager().SetTimer(Handle, this, &AOrionCharacter::ResetFatality, Len * 2.0f, false);
+	GetWorldTimerManager().SetTimer(Handle, this, &AOrionCharacter::ResetFatality, Len * 1.0f, false);
 }
 
 void AOrionCharacter::ResetFatality()
 {
 	bFinishingMove = false;
+	FatalityVictim = nullptr;
 }
 
 void AOrionCharacter::OnRep_Fatality()
@@ -3374,11 +3532,11 @@ void AOrionCharacter::UpdateRootYaw(float DeltaSeconds)
 		if (RootRotation.Yaw - TargetYaw > 180.0f)
 		{
 			RootRotation.Yaw -= 360.0f;
-			RootRotation.Yaw = FMath::Min(TargetYaw, RootRotation.Yaw + DeltaSeconds*180.0f);
+			RootRotation.Yaw = FMath::Min(TargetYaw, RootRotation.Yaw + DeltaSeconds*360.0f);
 		}
 		else
 		{
-			RootRotation.Yaw = FMath::Max(TargetYaw, RootRotation.Yaw - DeltaSeconds*180.0f);
+			RootRotation.Yaw = FMath::Max(TargetYaw, RootRotation.Yaw - DeltaSeconds*360.0f);
 		}
 	}
 	else
@@ -3386,11 +3544,11 @@ void AOrionCharacter::UpdateRootYaw(float DeltaSeconds)
 		if (TargetYaw - RootRotation.Yaw > 180.0f)
 		{
 			RootRotation.Yaw += 360.0f;
-			RootRotation.Yaw = FMath::Max(TargetYaw, RootRotation.Yaw - DeltaSeconds*180.0f);
+			RootRotation.Yaw = FMath::Max(TargetYaw, RootRotation.Yaw - DeltaSeconds*360.0f);
 		}
 		else
 		{
-			RootRotation.Yaw = FMath::Min(TargetYaw, RootRotation.Yaw + DeltaSeconds*180.0f);
+			RootRotation.Yaw = FMath::Min(TargetYaw, RootRotation.Yaw + DeltaSeconds*360.0f);
 		}
 	}
 }
@@ -3614,6 +3772,8 @@ void AOrionCharacter::ActuallyTossGrenade(FVector dir)
 						PC->GetStats()->AddStatValue(STAT_SMOKEGRENADESTHROWN, 1);
 					else if (Grenade->GrenadeName.ToUpper() == TEXT("EMP"))
 						PC->GetStats()->AddStatValue(STAT_EMPGRENADESTHROWN, 1);
+					else if (Grenade->GrenadeName.ToUpper() == TEXT("STUN"))
+						PC->GetStats()->AddStatValue(STAT_STUNGRENADESTHROWN, 1);
 				}
 			}
 		}
@@ -3646,11 +3806,20 @@ void AOrionCharacter::ServerPlayAnimMontage_Implementation(const FWeaponAnim Ani
 
 void AOrionCharacter::TryToActivateSkill()
 {
+	if (GetWorldTimerManager().IsTimerActive(MeleeHoldTimer))
+		return;
+
 	if (ShouldIgnoreControls())
 		return;
 
 	if (bDowned)
 		return;
+
+	if (CurrentSkill && CurrentSkill->bTarget)
+	{
+		ActivateSkill();
+		return;
+	}
 
 	if (Role < ROLE_Authority)
 		ServerActivateSkill();
@@ -4020,6 +4189,9 @@ void AOrionCharacter::Blink(FVector dir)
 	if (!DefaultFilterClass)
 		return;
 
+	if (bFatality)
+		return;
+
 	if (GetWorld() && GetWorld()->GetNavigationSystem())
 	{
 		FNavLocation loc;
@@ -4056,7 +4228,7 @@ void AOrionCharacter::Blink(FVector dir)
 
 				FVector StartPos = GetActorLocation();
 				EndPos = loc.Location + GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
-				if (TeleportTo(EndPos, GetActorRotation()))
+				if (TeleportTo(EndPos, GetActorRotation(), true))
 				{
 					if (PC && PC->GetSkillValue(SKILL_BLINKDISTANCE) == PC->CharacterSkills[SKILL_BLINKDISTANCE].MaxPoints * PC->CharacterSkills[SKILL_BLINKDISTANCE].Modifier)
 					{
@@ -4119,6 +4291,7 @@ void AOrionCharacter::ActuallyTeleport()
 {
 	//TeleportTo(BlinkPos, GetActorRotation());
 
+	TeleportTo(BlinkPos.End, GetActorRotation(), false, true);
 	EndBlink();
 }
 
@@ -4141,6 +4314,14 @@ void AOrionCharacter::DoBlinkEffect(bool bOn, FVector pos)
 {
 	UpdatePawnMeshes();
 	//GetMesh()->SetHiddenInGame(bOn);
+
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	if (PRI && !PRI->bIsABot)
+		SetActorHiddenInGame(bOn);
+
+	if (CurrentWeapon)
+		CurrentWeapon->SetActorHiddenInGame(bOn);
 
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 	if (PC)
@@ -4281,7 +4462,7 @@ void AOrionCharacter::DoRoll()
 			if (AimRotLS.Yaw<-105.0f || AimRotLS.Yaw>105.0f)
 			{
 				Info.Pawn3P = RollAnimation.Backwards;
-				TargetYaw = 180.0f + AimRotLS.Yaw;
+				//TargetYaw = 180.0f + AimRotLS.Yaw;
 				Length = OrionPlayAnimMontage(Info, Rate);// AnimInstance->Montage_Play(RollAnimation.Backwards, 1.f) / RollAnimation.Backwards->RateScale;
 				RollDir = ROLL_BACKWARDS;
 				newRot = (-AimDirWS).Rotation();
@@ -4290,14 +4471,14 @@ void AOrionCharacter::DoRoll()
 			else if (AimRotLS.Yaw < -75.0f)
 			{
 				Info.Pawn3P = RollAnimation.Left;
-				TargetYaw = 0.0f;
+				//TargetYaw = 0.0f;
 				Length = OrionPlayAnimMontage(Info, Rate);// AnimInstance->Montage_Play(RollAnimation.Left, 1.f) / RollAnimation.Left->RateScale;
 				RollDir = ROLL_LEFT;
 			}
 			else if (AimRotLS.Yaw < 75.0f)
 			{
 				Info.Pawn3P = RollAnimation.Forwards;
-				TargetYaw = AimRotLS.Yaw;
+				//TargetYaw = AimRotLS.Yaw;
 				Length = OrionPlayAnimMontage(Info, Rate);// AnimInstance->Montage_Play(RollAnimation.Forwards, 1.f) / RollAnimation.Forwards->RateScale;
 				RollDir = ROLL_FORWARDS;
 				newRot = AimDirWS.Rotation();
@@ -4306,7 +4487,7 @@ void AOrionCharacter::DoRoll()
 			else
 			{
 				Info.Pawn3P = RollAnimation.Right;
-				TargetYaw = 0.0f;
+				//TargetYaw = 0.0f;
 				Length = OrionPlayAnimMontage(Info, Rate);// AnimInstance->Montage_Play(RollAnimation.Right , 1.f) / RollAnimation.Right->RateScale;
 				RollDir = ROLL_RIGHT;
 			}
@@ -4342,7 +4523,7 @@ void AOrionCharacter::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 {
 	FRotator ncRot = NewControlRotation;
 
-	if (IsRolling() || IsPlayingRootMotion())
+	if (!bTempAlwaysRotate && (IsRolling() || IsPlayingRootMotion() || bStunned))
 		return;
 
 	/*if (IsLocallyControlled() && Cast<AOrionPlayerController>(Controller) != NULL)
@@ -4370,7 +4551,7 @@ void AOrionCharacter::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 	}
 	else
 	{
-		if (!bUseControllerRotationYaw)
+		if (!bTempAlwaysRotate && !bUseControllerRotationYaw)
 		{
 			NewControlRotation.Yaw = CurrentRotation.Yaw;
 		}
@@ -4380,6 +4561,10 @@ void AOrionCharacter::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 	{
 		NewControlRotation.Roll = CurrentRotation.Roll;
 	}
+
+	//no rolls for now
+	if (PC)
+		NewControlRotation.Roll = 0.0f;
 
 	if (bIsHealableMachine)
 	{
@@ -4394,7 +4579,6 @@ void AOrionCharacter::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 	else
 		SetActorRotation(NewControlRotation);
 }
-
 
 void AOrionCharacter::ResetRootRotation()
 {
@@ -4442,6 +4626,9 @@ void AOrionCharacter::Sprint()
 
 	if (Settings->ToggleSprintEnabled == true)
 		bToggle = true;*/
+
+	if (ShouldIgnoreControls())
+		return;
 
 	if (Role < ROLE_Authority)
 		ServerRun(true);
@@ -4539,8 +4726,89 @@ void AOrionCharacter::DoMelee()
 	{
 		CancelGrenadeTarget();
 
-		CurrentWeapon->Melee();
+		//if (!CheckForCompySlice())
+		//	CurrentWeapon->Melee();
+		GetWorldTimerManager().SetTimer(MeleeHoldTimer, this, &AOrionCharacter::UnMelee, 0.35f, false);
 	}
+}
+
+//called when the melee button has been released
+void AOrionCharacter::EndMelee()
+{
+	if (GetWorldTimerManager().IsTimerActive(MeleeHoldTimer))
+	{
+		if (CurrentWeapon)
+			CurrentWeapon->Melee();
+
+		GetWorldTimerManager().ClearTimer(MeleeHoldTimer);
+	}
+}
+
+//called 0.35 seconds after pressing melee to see if the button is being held
+//if it is being held, check for a valid fatality
+void AOrionCharacter::UnMelee()
+{
+	if (CurrentWeapon && !CheckForCompySlice())
+		CurrentWeapon->Melee();
+}
+
+void AOrionCharacter::ServerCompySlice_Implementation(AOrionCharacter *Target)
+{
+	PerformFatality(PlayerSliceAnim, CompySliceAnim, Target, false);
+	FatalityVictim = Target;
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC && PC->GetStats())
+		PC->GetStats()->AddStatValue(STAT_COMPYSLICE, 1);
+}
+
+bool AOrionCharacter::CheckForCompySlice()
+{
+	if (ShouldIgnoreControls())
+		return false;
+
+	//see if there are any compies in our slice range, and if there are, start a slicin
+	FVector pos;
+	pos = GetMesh()->GetSocketLocation("CompySlice");
+
+	float radius = 100.0f;
+
+	TArray<AActor*> Ignore;
+
+	Ignore.AddUnique(this);
+
+	TArray<AActor*> Result;
+
+	TArray<TEnumAsByte<EObjectTypeQuery> > Obj;
+
+	StopSprint();
+
+	if (UKismetSystemLibrary::SphereOverlapActors_NEW(GetWorld(), pos, radius, Obj, AOrionDinoPawn::StaticClass(), Ignore, Result))
+	{
+		AOrionDinoPawn *Dino = Cast<AOrionDinoPawn>(Result[0]);
+
+		if (Dino && Dino->Health > 0.0f && Dino->DinoName == "COMPY" && !Dino->bFatality)
+		{
+			if (Role < ROLE_Authority)
+				ServerCompySlice(Dino);
+			else
+			{
+				AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+				if (PC && PC->GetStats())
+					PC->GetStats()->AddStatValue(STAT_COMPYSLICE, 1);
+
+				PerformFatality(PlayerSliceAnim, CompySliceAnim, Dino, false);
+			}
+
+			FatalityVictim = Dino;
+
+			return true;
+		}
+	}
+
+	return false;
 }
 
 void AOrionCharacter::ResetStopSpecialMove()
@@ -4741,6 +5009,12 @@ void AOrionCharacter::OnFire()
 	if (PC && PC->bCinematicMode)
 		return;
 
+	if (CurrentSkill && CurrentSkill->bTargetting)
+	{
+		CurrentSkill->TriggerTarget(this);
+		return;
+	}
+
 	StopSprint();
 
 	if (bTargetingGrenade && GrenadeTarget)
@@ -4791,6 +5065,9 @@ void AOrionCharacter::MoveForward(float Value)
 
 		// add movement in that direction
 		AddMovementInput(Direction, Value);
+
+		if (Value <= 0.1f && bRun)
+			StopSprint();
 	}
 }
 
@@ -4839,8 +5116,21 @@ void AOrionCharacter::MoveRight(float Value)
 		const FVector Direction = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 
 		// add movement in that direction
-		AddMovementInput(Direction, Value);
+		AddMovementInput(Direction, Value);// (IsSprinting() ? 0.5f : 1.0f) * Value);
 	}
+
+	if (IsSprinting())
+	{
+		FVector AimDirWS = GetVelocity();
+		AimDirWS.Normalize();
+
+		const FVector AimDirLS = ActorToWorld().InverseTransformVectorNoScale(AimDirWS);
+		const FRotator AimRotLS = AimDirLS.Rotation();
+
+		TargetYaw = FMath::Clamp(AimRotLS.Yaw, -45.0f, 45.0f);
+	}
+	else
+		TargetYaw = 0.0f;
 }
 
 FCharacterStats AOrionCharacter::GetCharacterStats()
