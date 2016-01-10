@@ -34,12 +34,6 @@ FString AOrionInventory::GetSlotName()
 	case ITEM_GADGET:
 		return TEXT("Gadget");
 		break;
-	case ITEM_RING:
-		return TEXT("Ring");
-		break;
-	case ITEM_NECK:
-		return TEXT("Neck");
-		break;
 	case ITEM_BELT:
 		return TEXT("Waist");
 		break;
@@ -49,8 +43,14 @@ FString AOrionInventory::GetSlotName()
 	case ITEM_USEABLE:
 		return TEXT("Consumeable");
 		break;
-	case ITEM_SHIELD:
-		return TEXT("Shield");
+	case ITEM_SHADER:
+		return TEXT("Shader");
+		break;
+	case ITEM_DISPLAYARMOR:
+		return TEXT("DisplayArmor");
+		break;
+	case ITEM_ABILITY:
+		return TEXT("Ability");
 		break;
 	}
 

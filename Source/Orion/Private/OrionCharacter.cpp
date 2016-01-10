@@ -15,6 +15,7 @@
 #include "OrionShipPawn.h"
 #include "OrionHoverVehicle.h"
 #include "OrionPRI.h"
+#include "Landscape.h"
 #include "OrionGrenade.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "OrionSkeletalMeshComponent.h"
@@ -25,6 +26,7 @@
 class AOrionWeaponLink;
 class AOrionDinoPawn;
 class AOrionAIController;
+// class ALandscape;
 
 AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer.SetDefaultSubobjectClass<UOrionMovementComponent>(ACharacter::CharacterMovementComponentName))
@@ -1189,7 +1191,7 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 
 	DOREPLIFETIME(AOrionCharacter, ReplicatedAnimation);
 
-	DOREPLIFETIME(AOrionCharacter, TargetYaw);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, TargetYaw, COND_SkipOwner);
 
 	DOREPLIFETIME(AOrionCharacter, ArmorIndex);
 
@@ -4226,6 +4228,48 @@ void AOrionCharacter::Blink(FVector dir)
 				if (!GetWorld()->GetNavigationSystem()->TestPathSync(FPathFindingQuery(nullptr, GetWorld()->GetNavigationSystem()->MainNavData, GetActorLocation(), loc.Location, QueryFilter)))
 					continue;
 
+				FCollisionQueryParams TraceParams(FName(TEXT("ExtraBlinkTrace")), true, this);
+
+				TraceParams.AddIgnoredActor(this);
+				TraceParams.bTraceAsyncScene = true;
+				TraceParams.bReturnPhysicalMaterial = true;
+
+				TArray<FHitResult> Results;
+
+				ALandscape *StartLandscape = nullptr;
+				ALandscape *EndLandscape = nullptr;
+
+				if (GetWorld()->SweepMultiByChannel(Results, GetActorLocation(), GetActorLocation() - FVector(0, 0, 500.0f), FQuat::Identity, ECollisionChannel::ECC_Visibility, FCollisionShape::MakeSphere(5.0f), TraceParams))
+				{
+					int32 Counter = 0;
+
+					for (int32 j = 0; j < Results.Num(); j++)
+					{
+						if (Cast<ALandscape>(Results[j].GetActor()))
+							StartLandscape = Cast<ALandscape>(Results[j].GetActor());
+					}
+				}
+				else
+					continue;
+
+				Results.Empty();
+
+				if (GetWorld()->SweepMultiByChannel(Results, loc.Location + FVector(0, 0, 2000.0f), loc.Location - FVector(0,0,1000.0f), FQuat::Identity, ECollisionChannel::ECC_Visibility, FCollisionShape::MakeSphere(5.0f), TraceParams))
+				{
+					int32 Counter = 0;
+
+					for (int32 j = 0; j < Results.Num(); j++)
+					{
+						if (Cast<ALandscape>(Results[j].GetActor()))
+							EndLandscape = Cast<ALandscape>(Results[j].GetActor());
+					}
+				}
+				else
+					continue;
+
+				if (StartLandscape != EndLandscape || (EndLandscape && !EndLandscape->bUsedForNavigation))
+					continue;
+
 				FVector StartPos = GetActorLocation();
 				EndPos = loc.Location + GetCapsuleComponent()->GetScaledCapsuleHalfHeight();
 				if (TeleportTo(EndPos, GetActorRotation(), true))
@@ -5119,7 +5163,9 @@ void AOrionCharacter::MoveRight(float Value)
 		AddMovementInput(Direction, Value);// (IsSprinting() ? 0.5f : 1.0f) * Value);
 	}
 
-	if (IsSprinting())
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (IsSprinting() && PC && PC->bThirdPersonCamera)
 	{
 		FVector AimDirWS = GetVelocity();
 		AimDirWS.Normalize();
@@ -5131,6 +5177,8 @@ void AOrionCharacter::MoveRight(float Value)
 	}
 	else
 		TargetYaw = 0.0f;
+
+	ServerSetTargetYaw(TargetYaw);
 }
 
 FCharacterStats AOrionCharacter::GetCharacterStats()

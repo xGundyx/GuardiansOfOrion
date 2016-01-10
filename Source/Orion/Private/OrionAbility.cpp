@@ -103,6 +103,29 @@ void AOrionAbility::TriggerTarget(AOrionCharacter *Pawn)
 			if((GetActorLocation() - Pawn->GetActorLocation()).Size2D() > 700.0f)
 				return;
 
+			//make sure we're on the landscape
+			FCollisionQueryParams TraceParams(FName(TEXT("ExtraBlinkTrace")), true, this);
+
+			TraceParams.AddIgnoredActor(this);
+			TraceParams.bTraceAsyncScene = true;
+			TraceParams.bReturnPhysicalMaterial = true;
+
+			TArray<FHitResult> Results;
+
+			bool bSuccess = false;
+
+			if (GWorld->LineTraceMultiByChannel(Results, GetActorLocation() + FVector(0, 0, 25.0f), GetActorLocation() - FVector(0, 0, 25.0f), ECollisionChannel::ECC_Visibility, TraceParams))
+			{
+				for (int32 j = 0; j < Results.Num(); j++)
+				{
+					if (Cast<ALandscape>(Results[j].GetActor()))
+						bSuccess = true;
+				}
+			}
+
+			if (!bSuccess)
+				return;
+
 			EventTriggerTarget();
 
 			EventHideTarget();

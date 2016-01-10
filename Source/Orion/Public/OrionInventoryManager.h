@@ -96,22 +96,22 @@ public:
 		AOrionInventoryGrid *WeaponSlot2;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
-		AOrionInventoryGrid *RingSlot1;
-
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
-		AOrionInventoryGrid *RingSlot2;
-
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
-		AOrionInventoryGrid *ShieldSlot;
-
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
-		AOrionInventoryGrid *NeckSlot;
-
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
 		AOrionInventoryGrid *BeltSlot;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
 		AOrionInventoryGrid *GadgetSlot;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
+		AOrionInventoryGrid *ShaderSlot;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
+		AOrionInventoryGrid *DisplaySlot;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
+		AOrionInventoryGrid *AbilitySlot;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
+		AOrionInventoryGrid *RegenSlot;
 
 	UFUNCTION(client, reliable, Category = Inventory)
 		void ClientRedraw(EItemType type, int32 index);

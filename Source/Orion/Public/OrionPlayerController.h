@@ -614,6 +614,12 @@ public:
 		TArray<FKeyboardOptionsData> GetKeyboardOptions();
 
 	UFUNCTION(BlueprintCallable, Category = Menu)
+		TArray<FOptionsValueData> GetControllerSensitivities();
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
+		TArray<FOptionsValueData> GetKeyboardInverted();
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
 		TArray<FControllerOptionsData> GetControllerOptions();
 
 	UFUNCTION(BlueprintCallable, Category = Menu)

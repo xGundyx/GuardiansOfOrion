@@ -982,7 +982,7 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 {
 	bool bSuccess = false;
 	//for testing purposes, just spawn random items (turn off for now!)
-	if (false && DefaultPickupClass)
+	if (DefaultPickupClass)
 	{
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;

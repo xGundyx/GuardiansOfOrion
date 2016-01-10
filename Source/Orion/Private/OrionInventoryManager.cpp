@@ -311,55 +311,55 @@ void AOrionInventoryManager::Init(AOrionPlayerController *PC)
 
 	Grid = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (Grid)
-		Grid->CreateInventory(10, 10, 96, 1, ITEM_ANY);
+		Grid->CreateInventory(15, 5, 64, 1, ITEM_ANY);
 
 	HelmetSlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (HelmetSlot)
-		HelmetSlot->CreateInventory(1, 1, 96, 1, ITEM_HELMET);
+		HelmetSlot->CreateInventory(1, 1, 64, 1, ITEM_HELMET);
 
 	HandsSlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (HandsSlot)
-		HandsSlot->CreateInventory(1, 1, 96, 1, ITEM_HANDS);
+		HandsSlot->CreateInventory(1, 1, 64, 1, ITEM_HANDS);
 
 	BodySlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (BodySlot)
-		BodySlot->CreateInventory(1, 1, 96, 1, ITEM_CHEST);
+		BodySlot->CreateInventory(1, 1, 64, 1, ITEM_CHEST);
 
 	LegsSlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (LegsSlot)
-		LegsSlot->CreateInventory(1, 1, 96, 1, ITEM_LEGS);
+		LegsSlot->CreateInventory(1, 1, 64, 1, ITEM_LEGS);
 
 	WeaponSlot1 = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (WeaponSlot1)
-		WeaponSlot1->CreateInventory(1, 1, 96, 1, ITEM_PRIMARYWEAPON);
+		WeaponSlot1->CreateInventory(1, 1, 64, 1, ITEM_PRIMARYWEAPON);
 
 	WeaponSlot2 = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (WeaponSlot2)
-		WeaponSlot2->CreateInventory(1, 1, 96, 1, ITEM_SECONDARYWEAPON);
-
-	RingSlot1 = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
-	if (RingSlot1)
-		RingSlot1->CreateInventory(1, 1, 96, 1, ITEM_RING);
-
-	RingSlot2 = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
-	if (RingSlot2)
-		RingSlot2->CreateInventory(1, 1, 96, 1, ITEM_RING);
-
-	ShieldSlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
-	if (ShieldSlot)
-		ShieldSlot->CreateInventory(1, 1, 96, 1, ITEM_SHIELD);
-
-	NeckSlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
-	if (NeckSlot)
-		NeckSlot->CreateInventory(1, 1, 96, 1, ITEM_NECK);
+		WeaponSlot2->CreateInventory(1, 1, 64, 1, ITEM_SECONDARYWEAPON);
 
 	BeltSlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (BeltSlot)
-		BeltSlot->CreateInventory(1, 1, 96, 1, ITEM_BELT);
+		BeltSlot->CreateInventory(1, 1, 64, 1, ITEM_BELT);
 
 	GadgetSlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
 	if (GadgetSlot)
-		GadgetSlot->CreateInventory(1, 1, 96, 1, ITEM_GADGET);
+		GadgetSlot->CreateInventory(1, 1, 64, 1, ITEM_GADGET);
+
+	ShaderSlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
+	if (ShaderSlot)
+		ShaderSlot->CreateInventory(1, 1, 64, 1, ITEM_SHADER);
+
+	DisplaySlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
+	if (DisplaySlot)
+		DisplaySlot->CreateInventory(1, 1, 64, 1, ITEM_DISPLAYARMOR);
+
+	AbilitySlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
+	if (AbilitySlot)
+		AbilitySlot->CreateInventory(1, 1, 64, 1, ITEM_ABILITY);
+
+	RegenSlot = GetWorld()->SpawnActor<AOrionInventoryGrid>(AOrionInventoryGrid::StaticClass(), SpawnInfo);
+	if (RegenSlot)
+		RegenSlot->CreateInventory(1, 1, 64, 1, ITEM_ABILITY);
 }
 
 void AOrionInventoryManager::DestroyInventory()
@@ -472,13 +472,13 @@ void AOrionInventoryManager::GetLifetimeReplicatedProps(TArray< FLifetimePropert
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, LegsSlot, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, WeaponSlot1, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, WeaponSlot2, COND_OwnerOnly);
-	DOREPLIFETIME_CONDITION(AOrionInventoryManager, RingSlot1, COND_OwnerOnly);
-	DOREPLIFETIME_CONDITION(AOrionInventoryManager, RingSlot2, COND_OwnerOnly);
-	DOREPLIFETIME_CONDITION(AOrionInventoryManager, ShieldSlot, COND_OwnerOnly);
-	DOREPLIFETIME_CONDITION(AOrionInventoryManager, NeckSlot, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, BeltSlot, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, GadgetSlot, COND_OwnerOnly);
-	DOREPLIFETIME_CONDITION(AOrionInventoryManager, PrimaryAmmo, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, ShaderSlot, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, DisplaySlot, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, AbilitySlot, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, AbilitySlot, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, RegenSlot, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, SecondaryAmmo, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, Money, COND_OwnerOnly);
 }

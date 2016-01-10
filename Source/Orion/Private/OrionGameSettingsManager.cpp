@@ -176,6 +176,45 @@ void UOrionGameSettingsManager::ApplyGraphicSettings()
 	Settings->SaveSettings();
 }
 
+int32 UOrionGameSettingsManager::GetMouseSmoothing()
+{
+	if (!InputSettings)
+		InitInputSettings(); 
+	
+	return InputSettings->bEnableMouseSmoothing;
+}
+
+void UOrionGameSettingsManager::SetMouseSmoothing(int32 Smooth)
+{
+	if (!InputSettings)
+		InitInputSettings();
+
+	InputSettings->bEnableMouseSmoothing = Smooth;
+}
+
+bool UOrionGameSettingsManager::SetAxisConfig(FString AxisName, float Sensitivity, bool bInvert)
+{
+	if (!InputSettings)
+		InitInputSettings();
+
+	TArray<FInputAxisConfigEntry>& Actions = InputSettings->AxisConfig;
+
+	for (FInputAxisConfigEntry& Each : Actions)
+	{
+		if (Each.AxisKeyName.ToString() == AxisName)
+		{
+			Each.AxisProperties.bInvert = bInvert;
+			if (Sensitivity >= 0.0f)
+			{
+				Each.AxisProperties.Sensitivity = Sensitivity;
+				Each.AxisProperties.DeadZone = 0.25f;
+			}
+		}
+	}
+
+	return true;
+}
+
 bool UOrionGameSettingsManager::RebindKey(FString ActionName, FKey NewKey, FName OriginalKey, float NewScale)
 {
 	if (!InputSettings)
@@ -219,6 +258,26 @@ bool UOrionGameSettingsManager::RebindKey(FString ActionName, FKey NewKey, FName
 	}
 
 	return bFound;
+}
+
+FInputAxisProperties UOrionGameSettingsManager::GetAxisConfig(FString ConfigName)
+{
+	if(!InputSettings)
+		InitInputSettings();
+
+	TArray<FInputAxisConfigEntry>& Actions = InputSettings->AxisConfig;
+
+	for (FInputAxisConfigEntry& Each : Actions)
+	{
+		if (Each.AxisKeyName.ToString() == ConfigName)
+		{
+			return Each.AxisProperties;
+		}
+	}
+
+	FInputAxisProperties Dummy;
+
+	return Dummy;
 }
 
 FString UOrionGameSettingsManager::GetKeyForAction(FString ActionName, bool bAxis, float Scale)
