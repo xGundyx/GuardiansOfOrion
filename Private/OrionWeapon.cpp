@@ -1549,7 +1549,7 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 		if (TracerPSC)
 		{
 			TracerPSC->SetWorldScale3D((MyPawn && MyPawn->bThirdPersonCamera) ? FVector(1.0f) :FVector(1.0));
-			TracerPSC->SetFloatParameter("BulletLife", FMath::Min(1.0f, ((Origin - EndPoint).Size() / 6000.0f)) - 0.05f);
+			TracerPSC->SetFloatParameter("BulletLife", FMath::Clamp(((Origin - EndPoint).Size() / 6000.0f), 0.05f, 1.5f) - 0.05f);
 		}
 	}
 

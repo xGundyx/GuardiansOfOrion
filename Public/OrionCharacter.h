@@ -1170,6 +1170,11 @@ public:
 		bool ServerPlayAnimMontage_Validate(const FWeaponAnim Animation, float InPlayRate = 1.0f, FName StartSectionName = FName(""), bool bShouldReplicate = true, bool bReplicateToOwner = false, bool bStopOtherAnims = false);
 		void ServerPlayAnimMontage_Implementation(const FWeaponAnim Animation, float InPlayRate = 1.0f, FName StartSectionName = FName(""), bool bShouldReplicate = true, bool bReplicateToOwner = false, bool bStopOtherAnims = false);
 
+	UFUNCTION(server, reliable, WithValidation)
+		void ServerSetTargetYaw(float Target);
+		bool ServerSetTargetYaw_Validate(float Target) { return true; }
+		void ServerSetTargetYaw_Implementation(float Target) { TargetYaw = Target; }
+
 	UFUNCTION()
 		void OnRep_ReplicatedAnimation();
 

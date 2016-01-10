@@ -160,6 +160,15 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Settings")
 		static bool RebindKey(FString ActionName, FKey NewKey, FName OriginalKey, float NewScale = 1.0f);
 
+	UFUNCTION(BlueprintCallable, Category = "Settings")
+		static bool SetAxisConfig(FString AxisName, float Sensitivity, bool bInvert);
+
+	UFUNCTION(BlueprintCallable, Category = "Settings")
+		static void SetMouseSmoothing(int32 Smooth);
+
+	UFUNCTION(BlueprintCallable, Category = "Settings")
+		static int32 GetMouseSmoothing();
+
 	/** Save changes to disk */
 	UFUNCTION(BlueprintCallable, Category = "Settings")
 		static void SaveInput();
@@ -171,6 +180,9 @@ public:
 	/** Create a key from name */
 	UFUNCTION(BlueprintCallable, Category = "Settings")
 		static FKey GetKeyFromString(FName KeyName) { return FKey(KeyName); }
+
+	UFUNCTION(BlueprintCallable, Category = "Settings")
+		static FInputAxisProperties GetAxisConfig(FString ConfigName);
 
 	//audio settings
 	UFUNCTION(BlueprintCallable, Category = "Audio Settings")

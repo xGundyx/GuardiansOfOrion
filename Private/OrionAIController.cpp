@@ -767,7 +767,7 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 		return;
 
 	//if we already have an enemy, just ignore for now
-	if (GetEnemy() && GetWorld()->GetTimeSeconds() - LastEnemyTime < 5.0f)
+	if (GetEnemy() && GetWorld()->GetTimeSeconds() - LastEnemyTime < 10.0f)
 		return;
 
 	//if we are capable of attacking the generator and this is a generator, attack it!
@@ -790,10 +790,10 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 		return;
 
 	//ignore jetpackers if we must
-	if (pPawn->CurrentSkill && pPawn->CurrentSkill->IsJetpacking() && !P->bCanAttackJetpackers)
+	if (pPawn->CurrentSkill && pPawn->CurrentSkill->IsJetpacking() && (GetEnemy() || !P->bCanAttackJetpackers))
 		return;
 
-	if (!P->bCanAttackJetpackers && !IsValidTarget(pPawn))
+	if ((!P->bCanAttackJetpackers || GetEnemy()) && !IsValidTarget(pPawn))
 		return;
 
 	//ignore stuff inside smoke

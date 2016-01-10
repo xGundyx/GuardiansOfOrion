@@ -520,12 +520,11 @@ std::map<std::string, std::string> AOrionPlayerController::GetInventoryData()
 		InvMap[std::string("LegsSlot")] = InvManager->LegsSlot->Inventory[0] ? TCHAR_TO_UTF8(*InvManager->LegsSlot->Inventory[0]->EncodedValue) : std::string("Empty");
 		InvMap[std::string("PrimaryWeaponSlot")] = InvManager->WeaponSlot1->Inventory[0] ? TCHAR_TO_UTF8(*InvManager->WeaponSlot1->Inventory[0]->EncodedValue) : std::string("Empty");
 		InvMap[std::string("SecondaryWeaponSlot")] = InvManager->WeaponSlot2->Inventory[0] ? TCHAR_TO_UTF8(*InvManager->WeaponSlot2->Inventory[0]->EncodedValue) : std::string("Empty");
-		InvMap[std::string("RingSlot1")] = InvManager->RingSlot1->Inventory[0] ? TCHAR_TO_UTF8(*InvManager->RingSlot1->Inventory[0]->EncodedValue) : std::string("Empty");
-		InvMap[std::string("RingSlot2")] = InvManager->RingSlot2->Inventory[0] ? TCHAR_TO_UTF8(*InvManager->RingSlot2->Inventory[0]->EncodedValue) : std::string("Empty");
-		InvMap[std::string("ShieldSlot")] = InvManager->ShieldSlot->Inventory[0] ? TCHAR_TO_UTF8(*InvManager->ShieldSlot->Inventory[0]->EncodedValue) : std::string("Empty");
-		InvMap[std::string("NeckSlot")] = InvManager->NeckSlot->Inventory[0] ? TCHAR_TO_UTF8(*InvManager->NeckSlot->Inventory[0]->EncodedValue) : std::string("Empty");
 		InvMap[std::string("BeltSlot")] = InvManager->BeltSlot->Inventory[0] ? TCHAR_TO_UTF8(*InvManager->BeltSlot->Inventory[0]->EncodedValue) : std::string("Empty");
 		InvMap[std::string("GadgetSlot")] = InvManager->GadgetSlot->Inventory[0] ? TCHAR_TO_UTF8(*InvManager->GadgetSlot->Inventory[0]->EncodedValue) : std::string("Empty");
+		InvMap[std::string("ShaderSlot")] = InvManager->ShaderSlot->Inventory[0] ? TCHAR_TO_UTF8(*InvManager->ShaderSlot->Inventory[0]->EncodedValue) : std::string("Empty");
+		InvMap[std::string("DisplaySlot")] = InvManager->DisplaySlot->Inventory[0] ? TCHAR_TO_UTF8(*InvManager->DisplaySlot->Inventory[0]->EncodedValue) : std::string("Empty");
+		InvMap[std::string("AbilitySlot")] = InvManager->AbilitySlot->Inventory[0] ? TCHAR_TO_UTF8(*InvManager->AbilitySlot->Inventory[0]->EncodedValue) : std::string("Empty");
 	}
 
 	return InvMap;
@@ -1419,14 +1418,13 @@ void AOrionPlayerController::PopulateInventory(TSharedPtr<FJsonObject> Data)
 		CreateAndGiveInventoryItem(Data, InvMan->LegsSlot, "LegsSlot", 0);
 		CreateAndGiveInventoryItem(Data, InvMan->WeaponSlot1, "PrimaryWeaponSlot", 0);
 		CreateAndGiveInventoryItem(Data, InvMan->WeaponSlot2, "SecondaryWeaponSlot", 0);
-		CreateAndGiveInventoryItem(Data, InvMan->RingSlot1, "RingSlot1", 0);
-		CreateAndGiveInventoryItem(Data, InvMan->RingSlot2, "RingSlot2", 0);
-		CreateAndGiveInventoryItem(Data, InvMan->NeckSlot, "NeckSlot", 0);
 		CreateAndGiveInventoryItem(Data, InvMan->BeltSlot, "BeltSlot", 0);
-		CreateAndGiveInventoryItem(Data, InvMan->ShieldSlot, "ShieldSlot", 0);
 		CreateAndGiveInventoryItem(Data, InvMan->GadgetSlot, "GadgetSlot", 0);
+		CreateAndGiveInventoryItem(Data, InvMan->ShaderSlot, "ShaderSlot", 0);
+		CreateAndGiveInventoryItem(Data, InvMan->DisplaySlot, "DisplaySlot", 0);
+		CreateAndGiveInventoryItem(Data, InvMan->AbilitySlot, "AbilitySlot", 0);
 
-		for (int32 i = 0; i < 100; i++)
+		for (int32 i = 0; i < 75; i++)
 		{
 			FString Slot = UTF8_TO_TCHAR((std::string("InventorySlot") + std::to_string(i)).c_str());
 			CreateAndGiveInventoryItem(Data, InvMan->Grid, Slot, i);
@@ -1926,7 +1924,7 @@ TArray<FString> AOrionPlayerController::GetPrivacySettings()
 
 FString AOrionPlayerController::GetBuildVersion()
 {
-	return TEXT("EA1.1.0");
+	return TEXT("EA1.1.1");
 }
 
 FString AOrionPlayerController::GetReviveButtonKeyboard()
@@ -1947,6 +1945,52 @@ FString AOrionPlayerController::GetMeleeButtonKeyboard()
 int32 AOrionPlayerController::GetMeleeButtonController()
 {
 	return ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Melee", false, 0.0f));
+}
+
+TArray<FOptionsValueData> AOrionPlayerController::GetControllerSensitivities()
+{
+	TArray<FOptionsValueData> Options;
+	FOptionsValueData NewOption;
+
+	FInputAxisProperties RightX = UOrionGameSettingsManager::GetAxisConfig("Gamepad_RightX");
+	FInputAxisProperties RightY = UOrionGameSettingsManager::GetAxisConfig("Gamepad_RightY");
+
+	NewOption.Title = TEXT("LOOK X SENSITIVITY");
+	NewOption.Value = RightX.Sensitivity;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("LOOK Y SENSITIVITY");
+	NewOption.Value = RightY.Sensitivity;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("INVERT X AXIS");
+	NewOption.Value = RightX.bInvert;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("INVERT Y AXIS");
+	NewOption.Value = RightY.bInvert;
+	Options.Add(NewOption);
+
+	return Options;
+}
+
+TArray<FOptionsValueData> AOrionPlayerController::GetKeyboardInverted()
+{
+	TArray<FOptionsValueData> Options;
+	FOptionsValueData NewOption;
+
+	FInputAxisProperties RightX = UOrionGameSettingsManager::GetAxisConfig("MouseX");
+	FInputAxisProperties RightY = UOrionGameSettingsManager::GetAxisConfig("MouseY");
+
+	NewOption.Title = TEXT("INVERT X AXIS");
+	NewOption.Value = RightX.bInvert;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("INVERT Y AXIS");
+	NewOption.Value = RightY.bInvert;
+	Options.Add(NewOption);
+
+	return Options;
 }
 
 TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
@@ -2304,8 +2348,10 @@ FOptionsValueData AOrionPlayerController::GetMouseSensitivity()
 {
 	FOptionsValueData Data;
 
+	FInputAxisProperties RightX = UOrionGameSettingsManager::GetAxisConfig("MouseX");
+
 	Data.Title = TEXT("MOUSE SENSITIVITY");
-	Data.Value = 1.0f;
+	Data.Value = RightX.Sensitivity;
 
 	return Data;
 }
@@ -2325,7 +2371,7 @@ FOptionsValueData AOrionPlayerController::GetMouseSmooth()
 	FOptionsValueData Data;
 
 	Data.Title = TEXT("SMOOTH MOUSE");
-	Data.Value = 1.0f;
+	Data.Value = UOrionGameSettingsManager::GetMouseSmoothing();
 
 	return Data;
 }
@@ -2945,6 +2991,9 @@ void AOrionPlayerController::SetThirdPerson()
 
 void AOrionPlayerController::ToggleThirdPerson() 
 { 
+	if (bMenuOpen)
+		return;
+
 	bThirdPersonCamera = !bThirdPersonCamera; 
 
 	float Length = 0.75f - FMath::Min(GetWorld()->TimeSeconds - LastCameraToggleTime, 0.75f);
@@ -3629,6 +3678,10 @@ void AOrionPlayerController::TickPhoton()
 				FString RoomName = GI->PlayFabName;// Info.RoomName;
 				RoomName.Append(TEXT("'s Server"));
 				FString Version = GetBuildVersion();
+
+				if (ServerInfo.GameMode.Find("SLAUGHTER") >= 0)
+					ServerInfo.Difficulty = "SLAUGHTER";
+
 				FString Wave = GRI->WaveNum > 9 ? FString::Printf(TEXT("WAVE %i"), GRI->WaveNum) : FString::Printf(TEXT("WAVE 0%i"), GRI->WaveNum);
 				UPhotonProxy::GetListener()->SetLobbySettings(TCHAR_TO_UTF8(*ServerInfo.MapName), TCHAR_TO_UTF8(*ServerInfo.Difficulty), TCHAR_TO_UTF8(*ServerInfo.GameMode),
 					TCHAR_TO_UTF8(*ServerInfo.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*ServerInfo.LobbyID), TCHAR_TO_UTF8(*Wave), TCHAR_TO_UTF8(*Version),

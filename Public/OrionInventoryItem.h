@@ -56,6 +56,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
 		bool bStackable;
 
+	//what this item can be broken down into, if anything
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
+		TArray< TSubclassOf<class UOrionInventoryItem> > BreakdownClass;
+
 	//how many items can be stacked
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
 		int32 StackSize;

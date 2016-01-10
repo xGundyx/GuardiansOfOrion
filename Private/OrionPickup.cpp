@@ -120,7 +120,7 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 		if (Armor)
 		{
 			Armor->Mesh = Inv->ItemMesh;
-			Armor->Mesh1P = Inv->ItemMesh1P;
+			////Armor->Mesh1P = Inv->ItemMesh1P;
 		}
 	}
 
