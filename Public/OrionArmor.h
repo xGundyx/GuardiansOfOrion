@@ -16,12 +16,12 @@ class ORION_API AOrionArmor : public AOrionInventory
 public:
 	AOrionArmor(const FObjectInitializer& ObjectInitializer);
 
-	UPROPERTY(Replicated, EditAnywhere, Category = Inventory)
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = Inventory)
 		USkeletalMesh *Mesh;
 
-	UPROPERTY(Replicated, EditAnywhere, Category = Inventory)
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = Inventory)
 		USkeletalMesh *ExtraMesh;
 
-	UPROPERTY(Replicated, EditAnywhere, Category = Inventory)
+	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = Inventory)
 		USkeletalMesh *Mesh1P;
 };

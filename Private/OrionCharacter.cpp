@@ -830,7 +830,9 @@ void AOrionCharacter::SpawnClassWeapons(int32 ClassIndex)
 	AOrionWeapon* NewWeapon = nullptr;
 	TArray<TSubclassOf<class AOrionWeapon> > WeaponClasses;
 
-	switch(ClassIndex)
+	WeaponClasses = EventGetWeaponClasses(ClassIndex);
+
+	/*switch(ClassIndex)
 	{
 	case 0:
 		WeaponClasses = DefaultAssaultInventoryClasses;
@@ -844,7 +846,7 @@ void AOrionCharacter::SpawnClassWeapons(int32 ClassIndex)
 	case 3:
 		WeaponClasses = DefaultTechInventoryClasses;
 		break;
-	}
+	}*/
 
 	if (WeaponClasses.Num() <= 0)
 		return;
@@ -2338,10 +2340,10 @@ void AOrionCharacter::SetClassArmor(int32 index)
 {
 	if (ArmorList.Num() > index)
 	{
-		EquipArmor(ArmorList[index].HeadArmor.GetDefaultObject());
-		EquipArmor(ArmorList[index].BodyArmor.GetDefaultObject());
-		EquipArmor(ArmorList[index].LegsArmor.GetDefaultObject());
-		EquipArmor(ArmorList[index].ArmsArmor.GetDefaultObject());
+		EquipArmor(EventGetArmor(ITEM_HELMET, index).GetDefaultObject());
+		EquipArmor(EventGetArmor(ITEM_CHEST, index).GetDefaultObject());
+		EquipArmor(EventGetArmor(ITEM_LEGS, index).GetDefaultObject());
+		EquipArmor(EventGetArmor(ITEM_HANDS, index).GetDefaultObject());
 
 		if (index == 2)
 		{

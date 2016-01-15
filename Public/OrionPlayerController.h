@@ -328,6 +328,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "JoinServer"))
 		void EventJoinServerID(const FString &ID);
 
+	UFUNCTION(BlueprintCallable, Category = HUD)
+		FVector2D GetTextSize(FString str, FSlateFontInfo Font);
+
 	AOrionWeather* TheSun;
 	bool bHideWeapons;
 

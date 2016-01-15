@@ -62,7 +62,8 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 		return false;
 
 	//first pick an item type
-	UOrionInventoryItem *Inv = Cast<UOrionInventoryItem>(List->PickItemType(Level)->GetDefaultObject());
+	Decoder.ItemClass = List->PickItemType(Level);
+	UOrionInventoryItem *Inv = Cast<UOrionInventoryItem>(Decoder.ItemClass->GetDefaultObject());
 
 	Decoder.ItemPath = Inv->GetPathName();
 
@@ -70,21 +71,29 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 		return false;
 
 	//pick which quality, also set the shape/color of the pickup here, also determines name?
-	float RandomChance = FMath::FRand();
-	if (RandomChance < 0.05f)
+	if (Inv->bHasQuality)
 	{
-		Decoder.Rarity = RARITY_LEGENDARY;
-		Decoder.ItemName = Inv->LegendaryName;
-	}
-	else if (RandomChance < 0.15f)
-	{
-		Decoder.Rarity = RARITY_SUPERENHANCED;
-		Decoder.ItemName = Inv->ItemName;
-	}
-	else if (RandomChance < 0.3f)
-	{
-		Decoder.Rarity = RARITY_ENHANCED;
-		Decoder.ItemName = Inv->ItemName;
+		float RandomChance = FMath::FRand();
+		if (RandomChance < 0.05f)
+		{
+			Decoder.Rarity = RARITY_LEGENDARY;
+			Decoder.ItemName = Inv->LegendaryName;
+		}
+		else if (RandomChance < 0.15f)
+		{
+			Decoder.Rarity = RARITY_SUPERENHANCED;
+			Decoder.ItemName = Inv->ItemName;
+		}
+		else if (RandomChance < 0.3f)
+		{
+			Decoder.Rarity = RARITY_ENHANCED;
+			Decoder.ItemName = Inv->ItemName;
+		}
+		else
+		{
+			Decoder.Rarity = RARITY_COMMON;
+			Decoder.ItemName = Inv->ItemName;
+		}
 	}
 	else
 	{
@@ -92,7 +101,19 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 		Decoder.ItemName = Inv->ItemName;
 	}
 
-	Decoder.RequiredLevel = Level;
+	Decoder.Slot = Inv->ItemType;
+	if (Decoder.Slot == ITEM_SHADER ||
+		Decoder.Slot == ITEM_USEABLE ||
+		Decoder.Slot == ITEM_ANY ||
+		Decoder.Slot == ITEM_GENERICCRAFTING ||
+		Decoder.Slot == ITEM_DISPLAYARMOR ||
+		Decoder.Slot == ITEM_BREAKDOWNABLE ||
+		Decoder.Slot == ITEM_DISPLAYARMOR)
+		Decoder.ItemLevel = 0;
+	else
+		Decoder.ItemLevel = Level;
+
+	Decoder.ItemDesc = Inv->ItemDesc;
 
 	//assign stats based on quality and item type
 	Inv->CalcStats(Decoder);
@@ -100,29 +121,35 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 	//encode this item
 	EncodedValue = EncodeItem(Decoder);
 
-	FActorSpawnParameters SpawnInfo;
-	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-	Inventory = GetWorld()->SpawnActor<AOrionInventory>(Inv->ItemClass, SpawnInfo);
+	EventSetColor(Decoder.Rarity);
 
-	if (Inventory)
+	//might not need this anymore
+	/*if (Inv->ItemClass)
 	{
-		Inventory->Image = Inv->ItemIcon;
-		Inventory->InventoryType = Inv->ItemType;
-		Inventory->ItemName = Decoder.Rarity == RARITY_LEGENDARY? Inv->LegendaryName : Inv->ItemName;
-		Inventory->ItemDescription = Inv->ItemDesc;
-		Inventory->bStackable = Inv->bStackable;
-		Inventory->StackAmount = 1;
-		Inventory->RequiredLevel = Level;
-		Inventory->Rarity = Decoder.Rarity;
-		Inventory->EncodedValue = EncodedValue;
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		Inventory = GetWorld()->SpawnActor<AOrionInventory>(Inv->ItemClass, SpawnInfo);
 
-		AOrionArmor *Armor = Cast<AOrionArmor>(Inventory);
-		if (Armor)
+		if (Inventory)
 		{
-			Armor->Mesh = Inv->ItemMesh;
-			////Armor->Mesh1P = Inv->ItemMesh1P;
+			Inventory->Image = Inv->ItemIcon;
+			Inventory->InventoryType = Inv->ItemType;
+			Inventory->ItemName = Decoder.Rarity == RARITY_LEGENDARY ? Inv->LegendaryName : Inv->ItemName;
+			Inventory->ItemDescription = Inv->ItemDesc;
+			Inventory->bStackable = Inv->bStackable;
+			Inventory->StackAmount = 1;
+			Inventory->RequiredLevel = Level;
+			Inventory->Rarity = Decoder.Rarity;
+			Inventory->EncodedValue = EncodedValue;
+
+			AOrionArmor *Armor = Cast<AOrionArmor>(Inventory);
+			if (Armor)
+			{
+				Armor->Mesh = Inv->ItemMesh;
+				////Armor->Mesh1P = Inv->ItemMesh1P;
+			}
 		}
-	}
+	}*/
 
 	return true;
 }
@@ -148,7 +175,7 @@ void AOrionPickup::ServerGrabItem_Implementation()
 
 void AOrionPickup::GrabItem()
 {
-	if (GetOwner() && Inventory)
+	if (GetOwner() && !Decoder.ItemPath.IsEmpty())
 	{
 		AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetOwner());
 		if (PC)
@@ -156,7 +183,20 @@ void AOrionPickup::GrabItem()
 			AOrionInventoryManager *InvMan = PC->GetInventoryManager();
 			if (InvMan)
 			{
-				if (InvMan->AddItemToInventory(InvMan->Grid, Inventory) >= 0)
+				FInventoryItem Item;
+				Item.Amount = 1;
+				Item.ItemClass = Decoder.ItemClass;
+				Item.PrimaryStats = Decoder.PrimaryStats;
+				Item.SecondaryStats = Decoder.SecondaryStats;
+				Item.RareStats = Decoder.RareStats;
+				Item.ItemName = Decoder.ItemName;
+				Item.ItemDesc = Decoder.ItemDesc;
+				Item.Rarity = Decoder.Rarity;
+				Item.Slot = Decoder.Slot;
+				Item.ItemLevel = Decoder.ItemLevel;
+				Item.MainStat = Decoder.MainStat;
+
+				if (InvMan->AddItemToInventory(InvMan->Grid, Item) >= 0)
 				{
 					Destroy();
 				}

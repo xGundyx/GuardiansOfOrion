@@ -64,6 +64,49 @@ struct FInventoryGrid
 	}
 };*/
 
+USTRUCT(BlueprintType)
+struct FCharacterStatEntry
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = Stats)
+		FString StatName;
+
+	UPROPERTY(BlueprintReadOnly, Category = Stats)
+		float Value;
+};
+
+USTRUCT()
+struct FArrayHelper
+{
+	GENERATED_USTRUCT_BODY()
+
+	int32 Primary[PRIMARYSTAT_NUM];
+	int32 Secondary[SECONDARYSTAT_NUM];
+
+	TArray<ESuperRareStat> LegendaryStats;
+
+	int32 Defense;
+
+	FArrayHelper()
+	{
+		Reset();
+	}
+
+	void Reset()
+	{
+		for (int32 i = 0; i < PRIMARYSTAT_NUM; i++)
+			Primary[i] = 0;
+
+		for (int32 i = 0; i < SECONDARYSTAT_NUM; i++)
+			Secondary[i] = 0;
+
+		LegendaryStats.Empty();
+
+		Defense = 0;
+	}
+};
+
 UCLASS()
 class ORION_API AOrionInventoryManager : public AActor
 {
@@ -71,6 +114,11 @@ class ORION_API AOrionInventoryManager : public AActor
 
 public:
 	AOrionInventoryManager(const FObjectInitializer& ObjectInitializer);
+
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		TArray<FCharacterStatEntry> GetEquippedStats();
+
+	void GetStatsFromSlot(AOrionInventoryGrid *Slot, FArrayHelper &Stats);
 
 	//2 dimensional inventory grid representation
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
@@ -111,7 +159,10 @@ public:
 		AOrionInventoryGrid *AbilitySlot;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
-		AOrionInventoryGrid *RegenSlot;
+		AOrionInventoryGrid *BootsSlot;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
+		AOrionInventoryGrid *GrenadeSlot;
 
 	UFUNCTION(client, reliable, Category = Inventory)
 		void ClientRedraw(EItemType type, int32 index);
@@ -129,13 +180,6 @@ public:
 
 	void DrawInventory();
 
-	//percentage values of how much ammo we have
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = Inventory)
-		float PrimaryAmmo;
-
-	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = Inventory)
-		float SecondaryAmmo;
-
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadOnly, Category = Inventory)
 		int32 Money;
 
@@ -143,7 +187,7 @@ public:
 		void GiveMoney(int32 Amount);
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
-		int32 AddItemToInventory(AOrionInventoryGrid *theGrid, AOrionInventory* newItem, int32 Index = -1);
+		int32 AddItemToInventory(AOrionInventoryGrid *theGrid, FInventoryItem newItem, int32 Index = -1);
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		void RemoveItemFromInventory(AOrionInventoryGrid *theGrid, int32 index);
@@ -161,14 +205,18 @@ public:
 		void EquipItems(AOrionCharacter *aPawn, EItemType SlotType);
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
-		AOrionInventory *GetItemAt(AOrionInventoryGrid *theGrid, int32 index);
+		FInventoryItem GetItemAt(AOrionInventoryGrid *theGrid, int32 index);
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		bool SwapItems(AOrionInventoryGrid *theGrid1, int32 index1, AOrionInventoryGrid *theGrid2, int32 index2);
 
 	APlayerController *OwnerController;
 
+	bool HasStat(ESuperRareStat Stat);
+
 private:
-	bool TryToEquip(AOrionCharacter *MyPawn, AOrionInventoryGrid *theGrid, int32 index);
-	bool TryToUnEquip(AOrionCharacter *MyPawn, AOrionInventoryGrid *theGrid, int32 index);
+	bool TryToEquip(AOrionInventoryGrid *theGrid, int32 index);
+	bool TryToUnEquip(AOrionInventoryGrid *theGrid, int32 index);
+
+	FArrayHelper EquippedStats;
 };

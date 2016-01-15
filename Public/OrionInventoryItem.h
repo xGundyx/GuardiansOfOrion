@@ -56,6 +56,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
 		bool bStackable;
 
+	//does this item have various quality levels
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
+		bool bHasQuality;
+
 	//what this item can be broken down into, if anything
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
 		TArray< TSubclassOf<class UOrionInventoryItem> > BreakdownClass;
@@ -65,16 +69,16 @@ public:
 		int32 StackSize;
 
 	//Primary Stats (scaled by level)
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
-		TArray<FPrimaryItemStats> PrimaryStats;
+	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
+	//	TArray<FPrimaryItemStats> PrimaryStats;
 
 	//Secondary Stats
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
-		TArray<FSecondaryItemStats> SecondaryStats;
+	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
+	//	TArray<FSecondaryItemStats> SecondaryStats;
 
 	//Rare Stats
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
-		TArray<FRareItemStats> RareStats;
+	//UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
+	//	TArray<FRareItemStats> RareStats;
 
 	void CalcStats(FDecodeItemInfo &Info);
 };

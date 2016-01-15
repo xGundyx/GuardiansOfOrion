@@ -2,6 +2,7 @@
 #pragma once
 
 class AOrionInventory;
+class UOrionInventoryItem;
 
 #if WITH_EDITOR
 	#define WITH_CHEATS 0
@@ -219,9 +220,10 @@ enum EPrimaryStats
 	PRIMARYSTAT_INTELLIGENCE,
 	PRIMARYSTAT_DISCIPLINE,
 	PRIMARYSTAT_VITALITY,
-	PRIMARYSTAT_POWER,
-	PRIMARYSTAT_DEFENSE,
-	PRIMARYSTAT_DAMAGE
+	//PRIMARYSTAT_DEFENSE,
+	//PRIMARYSTAT_DAMAGE,
+
+	PRIMARYSTAT_NUM
 };
 
 UENUM(BlueprintType)
@@ -235,8 +237,18 @@ enum ESecondaryStats
 	SECONDARYSTAT_DAMAGEREDUCTIONEXPLOSIVE,
 	SECONDARYSTAT_DAMAGEREDUCTIONELEMENTAL,
 	SECONDARYSTAT_DAMAGEREDUCTIONPOISON,
-	SECONDARYSTAT_MOVEMENTSPEED,
-	SECONDARYSTAT_EXPBOOST
+	SECONDARYSTAT_EXPBOOST, 
+	SECONDARYSTAT_FIREDAMAGE,
+	SECONDARYSTAT_LIGHTNINGDAMAGE,
+	SECONDARYSTAT_ICEDAMAGE,
+	SECONDARYSTAT_POISONDAMAGE,
+	SECONDARYSTAT_CORROSIVEDAMAGE,
+	SECONDARYSTAT_GOLDFIND,
+	SECONDARYSTAT_MAGICFIND,
+	SECONDARYSTAT_LARGEDINOBOOST,
+	SECONDARYSTAT_ROBOTBOOST,
+
+	SECONDARYSTAT_NUM
 };
 
 USTRUCT(BlueprintType)
@@ -355,12 +367,14 @@ struct FPrimaryItemStats
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditDefaultsOnly, Category = Stats)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stats)
 		TEnumAsByte<EPrimaryStats> StatType;
-	UPROPERTY(EditDefaultsOnly, Category = Stats)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stats)
 		int32 MinValue;
-	UPROPERTY(EditDefaultsOnly, Category = Stats)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stats)
 		int32 MaxValue;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stats)
+		int32 Value;
 };
 
 USTRUCT(BlueprintType)
@@ -368,23 +382,91 @@ struct FSecondaryItemStats
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditDefaultsOnly, Category = Stats)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stats)
 		TEnumAsByte<ESecondaryStats> StatType;
-	UPROPERTY(EditDefaultsOnly, Category = Stats)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stats)
 		int32 MinValue;
-	UPROPERTY(EditDefaultsOnly, Category = Stats)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stats)
 		int32 MaxValue;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stats)
+		int32 Value;
 };
 
 UENUM(BlueprintType)
 enum ESuperRareStat
 {
-	RARESTAT_INSTANTREVIVE,
-	RARESTAT_OVERCHARGEXTREME,
-	RARESTAT_HOVER,
-	RARESTAT_TWOSTONESONEBIRD,
-	RARESTAT_TEAMCLOAK,
-	RARESTAT_GHOST,
+	//head
+	RARESTAT_PISTOLBONUSDAMAGE,
+	RARESTAT_BONUSCRITCHANCE, //15% bonus crit chance
+	RARESTAT_BONUSCRITDAMAGE, //50% bonus crit damage
+
+	//body
+	RARESTAT_BULLETDODGER, //dodge 50% of bullet based attacks
+	RARESTAT_FATALITYIMMUNE, //immune to all fatalities
+	RARESTAT_PROJECTILEDAMAGEBONUS,
+
+	//hands
+	RARESTAT_SUPERFASTREVIVE,
+	RARESTAT_AUTORIFLEBONUSDAMAGE,
+	RARESTAT_SHOTGUNBONUSDAMAGE,
+	RARESTAT_LMGBONUSDAMAGE,
+
+	//belt
+	RARESTAT_MAGICFIND,
+	RARESTAT_GOLDFIND,
+	RARESTAT_BONUSMELEE, //50% stronger melee
+
+	//legs
+	RARESTAT_FREEBLINK, //blink for free if done right after non bonus blink ends
+	RARESTAT_EXTRADOWN, //gain one extra downed attempt
+	RARESTAT_MOREORBS, //double orb drop rate
+
+	//boots
+	RARESTAT_LARGEDINODR, //25% less damage from large dinos
+	RARESTAT_ROBOTDR, //25% less damage from robots
+	RARESTAT_ORBLENGTH, //10 seconds added to every orb
+	RARESTAT_DILOSPITHEAL, //dilo spit pools heal you instead of damage you
+	RARESTAT_KNOCKBACKIMMUNE, //knockback attacks deal half damage to you and don't knock you back
+
+	//grenade 
+	RARESTAT_FRAGGRENADE,
+	RARESTAT_EMPGRENADE,
+	RARESTAT_SMOKEGRENADE,
+	RARESTAT_STUNGRENADE,
+	RARESTAT_NAPALMGRENADE,
+	RARESTAT_MULTIGRENADE, //grenade explodes into 4 mini frag grenades
+
+	//primary
+	RARESTAT_NORELOAD, //never have to reload, but slower firing rate
+	RARESTAT_EXPLODEKILLS, //enemies killed will explode and do radius damage
+	RARESTAT_DOUBLEDAMAGENOSHIELD, //double damage when shield is offf
+
+	//secondary
+	RARESTAT_KILLRELOAD, //earning a kill instantly reloads this weapon, but clip size is halved
+	RARESTAT_BONUSXP, //kills with this weapon grant 25% bonus xp for yourself
+	RARESTAT_REGENENERGY, //kills with this weapon grant 10% energy refunded
+
+	//gadget
+	RARESTAT_SUPERHEALER, //regen gun heals downed teammates super fast
+	RARESTAT_REGENFIRE, //regen gun lights enemies on fire
+	RARESTAT_REGENFREEZE, //regen gun freezes small dinos in place for 3 seconds
+
+	//ability
+	RARESTAT_SENTRYROCKETS,
+	RARESTAT_SENTRYGRENADES,
+	RARESTAT_SENTRYFLAMER,
+	RARESTAT_JETPACKGRENADES, //drop a frag grenade every second while jetpacking
+	RARESTAT_JETPACKIMMNUE, //immune when jetpacking and 2 seconds after jetpack is over
+	RARESTAT_JETPACKRANDOMORB, //receive a random orb effect at the end of the jetpack 
+	RARESTAT_BUBBLEREVIVE,
+	RARESTAT_BUBBLEHARVESTER,
+	RARESTAT_BUBBLEDAMAGE, //players inside deal double damage
+	RARESTAT_CLOAKIMMUNE,
+	RARESTAT_CLOAKMELEE, //melee is 5 times stronger while cloaked
+	RARESTAT_CLOAKREGEN, //can use regen gun without breaking cloak
+	RARESTAT_PYROINVULNERABLE,
+	RARESTAT_PYROHEALS, //heal teammates and harvester
+	RARESTAT_PYROFREEZE, //freeze enemies instead of burning them, frozen enemies move slower
 
 	RARESTAT_NUM //don't put anything after this
 };
@@ -402,6 +484,61 @@ struct FRareItemStats
 		int32 MaxValue;
 };
 
+UENUM(BlueprintType)
+enum EItemType
+{
+	ITEM_HELMET,
+	ITEM_CHEST,
+	ITEM_LEGS,
+	ITEM_HANDS,
+	ITEM_BOOTS,
+	ITEM_PRIMARYWEAPON,
+	ITEM_SECONDARYWEAPON,
+	ITEM_GADGET,
+	ITEM_BELT,
+	ITEM_CAPE,
+	ITEM_USEABLE,
+	ITEM_ANY,
+	ITEM_GENERICCRAFTING,
+	ITEM_SHADER,
+	ITEM_DISPLAYARMOR,
+	ITEM_ABILITY,
+	ITEM_BREAKDOWNABLE,
+	ITEM_GRENADE
+};
+
+USTRUCT(BlueprintType)
+struct FRareStatsInfo
+{
+	GENERATED_USTRUCT_BODY()
+
+		UPROPERTY(BlueprintReadWrite, Category = Stats)
+		FString Desc; //description
+
+	UPROPERTY(BlueprintReadWrite, Category = Stats)
+		TEnumAsByte<ESuperRareStat> Index; //for easy indexing
+
+	//UPROPERTY(BlueprintReadWrite, Category = Stats)
+	//	TEnumAsByte<ECharacterClass> Class;
+
+	UPROPERTY(BlueprintReadWrite, Category = Stats)
+		TEnumAsByte<EItemType> Slot;
+
+	FRareStatsInfo()
+	{
+		Desc = TEXT("INVALID");
+		Index = RARESTAT_PISTOLBONUSDAMAGE;
+		Slot = ITEM_HELMET;
+	}
+
+	FRareStatsInfo(FString StatDesc, ESuperRareStat StatIndex, EItemType StatSlot)
+	{
+		Desc = StatDesc;
+		Index = StatIndex;
+		Slot = StatSlot;
+	}
+};
+
 USTRUCT()
 struct FDecodeItemInfo
 {
@@ -411,12 +548,17 @@ struct FDecodeItemInfo
 	FString ItemPath;
 
 	FString ItemName;
+	FString ItemDesc;
 	EItemRarity Rarity;
-	int32 RequiredLevel;
+	EItemType Slot;
+	int32 ItemLevel;
+	int32 MainStat;
+
+	TSubclassOf<UOrionInventoryItem> ItemClass;
 
 	TArray<FPrimaryItemStats> PrimaryStats;
 	TArray<FSecondaryItemStats> SecondaryStats;
-	TArray<FRareItemStats> RareStats;
+	TArray<FRareStatsInfo> RareStats;
 
 	FString GetItemQuality()
 	{
@@ -438,6 +580,150 @@ struct FDecodeItemInfo
 		}
 
 		return quality;
+	}
+
+	int32 GetMaxStatValue()
+	{
+		switch (Slot)
+		{
+		case ITEM_HELMET:
+			return ItemLevel;
+			break;
+		case ITEM_CHEST:
+			return ItemLevel * 1.5f;
+			break;
+		case ITEM_HANDS:
+			return ItemLevel;
+			break;
+		case ITEM_BELT:
+			return ItemLevel * 0.4f;
+			break;
+		case ITEM_LEGS:
+			return ItemLevel * 1.5f;
+			break;
+		case ITEM_BOOTS:
+			return ItemLevel * 0.6f;
+			break;
+		case ITEM_PRIMARYWEAPON:
+			return ItemLevel * 2;
+			break;
+		case ITEM_SECONDARYWEAPON:
+			return ItemLevel;
+			break;
+		case ITEM_GADGET:
+			return ItemLevel;
+			break;
+		case ITEM_ABILITY:
+			return ItemLevel;
+			break;
+		default:
+			return 0;
+			break;
+		}
+
+		return 0;
+	}
+
+	int32 GetMaxSecondaryStatValue(ESecondaryStats Stat)
+	{
+		switch (Stat)
+		{
+		case SECONDARYSTAT_CRITICALHITCHANCE:
+			switch (Slot)
+			{
+			case ITEM_PRIMARYWEAPON:
+				return 20;
+				break;
+			case ITEM_SECONDARYWEAPON:
+				return 15;
+				break;
+			case ITEM_HELMET:
+			case ITEM_HANDS:
+			case ITEM_BELT:
+				return 10;
+			}
+			break;
+		case SECONDARYSTAT_CRITICALHITMULTIPLIER:
+			switch (Slot)
+			{
+			case ITEM_PRIMARYWEAPON:
+				return 25;
+				break;
+			case ITEM_SECONDARYWEAPON:
+				return 25;
+				break;
+			case ITEM_HELMET:
+			case ITEM_HANDS:
+			case ITEM_BELT:
+			case ITEM_CHEST:
+			case ITEM_LEGS:
+			case ITEM_BOOTS:
+				return 10;
+			}
+			break;
+		case SECONDARYSTAT_DAMAGEREDUCTION:
+			switch (Slot)
+			{
+			case ITEM_HELMET:
+			case ITEM_HANDS:
+			case ITEM_BELT:
+			case ITEM_CHEST:
+			case ITEM_LEGS:
+			case ITEM_BOOTS:
+				return 5;
+			}
+			break;
+		case SECONDARYSTAT_DAMAGEREDUCTIONPIERCING:
+		case SECONDARYSTAT_DAMAGEREDUCTIONEXPLOSIVE:
+		case SECONDARYSTAT_DAMAGEREDUCTIONELEMENTAL:
+		case SECONDARYSTAT_DAMAGEREDUCTIONPOISON:
+		case SECONDARYSTAT_DAMAGEREDUCTIONBLUNT:
+			switch (Slot)
+			{
+			case ITEM_HELMET:
+			case ITEM_HANDS:
+			case ITEM_BELT:
+			case ITEM_CHEST:
+			case ITEM_LEGS:
+			case ITEM_BOOTS:
+				return 10;
+			}
+			break;
+		case SECONDARYSTAT_EXPBOOST:
+			return 20;
+			break;
+		case SECONDARYSTAT_FIREDAMAGE:
+		case SECONDARYSTAT_LIGHTNINGDAMAGE:
+		case SECONDARYSTAT_ICEDAMAGE:
+		case SECONDARYSTAT_POISONDAMAGE:
+		case SECONDARYSTAT_CORROSIVEDAMAGE:
+			switch (Slot)
+			{
+			case ITEM_PRIMARYWEAPON:
+			case ITEM_SECONDARYWEAPON:
+				return ItemLevel / 2.0f;
+			}
+			break;
+		case SECONDARYSTAT_GOLDFIND:
+			return 10;
+			break;
+		case SECONDARYSTAT_MAGICFIND:
+			return 10;
+			break;
+		case SECONDARYSTAT_LARGEDINOBOOST:
+		case SECONDARYSTAT_ROBOTBOOST:
+			switch (Slot)
+			{
+			case ITEM_PRIMARYWEAPON:
+			case ITEM_SECONDARYWEAPON:
+			case ITEM_GADGET:
+			case ITEM_ABILITY:
+				return 5;
+			}
+			break;
+		}
+
+		return 0;
 	}
 };
 
@@ -468,11 +754,11 @@ static FString EncodeItem(FDecodeItemInfo Item)
 {
 	FString RawData;
 
-	TSharedPtr<FJsonObject> JsonParsed = MakeShareable(new FJsonObject());
+	/*TSharedPtr<FJsonObject> JsonParsed = MakeShareable(new FJsonObject());
 
 	JsonParsed->SetStringField(TEXT("ItemName"), Item.ItemName);
 	JsonParsed->SetStringField(TEXT("ItemQuality"), Item.GetItemQuality());
-	JsonParsed->SetStringField(TEXT("ItemLevel"), FString("") + Item.RequiredLevel);
+	JsonParsed->SetStringField(TEXT("ItemLevel"), FString("") + Item.ItemLevel);
 	JsonParsed->SetStringField(TEXT("ItemPath"), Item.ItemPath);
 
 	TArray<TSharedPtr<FJsonValue>> PrimaryStats;
@@ -528,31 +814,10 @@ static FString EncodeItem(FDecodeItemInfo Item)
 
 	TSharedRef< TJsonWriter<> > JsonWriter = TJsonWriterFactory<>::Create(&RawData);
 
-	FJsonSerializer::Serialize(JsonParsed.ToSharedRef(), JsonWriter);
+	FJsonSerializer::Serialize(JsonParsed.ToSharedRef(), JsonWriter);*/
 
 	return RawData;
 }
-
-UENUM(BlueprintType)
-enum EItemType
-{
-	ITEM_HELMET,
-	ITEM_CHEST,
-	ITEM_LEGS,
-	ITEM_HANDS,
-	ITEM_PRIMARYWEAPON,
-	ITEM_SECONDARYWEAPON,
-	ITEM_GADGET,
-	ITEM_BELT,
-	ITEM_CAPE,
-	ITEM_USEABLE,
-	ITEM_ANY,
-	ITEM_GENERICCRAFTING,
-	ITEM_SHADER,
-	ITEM_DISPLAYARMOR,
-	ITEM_ABILITY,
-	ITEM_BREAKDOWNABLE
-};
 
 UENUM(BlueprintType)
 enum ECharacterClass
@@ -560,34 +825,8 @@ enum ECharacterClass
 	CLASS_ASSAULT,
 	CLASS_SUPPORT,
 	CLASS_RECON,
-	CLASS_TECH
-};
-
-USTRUCT(BlueprintType)
-struct FRareStatsInfo
-{
-	GENERATED_USTRUCT_BODY()
-
-	FString Name; //user readable name
-	FString Desc; //description
-	ESuperRareStat Index; //for easy indexing
-	ECharacterClass CharacterClass; //class specific buffs only!
-
-	FRareStatsInfo()
-	{
-		Name = TEXT("INVALID");
-		Desc = TEXT("INVALID");
-		Index = RARESTAT_INSTANTREVIVE;
-		CharacterClass = CLASS_ASSAULT;
-	}
-
-	FRareStatsInfo(FString StatName, FString StatDesc, ESuperRareStat StatIndex, ECharacterClass StatClass)
-	{
-		Name = StatName;
-		Desc = StatDesc;
-		Index = StatIndex;
-		CharacterClass = StatClass;
-	}
+	CLASS_TECH,
+	CLASS_PYRO
 };
 
 USTRUCT(BlueprintType)
@@ -601,12 +840,78 @@ struct FRareStats
 	//create the defaults
 	FRareStats()
 	{
-		StatsInfo.Add(FRareStatsInfo(TEXT("INSTANT REVIVE"), TEXT("INSTANTLY REVIVE FALLEN TEAMMATES"), RARESTAT_INSTANTREVIVE, CLASS_ASSAULT));
-		StatsInfo.Add(FRareStatsInfo(TEXT("OVERCHARE X-TREME"), TEXT("DEAL DAMAGE TO ALL ENEMIES ON SCREEN"), RARESTAT_OVERCHARGEXTREME, CLASS_ASSAULT));
-		StatsInfo.Add(FRareStatsInfo(TEXT("HOVERABLE"), TEXT("HOVER COSTS 50% LESS FUEL"), RARESTAT_HOVER, CLASS_SUPPORT));
-		StatsInfo.Add(FRareStatsInfo(TEXT("TWO STONES ONE BIRD"), TEXT("THROW 3 GRENADES AT ONCE"), RARESTAT_TWOSTONESONEBIRD, CLASS_SUPPORT));
-		StatsInfo.Add(FRareStatsInfo(TEXT("TEAM CLOAK"), TEXT("USING CLOAK MAKES ALL TEAMMATES CLOAK FOR 5 SECONDS"), RARESTAT_TEAMCLOAK, CLASS_RECON));
-		StatsInfo.Add(FRareStatsInfo(TEXT("GHOST"), TEXT("WALK THROUGH ENEMIES WHILE CLOAKED"), RARESTAT_GHOST, CLASS_RECON));
+		//helmet
+		StatsInfo.Add(FRareStatsInfo(TEXT("50% bonus damage to pistols"), RARESTAT_PISTOLBONUSDAMAGE, ITEM_HELMET));
+		StatsInfo.Add(FRareStatsInfo(TEXT("15% bonus to critical hit chance"), RARESTAT_BONUSCRITCHANCE, ITEM_HELMET));
+		StatsInfo.Add(FRareStatsInfo(TEXT("50% bonus to critical damage"), RARESTAT_BONUSCRITDAMAGE, ITEM_HELMET));
+
+		//body
+		StatsInfo.Add(FRareStatsInfo(TEXT("50% of bullet attacks pass right through you"), RARESTAT_BULLETDODGER, ITEM_CHEST));
+		StatsInfo.Add(FRareStatsInfo(TEXT("Immune to all fatality attacks"), RARESTAT_FATALITYIMMUNE, ITEM_CHEST));
+		StatsInfo.Add(FRareStatsInfo(TEXT("50% damage bonus to projectile weapons"), RARESTAT_PROJECTILEDAMAGEBONUS, ITEM_CHEST));
+
+		//hands
+		StatsInfo.Add(FRareStatsInfo(TEXT("Revive players twice as fast"), RARESTAT_SUPERFASTREVIVE, ITEM_HANDS));
+		StatsInfo.Add(FRareStatsInfo(TEXT("50% bonus damage to auto-rifles"), RARESTAT_AUTORIFLEBONUSDAMAGE, ITEM_HANDS));
+		StatsInfo.Add(FRareStatsInfo(TEXT("50% bonus damage to shotguns"), RARESTAT_SHOTGUNBONUSDAMAGE, ITEM_HANDS));
+		StatsInfo.Add(FRareStatsInfo(TEXT("50% bonus damage to light machine guns"), RARESTAT_LMGBONUSDAMAGE, ITEM_HANDS));
+
+		//belt
+		StatsInfo.Add(FRareStatsInfo(TEXT("100% increased item drops"), RARESTAT_MAGICFIND, ITEM_BELT));
+		StatsInfo.Add(FRareStatsInfo(TEXT("100% increased gold dropped from enemies"), RARESTAT_GOLDFIND, ITEM_BELT));
+		StatsInfo.Add(FRareStatsInfo(TEXT("50% increase to melee damage"), RARESTAT_BONUSMELEE, ITEM_BELT));
+
+		//legs
+		StatsInfo.Add(FRareStatsInfo(TEXT("blink for free for 1 second after normal blink ends"), RARESTAT_FREEBLINK, ITEM_LEGS));
+		StatsInfo.Add(FRareStatsInfo(TEXT("Gain one extra down"), RARESTAT_EXTRADOWN, ITEM_LEGS));
+		StatsInfo.Add(FRareStatsInfo(TEXT("double amount of orbs dropped from all sources"), RARESTAT_MOREORBS, ITEM_LEGS));
+
+		//boots
+		StatsInfo.Add(FRareStatsInfo(TEXT("25% less damage taken from large dinos"), RARESTAT_LARGEDINODR, ITEM_BOOTS));
+		StatsInfo.Add(FRareStatsInfo(TEXT("25% less damage taken from robots"), RARESTAT_ROBOTDR, ITEM_BOOTS));
+		StatsInfo.Add(FRareStatsInfo(TEXT("Orbs last 10 seconds longer"), RARESTAT_ORBLENGTH, ITEM_BOOTS));
+		StatsInfo.Add(FRareStatsInfo(TEXT("dilo spit pools heal you instead of damaging you"), RARESTAT_DILOSPITHEAL, ITEM_BOOTS));
+		StatsInfo.Add(FRareStatsInfo(TEXT("knockback attacks deal half damage to you and don't knock you back"), RARESTAT_KNOCKBACKIMMUNE, ITEM_BOOTS));
+
+		//grenade 
+		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explosion drops a frag grenade"), RARESTAT_FRAGGRENADE, ITEM_GRENADE));
+		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explosion drops an emp grenade"), RARESTAT_EMPGRENADE, ITEM_GRENADE));
+		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explosion drops a smoke grenade"), RARESTAT_SMOKEGRENADE, ITEM_GRENADE));
+		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explosion drops a stun grenade"), RARESTAT_STUNGRENADE, ITEM_GRENADE));
+		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explosion drops a napalm grenade"), RARESTAT_NAPALMGRENADE, ITEM_GRENADE));
+		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explodes into 4 mini frag grenades"), RARESTAT_MULTIGRENADE, ITEM_GRENADE));
+
+		//primary
+		StatsInfo.Add(FRareStatsInfo(TEXT("this weapon never needs a reload, but fires at half speed"), RARESTAT_NORELOAD, ITEM_PRIMARYWEAPON));
+		StatsInfo.Add(FRareStatsInfo(TEXT("enemies killed with this weapon explode"), RARESTAT_EXPLODEKILLS, ITEM_PRIMARYWEAPON));
+		StatsInfo.Add(FRareStatsInfo(TEXT("double damage when your shields are down"), RARESTAT_DOUBLEDAMAGENOSHIELD, ITEM_PRIMARYWEAPON));
+
+		//secondary
+		StatsInfo.Add(FRareStatsInfo(TEXT("kills instantly reload this weapon, but clip size is halved"), RARESTAT_KILLRELOAD, ITEM_SECONDARYWEAPON));
+		StatsInfo.Add(FRareStatsInfo(TEXT("kills with the weapon grant 25% extra experience"), RARESTAT_BONUSXP, ITEM_SECONDARYWEAPON));
+		StatsInfo.Add(FRareStatsInfo(TEXT("kills with this weapon grant 10% ability energy recharge"), RARESTAT_REGENENERGY, ITEM_SECONDARYWEAPON));
+
+		//gadget
+		StatsInfo.Add(FRareStatsInfo(TEXT("regen gun heals downed teammates super fast"), RARESTAT_SUPERHEALER, ITEM_GADGET));
+		StatsInfo.Add(FRareStatsInfo(TEXT("regen gun lights enemies on fire"), RARESTAT_REGENFIRE, ITEM_GADGET));
+		StatsInfo.Add(FRareStatsInfo(TEXT("regen gun freezes enemies in place"), RARESTAT_REGENFREEZE, ITEM_GADGET));
+
+		//ability
+		StatsInfo.Add(FRareStatsInfo(TEXT("sentry gun now shoots rockets"), RARESTAT_SENTRYROCKETS, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("sentry gun now shoots frag grenades"), RARESTAT_SENTRYGRENADES, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("sentry gun now shoots flames instead of bullets"), RARESTAT_SENTRYFLAMER, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("drop a frag grenade every second while jetpacking"), RARESTAT_JETPACKGRENADES, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("take no damage while jetpacking and for 2 seconds afterwards"), RARESTAT_JETPACKIMMNUE, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("receive a random orb at the end of jetpacking"), RARESTAT_JETPACKRANDOMORB, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("healy bubble can revive downed players"), RARESTAT_BUBBLEREVIVE, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("healy bubble can repair the harvester"), RARESTAT_BUBBLEHARVESTER, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("players within the healy bubble do double damage"), RARESTAT_BUBBLEDAMAGE, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("take no damage while cloaking"), RARESTAT_CLOAKIMMUNE, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("melee is 5 times stronger while cloaking"), RARESTAT_CLOAKMELEE, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("can use regen gun while cloaked"), RARESTAT_CLOAKREGEN, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("take no damage while flamethrower is active"), RARESTAT_PYROINVULNERABLE, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("flamethrower heals allies as well as damages enemies"), RARESTAT_PYROHEALS, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("flamethrower freezes enemies instead of burning them"), RARESTAT_PYROFREEZE, ITEM_ABILITY));
 	};
 };
 
@@ -892,4 +1197,56 @@ public:
 		TEnumAsByte<EVoiceType> Type;
 	UPROPERTY(EditDefaultsOnly)
 		TArray<USoundWave*> Voice;
+};
+
+USTRUCT(BlueprintType)
+struct FInventoryItem
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		FString ItemName;
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		FString ItemDesc;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Inventory)
+		TSubclassOf<UOrionInventoryItem> ItemClass;
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		int32 Amount;
+
+	//main stat is defense or weapon damage
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		int32 MainStat;
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		TArray<FPrimaryItemStats> PrimaryStats;
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		TArray<FSecondaryItemStats> SecondaryStats;
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		TArray<FRareStatsInfo> RareStats;
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		TEnumAsByte<EItemRarity> Rarity;
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		TEnumAsByte<EItemType> Slot;
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		int32 ItemLevel;
+
+	void Reset()
+	{
+		ItemName = "";
+		ItemDesc = "";
+		ItemClass = nullptr;
+		Amount = 0;
+
+		PrimaryStats.Empty();
+		SecondaryStats.Empty();
+		RareStats.Empty();
+	}
 };
