@@ -46,4 +46,7 @@ public:
 		void ServerGrabItem();
 		bool ServerGrabItem_Validate();
 		void ServerGrabItem_Implementation();
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SetColor"))
+		void EventSetColor(EItemRarity Rarity);
 };

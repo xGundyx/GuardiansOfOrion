@@ -1003,8 +1003,31 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 
 				AOrionCharacter *Pawn = Cast<AOrionCharacter>(Spawner);
 				if (Pawn)
-					if (Pickup->Init(Pawn->LootTable, Pawn->Level))
+				{
+					int32 Level = 0;
+
+					switch (Difficulty)
+					{
+					case DIFF_EASY:
+						Level = 50 + 10 * FMath::RandRange(0, 1);
+						break;
+					case DIFF_MEDIUM:
+						Level = 60 + 10 * FMath::RandRange(0, 2);
+						break;
+					case DIFF_HARD:
+						Level = 80 + 10 * FMath::RandRange(0, 4);
+						break;
+					case DIFF_INSANE:
+						Level = 150 + 10 * FMath::RandRange(0, 5);
+						break;
+					case DIFF_REDIKULOUS:
+						Level = 200 + 10 * FMath::RandRange(0, 5);
+						break;
+					}
+
+					if (Pickup->Init(Pawn->LootTable, Level))
 						bSuccess = true;
+				}
 
 				if (!bSuccess)
 					Pickup->Destroy();

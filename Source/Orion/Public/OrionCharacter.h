@@ -1113,6 +1113,12 @@ public:
 	float TotalDamageReceived;
 	bool bDirectGrenadeHit;
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "GetWeaponClasses"))
+		TArray<TSubclassOf<class AOrionWeapon> > EventGetWeaponClasses(int32 Index);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "GetArmor"))
+		TSubclassOf<class AOrionArmor> EventGetArmor(EItemType Slot, int32 index);
+
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "StartTrailFX"))
 		void EventStartTrailFX();
 

@@ -505,13 +505,13 @@ std::map<std::string, std::string> AOrionPlayerController::GetInventoryData()
 {
 	std::map<std::string, std::string> InvMap;
 
-	AOrionInventoryManager *InvManager = GetInventoryManager();
+	/*AOrionInventoryManager *InvManager = GetInventoryManager();
 
 	if (InvManager)
 	{
 		for (int32 i = 0; i < InvManager->Grid->Width * InvManager->Grid->Height; i++)
 		{
-			InvMap[std::string("InventorySlot") + std::to_string(i)] = InvManager->Grid->Inventory[i] ? TCHAR_TO_UTF8(*InvManager->Grid->Inventory[i]->EncodedValue) : std::string("Empty");
+			InvMap[std::string("InventorySlot") + std::to_string(i)] = InvManager->Grid->Inventory[i].ItemClass ? TCHAR_TO_UTF8(*InvManager->Grid->Inventory[i]->EncodedValue) : std::string("Empty");
 		}
 
 		InvMap[std::string("HelmetSlot")] = InvManager->HelmetSlot->Inventory[0] ? TCHAR_TO_UTF8(*InvManager->HelmetSlot->Inventory[0]->EncodedValue) : std::string("Empty");
@@ -525,7 +525,7 @@ std::map<std::string, std::string> AOrionPlayerController::GetInventoryData()
 		InvMap[std::string("ShaderSlot")] = InvManager->ShaderSlot->Inventory[0] ? TCHAR_TO_UTF8(*InvManager->ShaderSlot->Inventory[0]->EncodedValue) : std::string("Empty");
 		InvMap[std::string("DisplaySlot")] = InvManager->DisplaySlot->Inventory[0] ? TCHAR_TO_UTF8(*InvManager->DisplaySlot->Inventory[0]->EncodedValue) : std::string("Empty");
 		InvMap[std::string("AbilitySlot")] = InvManager->AbilitySlot->Inventory[0] ? TCHAR_TO_UTF8(*InvManager->AbilitySlot->Inventory[0]->EncodedValue) : std::string("Empty");
-	}
+	}*/
 
 	return InvMap;
 }
@@ -805,7 +805,8 @@ void AOrionPlayerController::ChangeClass(int32 index)
 	P->SpawnClassWeapons(index);
 
 	//change our armor and weapons
-	switch (index)
+	P->SetClassArmor(index);
+	/*switch (index)
 	{
 	case 0: //assault
 		P->SetClassArmor(0);
@@ -819,7 +820,7 @@ void AOrionPlayerController::ChangeClass(int32 index)
 	case 3: //tech
 		P->SetClassArmor(3);
 		break;
-	};
+	};*/
 
 	if (P)
 	{
@@ -1436,9 +1437,15 @@ void AOrionPlayerController::PopulateInventory(TSharedPtr<FJsonObject> Data)
 	}
 }
 
+FVector2D AOrionPlayerController::GetTextSize(FString str, FSlateFontInfo Font)
+{
+	TSharedRef< FSlateFontMeasure > FontMeasure = FSlateApplication::Get().GetRenderer()->GetFontMeasureService();
+	return FontMeasure->Measure(str, Font);
+}
+
 bool AOrionPlayerController::CreateAndGiveInventoryItem(TSharedPtr<FJsonObject> Data, AOrionInventoryGrid *theGrid, FString Slot, int32 Index)
 {
-	AOrionInventoryManager *InvMan = GetInventoryManager();
+	/*AOrionInventoryManager *InvMan = GetInventoryManager();
 
 	if (InvMan)
 	{
@@ -1502,7 +1509,7 @@ bool AOrionPlayerController::CreateAndGiveInventoryItem(TSharedPtr<FJsonObject> 
 				}
 			}
 		}
-	}
+	}*/
 
 	return false;
 }

@@ -31,7 +31,7 @@ public:
 		void OnRep_Inventory();
 
 	UPROPERTY(ReplicatedUsing = OnRep_Inventory, BlueprintReadOnly, Category = Inventory)
-		TArray<AOrionInventory*> Inventory;
+		TArray<FInventoryItem> Inventory;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
 		TEnumAsByte<EItemType> InventoryType;
@@ -60,7 +60,9 @@ public:
 		{
 			for (int32 j = 0; j < width; j++)
 			{
-				Inventory.Add(nullptr);
+				FInventoryItem NewItem;
+
+				Inventory.Add(NewItem);
 			}
 		}
 	}
