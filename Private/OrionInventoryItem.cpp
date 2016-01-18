@@ -69,7 +69,7 @@ void UOrionInventoryItem::CalcStats(FDecodeItemInfo &Info)
 			FPrimaryItemStats StatToAdd;
 
 			StatToAdd.StatType = EPrimaryStats(Primary[RandomIndex]);
-			StatToAdd.MaxValue = Info.GetMaxStatValue();
+			StatToAdd.MaxValue = int32(Info.GetMaxStatValue() * Info.GetRarityMultiplier());
 			StatToAdd.MinValue = FMath::Max(1, int32(StatToAdd.MaxValue * 0.7f));
 			StatToAdd.Value = FMath::RandRange(StatToAdd.MinValue, StatToAdd.MaxValue);
 
@@ -106,6 +106,6 @@ void UOrionInventoryItem::CalcStats(FDecodeItemInfo &Info)
 		}
 	//}
 
-	Info.MainStat = FMath::RandRange(int32(Info.GetMaxStatValue() * 0.7f), Info.GetMaxStatValue());
+	Info.MainStat = int32(Info.GetRarityMultiplier() * FMath::RandRange(int32(Info.GetMaxStatValue() * 0.7f), Info.GetMaxStatValue()));
 }
 

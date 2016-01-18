@@ -1,6 +1,13 @@
 #include "OrionTypes.generated.h"
 #pragma once
 
+//files with custom changes in them
+//Runtime/Online/OnlineSubsystemSteam/Private/OnlineSessionAsyncLobbySteam.cpp
+//Runtime/Online/OnlineSubsystemSteam/Private/OnlineSessionAsyncServerSteam.cpp
+//Runtime/Renderer/Private/ShadowSetup.cpp
+//Runtime/UMB/Public/Blueprint/UserWidget.h
+//G:\Users\Gundy\Documents\UnrealEngine\Engine\Source\Runtime\Engine\Classes\PhysicsEngine\DestructibleActor.h
+
 class AOrionInventory;
 class UOrionInventoryItem;
 
@@ -553,6 +560,9 @@ struct FDecodeItemInfo
 	EItemType Slot;
 	int32 ItemLevel;
 	int32 MainStat;
+	int32 SellValue;
+
+	TArray< TSubclassOf<class UOrionInventoryItem> > BreakdownClasses;
 
 	TSubclassOf<UOrionInventoryItem> ItemClass;
 
@@ -580,6 +590,24 @@ struct FDecodeItemInfo
 		}
 
 		return quality;
+	}
+
+	float GetRarityMultiplier()
+	{
+		switch (Rarity)
+		{
+		case RARITY_LEGENDARY:
+			return 1.0f;
+			break;
+		case RARITY_SUPERENHANCED:
+			return 0.9f;
+			break;
+		case RARITY_ENHANCED:
+			return 0.8f;
+			break;
+		default:
+			return 0.6f;
+		}
 	}
 
 	int32 GetMaxStatValue()
@@ -1238,15 +1266,41 @@ struct FInventoryItem
 	UPROPERTY(BlueprintReadWrite, Category = Inventory)
 		int32 ItemLevel;
 
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		int32 SellValue;
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		TArray< TSubclassOf<class UOrionInventoryItem> > BreakdownClasses;
+
 	void Reset()
 	{
 		ItemName = "";
 		ItemDesc = "";
 		ItemClass = nullptr;
 		Amount = 0;
+		SellValue = 0;
 
 		PrimaryStats.Empty();
 		SecondaryStats.Empty();
 		RareStats.Empty();
+	}
+
+	//sort by item quality, and then by item type
+	bool operator<(const FInventoryItem Other) const 
+	{ 
+		if (Slot == Other.Slot)
+		{
+			if (Rarity == Other.Rarity)
+			{
+				if (ItemLevel == Other.ItemLevel)
+					return Amount < Amount;
+				else
+					return ItemLevel < Other.ItemLevel;
+			}
+			else
+				return Rarity < Other.Rarity;
+		}
+		else
+			return Slot < Other.Slot; 
 	}
 };

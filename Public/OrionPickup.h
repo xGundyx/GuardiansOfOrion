@@ -29,6 +29,9 @@ public:
 	//search the current loot table for some drop to assign us
 	bool Init(UClass *LootTable, int32 Level);
 
+	UPROPERTY(BlueprintReadOnly, Category = Pickup)
+		bool bGlobalItem;
+
 	FString EncodedValue;
 	FDecodeItemInfo Decoder;
 

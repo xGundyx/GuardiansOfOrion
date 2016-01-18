@@ -121,7 +121,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Arms1PMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
 	Arms1PMesh->bCastDynamicShadow = true;
 	Arms1PMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	Arms1PMesh->bChartDistanceFactor = true;
+	//Arms1PMesh->bChartDistanceFactor = true;
 	Arms1PMesh->bGenerateOverlapEvents = false;
 	Arms1PMesh->AttachParent = FirstPersonCameraComponent;
 	Arms1PMesh->CastShadow = false;
@@ -137,7 +137,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Arms1PArmorMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	Arms1PArmorMesh->bCastDynamicShadow = true;
 	Arms1PArmorMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	Arms1PArmorMesh->bChartDistanceFactor = true;
+	//Arms1PArmorMesh->bChartDistanceFactor = true;
 	Arms1PArmorMesh->bGenerateOverlapEvents = false;
 	Arms1PArmorMesh->AttachParent = Arms1PMesh;
 	Arms1PArmorMesh->CastShadow = false;
@@ -166,7 +166,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	BodyMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	BodyMesh->bCastDynamicShadow = true;
 	BodyMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	BodyMesh->bChartDistanceFactor = true;
+	//BodyMesh->bChartDistanceFactor = true;
 	//BodyMesh->SetCollisionProfileName(CollisionProfileName);
 	BodyMesh->bGenerateOverlapEvents = false;
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
@@ -181,7 +181,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	HelmetMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	HelmetMesh->bCastDynamicShadow = true;
 	HelmetMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	HelmetMesh->bChartDistanceFactor = true;
+	//HelmetMesh->bChartDistanceFactor = true;
 	//HelmetMesh->SetCollisionProfileName(CollisionProfileName);
 	HelmetMesh->bGenerateOverlapEvents = false;
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
@@ -196,7 +196,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	ArmsMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	ArmsMesh->bCastDynamicShadow = true;
 	ArmsMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	ArmsMesh->bChartDistanceFactor = true;
+	//ArmsMesh->bChartDistanceFactor = true;
 	//ArmsMesh->SetCollisionProfileName(CollisionProfileName);
 	ArmsMesh->bGenerateOverlapEvents = false;
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
@@ -211,7 +211,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	LegsMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	LegsMesh->bCastDynamicShadow = true;
 	LegsMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	LegsMesh->bChartDistanceFactor = true;
+	//LegsMesh->bChartDistanceFactor = true;
 	//LegsMesh->SetCollisionProfileName(CollisionProfileName);
 	LegsMesh->bGenerateOverlapEvents = false;
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
@@ -226,7 +226,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Flight1Mesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	Flight1Mesh->bCastDynamicShadow = true;
 	Flight1Mesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	Flight1Mesh->bChartDistanceFactor = true;
+	//Flight1Mesh->bChartDistanceFactor = true;
 	//Flight1Mesh->SetCollisionProfileName(CollisionProfileName);
 	Flight1Mesh->bGenerateOverlapEvents = false;
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
@@ -241,7 +241,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	Flight2Mesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	Flight2Mesh->bCastDynamicShadow = true;
 	Flight2Mesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	Flight2Mesh->bChartDistanceFactor = true;
+	//Flight2Mesh->bChartDistanceFactor = true;
 	//Flight2Mesh->SetCollisionProfileName(CollisionProfileName);
 	Flight2Mesh->bGenerateOverlapEvents = false;
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
@@ -4225,9 +4225,9 @@ void AOrionCharacter::Blink(FVector dir)
 				//Query.StartLocation = GetActorLocation();
 				//Query.EndLocation = loc.Location;
 
-				TSharedPtr<const FNavigationQueryFilter> QueryFilter = UNavigationQueryFilter::GetQueryFilter(GetWorld()->GetNavigationSystem()->MainNavData, DefaultFilterClass);
+				TSharedPtr<const FNavigationQueryFilter> QueryFilter = GetWorld()->GetNavigationSystem()->MainNavData->GetQueryFilter(DefaultFilterClass);// UNavigationQueryFilter::GetQueryFilter(GetWorld()->GetNavigationSystem()->MainNavData, DefaultFilterClass);
 
-				if (!GetWorld()->GetNavigationSystem()->TestPathSync(FPathFindingQuery(nullptr, GetWorld()->GetNavigationSystem()->MainNavData, GetActorLocation(), loc.Location, QueryFilter)))
+				if (!GetWorld()->GetNavigationSystem()->TestPathSync(FPathFindingQuery(nullptr, *GetWorld()->GetNavigationSystem()->MainNavData, GetActorLocation(), loc.Location, QueryFilter)))
 					continue;
 
 				FCollisionQueryParams TraceParams(FName(TEXT("ExtraBlinkTrace")), true, this);
@@ -4610,7 +4610,10 @@ void AOrionCharacter::FaceRotation(FRotator NewControlRotation, float DeltaTime)
 
 	//no rolls for now
 	if (PC)
+	{
 		NewControlRotation.Roll = 0.0f;
+		NewControlRotation.Pitch = 0.0f;
+	}
 
 	if (bIsHealableMachine)
 	{
