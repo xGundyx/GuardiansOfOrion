@@ -65,6 +65,48 @@ struct FInventoryGrid
 };*/
 
 USTRUCT(BlueprintType)
+struct FStatHelper
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = Stats)
+		TEnumAsByte<EPrimaryStats> PrimaryStat;
+
+	UPROPERTY(BlueprintReadOnly, Category = Stats)
+		TEnumAsByte<ESecondaryStats> SecondaryStat;
+
+	UPROPERTY(BlueprintReadOnly, Category = Stats)
+		bool bPrimary;
+
+	UPROPERTY(BlueprintReadOnly, Category = Stats)
+		bool bInvert;
+
+	UPROPERTY(BlueprintReadOnly, Category = Stats)
+		bool bMainStat;
+
+	UPROPERTY(BlueprintReadOnly, Category = Stats)
+		int32 Value;
+
+	FStatHelper()
+	{
+		bPrimary = false;
+		bInvert = false;
+		bMainStat = false;
+		Value = 0.0f;
+	}
+
+	FORCEINLINE	bool	operator==(const FStatHelper other) const
+	{
+		if (bMainStat && other.bMainStat)
+			return true;
+		else if (bPrimary)
+			return PrimaryStat == other.PrimaryStat && other.bPrimary;
+		else
+			return SecondaryStat == other.SecondaryStat && !other.bPrimary;
+	}
+};
+
+USTRUCT(BlueprintType)
 struct FCharacterStatEntry
 {
 	GENERATED_USTRUCT_BODY()
@@ -74,6 +116,24 @@ struct FCharacterStatEntry
 
 	UPROPERTY(BlueprintReadOnly, Category = Stats)
 		float Value;
+
+	UPROPERTY(BlueprintReadOnly, Category = Stats)
+		FString Desc;
+
+	UPROPERTY(BlueprintReadOnly, Category = Stats)
+		float DescValue;
+};
+
+USTRUCT(BlueprintType)
+struct FInventoryHelper
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = Stats)
+		AOrionInventoryGrid * Grid;
+
+	UPROPERTY(BlueprintReadOnly, Category = Stats)
+		int32 Index;
 };
 
 USTRUCT()
@@ -117,6 +177,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		TArray<FCharacterStatEntry> GetEquippedStats();
+
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		TArray<FStatHelper> GetChangedStats(FInventoryItem InventoryItem, FInventoryItem EquippedItem);
 
 	void GetStatsFromSlot(AOrionInventoryGrid *Slot, FArrayHelper &Stats);
 
@@ -208,15 +271,47 @@ public:
 		FInventoryItem GetItemAt(AOrionInventoryGrid *theGrid, int32 index);
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
+		FInventoryItem GetItemAtSlot(EItemType Slot);
+
+	UFUNCTION(BlueprintCallable, Category = Inventory)
 		bool SwapItems(AOrionInventoryGrid *theGrid1, int32 index1, AOrionInventoryGrid *theGrid2, int32 index2);
 
 	APlayerController *OwnerController;
 
 	bool HasStat(ESuperRareStat Stat);
 
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		bool SortInventory();
+
+	//tell the server to do stuff to our items
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		bool DropItem(AOrionInventoryGrid *theGrid, int32 index);
+
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		bool SellItem(AOrionInventoryGrid *theGrid, int32 index);
+
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		bool CraftItem(FInventoryItem ItemToCraft, TArray<FInventoryHelper> ItemsToRemove);
+
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		bool BreakdownItem(AOrionInventoryGrid *theGrid, int32 index);
+
+	UFUNCTION(server, reliable, WithValidation, Category = Inventory)
+		void ServerBreakdownItem(AOrionInventoryGrid *theGrid, int32 index);
+		bool ServerBreakdownItem_Validate(AOrionInventoryGrid *theGrid, int32 index) { return true; }
+		void ServerBreakdownItem_Implementation(AOrionInventoryGrid *theGrid, int32 index);
+
 private:
 	bool TryToEquip(AOrionInventoryGrid *theGrid, int32 index);
 	bool TryToUnEquip(AOrionInventoryGrid *theGrid, int32 index);
 
 	FArrayHelper EquippedStats;
+
+	//breakdown generic classes
+	TSubclassOf<class UOrionInventoryItem> DefaultWeaponPartsClass;
+	TSubclassOf<class UOrionInventoryItem> DefaultArmorPartsClass;
+	TSubclassOf<class UOrionInventoryItem> DefaultCommonClass;
+	TSubclassOf<class UOrionInventoryItem> DefaultEnhancedClass;
+	TSubclassOf<class UOrionInventoryItem> DefaultSuperEnhancedClass;
+	TSubclassOf<class UOrionInventoryItem> DefaultRareClass;
 };

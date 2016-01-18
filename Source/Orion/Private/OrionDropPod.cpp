@@ -12,7 +12,7 @@ AOrionDropPod::AOrionDropPod(const FObjectInitializer& ObjectInitializer)
 	DropPodMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
 	DropPodMesh->bCastDynamicShadow = true;
 	DropPodMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	DropPodMesh->bChartDistanceFactor = true;
+	//DropPodMesh->bChartDistanceFactor = true;
 	DropPodMesh->bGenerateOverlapEvents = false;
 	DropPodMesh->Mobility = EComponentMobility::Type::Movable;
 

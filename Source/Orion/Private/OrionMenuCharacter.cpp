@@ -19,7 +19,7 @@ AOrionMenuCharacter::AOrionMenuCharacter(const FObjectInitializer& ObjectInitial
 	BaseMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	BaseMesh->bCastDynamicShadow = true;
 	BaseMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	BaseMesh->bChartDistanceFactor = true;
+	//BaseMesh->bChartDistanceFactor = true;
 	BaseMesh->bGenerateOverlapEvents = false;
 
 	ArmsMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Arms"));
@@ -29,7 +29,7 @@ AOrionMenuCharacter::AOrionMenuCharacter(const FObjectInitializer& ObjectInitial
 	ArmsMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	ArmsMesh->bCastDynamicShadow = true;
 	ArmsMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	ArmsMesh->bChartDistanceFactor = true;
+//	ArmsMesh->bChartDistanceFactor = true;
 	ArmsMesh->bGenerateOverlapEvents = false;
 	ArmsMesh->AttachParent = BaseMesh;
 	ArmsMesh->SetMasterPoseComponent(BaseMesh);
@@ -41,7 +41,7 @@ AOrionMenuCharacter::AOrionMenuCharacter(const FObjectInitializer& ObjectInitial
 	ChestMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	ChestMesh->bCastDynamicShadow = true;
 	ChestMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	ChestMesh->bChartDistanceFactor = true;
+	//ChestMesh->bChartDistanceFactor = true;
 	ChestMesh->bGenerateOverlapEvents = false;
 	ChestMesh->AttachParent = BaseMesh;
 	ChestMesh->SetMasterPoseComponent(BaseMesh);
@@ -53,7 +53,7 @@ AOrionMenuCharacter::AOrionMenuCharacter(const FObjectInitializer& ObjectInitial
 	LegsMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	LegsMesh->bCastDynamicShadow = true;
 	LegsMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	LegsMesh->bChartDistanceFactor = true;
+	//LegsMesh->bChartDistanceFactor = true;
 	LegsMesh->bGenerateOverlapEvents = false;
 	LegsMesh->AttachParent = BaseMesh;
 	LegsMesh->SetMasterPoseComponent(BaseMesh);
@@ -65,7 +65,7 @@ AOrionMenuCharacter::AOrionMenuCharacter(const FObjectInitializer& ObjectInitial
 	HelmetMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	HelmetMesh->bCastDynamicShadow = true;
 	HelmetMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	HelmetMesh->bChartDistanceFactor = true;
+	//HelmetMesh->bChartDistanceFactor = true;
 	HelmetMesh->bGenerateOverlapEvents = false;
 	HelmetMesh->AttachParent = BaseMesh;
 	HelmetMesh->SetMasterPoseComponent(BaseMesh);
@@ -77,7 +77,7 @@ AOrionMenuCharacter::AOrionMenuCharacter(const FObjectInitializer& ObjectInitial
 	WeaponMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	WeaponMesh->bCastDynamicShadow = true;
 	WeaponMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	WeaponMesh->bChartDistanceFactor = true;
+	//WeaponMesh->bChartDistanceFactor = true;
 	WeaponMesh->bGenerateOverlapEvents = false;
 
 }

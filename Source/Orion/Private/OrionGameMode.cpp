@@ -273,6 +273,11 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Killer);
 	AOrionPlayerController *DeadPC = Cast<AOrionPlayerController>(KilledPlayer);
 
+	AOrionCharacter *KillerPawn = nullptr;
+	
+	if(Killer && Killer->IsValidLowLevel())
+		KillerPawn = Cast<AOrionCharacter>(Killer->GetPawn());
+
 	//HandleStats(Killer, KilledPlayer, KilledPawn, DamageType);
 
 	AOrionAIController *AIC = Cast<AOrionAIController>(Killer);
@@ -318,16 +323,19 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 	if (DeadPC && DeadPawn && !DeadPawn->bFatality)
 		PlaySlowMotion(7.0f);
 
-	if (PC && DeadDino && DeadDino->DinoName.ToString().ToUpper() == TEXT("TREX"))
+	if ((PC || (KillerPawn && KillerPawn->bIsHealableMachine)) && DeadDino && DeadDino->DinoName.ToString().ToUpper() == TEXT("TREX"))
 	{
 		PlaySlowMotion(7.0f);
 
-		PC->LastTRexKill = GetWorld()->GetTimeSeconds();
+		if (PC)
+		{
+			PC->LastTRexKill = GetWorld()->GetTimeSeconds();
 
-		if (PC->LastTRexKill - PC->LastNamorKill <= 5.0f)
-			PC->GetAchievements()->UnlockAchievement(ACH_TREXNAMOR, PC);
+			if (PC->LastTRexKill - PC->LastNamorKill <= 5.0f)
+				PC->GetAchievements()->UnlockAchievement(ACH_TREXNAMOR, PC);
+		}
 	}
-	else if (PC && DeadDroid && DeadDroid->DroidName.ToString().ToUpper() == TEXT("GRUMPS"))
+	else if ((PC || (KillerPawn && KillerPawn->bIsHealableMachine)) && DeadDroid && DeadDroid->DroidName.ToString().ToUpper() == TEXT("GRUMPS"))
 	{
 		PlaySlowMotion(7.0f);
 	}
@@ -342,7 +350,10 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 	{
 		for (int32 i = 0; i < DeadPawn->Assisters.Num(); i++)
 		{
-			if (PC!= NULL && PC != DeadPawn->Assisters[i])
+			if (!DeadPawn->Assisters[i] || !DeadPawn->Assisters[i]->IsValidLowLevel())
+				continue;
+
+			if ((PC != NULL && PC != DeadPawn->Assisters[i]) || (KillerPawn && KillerPawn->bIsHealableMachine))
 			{
 				AOrionPlayerController *C = DeadPawn->Assisters[i];
 				AOrionPRI *AssistPRI = Cast<AOrionPRI>(C->PlayerState);
@@ -389,25 +400,25 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 				Pawn->AddShield(Pawn->ShieldMax / 20);
 			}
 		}
+	}
 
-		AOrionCharacter *Dino = Cast<AOrionCharacter>(KilledPawn);
-		if (Dino)
+	AOrionCharacter *Dino = Cast<AOrionCharacter>(KilledPawn);
+	if (Dino)
+	{
+		SpawnItems(Killer, Dino, DamageType);
+
+		int32 XP = Dino->ExpValue * 2;
+
+		//award some experience to the team
+		if (PC && Dino->ExpValue > 0)
 		{
-			SpawnItems(Killer, Dino, DamageType);
+			if (PC->HasOrbEffect(ORB_EXP))
+				XP *= 2;
 
-			int32 XP = Dino->ExpValue * 2;
-
-			//award some experience to the team
-			if (Dino->ExpValue > 0)
-			{
-				if (PC->HasOrbEffect(ORB_EXP))
-					XP *= 2;
-
-				PC->ClientAddXPNumber(XP, KilledPawn->GetActorLocation());
-			}
-
-			AwardXPToAllPlayers(Dino->ExpValue * 2);
+			PC->ClientAddXPNumber(XP, KilledPawn->GetActorLocation());
 		}
+
+		AwardXPToAllPlayers(Dino->ExpValue * 2);
 	}
 }
 

@@ -54,7 +54,7 @@ void AOrionWeaponLink::StartFire()
 	else
 	{
 		if (MyPawn && MyPawn->CurrentSkill && MyPawn->CurrentSkill->IsCloaking())
-			MyPawn->CurrentSkill->DepleteEnergy();
+			MyPawn->CurrentSkill->DeactivateSkill(); //DepleteEnergy();
 	}
 
 	if (WeaponState == WEAP_RELOADING)

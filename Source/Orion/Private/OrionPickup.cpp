@@ -25,6 +25,7 @@ AOrionPickup::AOrionPickup(const FObjectInitializer& ObjectInitializer)
 	BoxCollision = ObjectInitializer.CreateOptionalDefaultSubobject<UBoxComponent>(this, TEXT("Box"));
 	BoxCollision->AttachParent = PickupMesh;
 
+	bGlobalItem = false;
 }
 
 // Called when the game starts or when spawned
@@ -114,9 +115,13 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 		Decoder.ItemLevel = Level;
 
 	Decoder.ItemDesc = Inv->ItemDesc;
+	Decoder.BreakdownClasses = Inv->BreakdownClass;
 
 	//assign stats based on quality and item type
 	Inv->CalcStats(Decoder);
+
+	//everything is worth 10 for now
+	Decoder.SellValue = 10;
 
 	//encode this item
 	EncodedValue = EncodeItem(Decoder);
@@ -195,6 +200,8 @@ void AOrionPickup::GrabItem()
 				Item.Slot = Decoder.Slot;
 				Item.ItemLevel = Decoder.ItemLevel;
 				Item.MainStat = Decoder.MainStat;
+				Item.SellValue = Decoder.SellValue;
+				Item.BreakdownClasses = Decoder.BreakdownClasses;
 
 				if (InvMan->AddItemToInventory(InvMan->Grid, Item) >= 0)
 				{
