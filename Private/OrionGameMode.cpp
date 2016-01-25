@@ -12,6 +12,7 @@
 #include "PlayFabRequestProxy.h"
 #include "OrionAIController.h"
 #include "OrionPickupOrb.h"
+#include "OrionDamageType.h"
 #include "OrionDinoPawn.h"
 
 AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
@@ -40,6 +41,12 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 	if (PickupOrbObject.Object != NULL)
 	{
 		DefaultPickupOrbClass = (UClass*)PickupOrbObject.Object->GeneratedClass;
+	}
+
+	static ConstructorHelpers::FObjectFinder<UBlueprint> PickupCoinObject(TEXT("/Game/Pickups/Blueprints/BasePickupCoins"));
+	if (PickupCoinObject.Object != NULL)
+	{
+		DefaultPickupCoinClass = (UClass*)PickupCoinObject.Object->GeneratedClass;
 	}
 
 	static ConstructorHelpers::FObjectFinder<UBlueprint>MusicObject(TEXT("/Game/Music/GOOMusic/GOOMusicManager"));
@@ -376,6 +383,9 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 						case 3:
 							C->GetStats()->AddStatValue(STAT_ASSISTSASTECH, 1);
 							break;
+						case 4:
+							C->GetStats()->AddStatValue(STAT_ASSISTSASPYRO, 1);
+							break;
 						};
 
 						C->GetStats()->AddStatValue(STAT_ASSISTS, 1);
@@ -418,7 +428,8 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 			PC->ClientAddXPNumber(XP, KilledPawn->GetActorLocation());
 		}
 
-		AwardXPToAllPlayers(Dino->ExpValue * 2);
+		const UOrionDamageType *dType = Cast<UOrionDamageType>(DamageType);
+		AwardXPToAllPlayers(Dino->ExpValue * 2, PC, dType);
 	}
 }
 
@@ -426,7 +437,7 @@ void AOrionGameMode::PlayRandomVoiceFromPlayer(EVoiceType Type)
 {
 }
 
-void AOrionGameMode::AwardXPToAllPlayers(int32 Amount)
+void AOrionGameMode::AwardXPToAllPlayers(int32 Amount, AOrionPlayerController *PC, const UOrionDamageType *DamageType)
 {
 	//all players on the team receive the same xp
 	TArray<AActor*> Controllers;
@@ -443,7 +454,22 @@ void AOrionGameMode::AwardXPToAllPlayers(int32 Amount)
 			if (C->HasOrbEffect(ORB_EXP))
 				XP *= 2;
 
-			C->AddXP(Amount);
+			if (PC == C && DamageType)
+			{
+				AOrionCharacter *P = Cast<AOrionCharacter>(PC->GetPawn());
+				if (P)
+					XP += P->XPPerKill;
+
+				AOrionInventoryManager *Inv = PC->GetInventoryManager();
+				if (Inv && Inv->HasStat(RARESTAT_BONUSXP) && DamageType->WeaponSlot == 1) XP *= 1.25f;
+				if (Inv && Inv->HasStat(RARESTAT_REGENENERGY) && DamageType->WeaponSlot == 1)
+				{
+					if (P && P->CurrentSkill)
+						P->CurrentSkill->SetEnergy(FMath::Min(100.0f, P->CurrentSkill->GetEnergy() + P->CurrentSkill->GetEnergy() * 0.1f));
+				}
+			}
+
+			C->AddXP(XP);
 		}
 	}
 }
@@ -501,6 +527,8 @@ EStatID AOrionGameMode::GetStatID(AController *KilledController, bool bVictim)
 			return bVictim ? (AI->bIsElite ? STAT_ELITERECONDEATH : STAT_RECONDEATH) : (AI->bIsElite ? STAT_ELITERECONKILL : STAT_RECONKILL);
 		else if (AI->AIName == TEXT("Tech"))
 			return bVictim ? (AI->bIsElite ? STAT_ELITETECHDEATH : STAT_TECHDEATH) : (AI->bIsElite ? STAT_ELITETECHKILL : STAT_TECHKILL);
+		else if (AI->AIName == TEXT("Pyro"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITEPYRODEATH : STAT_PYRODEATH) : (AI->bIsElite ? STAT_ELITEPYROKILL : STAT_PYROKILL);
 	}
 
 	return STAT_ERROR;
@@ -574,6 +602,9 @@ void AOrionGameMode::HandleStats(AController* Killer, AController* KilledPlayer,
 				case 3:
 					KillerPC->GetStats()->AddStatValue(STAT_KILLSASTECH, 1);
 					break;
+				case 4:
+					KillerPC->GetStats()->AddStatValue(STAT_KILLSASPYRO, 1);
+					break;
 				};
 			}
 			KillerPRI->Kills++;
@@ -604,6 +635,9 @@ void AOrionGameMode::HandleStats(AController* Killer, AController* KilledPlayer,
 				case 3:
 					KilledPC->GetStats()->AddStatValue(STAT_DEATHSASTECH, 1);
 					break;
+				case 4:
+					KilledPC->GetStats()->AddStatValue(STAT_DEATHSASPYRO, 1);
+					break;
 				};
 			}
 			KilledPRI->Deaths++;
@@ -632,6 +666,10 @@ void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FS
 		Difficulty = DIFF_REDIKULOUS;
 	else
 		Difficulty = DIFF_MEDIUM;
+
+	FString GearLevel = UGameplayStatics::ParseOption(Options, TEXT("GearLevel"));
+
+	ItemLevel = FCString::Atoi(*GearLevel);
 
 	FString TOD = UGameplayStatics::ParseOption(Options, TEXT("TOD"));
 	bNightTime = TOD.ToUpper().Equals(TEXT("NIGHT"));
@@ -670,6 +708,8 @@ void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FS
 	//ServerInfo.Ticket = UGameplayStatics::ParseOption(Options, TEXT("LobbyTicket"));
 	ServerInfo.Privacy = UGameplayStatics::ParseOption(Options, TEXT("Privacy"));
 	ServerInfo.LobbyID = LobbyID;
+	ServerInfo.GameMode = GetGameName();
+	ServerInfo.ItemLevel = FString::Printf(TEXT("%i"), ItemLevel);
 
 	//if (GRI)
 	//	GRI->PhotonGUID = LobbyID;
@@ -843,6 +883,8 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 			PC->ClassIndex = 2;
 		else if (pfClass == TEXT("TECH"))
 			PC->ClassIndex = 3;
+		else if (pfClass == TEXT("PYRO"))
+			PC->ClassIndex = 4;
 		else
 			PC->ClassIndex = 0;
 	}
@@ -988,6 +1030,32 @@ void AOrionGameMode::StopSlowMotion()
 	GetWorldSettings()->TimeDilation = 1.0f;
 }
 
+int32 AOrionGameMode::GetEnemyItemLevel()
+{
+	int32 iLvl = 1;
+
+	switch (Difficulty)
+	{
+	case DIFF_EASY:
+		iLvl = FMath::Clamp(ItemLevel, 1, 400);
+		break;
+	case DIFF_MEDIUM:
+		iLvl = FMath::Clamp(ItemLevel, 1, 400);
+		break;
+	case DIFF_HARD:
+		iLvl = FMath::Clamp(ItemLevel, 50, 500);
+		break;
+	case DIFF_INSANE:
+		iLvl = FMath::Clamp(ItemLevel, 100, 550);
+		break;
+	case DIFF_REDIKULOUS:
+		iLvl = FMath::Clamp(ItemLevel, 150, 600);
+		break;
+	}
+
+	return iLvl;
+}
+
 //spawned from killing various types of enemies, vehicles, opening things, etc.
 void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDamageType* DamageType)
 {
@@ -1004,6 +1072,22 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 
 			if (!PC)
 				continue;
+
+			//add some chance based dropping, so not every kill drops stufff
+			float DropChance = 0.1f;
+
+			bool bCraftingMat = false;
+
+			if (FMath::FRand() > DropChance)
+			{
+				//drop some generic crafting mats instead
+				if (FMath::FRand() < 0.15f)
+				{
+					bCraftingMat = true;
+				}
+				else
+					continue;
+			}
 
 			AOrionPickup *Pickup = GetWorld()->SpawnActor<AOrionPickup>(DefaultPickupClass, Spawner->GetActorLocation(), Spawner->GetActorRotation(), SpawnInfo);
 			if (Pickup)
@@ -1036,7 +1120,12 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 						break;
 					}
 
-					if (Pickup->Init(Pawn->LootTable, Level))
+					if (bCraftingMat)
+					{
+						if (Pickup->Init(Pawn->CraftingLootTable, Level))
+							bSuccess = true;
+					}
+					else if (Pickup->Init(Pawn->LootTable, Level))
 						bSuccess = true;
 				}
 
@@ -1083,6 +1172,11 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 				OrbChance *= 1.0f + float(PC->GetSkillValue(SKILL_KNIFEORBS)) / 100.0f;
 			//}
 
+			AOrionInventoryManager *Inv = PC->GetInventoryManager();
+
+			if (Inv && Inv->HasStat(RARESTAT_MOREORBS))
+				OrbChance *= 2.0f;
+
 			//10% chance to spawn an orb
 			int32 RandNum = FMath::RandRange(1, 100);
 
@@ -1097,6 +1191,85 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 				if (Pickup)
 				{
 					Pickup->Init();
+					Pickup->bOnlyRelevantToOwner = true;
+				}
+			}
+		}
+	}
+
+	//drop some coins perhaps
+	if (DefaultPickupCoinClass)
+	{
+		for (TActorIterator<AOrionPlayerController> ActorItr(GetWorld()); ActorItr; ++ActorItr)
+		{
+			AOrionPlayerController *PC = *ActorItr;
+
+			if (!PC)
+				continue;
+
+			//this is mainly so orbs don't spawn all over spectator screens
+			if (!Cast<AOrionCharacter>(PC->GetPawn()))
+				continue;
+
+			float CoinChance = 20.0f;
+
+			//CoinChance *= 1.0f + float(PC->GetSkillValue(SKILL_ORBDROPRATE)) / 100.0f;
+
+			AOrionCharacter *P = Cast<AOrionCharacter>(PC->GetPawn());
+
+			AOrionInventoryManager *Inv = PC->GetInventoryManager();
+
+			float Rate = 1.0f;
+
+			if (Inv && Inv->HasStat(RARESTAT_GOLDFIND))
+				Rate += 1.0f;
+
+			//gold find
+			if (P)
+				Rate += P->GoldFind / 100.0f;
+
+			CoinChance *= Rate;
+
+			int32 RandNum = FMath::RandRange(1, 100);
+
+			if (RandNum <= CoinChance)
+			{
+				FActorSpawnParameters SpawnInfo;
+				SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+				SpawnInfo.Owner = PC;
+
+				AOrionPickupOrb *Pickup = GetWorld()->SpawnActor<AOrionPickupOrb>(DefaultPickupCoinClass, Spawner->GetActorLocation(), Spawner->GetActorRotation(), SpawnInfo);
+
+				if (Pickup)
+				{
+					int32 MinAmount = 50;
+					int32 MaxAmount = 50;
+
+					switch (Difficulty)
+					{
+					case DIFF_EASY:
+						MinAmount = 10;
+						MaxAmount = 50;
+						break;
+					case DIFF_MEDIUM:
+						MinAmount = 10;
+						MaxAmount = 50;
+						break;
+					case DIFF_HARD:
+						MinAmount = 20;
+						MaxAmount = 100;
+						break;
+					case DIFF_INSANE:
+						MinAmount = 40;
+						MaxAmount = 200;
+						break;
+					case DIFF_REDIKULOUS:
+						MinAmount = 80;
+						MaxAmount = 400;
+						break;
+					}
+
+					Pickup->CoinAmount = FMath::RandRange(MinAmount, MaxAmount);
 					Pickup->bOnlyRelevantToOwner = true;
 				}
 			}

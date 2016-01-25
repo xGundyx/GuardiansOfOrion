@@ -35,9 +35,11 @@ public:
 	FString EncodedValue;
 	FDecodeItemInfo Decoder;
 
-	//this is created by the sever and sent to the owning client
-	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = Item)
-		AOrionInventory *Inventory;
+	UFUNCTION()
+		void OnRep_GearType();
+
+	UPROPERTY(ReplicatedUsing = OnRep_GearType, BlueprintReadOnly, Category = Spawn)
+		TEnumAsByte<EItemRarity> GearType;
 
 	//called from the client or host to grab the item and let the server know it's been grabbed
 	UFUNCTION(BlueprintCallable, Category = Item)

@@ -70,7 +70,9 @@ void AOrionAbility::Tick(float DeltaSeconds)
 		{
 			if (GetWorld()->TimeSeconds - TimeSinceLastActive > RechargeDelay)
 			{
-				Energy = FMath::Min(100.0f, Energy + RechargeRate * DeltaSeconds);
+				AOrionCharacter *P = Cast<AOrionCharacter>(GetOwner());
+				if (P)
+					Energy = FMath::Min(100.0f, Energy + P->SkillRechargeRate * RechargeRate * DeltaSeconds);
 			}
 		}
 	}
@@ -222,6 +224,7 @@ void AOrionAbility::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & Out
 	DOREPLIFETIME(AOrionAbility, bIsJetpacking);
 	DOREPLIFETIME(AOrionAbility, bIsCloaking);
 	DOREPLIFETIME(AOrionAbility, bIsOvercharging);
+	DOREPLIFETIME(AOrionAbility, bIsFlaming);
 }
 
 void AOrionAbility::DoSkillAbility(float DeltaSeconds)

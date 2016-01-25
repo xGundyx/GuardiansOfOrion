@@ -18,6 +18,7 @@
 #include "Landscape.h"
 #include "OrionGrenade.h"
 #include "Kismet/KismetSystemLibrary.h"
+#include "OrionWeaponDroid.h"
 #include "OrionSkeletalMeshComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -471,7 +472,10 @@ void AOrionCharacter::ServerSetAimYaw_Implementation(float yaw, float pitch)
 
 void AOrionCharacter::AddHealth(int32 Amount)
 {
-	Health = FMath::Max(0.0f, FMath::Min(HealthMax, Health + Amount));
+	if (Health >= HealthMax)
+		Shield = FMath::Max(0.0f, FMath::Min(ShieldMax, Shield + Amount/2));
+	else
+		Health = FMath::Max(0.0f, FMath::Min(HealthMax, Health + Amount));
 }
 
 void AOrionCharacter::AddShield(int32 Amount)
@@ -742,7 +746,7 @@ void AOrionCharacter::OnRep_VoiceType()
 
 	TArray<FVoiceHelper> Voices = VoiceClass.GetDefaultObject()->Voices;
 
-	for (int32 i = 0; i < Voices.Num(); i++)
+	/*for (int32 i = 0; i < Voices.Num(); i++)
 	{
 		for (int32 j = 0; j < Voices[i].Voice.Num(); j++)
 		{
@@ -752,6 +756,16 @@ void AOrionCharacter::OnRep_VoiceType()
 				LastVoiceTime = GetWorld()->TimeSeconds;
 				return;
 			}
+		}
+	}*/
+
+	if (Voices.Num() > VoiceRep.Type)
+	{
+		if (Voices[VoiceRep.Type].Voice.Num() > 0)
+		{
+			UGameplayStatics::PlaySoundAtLocation(GetWorld(), Voices[VoiceRep.Type].Voice[FMath::RandRange(0, Voices[VoiceRep.Type].Voice.Num() - 1)], GetActorLocation());
+			LastVoiceTime = GetWorld()->TimeSeconds;
+			return;
 		}
 	}
 }
@@ -873,8 +887,24 @@ AOrionWeapon* AOrionCharacter::GetWeapon() const
 	return CurrentWeapon;
 }
 
+void AOrionCharacter::EquipAdrenaline()
+{
+	for (int32 i = 0; i < Inventory.Num(); i++)
+	{
+		if (Inventory[i]->InstantConfig.WeaponSlot == 4)
+		{
+			EquipWeapon(Inventory[i]);
+			return;
+		}
+	}
+}
+
 void AOrionCharacter::EquipWeapon(AOrionWeapon* Weapon)
 {
+	//keep us on adrenaline weapon when activated
+	if (CurrentSkill && CurrentSkill->IsFlaming() && Weapon && Weapon->InstantConfig.WeaponSlot != 4)
+		return;
+
 	if (Weapon)
 	{
 		if (Role == ROLE_Authority)
@@ -1096,28 +1126,32 @@ void AOrionCharacter::OnRep_Buffs()
 
 void AOrionCharacter::UpdateBuffFX()
 {
-	/*if (BuffFX)
+	if (BuffFX)
 	{
 		bool bFound = false;
-		for (int32 i = 0; i < Buffs.Num(); i++)
+		//for (int32 i = 0; i < Buffs.Num(); i++)
+		//{
+		float Index = Buffs.Num() - 1;
+		if (Index >= 0)
 		{
-			if (Buffs[i] && Buffs[i]->IsValidLowLevel() && Buffs[i]->Effect)
+			if (Buffs[Index] && Buffs[Index]->IsValidLowLevel() && Buffs[Index]->Effect)
 			{
 				BuffFX->AttachTo(GetMesh(), "Aura");
-				BuffFX->SetTemplate(Buffs[i]->Effect);
+				BuffFX->SetTemplate(Buffs[Index]->Effect);
 				BuffFX->ActivateSystem();
-				BuffFX->SetWorldScale3D(FVector(0.55f));
+				//BuffFX->SetWorldScale3D(FVector(0.55f));
 
 				bFound = true;
-				break;
+				//break;
 			}
 		}
+		//}
 
 		if (!bFound)
 		{
 			BuffFX->DeactivateSystem();
 		}
-	}*/
+	}
 }
 
 void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
@@ -1215,6 +1249,29 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 
 	DOREPLIFETIME_CONDITION(AOrionCharacter, bShoulderCamera, COND_SkipOwner);
 	//DOREPLIFETIME(AOrionCharacter, bShipCamera);
+
+	//owner only rpg stuff
+	DOREPLIFETIME_CONDITION(AOrionCharacter, MeleeDamageBoost, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, GrenadeRechargeRate, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, SkillRechargeRate, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, CriticalHitChance, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, CriticalHitMultiplier, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, DamageReduction, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, BluntDamageReduction, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, PiercingDamageReduction, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, ExplosiveDamageReduction, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, ElementalDamageReduction, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, PoisonDamageReduction, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, XPPerKill, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, FireDamage, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, LightningDamage, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, IceDamage, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, PoisonDamage, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, CorrosiveDamage, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, GoldFind, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, MagicFind, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, LargeDinoBoost, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionCharacter, RobotBoost, COND_OwnerOnly);
 }
 
 void AOrionCharacter::Destroyed()
@@ -1358,8 +1415,8 @@ void AOrionCharacter::InitMaterials()
 	CharacterMats.Empty();
 	CharacterCloakMats.Empty();
 
-	CharacterMats.SetNumUninitialized(7);
-	CharacterCloakMats.SetNumUninitialized(7);
+	//CharacterMats.SetNumUninitialized(7);
+	//CharacterCloakMats.SetNumUninitialized(7);
 
 	//reset materials to default if needed
 	if (GetMesh()) GetMesh()->OverrideMaterials.Empty();
@@ -1370,13 +1427,109 @@ void AOrionCharacter::InitMaterials()
 	if (Flight1Mesh) Flight1Mesh->OverrideMaterials.Empty();
 	if (Flight2Mesh) Flight2Mesh->OverrideMaterials.Empty();
 
-	CharacterMats[0] = UMaterialInstanceDynamic::Create(GetMesh()->GetMaterial(0), this); if (CharacterMats[0]) GetMesh()->SetMaterial(0, CharacterMats[0]);
-	CharacterMats[1] = UMaterialInstanceDynamic::Create(HelmetMesh->GetMaterial(0), this); if (CharacterMats[1]) HelmetMesh->SetMaterial(0, CharacterMats[1]);//head
-	CharacterMats[2] = UMaterialInstanceDynamic::Create(BodyMesh->GetMaterial(0), this); if (CharacterMats[2]) BodyMesh->SetMaterial(0, CharacterMats[2]);//body
-	CharacterMats[3] = UMaterialInstanceDynamic::Create(LegsMesh->GetMaterial(0), this); if (CharacterMats[3]) LegsMesh->SetMaterial(0, CharacterMats[3]);//legs
-	CharacterMats[4] = UMaterialInstanceDynamic::Create(ArmsMesh->GetMaterial(0), this); if (CharacterMats[4]) ArmsMesh->SetMaterial(0, CharacterMats[4]);//hands
-	CharacterMats[5] = UMaterialInstanceDynamic::Create(Flight1Mesh->GetMaterial(0), this); if (CharacterMats[5]) Flight1Mesh->SetMaterial(0, CharacterMats[5]);//delete1
-	CharacterMats[6] = UMaterialInstanceDynamic::Create(Flight2Mesh->GetMaterial(0), this); if (CharacterMats[6]) Flight2Mesh->SetMaterial(0, CharacterMats[6]);//delete2
+	int32 NumMaterials = 0;
+	if (GetMesh() && GetMesh()->SkeletalMesh)NumMaterials += GetMesh()->SkeletalMesh->Materials.Num();
+	if (HelmetMesh && HelmetMesh->SkeletalMesh)NumMaterials += HelmetMesh->SkeletalMesh->Materials.Num();
+	if (BodyMesh && BodyMesh->SkeletalMesh)NumMaterials += BodyMesh->SkeletalMesh->Materials.Num();
+	if (LegsMesh && LegsMesh->SkeletalMesh)NumMaterials += LegsMesh->SkeletalMesh->Materials.Num();
+	if (ArmsMesh && ArmsMesh->SkeletalMesh)NumMaterials += ArmsMesh->SkeletalMesh->Materials.Num();
+	if (Flight1Mesh && Flight1Mesh->SkeletalMesh)NumMaterials += Flight1Mesh->SkeletalMesh->Materials.Num();
+	if (Flight2Mesh && Flight2Mesh->SkeletalMesh)NumMaterials += Flight2Mesh->SkeletalMesh->Materials.Num();
+
+	CharacterMats.SetNumUninitialized(NumMaterials);
+	CharacterCloakMats.SetNumUninitialized(NumMaterials);
+
+	/*for (int32 i = 0; i < 7; i++)
+	{
+		CharacterMats[i].Mats.Empty();
+		CharacterCloakMats[i].Mats.Empty();
+	}*/
+
+	int32 Counter = 0;
+
+	if (GetMesh() && GetMesh()->SkeletalMesh)
+	{
+		for (int32 i = 0; i < GetMesh()->SkeletalMesh->Materials.Num(); i++)
+		{
+			CharacterMats[Counter] = UMaterialInstanceDynamic::Create(GetMesh()->GetMaterial(i), this);
+			if (CharacterMats[Counter])
+				GetMesh()->SetMaterial(i, CharacterMats[Counter]);
+
+			Counter++;
+		}
+	}
+	if (HelmetMesh && HelmetMesh->SkeletalMesh)
+	{
+		for (int32 i = 0; i < HelmetMesh->SkeletalMesh->Materials.Num(); i++)
+		{
+			CharacterMats[Counter] = UMaterialInstanceDynamic::Create(HelmetMesh->GetMaterial(i), this);
+			if (CharacterMats[Counter])
+				HelmetMesh->SetMaterial(i, CharacterMats[Counter]);
+
+			Counter++;
+		}
+	}
+	if (BodyMesh && BodyMesh->SkeletalMesh)
+	{
+		for (int32 i = 0; i < BodyMesh->SkeletalMesh->Materials.Num(); i++)
+		{
+			CharacterMats[Counter] = UMaterialInstanceDynamic::Create(BodyMesh->GetMaterial(i), this);
+			if (CharacterMats[Counter])
+				BodyMesh->SetMaterial(i, CharacterMats[Counter]);
+
+			Counter++;
+		}
+	}
+	if (LegsMesh && LegsMesh->SkeletalMesh)
+	{
+		for (int32 i = 0; i < LegsMesh->SkeletalMesh->Materials.Num(); i++)
+		{
+			CharacterMats[Counter] = UMaterialInstanceDynamic::Create(LegsMesh->GetMaterial(i), this);
+			if (CharacterMats[Counter])
+				LegsMesh->SetMaterial(i, CharacterMats[Counter]);
+
+			Counter++;
+		}
+	}
+	if (ArmsMesh && ArmsMesh->SkeletalMesh)
+	{
+		for (int32 i = 0; i < ArmsMesh->SkeletalMesh->Materials.Num(); i++)
+		{
+			CharacterMats[Counter] = UMaterialInstanceDynamic::Create(ArmsMesh->GetMaterial(i), this);
+			if (CharacterMats[Counter])
+				ArmsMesh->SetMaterial(i, CharacterMats[Counter]);
+
+			Counter++;
+		}
+	}
+	if (Flight1Mesh && Flight1Mesh->SkeletalMesh)
+	{
+		for (int32 i = 0; i < Flight1Mesh->SkeletalMesh->Materials.Num(); i++)
+		{
+			CharacterMats[Counter] = UMaterialInstanceDynamic::Create(Flight1Mesh->GetMaterial(i), this);
+			if (CharacterMats[Counter])
+				Flight1Mesh->SetMaterial(i, CharacterMats[Counter]);
+
+			Counter++;
+		}
+	}
+	if (Flight2Mesh && Flight2Mesh->SkeletalMesh)
+	{
+		for (int32 i = 0; i < Flight2Mesh->SkeletalMesh->Materials.Num(); i++)
+		{
+			CharacterMats[Counter] = UMaterialInstanceDynamic::Create(Flight2Mesh->GetMaterial(i), this);
+			if (CharacterMats[Counter])
+				Flight2Mesh->SetMaterial(i, CharacterMats[Counter]);
+
+			Counter++;
+		}
+	}
+	/*CharacterMats[1] = UMaterialInstanceDynamic::Create(HelmetMesh->GetMaterial(0), this); if (CharacterMats[1]) HelmetMesh->SetMaterial(0, CharacterMats[1]);
+	CharacterMats[2] = UMaterialInstanceDynamic::Create(BodyMesh->GetMaterial(0), this); if (CharacterMats[2]) BodyMesh->SetMaterial(0, CharacterMats[2]);
+	CharacterMats[3] = UMaterialInstanceDynamic::Create(LegsMesh->GetMaterial(0), this); if (CharacterMats[3]) LegsMesh->SetMaterial(0, CharacterMats[3]);
+	CharacterMats[4] = UMaterialInstanceDynamic::Create(ArmsMesh->GetMaterial(0), this); if (CharacterMats[4]) ArmsMesh->SetMaterial(0, CharacterMats[4]);
+	CharacterMats[5] = UMaterialInstanceDynamic::Create(Flight1Mesh->GetMaterial(0), this); if (CharacterMats[5]) Flight1Mesh->SetMaterial(0, CharacterMats[5]);
+	CharacterMats[6] = UMaterialInstanceDynamic::Create(Flight2Mesh->GetMaterial(0), this); if (CharacterMats[6]) Flight2Mesh->SetMaterial(0, CharacterMats[6]);*/
 
 	//some greasy sorting for going cloaked with armor on
 	if (GetMesh()) GetMesh()->SetTranslucentSortPriority(1);
@@ -1387,13 +1540,66 @@ void AOrionCharacter::InitMaterials()
 	if (Flight1Mesh) Flight1Mesh->SetTranslucentSortPriority(2);
 	if (Flight2Mesh) Flight2Mesh->SetTranslucentSortPriority(2);
 
-	CharacterCloakMats[0] = UMaterialInstanceDynamic::Create(CloakParent, this); if(GetMesh() && GetMesh()->SkeletalMesh) CharacterCloakMats[0]->CopyParameterOverrides(Cast<UMaterialInstance>(GetMesh()->SkeletalMesh->Materials[0].MaterialInterface));
+	Counter = 0;
+
+	if (GetMesh() && GetMesh()->SkeletalMesh)
+	{
+		for (int32 i = 0; i < GetMesh()->SkeletalMesh->Materials.Num(); i++)
+		{
+			CharacterCloakMats[Counter] = UMaterialInstanceDynamic::Create(CloakParent, this); if (GetMesh() && GetMesh()->SkeletalMesh) CharacterCloakMats[Counter]->CopyParameterOverrides(Cast<UMaterialInstance>(GetMesh()->SkeletalMesh->Materials[i].MaterialInterface)); Counter++;
+		}
+	}
+	if (HelmetMesh && HelmetMesh->SkeletalMesh)
+	{
+		for (int32 i = 0; i < HelmetMesh->SkeletalMesh->Materials.Num(); i++)
+		{
+			CharacterCloakMats[Counter] = UMaterialInstanceDynamic::Create(CloakParent, this); if (HelmetMesh && HelmetMesh->SkeletalMesh) CharacterCloakMats[Counter]->CopyParameterOverrides(Cast<UMaterialInstance>(HelmetMesh->SkeletalMesh->Materials[i].MaterialInterface)); Counter++;
+		}
+	}
+	if (BodyMesh && BodyMesh->SkeletalMesh)
+	{
+		for (int32 i = 0; i < BodyMesh->SkeletalMesh->Materials.Num(); i++)
+		{
+			CharacterCloakMats[Counter] = UMaterialInstanceDynamic::Create(CloakParent, this); if (BodyMesh && BodyMesh->SkeletalMesh) CharacterCloakMats[Counter]->CopyParameterOverrides(Cast<UMaterialInstance>(BodyMesh->SkeletalMesh->Materials[i].MaterialInterface)); Counter++;
+		}
+	}
+	if (LegsMesh && LegsMesh->SkeletalMesh)
+	{
+		for (int32 i = 0; i < LegsMesh->SkeletalMesh->Materials.Num(); i++)
+		{
+			CharacterCloakMats[Counter] = UMaterialInstanceDynamic::Create(CloakParent, this); if (LegsMesh && LegsMesh->SkeletalMesh) CharacterCloakMats[Counter]->CopyParameterOverrides(Cast<UMaterialInstance>(LegsMesh->SkeletalMesh->Materials[i].MaterialInterface)); Counter++;
+		}
+	}
+	if (ArmsMesh && ArmsMesh->SkeletalMesh)
+	{
+		for (int32 i = 0; i < ArmsMesh->SkeletalMesh->Materials.Num(); i++)
+		{
+			CharacterCloakMats[Counter] = UMaterialInstanceDynamic::Create(CloakParent, this); if (ArmsMesh && ArmsMesh->SkeletalMesh) CharacterCloakMats[Counter]->CopyParameterOverrides(Cast<UMaterialInstance>(ArmsMesh->SkeletalMesh->Materials[i].MaterialInterface)); Counter++;
+		}
+	}
+	if (Flight1Mesh && Flight1Mesh->SkeletalMesh)
+	{
+		for (int32 i = 0; i < Flight1Mesh->SkeletalMesh->Materials.Num(); i++)
+		{
+			CharacterCloakMats[Counter] = UMaterialInstanceDynamic::Create(CloakParent, this); if (Flight1Mesh && Flight1Mesh->SkeletalMesh) CharacterCloakMats[Counter]->CopyParameterOverrides(Cast<UMaterialInstance>(Flight1Mesh->SkeletalMesh->Materials[i].MaterialInterface)); Counter++;
+		}
+	}
+	if (Flight2Mesh && Flight2Mesh->SkeletalMesh)
+	{
+		for (int32 i = 0; i < Flight2Mesh->SkeletalMesh->Materials.Num(); i++)
+		{
+			CharacterCloakMats[Counter] = UMaterialInstanceDynamic::Create(CloakParent, this); if (Flight2Mesh && Flight2Mesh->SkeletalMesh) CharacterCloakMats[Counter]->CopyParameterOverrides(Cast<UMaterialInstance>(Flight2Mesh->SkeletalMesh->Materials[i].MaterialInterface)); Counter++;
+		}
+	}
+
+
+	/*CharacterCloakMats[0] = UMaterialInstanceDynamic::Create(CloakParent, this); if(GetMesh() && GetMesh()->SkeletalMesh) CharacterCloakMats[0]->CopyParameterOverrides(Cast<UMaterialInstance>(GetMesh()->SkeletalMesh->Materials[0].MaterialInterface));
 	CharacterCloakMats[1] = UMaterialInstanceDynamic::Create(CloakParent, this); if (HelmetMesh && HelmetMesh->SkeletalMesh) CharacterCloakMats[1]->CopyParameterOverrides(Cast<UMaterialInstance>(HelmetMesh->SkeletalMesh->Materials[0].MaterialInterface));
 	CharacterCloakMats[2] = UMaterialInstanceDynamic::Create(CloakParent, this); if (BodyMesh && BodyMesh->SkeletalMesh) CharacterCloakMats[2]->CopyParameterOverrides(Cast<UMaterialInstance>(BodyMesh->SkeletalMesh->Materials[0].MaterialInterface));
 	CharacterCloakMats[3] = UMaterialInstanceDynamic::Create(CloakParent, this); if (LegsMesh && LegsMesh->SkeletalMesh) CharacterCloakMats[3]->CopyParameterOverrides(Cast<UMaterialInstance>(LegsMesh->SkeletalMesh->Materials[0].MaterialInterface));
 	CharacterCloakMats[4] = UMaterialInstanceDynamic::Create(CloakParent, this); if (ArmsMesh && ArmsMesh->SkeletalMesh) CharacterCloakMats[4]->CopyParameterOverrides(Cast<UMaterialInstance>(ArmsMesh->SkeletalMesh->Materials[0].MaterialInterface));
 	CharacterCloakMats[5] = UMaterialInstanceDynamic::Create(CloakParent, this); if (Flight1Mesh && Flight1Mesh->SkeletalMesh) CharacterCloakMats[5]->CopyParameterOverrides(Cast<UMaterialInstance>(Flight1Mesh->SkeletalMesh->Materials[0].MaterialInterface));
-	CharacterCloakMats[6] = UMaterialInstanceDynamic::Create(CloakParent, this); if (Flight2Mesh && Flight2Mesh->SkeletalMesh) CharacterCloakMats[6]->CopyParameterOverrides(Cast<UMaterialInstance>(Flight2Mesh->SkeletalMesh->Materials[0].MaterialInterface));
+	CharacterCloakMats[6] = UMaterialInstanceDynamic::Create(CloakParent, this); if (Flight2Mesh && Flight2Mesh->SkeletalMesh) CharacterCloakMats[6]->CopyParameterOverrides(Cast<UMaterialInstance>(Flight2Mesh->SkeletalMesh->Materials[0].MaterialInterface));*/
 }
 
 void AOrionCharacter::PostInitializeComponents()
@@ -1758,6 +1964,44 @@ bool AOrionCharacter::IsOvercharging() const
 	return false;
 }
 
+void AOrionCharacter::Explode(AOrionPlayerController *EventInstigator)
+{
+	if (EventInstigator && EventInstigator->FragGrenadeClass)
+	{
+		//UGameplayStatics::ApplyRadialDamage(GetWorld(), 500.0f * Level, GetActorLocation(), 750.0f, ExplosionDamageType, TArray<AActor*>(), EventInstigator->GetPawn(), EventInstigator, false);
+
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+		SpawnInfo.Owner = EventInstigator;
+
+		AOrionGrenade *Grenade = GetWorld()->SpawnActor<AOrionGrenade>(EventInstigator->FragGrenadeClass, GetActorLocation(), FRotator::ZeroRotator, SpawnInfo);
+		if (Grenade)
+		{
+			Grenade->GrenadeLife = 0.01f;
+			Grenade->GrenadeScale = Grenade->ExplosionScale;
+
+			Grenade->Init(FVector(0.0f));
+			Grenade->SetFuseTime(0.01f);
+		}
+	}
+}
+
+bool AOrionCharacter::IsOnFire()
+{
+	for (auto Itr(Buffs.CreateIterator()); Itr; ++Itr)
+	{
+		AOrionBuff *Buff = *Itr;
+
+		if (!Itr)
+			continue;
+
+		if (Buff->ElementalDamageType == ELEMENTAL_FIRE)
+			return true;
+	}
+
+	return false;
+}
+
 float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser)
 {
 	UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject());
@@ -1812,7 +2056,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 	if (PC)
 	{
-		if (PC->GetSkillValue(SKILL_CLOAKTEAMMATES) > 0)
+		if (CurrentSkill && CurrentSkill->IsCloaking() && PC->GetSkillValue(SKILL_CLOAKTEAMMATES) > 0)
 		{
 			Damage *= 0.5f;
 		}
@@ -1831,6 +2075,115 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 	AOrionPlayerController *AttackerPC = Cast<AOrionPlayerController>(EventInstigator);
 
+	bool bCrit = false;
+	bool bKnockBack = true;
+
+	//apply any gear related stats to this damage
+	if (PC)
+	{
+		//dino damage is based on dino ilvl and expected health/shield of a player of equal level
+		int32 EnemyLevel = 1;
+
+		if (EventInstigator)
+		{
+			AOrionCharacter *EnemyPawn = Cast<AOrionCharacter>(EventInstigator);
+
+			if (EnemyPawn)
+			{
+				EnemyLevel = EnemyPawn->Level;
+			}
+		}
+
+		Damage = ((1000.0f * EnemyLevel) / 400.0f) * Damage;// *(1.0f + (EnemyLevel / 100.0f));
+
+		//do we have the dodge bullet legendary?
+		AOrionInventoryManager *Inv = PC->GetInventoryManager();
+		if (Inv)
+		{
+			if (Inv->HasStat(RARESTAT_JETPACKIMMUNE) && CurrentSkill && CurrentSkill->IsJetpacking()) return 0.0f;
+			if (Inv->HasStat(RARESTAT_CLOAKIMMUNE) && CurrentSkill && CurrentSkill->IsCloaking()) return 0.0f;
+			if (Inv->HasStat(RARESTAT_PYROINVULNERABLE) && CurrentSkill && CurrentSkill->IsFlaming()) return 0.0f;
+
+			if (Inv->HasStat(RARESTAT_BULLETDODGER) && DamageType->bIsBullet && FMath::FRand() <= 0.5f) return 0.0f;
+
+			//legendary bonuses
+			if (Inv->HasStat(RARESTAT_LARGEDINODR) && bIsBigDino) Damage *= 0.75f;
+			if (Inv->HasStat(RARESTAT_ROBOTDR) && Cast<AOrionDroidPawn>(this)) Damage *= 0.75f;
+
+			if (Inv->HasStat(RARESTAT_KNOCKBACKIMMUNE))
+			{
+				bKnockBack = false;
+				if (DamageType->bKnockBack) Damage *= 0.5f;
+			}
+		}
+	}
+
+	if (AttackerPC)
+	{
+		if (AttackerPC->GetSkillValue(SKILL_FLAMERDAMAGE) && DamageType->WeaponName == "Flamethrower")
+			Damage *= 1.0f + (AttackerPC->GetSkillValue(SKILL_FLAMERDAMAGE) / 100.0f);
+	}
+
+	if (AttackerPC)
+	{
+		AOrionCharacter *AttackerPawn = Cast<AOrionCharacter>(AttackerPC->GetPawn());
+
+		if (AttackerPawn)
+		{
+			Damage *= 1.0f + AttackerPawn->DamageBonus;
+
+			//adjust weapon damage
+			if (AttackerPC->GetInventoryManager())
+			{
+				if (DamageType->WeaponSlot == 1 && DamageType->bIsKnife)
+					Damage = Damage * AttackerPC->GetInventoryManager()->GetPrimaryWeaponDamage() * 0.1f;
+				else if (DamageType->WeaponSlot == 2)
+					Damage = Damage * AttackerPC->GetInventoryManager()->GetSecondaryWeaponDamage() * 0.1f;
+			}
+
+			//apply crit damage bonuses
+			if (FMath::FRandRange(0.0f, 100.0f) <= AttackerPawn->CriticalHitChance || (AttackerPC->GetSkillValue(SKILL_FLAMEREXTRADAMAGETOBURNING) > 0 && IsOnFire()))
+			{
+				Damage *= 1.0f + AttackerPawn->CriticalHitMultiplier;
+				bCrit = true;
+			}
+
+			//damage type bonuses, blunt, piercing, elemental, etc
+			//apply these as a dot
+			/*Pawn->FireDamage = EquippedStats.Secondary[SECONDARYSTAT_FIREDAMAGE];
+			Pawn->LightningDamage = EquippedStats.Secondary[SECONDARYSTAT_LIGHTNINGDAMAGE];
+			Pawn->IceDamage = EquippedStats.Secondary[SECONDARYSTAT_ICEDAMAGE];
+			Pawn->PoisonDamage = EquippedStats.Secondary[SECONDARYSTAT_POISONDAMAGE];
+			Pawn->CorrosiveDamage = EquippedStats.Secondary[SECONDARYSTAT_CORROSIVEDAMAGE];*/
+
+			//bonus damage to enemy type
+			if (bIsBigDino) Damage *= 1.0f + (AttackerPawn->LargeDinoBoost / 100.0f);
+			if (Cast<AOrionDroidPawn>(this)) Damage *= 1.0f + (AttackerPawn->RobotBoost / 100.0f);
+
+			//legendary weapon type damage boosts
+			AOrionInventoryManager *Inv = AttackerPC->GetInventoryManager();
+			if (Inv && !DamageType->bIsKnife)
+			{
+				if (Inv->HasStat(RARESTAT_PISTOLBONUSDAMAGE) && DamageType->WeaponType == WEAPON_PISTOL) Damage *= 1.5f;
+				if (Inv->HasStat(RARESTAT_PROJECTILEDAMAGEBONUS) && DamageType->WeaponType == WEAPON_PROJECTILE) Damage *= 1.5f;
+				if (Inv->HasStat(RARESTAT_AUTORIFLEBONUSDAMAGE) && DamageType->WeaponType == WEAPON_AUTORIFLE) Damage *= 1.5f;
+				if (Inv->HasStat(RARESTAT_LMGBONUSDAMAGE) && DamageType->WeaponType == WEAPON_LMG) Damage *= 1.5f;
+				if (Inv->HasStat(RARESTAT_SHOTGUNBONUSDAMAGE) && DamageType->WeaponType == WEAPON_SHOTGUN) Damage *= 1.5f;
+				if (Inv->HasStat(RARESTAT_BONUSMELEE) && DamageType->WeaponType == WEAPON_MELEE) Damage *= 1.5f;
+
+				if (Inv->HasStat(RARESTAT_DOUBLEDAMAGENOSHIELD) && Shield <= 0.0f && DamageType->WeaponSlot == 1) Damage *= 2.0f;
+			}
+		}
+	}
+
+	//rpg damage reduction
+	Damage *= 1.0f - (DamageReduction / 100.0f);
+	if (DamageType->DamageType == DAMAGE_BLUNT) Damage *= 1.0f - (BluntDamageReduction / 100.0f);
+	if (DamageType->DamageType == DAMAGE_PIERCING) Damage *= 1.0f - (PiercingDamageReduction / 100.0f);
+	if (DamageType->DamageType == DAMAGE_EXPLOSIVE) Damage *= 1.0f - (ExplosiveDamageReduction / 100.0f);
+	if (DamageType->DamageType == DAMAGE_ELEMENTAL) Damage *= 1.0f - (ElementalDamageReduction / 100.0f);
+	if (DamageType->DamageType == DAMAGE_POISON) Damage *= 1.0f - (PoisonDamageReduction / 100.0f);
+
 	/*if (AttackerPC)
 	{
 		AOrionCharacter *AttackerPawn = Cast<AOrionCharacter>(AttackerPC->GetPawn());
@@ -1844,6 +2197,10 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 		if (AttackerPC)
 		{
 			Damage *= 1.0f + (AttackerPC->GetSkillValue(SKILL_MELEEDAMAGE) / 100.0f);
+			Damage *= 1.0f + (MeleeDamageBoost / 100.0f);
+
+			AOrionInventoryManager *Inv = AttackerPC->GetInventoryManager();
+			if (Inv && Inv->HasStat(RARESTAT_CLOAKMELEE) && CurrentSkill && CurrentSkill->IsCloaking()) Damage *= 5.0f;
 		}
 	}
 
@@ -1882,7 +2239,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	if (!DamageType || !DamageType->bIgnoreModify)
 		Damage = Game ? Game->ModifyDamage(Damage, this, DamageEvent, EventInstigator, DamageCauser) : 0.f;
 
-	if (!bIsBigDino && !bIsHealableMachine && !bLatchedOnto && !bKnockedDown && DamageType && !bFatality && !bFinishingMove && DamageType->bKnockBack && (!CurrentSkill || !CurrentSkill->IsJetpacking()))
+	if (bKnockBack && !bIsBigDino && !bIsHealableMachine && !bLatchedOnto && !bKnockedDown && DamageType && !bFatality && !bFinishingMove && DamageType->bKnockBack && (!CurrentSkill || !CurrentSkill->IsJetpacking()))
 	{
 		//if this is a big dino doing the knockback, kill any small dinos caught in the area, and do no knockbacks to other dinos
 		AOrionDinoPawn *EnemyDino = Cast<AOrionDinoPawn>(DamageCauser);
@@ -1983,13 +2340,13 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 			if (RealEvent)
 			{
 				if (DamageType && DamageType->bIsKnife)
-					Damager->AddDamageNumber(OriginalDamage, GetActorLocation());
+					Damager->AddDamageNumber(OriginalDamage, GetActorLocation(), bCrit);
 				else if (DamageType && DamageType->bGibAll)
-					Damager->AddDamageNumber(OriginalDamage, GetActorLocation());
+					Damager->AddDamageNumber(OriginalDamage, GetActorLocation(), bCrit);
 				else if (DamageType && DamageType->WeaponName == "Turret")
-					Damager->AddDamageNumber(OriginalDamage, GetActorLocation());
+					Damager->AddDamageNumber(OriginalDamage, GetActorLocation(), bCrit);
 				else
-					Damager->AddDamageNumber(OriginalDamage, RealEvent->HitInfo.ImpactPoint);
+					Damager->AddDamageNumber(OriginalDamage, RealEvent->HitInfo.ImpactPoint, bCrit);
 			}
 		}
 
@@ -2030,7 +2387,16 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 				if (CurrentSkill)
 					CurrentSkill->DeactivateSkill();
 
-				DownedTime = 40 - (TimesDowned * 10);
+				int32 BaseDowns = 40;
+
+				if (PC)
+				{
+					AOrionInventoryManager *Inv = PC->GetInventoryManager();
+					if (Inv && Inv->HasStat(RARESTAT_EXTRADOWN))
+						BaseDowns = 50;
+				}
+
+				DownedTime = BaseDowns - (TimesDowned * 10);
 
 				AController* const KilledPlayer = (Controller != NULL) ? Controller : Cast<AController>(GetOwner());
 				GetWorld()->GetAuthGameMode<AOrionGameMode>()->HandleStats(EventInstigator, KilledPlayer, this, DamageType);
@@ -2043,6 +2409,16 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 			}
 			else
 			{
+				if (AttackerPC)
+				{
+					AOrionInventoryManager *Inv = AttackerPC->GetInventoryManager();
+					if (Inv)
+					{
+						if (Inv->HasStat(RARESTAT_KILLRELOAD) && DamageType->WeaponSlot == 2) CurrentWeapon->AmmoInClip = CurrentWeapon->GetClipSize();
+
+						if (Inv->HasStat(RARESTAT_EXPLODEKILLS) && DamageType->WeaponSlot == 1) Explode(AttackerPC);
+					}
+				}
 				Die(ActualDamage, DamageEvent, EventInstigator, DamageCauser);
 
 				if (DamageType && DamageType->bGibAll)
@@ -2145,7 +2521,17 @@ bool AOrionCharacter::CanBeDowned(float Damage, struct FDamageEvent const& Damag
 	////	return false;
 
 	//3 revives per life
-	if (TimesDowned >= 3)
+	int32 Revives = 3;
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+	if (PC)
+	{
+		AOrionInventoryManager *Inv = PC->GetInventoryManager();
+		if (Inv && Inv->HasStat(RARESTAT_EXTRADOWN))
+			Revives = 4;
+	}
+
+	if (TimesDowned >= Revives)
 		return false;
 
 	UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject());
@@ -2338,8 +2724,8 @@ void AOrionCharacter::ReplicateHit(float Damage, struct FDamageEvent const& Dama
 
 void AOrionCharacter::SetClassArmor(int32 index)
 {
-	if (ArmorList.Num() > index)
-	{
+	//if (ArmorList.Num() > index)
+	//{
 		EquipArmor(EventGetArmor(ITEM_HELMET, index).GetDefaultObject());
 		EquipArmor(EventGetArmor(ITEM_CHEST, index).GetDefaultObject());
 		EquipArmor(EventGetArmor(ITEM_LEGS, index).GetDefaultObject());
@@ -2350,7 +2736,7 @@ void AOrionCharacter::SetClassArmor(int32 index)
 			bFemale = true;
 			EventSetFemaleMesh();
 		}
-	}
+	//}
 }
 
 void AOrionCharacter::OnRep_Female()
@@ -2476,6 +2862,9 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	bReplicateMovement = false;
 	bTearOff = true;
 	bIsDying = true;
+
+	Buffs.Empty();
+	UpdateBuffFX();
 
 	if (Role == ROLE_Authority)
 	{
@@ -2989,6 +3378,14 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 
 	int32 HiddenLevel = 0;
 
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+	AOrionInventoryManager *Inv = nullptr;
+
+	if (PC)
+		Inv = PC->GetInventoryManager();
+
+	DamageBonus = 0.0f;
+
 	for (auto Itr(Buffs.CreateIterator()); Itr; ++Itr)
 	{
 		AOrionBuff *Buff = *Itr;
@@ -3003,6 +3400,9 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 		if (Buff->bBlockSight)
 			HiddenLevel = Buff->UpgradeLevel;
 
+		if (Buff->DamageBonus > 0.0f && Inv && Inv->HasStat(Buff->RareStat))
+			DamageBonus += Buff->DamageBonus;
+
 		//check if we need to tick damage or anything
 		Buff->TickTimer -= DeltaSeconds;
 
@@ -3011,21 +3411,28 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 			//apply damage/heal or whatever
 			if (Buff->Damage > 0.0f)
 			{
-				FPointDamageEvent PointDmg;
+				if (Inv && Inv->HasStat(Buff->RareStat) && !bDowned && Buff->DamageBonus == 0.0f)
+				{
+					Heal(int32(Buff->Damage));
+				}
+				else
+				{
+					FPointDamageEvent PointDmg;
 
-				PointDmg.DamageTypeClass = Buff->DamageType;
-				PointDmg.Damage = Buff->Damage;
-				PointDmg.ShotDirection = FVector(0.0f);
+					PointDmg.DamageTypeClass = Buff->DamageType;
+					PointDmg.Damage = Buff->Damage;
+					PointDmg.ShotDirection = FVector(0.0f);
 
-				AController *cOwner = Buff->ControllerOwner;
+					AController *cOwner = Buff->ControllerOwner;
 
-				if (!cOwner || !cOwner->IsValidLowLevel())
-					cOwner = nullptr;
+					if (!cOwner || !cOwner->IsValidLowLevel())
+						cOwner = nullptr;
 
-				if (cOwner && !GRI->OnSameTeam(Cast<AOrionPRI>(cOwner->PlayerState), Cast<AOrionPRI>(PlayerState)))
-					TakeDamage(Buff->Damage, PointDmg, cOwner, cOwner ? cOwner->GetPawn() : nullptr);
-				else if (!cOwner && PRI->GetTeamIndex() != Buff->TeamIndex)
-					TakeDamage(Buff->Damage, PointDmg, Controller, this);
+					if (cOwner && !GRI->OnSameTeam(Cast<AOrionPRI>(cOwner->PlayerState), Cast<AOrionPRI>(PlayerState)))
+						TakeDamage(Buff->Damage, PointDmg, cOwner, cOwner ? cOwner->GetPawn() : nullptr);
+					else if (!cOwner && PRI->GetTeamIndex() != Buff->TeamIndex)
+						TakeDamage(Buff->Damage, PointDmg, Controller, this);
+				}
 			}
 			else if (Buff->Damage < 0.0f && !bDowned)
 				Heal(int32(-Buff->Damage));
@@ -3292,7 +3699,17 @@ void AOrionCharacter::HandleRevivingTeammates(float DeltaSeconds)
 
 		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 		if (PC)
+		{
 			Rate = 1.0f + float(PC->GetSkillValue(SKILL_REVIVESPEED)) / 100.0f;
+
+			AOrionInventoryManager *Inv = PC->GetInventoryManager();
+
+			if (Inv)
+			{
+				if (Inv->HasStat(RARESTAT_SUPERFASTREVIVE))
+					Rate *= 2.0f;
+			}
+		}
 
 		ReviveTarget->Health = FMath::Min(ReviveTarget->HealthMax, ReviveTarget->Health + DeltaSeconds * 0.5f * Rate * ReviveTarget->HealthMax);
 		ReviveTarget->LastHealTime = GetWorld()->TimeSeconds;
@@ -3370,6 +3787,12 @@ void AOrionCharacter::Revived()
 void AOrionCharacter::PlayRevivedVoice()
 {
 	PlayVoice(VOICE_AFFIRMATIVE);
+}
+
+void AOrionCharacter::UnequipAdrenaline()
+{
+	EquipWeapon(Inventory[0]);
+	ClientEquipWeapon(Inventory[0]);
 }
 
 void AOrionCharacter::Tick(float DeltaSeconds)
@@ -3455,6 +3878,11 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 		HealTarget = 5.0f;
 	}
 
+	if (IsLocallyControlled() && CurrentSkill && !CurrentSkill->IsFlaming() && CurrentWeapon && CurrentWeapon->InstantConfig.WeaponSlot == 4)
+		EquipWeaponFromSlot(1);
+	else if (IsLocallyControlled() && CurrentSkill && CurrentSkill->IsFlaming() && CurrentWeapon && CurrentWeapon->InstantConfig.WeaponSlot != 4)
+		EquipWeaponFromSlot(4);
+
 	//hax for now
 	//if (CurrentWeapon == NULL && Inventory.Num() > 0)
 	//	EquipWeapon(Inventory[0]);
@@ -3514,11 +3942,24 @@ void AOrionCharacter::UpdateCooldowns(float DeltaTime)
 		//don't recharge grenade energy while smoke is active
 		if (!bIsGrenadeActive)
 		{
-			float Rate = 1.0f + float(PC->GetSkillValue(SKILL_GRENADECOOLDOWN)) / 25.0f;
+			float Rate = 1.0f + GrenadeRechargeRate * float(PC->GetSkillValue(SKILL_GRENADECOOLDOWN)) / 25.0f;
 			GrenadeCooldown.Energy = FMath::Min(GrenadeCooldown.Energy + DeltaTime * Rate, float(GrenadeCooldown.SecondsToRecharge * (PC->GetSkillValue(SKILL_EXTRAGRENADE) > 0 ? 2 : 1)));
 		}
 
-		BlinkCooldown.Energy = FMath::Min(BlinkCooldown.Energy + DeltaTime, float(BlinkCooldown.SecondsToRecharge * (PC->GetSkillValue(SKILL_EXTRABLINK) > 0 ? 2 : 1)));
+		int32 blinkCharges = PC->GetSkillValue(SKILL_EXTRABLINK) > 0 ? 2 : 1;
+
+		if (PC)
+		{
+			AOrionInventoryManager *Inv = PC->GetInventoryManager();
+
+			if (Inv)
+			{
+				if (Inv->HasStat(RARESTAT_FREEBLINK))
+					blinkCharges++;
+			}
+		}
+
+		BlinkCooldown.Energy = FMath::Min(BlinkCooldown.Energy + DeltaTime, float(BlinkCooldown.SecondsToRecharge * blinkCharges));
 
 		RollCooldown = FMath::Max(0.0f, RollCooldown - DeltaTime);
 	}
@@ -3757,10 +4198,24 @@ void AOrionCharacter::ActuallyTossGrenade(FVector dir)
 				Grenade->GrenadeLife = Grenade->FXTime;
 				Grenade->GrenadeScale = Grenade->ExplosionScale;
 
+				Grenade->bCanSpawnExplosionGrenade = true;
+
 				if (PC)
 				{
 					Grenade->GrenadeLife += float(PC->GetSkillValue(SKILL_GRENADECOOLDOWN));
 					Grenade->GrenadeScale *= 1.0f + (float(PC->GetSkillValue(SKILL_GRENADERADIUS) / 100.0f));
+
+					//legendary grenade bonuses
+					AOrionInventoryManager *Inv = PC->GetInventoryManager();
+					if (Inv)
+					{
+						if (Inv->HasStat(RARESTAT_FRAGGRENADE)) Grenade->SecondaryGrenadeType = GRENADE_FRAG;
+						if (Inv->HasStat(RARESTAT_EMPGRENADE)) Grenade->SecondaryGrenadeType = GRENADE_EMP;
+						if (Inv->HasStat(RARESTAT_SMOKEGRENADE)) Grenade->SecondaryGrenadeType = GRENADE_SMOKE;
+						if (Inv->HasStat(RARESTAT_STUNGRENADE)) Grenade->SecondaryGrenadeType = GRENADE_STUN;
+						if (Inv->HasStat(RARESTAT_NAPALMGRENADE)) Grenade->SecondaryGrenadeType = GRENADE_NAPALM;
+						if (Inv->HasStat(RARESTAT_MULTIGRENADE)) Grenade->bMultiGrenade = true;
+					}
 				}
 
 				PlayVoice(Grenade->VoiceType);
@@ -3920,7 +4375,7 @@ void AOrionCharacter::OnNextWeapon()
 
 			while (nIndex != CurrentWeaponIdx)
 			{
-				if (!Cast<AOrionWeaponLink>(Inventory[nIndex]))
+				if (!Cast<AOrionWeaponLink>(Inventory[nIndex]) && Inventory[nIndex]->InstantConfig.WeaponSlot < 4)
 					break;
 
 				nIndex++;
@@ -3965,7 +4420,7 @@ void AOrionCharacter::OnPrevWeapon()
 
 			while (nIndex != CurrentWeaponIdx)
 			{
-				if (!Cast<AOrionWeaponLink>(Inventory[nIndex]))
+				if (!Cast<AOrionWeaponLink>(Inventory[nIndex]) && Inventory[nIndex]->InstantConfig.WeaponSlot < 4)
 					break;
 
 				nIndex--;

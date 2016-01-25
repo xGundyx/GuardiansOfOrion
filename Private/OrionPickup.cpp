@@ -46,7 +46,12 @@ void AOrionPickup::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutL
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
-	DOREPLIFETIME_CONDITION(AOrionPickup, Inventory, COND_Custom);
+	DOREPLIFETIME(AOrionPickup, GearType);
+}
+
+void AOrionPickup::OnRep_GearType()
+{
+	EventSetColor(GearType);
 }
 
 bool AOrionPickup::Init(UClass *LootTable, int32 Level)
@@ -74,7 +79,27 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 	//pick which quality, also set the shape/color of the pickup here, also determines name?
 	if (Inv->bHasQuality)
 	{
-		float RandomChance = FMath::FRand();
+		float Chance = 1.0f;
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetOwner());
+
+		if (PC)
+		{
+			AOrionCharacter *P = Cast<AOrionCharacter>(PC->GetPawn());
+
+			if (P)
+			{
+				Chance = P->MagicFind / 100.0f;
+
+				AOrionInventoryManager *I = PC->GetInventoryManager();
+
+				if (I)
+				{
+					if (I->HasStat(RARESTAT_MAGICFIND))
+						Chance += 1.0f;
+				}
+			}
+		}
+		float RandomChance = FMath::FRand() / Chance;
 		if (RandomChance < 0.05f)
 		{
 			Decoder.Rarity = RARITY_LEGENDARY;
@@ -116,6 +141,7 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 
 	Decoder.ItemDesc = Inv->ItemDesc;
 	Decoder.BreakdownClasses = Inv->BreakdownClass;
+	Decoder.ItemID = Inv->ItemID;
 
 	//assign stats based on quality and item type
 	Inv->CalcStats(Decoder);
@@ -127,6 +153,8 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 	EncodedValue = EncodeItem(Decoder);
 
 	EventSetColor(Decoder.Rarity);
+
+	GearType = Decoder.Rarity;
 
 	//might not need this anymore
 	/*if (Inv->ItemClass)
@@ -202,15 +230,23 @@ void AOrionPickup::GrabItem()
 				Item.MainStat = Decoder.MainStat;
 				Item.SellValue = Decoder.SellValue;
 				Item.BreakdownClasses = Decoder.BreakdownClasses;
+				Item.ItemID = Decoder.ItemID;
 
 				if (InvMan->AddItemToInventory(InvMan->Grid, Item) >= 0)
 				{
+					if (PC->IsLocalPlayerController())
+						PC->EventItemAddedToInventory(Item, true);
+					else
+						PC->ClientItemAddedToInventory(Item, true);
 					Destroy();
 				}
 				//inventory is full, spawn some kind of message
 				else
 				{
-
+					if (PC->IsLocalPlayerController())
+						PC->EventItemAddedToInventory(Item, false);
+					else
+						PC->ClientItemAddedToInventory(Item, false);
 				}
 			}
 		}

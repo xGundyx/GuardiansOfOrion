@@ -36,6 +36,8 @@ int32 AOrionPRI::GetXPIntoLevel()
 		XP = ReconXP;
 	else if (ClassType == "TECH")
 		XP = TechXP;
+	else if (ClassType == "PYRO")
+		XP = PyroXP;
 	else
 		return 0;
 
@@ -217,8 +219,7 @@ void AOrionPRI::AddOrbEffect(EOrbType Type, float Duration)
 	if (Role != ROLE_Authority)
 		return;
 
-	//dead players don't get buffs!
-	if (!ControlledPawn || ControlledPawn->Health <= 0.0f)
+	if (!ControlledPawn)// || ControlledPawn->Health <= 0.0f)
 		return;
 
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(ControlledPawn->Controller);
@@ -249,6 +250,11 @@ void AOrionPRI::AddOrbEffect(EOrbType Type, float Duration)
 
 		if (PC->GetAchievements())
 			PC->GetAchievements()->CheckOrbs();
+	}
+
+	if (InventoryManager && InventoryManager->HasStat(RARESTAT_ORBLENGTH))
+	{
+		Duration += 10;
 	}
 
 	bool bFound = false;
@@ -320,6 +326,8 @@ int32 AOrionPRI::GetCharacterLevel(ECharacterClass CharacterType)
 		XP = ReconXP;
 	else if (CharacterType == ECharacterClass::CLASS_TECH)
 		XP = TechXP;
+	else if (CharacterType == ECharacterClass::CLASS_PYRO)
+		XP = PyroXP;
 	else
 		return 1;
 
@@ -338,6 +346,8 @@ int32 AOrionPRI::GetXPToLevel()
 		XP = ReconXP;
 	else if (ClassType == "TECH")
 		XP = TechXP;
+	else if (ClassType == "PYRO")
+		XP = PyroXP;
 	else
 		return 1;
 
@@ -394,6 +404,7 @@ void AOrionPRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionPRI, SupportXP);
 	DOREPLIFETIME(AOrionPRI, ReconXP);
 	DOREPLIFETIME(AOrionPRI, TechXP);
+	DOREPLIFETIME(AOrionPRI, PyroXP);
 
 	//photon
 	DOREPLIFETIME(AOrionPRI, ServerInfo);

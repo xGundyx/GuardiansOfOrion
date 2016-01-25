@@ -1,6 +1,7 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
+#include "OrionPlaceableItem.h"
 #include "OrionAbility.generated.h"
 
 UCLASS()
@@ -70,6 +71,9 @@ public:
 		bool IsTurreting() { return Cast<AOrionCharacter>(GetOwner()) && Cast<AOrionCharacter>(GetOwner())->Health > 0.0f && bIsTurreting; }
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
+		bool IsFlaming() { return Cast<AOrionCharacter>(GetOwner()) && Cast<AOrionCharacter>(GetOwner())->Health > 0.0f && bIsFlaming; }
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
 		void SetJetpacking(bool bActive) { bIsJetpacking = bActive; }
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
@@ -80,6 +84,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
 		void SetTurreting(bool bActive) { bIsTurreting = bActive; }
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
+		void SetFlaming(bool bActive) { bIsFlaming = bActive; }
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Skill)
 		bool bOneShotAbility;
@@ -130,6 +137,8 @@ private:
 		bool bIsCloaking;
 	UPROPERTY(Replicated)
 		bool bIsOvercharging;
+	UPROPERTY(Replicated)
+		bool bIsFlaming;
 
 	//active when we have the turret placer visible
 	bool bIsTurreting;

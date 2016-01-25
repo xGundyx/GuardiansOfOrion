@@ -29,6 +29,17 @@ class UOrionInventoryItem;
 #define ORION_SURFACE_Shield		SurfaceType9
 
 UENUM(BlueprintType)
+enum EElementalDamageType
+{
+	ELEMENTAL_NONE,
+	ELEMENTAL_FIRE,
+	ELEMENTAL_ICE,
+	ELEMENTAL_LIGHTNING,
+	ELEMENTAL_POISON,
+	ELEMENTAL_CORROSIVE
+};
+
+UENUM(BlueprintType)
 enum EGibType
 {
 	GIB_HEAD,
@@ -374,13 +385,13 @@ struct FPrimaryItemStats
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stats)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Stats)
 		TEnumAsByte<EPrimaryStats> StatType;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stats)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Stats)
 		int32 MinValue;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stats)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Stats)
 		int32 MaxValue;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stats)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Stats)
 		int32 Value;
 };
 
@@ -389,13 +400,13 @@ struct FSecondaryItemStats
 {
 	GENERATED_USTRUCT_BODY()
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stats)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Stats)
 		TEnumAsByte<ESecondaryStats> StatType;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stats)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Stats)
 		int32 MinValue;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stats)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Stats)
 		int32 MaxValue;
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Stats)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Stats)
 		int32 Value;
 };
 
@@ -463,7 +474,7 @@ enum ESuperRareStat
 	RARESTAT_SENTRYGRENADES,
 	RARESTAT_SENTRYFLAMER,
 	RARESTAT_JETPACKGRENADES, //drop a frag grenade every second while jetpacking
-	RARESTAT_JETPACKIMMNUE, //immune when jetpacking and 2 seconds after jetpack is over
+	RARESTAT_JETPACKIMMUNE, //immune when jetpacking and 2 seconds after jetpack is over
 	RARESTAT_JETPACKRANDOMORB, //receive a random orb effect at the end of the jetpack 
 	RARESTAT_BUBBLEREVIVE,
 	RARESTAT_BUBBLEHARVESTER,
@@ -511,7 +522,8 @@ enum EItemType
 	ITEM_DISPLAYARMOR,
 	ITEM_ABILITY,
 	ITEM_BREAKDOWNABLE,
-	ITEM_GRENADE
+	ITEM_GRENADE,
+	ITEM_KNIFE
 };
 
 USTRUCT(BlueprintType)
@@ -553,6 +565,8 @@ struct FDecodeItemInfo
 
 	//path to the blueprint that holds most of our data
 	FString ItemPath;
+
+	FString ItemID;
 
 	FString ItemName;
 	FString ItemDesc;
@@ -848,6 +862,16 @@ static FString EncodeItem(FDecodeItemInfo Item)
 }
 
 UENUM(BlueprintType)
+enum EDamageType
+{
+	DAMAGE_BLUNT,		//tail/stomp attacks
+	DAMAGE_PIERCING,	//bites, spike hits?
+	DAMAGE_EXPLOSIVE,	//explosions, duh
+	DAMAGE_ELEMENTAL,	//any type of elemental
+	DAMAGE_POISON		//dilo spit mainly
+};
+
+UENUM(BlueprintType)
 enum ECharacterClass
 {
 	CLASS_ASSAULT,
@@ -855,6 +879,27 @@ enum ECharacterClass
 	CLASS_RECON,
 	CLASS_TECH,
 	CLASS_PYRO
+};
+
+UENUM(BlueprintType)
+enum EWeaponType
+{
+	WEAPON_PISTOL,
+	WEAPON_SHOTGUN,
+	WEAPON_AUTORIFLE,
+	WEAPON_PROJECTILE, 
+	WEAPON_LMG,
+	WEAPON_MELEE
+};
+
+UENUM(BlueprintType)
+enum EGrenadeType
+{
+	GRENADE_FRAG,
+	GRENADE_EMP,
+	GRENADE_SMOKE,
+	GRENADE_STUN,
+	GRENADE_NAPALM
 };
 
 USTRUCT(BlueprintType)
@@ -869,77 +914,77 @@ struct FRareStats
 	FRareStats()
 	{
 		//helmet
-		StatsInfo.Add(FRareStatsInfo(TEXT("50% bonus damage to pistols"), RARESTAT_PISTOLBONUSDAMAGE, ITEM_HELMET));
-		StatsInfo.Add(FRareStatsInfo(TEXT("15% bonus to critical hit chance"), RARESTAT_BONUSCRITCHANCE, ITEM_HELMET));
-		StatsInfo.Add(FRareStatsInfo(TEXT("50% bonus to critical damage"), RARESTAT_BONUSCRITDAMAGE, ITEM_HELMET));
+		StatsInfo.Add(FRareStatsInfo(TEXT("50% bonus damage to pistols"), RARESTAT_PISTOLBONUSDAMAGE, ITEM_HELMET));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("15% bonus to critical hit chance"), RARESTAT_BONUSCRITCHANCE, ITEM_HELMET));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("50% bonus to critical damage"), RARESTAT_BONUSCRITDAMAGE, ITEM_HELMET));//
 
 		//body
-		StatsInfo.Add(FRareStatsInfo(TEXT("50% of bullet attacks pass right through you"), RARESTAT_BULLETDODGER, ITEM_CHEST));
-		StatsInfo.Add(FRareStatsInfo(TEXT("Immune to all fatality attacks"), RARESTAT_FATALITYIMMUNE, ITEM_CHEST));
-		StatsInfo.Add(FRareStatsInfo(TEXT("50% damage bonus to projectile weapons"), RARESTAT_PROJECTILEDAMAGEBONUS, ITEM_CHEST));
+		StatsInfo.Add(FRareStatsInfo(TEXT("50% of bullet attacks pass right through you"), RARESTAT_BULLETDODGER, ITEM_CHEST));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("Immune to all fatality attacks"), RARESTAT_FATALITYIMMUNE, ITEM_CHEST));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("50% damage bonus to projectile weapons"), RARESTAT_PROJECTILEDAMAGEBONUS, ITEM_CHEST));//
 
 		//hands
-		StatsInfo.Add(FRareStatsInfo(TEXT("Revive players twice as fast"), RARESTAT_SUPERFASTREVIVE, ITEM_HANDS));
-		StatsInfo.Add(FRareStatsInfo(TEXT("50% bonus damage to auto-rifles"), RARESTAT_AUTORIFLEBONUSDAMAGE, ITEM_HANDS));
-		StatsInfo.Add(FRareStatsInfo(TEXT("50% bonus damage to shotguns"), RARESTAT_SHOTGUNBONUSDAMAGE, ITEM_HANDS));
-		StatsInfo.Add(FRareStatsInfo(TEXT("50% bonus damage to light machine guns"), RARESTAT_LMGBONUSDAMAGE, ITEM_HANDS));
+		StatsInfo.Add(FRareStatsInfo(TEXT("Revive players twice as fast"), RARESTAT_SUPERFASTREVIVE, ITEM_HANDS));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("50% bonus damage to auto-rifles"), RARESTAT_AUTORIFLEBONUSDAMAGE, ITEM_HANDS));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("50% bonus damage to shotguns"), RARESTAT_SHOTGUNBONUSDAMAGE, ITEM_HANDS));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("50% bonus damage to light machine guns"), RARESTAT_LMGBONUSDAMAGE, ITEM_HANDS));//
 
 		//belt
-		StatsInfo.Add(FRareStatsInfo(TEXT("100% increased item drops"), RARESTAT_MAGICFIND, ITEM_BELT));
-		StatsInfo.Add(FRareStatsInfo(TEXT("100% increased gold dropped from enemies"), RARESTAT_GOLDFIND, ITEM_BELT));
-		StatsInfo.Add(FRareStatsInfo(TEXT("50% increase to melee damage"), RARESTAT_BONUSMELEE, ITEM_BELT));
+		StatsInfo.Add(FRareStatsInfo(TEXT("100% increased magic find"), RARESTAT_MAGICFIND, ITEM_BELT));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("100% increased gold find"), RARESTAT_GOLDFIND, ITEM_BELT));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("50% increase to melee damage"), RARESTAT_BONUSMELEE, ITEM_BELT));//
 
 		//legs
-		StatsInfo.Add(FRareStatsInfo(TEXT("blink for free for 1 second after normal blink ends"), RARESTAT_FREEBLINK, ITEM_LEGS));
-		StatsInfo.Add(FRareStatsInfo(TEXT("Gain one extra down"), RARESTAT_EXTRADOWN, ITEM_LEGS));
-		StatsInfo.Add(FRareStatsInfo(TEXT("double amount of orbs dropped from all sources"), RARESTAT_MOREORBS, ITEM_LEGS));
+		StatsInfo.Add(FRareStatsInfo(TEXT("gain one extra blink charge"), RARESTAT_FREEBLINK, ITEM_LEGS));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("Gain one extra down"), RARESTAT_EXTRADOWN, ITEM_LEGS));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("double amount of orbs dropped from all sources"), RARESTAT_MOREORBS, ITEM_LEGS));//
 
 		//boots
-		StatsInfo.Add(FRareStatsInfo(TEXT("25% less damage taken from large dinos"), RARESTAT_LARGEDINODR, ITEM_BOOTS));
-		StatsInfo.Add(FRareStatsInfo(TEXT("25% less damage taken from robots"), RARESTAT_ROBOTDR, ITEM_BOOTS));
-		StatsInfo.Add(FRareStatsInfo(TEXT("Orbs last 10 seconds longer"), RARESTAT_ORBLENGTH, ITEM_BOOTS));
-		StatsInfo.Add(FRareStatsInfo(TEXT("dilo spit pools heal you instead of damaging you"), RARESTAT_DILOSPITHEAL, ITEM_BOOTS));
-		StatsInfo.Add(FRareStatsInfo(TEXT("knockback attacks deal half damage to you and don't knock you back"), RARESTAT_KNOCKBACKIMMUNE, ITEM_BOOTS));
+		StatsInfo.Add(FRareStatsInfo(TEXT("25% less damage taken from large dinos"), RARESTAT_LARGEDINODR, ITEM_BOOTS));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("25% less damage taken from robots"), RARESTAT_ROBOTDR, ITEM_BOOTS));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("Orbs last 10 seconds longer"), RARESTAT_ORBLENGTH, ITEM_BOOTS));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("dilo spit pools heal you instead of damaging you"), RARESTAT_DILOSPITHEAL, ITEM_BOOTS));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("knockback attacks deal half damage to you and don't knock you back"), RARESTAT_KNOCKBACKIMMUNE, ITEM_BOOTS));//
 
 		//grenade 
-		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explosion drops a frag grenade"), RARESTAT_FRAGGRENADE, ITEM_GRENADE));
-		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explosion drops an emp grenade"), RARESTAT_EMPGRENADE, ITEM_GRENADE));
-		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explosion drops a smoke grenade"), RARESTAT_SMOKEGRENADE, ITEM_GRENADE));
-		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explosion drops a stun grenade"), RARESTAT_STUNGRENADE, ITEM_GRENADE));
-		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explosion drops a napalm grenade"), RARESTAT_NAPALMGRENADE, ITEM_GRENADE));
-		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explodes into 4 mini frag grenades"), RARESTAT_MULTIGRENADE, ITEM_GRENADE));
+		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explosion drops a frag grenade"), RARESTAT_FRAGGRENADE, ITEM_GRENADE));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explosion drops an emp grenade"), RARESTAT_EMPGRENADE, ITEM_GRENADE));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explosion drops a smoke grenade"), RARESTAT_SMOKEGRENADE, ITEM_GRENADE));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explosion drops a stun grenade"), RARESTAT_STUNGRENADE, ITEM_GRENADE));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explosion drops a napalm grenade"), RARESTAT_NAPALMGRENADE, ITEM_GRENADE));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explodes into 4 mini frag grenades"), RARESTAT_MULTIGRENADE, ITEM_GRENADE));//
 
 		//primary
-		StatsInfo.Add(FRareStatsInfo(TEXT("this weapon never needs a reload, but fires at half speed"), RARESTAT_NORELOAD, ITEM_PRIMARYWEAPON));
-		StatsInfo.Add(FRareStatsInfo(TEXT("enemies killed with this weapon explode"), RARESTAT_EXPLODEKILLS, ITEM_PRIMARYWEAPON));
-		StatsInfo.Add(FRareStatsInfo(TEXT("double damage when your shields are down"), RARESTAT_DOUBLEDAMAGENOSHIELD, ITEM_PRIMARYWEAPON));
+		StatsInfo.Add(FRareStatsInfo(TEXT("this weapon never needs a reload, but fires at half speed"), RARESTAT_NORELOAD, ITEM_PRIMARYWEAPON));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("enemies killed with this weapon explode"), RARESTAT_EXPLODEKILLS, ITEM_PRIMARYWEAPON));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("double damage when your shields are down"), RARESTAT_DOUBLEDAMAGENOSHIELD, ITEM_PRIMARYWEAPON));//
 
 		//secondary
-		StatsInfo.Add(FRareStatsInfo(TEXT("kills instantly reload this weapon, but clip size is halved"), RARESTAT_KILLRELOAD, ITEM_SECONDARYWEAPON));
-		StatsInfo.Add(FRareStatsInfo(TEXT("kills with the weapon grant 25% extra experience"), RARESTAT_BONUSXP, ITEM_SECONDARYWEAPON));
-		StatsInfo.Add(FRareStatsInfo(TEXT("kills with this weapon grant 10% ability energy recharge"), RARESTAT_REGENENERGY, ITEM_SECONDARYWEAPON));
+		StatsInfo.Add(FRareStatsInfo(TEXT("kills instantly reload this weapon, but clip size is halved"), RARESTAT_KILLRELOAD, ITEM_SECONDARYWEAPON));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("kills with the weapon grant 25% extra experience"), RARESTAT_BONUSXP, ITEM_SECONDARYWEAPON));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("kills with this weapon grant 10% ability energy recharge"), RARESTAT_REGENENERGY, ITEM_SECONDARYWEAPON));//
 
 		//gadget
-		StatsInfo.Add(FRareStatsInfo(TEXT("regen gun heals downed teammates super fast"), RARESTAT_SUPERHEALER, ITEM_GADGET));
-		StatsInfo.Add(FRareStatsInfo(TEXT("regen gun lights enemies on fire"), RARESTAT_REGENFIRE, ITEM_GADGET));
-		StatsInfo.Add(FRareStatsInfo(TEXT("regen gun freezes enemies in place"), RARESTAT_REGENFREEZE, ITEM_GADGET));
+		StatsInfo.Add(FRareStatsInfo(TEXT("regen gun heals downed teammates super fast"), RARESTAT_SUPERHEALER, ITEM_GADGET));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("regen gun lights enemies on fire"), RARESTAT_REGENFIRE, ITEM_GADGET));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("regen gun freezes enemies in place"), RARESTAT_REGENFREEZE, ITEM_GADGET));//
 
 		//ability
-		StatsInfo.Add(FRareStatsInfo(TEXT("sentry gun now shoots rockets"), RARESTAT_SENTRYROCKETS, ITEM_ABILITY));
-		StatsInfo.Add(FRareStatsInfo(TEXT("sentry gun now shoots frag grenades"), RARESTAT_SENTRYGRENADES, ITEM_ABILITY));
-		StatsInfo.Add(FRareStatsInfo(TEXT("sentry gun now shoots flames instead of bullets"), RARESTAT_SENTRYFLAMER, ITEM_ABILITY));
-		StatsInfo.Add(FRareStatsInfo(TEXT("drop a frag grenade every second while jetpacking"), RARESTAT_JETPACKGRENADES, ITEM_ABILITY));
-		StatsInfo.Add(FRareStatsInfo(TEXT("take no damage while jetpacking and for 2 seconds afterwards"), RARESTAT_JETPACKIMMNUE, ITEM_ABILITY));
-		StatsInfo.Add(FRareStatsInfo(TEXT("receive a random orb at the end of jetpacking"), RARESTAT_JETPACKRANDOMORB, ITEM_ABILITY));
-		StatsInfo.Add(FRareStatsInfo(TEXT("healy bubble can revive downed players"), RARESTAT_BUBBLEREVIVE, ITEM_ABILITY));
-		StatsInfo.Add(FRareStatsInfo(TEXT("healy bubble can repair the harvester"), RARESTAT_BUBBLEHARVESTER, ITEM_ABILITY));
-		StatsInfo.Add(FRareStatsInfo(TEXT("players within the healy bubble do double damage"), RARESTAT_BUBBLEDAMAGE, ITEM_ABILITY));
-		StatsInfo.Add(FRareStatsInfo(TEXT("take no damage while cloaking"), RARESTAT_CLOAKIMMUNE, ITEM_ABILITY));
-		StatsInfo.Add(FRareStatsInfo(TEXT("melee is 5 times stronger while cloaking"), RARESTAT_CLOAKMELEE, ITEM_ABILITY));
-		StatsInfo.Add(FRareStatsInfo(TEXT("can use regen gun while cloaked"), RARESTAT_CLOAKREGEN, ITEM_ABILITY));
-		StatsInfo.Add(FRareStatsInfo(TEXT("take no damage while flamethrower is active"), RARESTAT_PYROINVULNERABLE, ITEM_ABILITY));
-		StatsInfo.Add(FRareStatsInfo(TEXT("flamethrower heals allies as well as damages enemies"), RARESTAT_PYROHEALS, ITEM_ABILITY));
-		StatsInfo.Add(FRareStatsInfo(TEXT("flamethrower freezes enemies instead of burning them"), RARESTAT_PYROFREEZE, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("sentry gun now shoots rockets"), RARESTAT_SENTRYROCKETS, ITEM_ABILITY));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("sentry gun now shoots frag grenades"), RARESTAT_SENTRYGRENADES, ITEM_ABILITY));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("sentry gun now shoots flames instead of bullets"), RARESTAT_SENTRYFLAMER, ITEM_ABILITY));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("drop a frag grenade every second while jetpacking"), RARESTAT_JETPACKGRENADES, ITEM_ABILITY));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("take no damage while jetpacking"), RARESTAT_JETPACKIMMUNE, ITEM_ABILITY));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("receive a random orb at the end of jetpacking"), RARESTAT_JETPACKRANDOMORB, ITEM_ABILITY));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("healy bubble can revive downed players"), RARESTAT_BUBBLEREVIVE, ITEM_ABILITY));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("healy bubble can repair the harvester"), RARESTAT_BUBBLEHARVESTER, ITEM_ABILITY));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("players within the healy bubble do double damage"), RARESTAT_BUBBLEDAMAGE, ITEM_ABILITY));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("take no damage while cloaking"), RARESTAT_CLOAKIMMUNE, ITEM_ABILITY));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("melee is 5 times stronger while cloaking"), RARESTAT_CLOAKMELEE, ITEM_ABILITY));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("can use regen gun while cloaked"), RARESTAT_CLOAKREGEN, ITEM_ABILITY));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("take no damage while flamethrower is active"), RARESTAT_PYROINVULNERABLE, ITEM_ABILITY));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("flamethrower heals allies as well as damages enemies"), RARESTAT_PYROHEALS, ITEM_ABILITY));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("flamethrower freezes enemies instead of burning them"), RARESTAT_PYROFREEZE, ITEM_ABILITY));//
 	};
 };
 
@@ -995,6 +1040,8 @@ struct FPhotonServerInfo
 		FString TOD;
 	UPROPERTY(BlueprintReadWrite, Category = Photon)
 		FString GameMode;
+	UPROPERTY(BlueprintReadWrite, Category = Photon)
+		FString ItemLevel;
 };
 
 UENUM(BlueprintType)
@@ -1048,6 +1095,10 @@ enum ESkillTreeUnlocks
 	SKILL_TURRETDURATION,
 	SKILL_TURRETRANGE,
 	SKILL_TURRETDAMAGE,
+	SKILL_FLAMERLENGTH,
+	SKILL_FLAMERREGENHEALTH,
+	SKILL_FLAMERDAMAGE,
+	SKILL_FLAMEREXTRADAMAGETOBURNING,
 
 	SKILL_NUMPLUSONE
 };
@@ -1210,6 +1261,8 @@ enum EVoiceType
 	VOICE_WAVESTART,//
 	VOICE_WOUNDED,//
 
+	VOICE_LAUGHING,//
+
 	VOICE_NUM,
 
 	VOICE_RANDOM
@@ -1237,6 +1290,9 @@ struct FInventoryItem
 
 	UPROPERTY(BlueprintReadWrite, Category = Inventory)
 		FString ItemDesc;
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		int32 TempUniqueID;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Inventory)
 		TSubclassOf<UOrionInventoryItem> ItemClass;
@@ -1272,33 +1328,56 @@ struct FInventoryItem
 	UPROPERTY(BlueprintReadWrite, Category = Inventory)
 		TArray< TSubclassOf<class UOrionInventoryItem> > BreakdownClasses;
 
+	//playfab unique id for this item
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		FString InstanceID;
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		FString ItemID;
+
+	//only dirty items need to be saved
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		bool bDirty;
+
+	//for easier lookups
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		FString SlotIndex;
+
 	void Reset()
 	{
 		ItemName = "";
 		ItemDesc = "";
+		InstanceID = "";
+		ItemID = "";
 		ItemClass = nullptr;
 		Amount = 0;
 		SellValue = 0;
+		bDirty = false;
 
 		PrimaryStats.Empty();
 		SecondaryStats.Empty();
 		RareStats.Empty();
+
+		SlotIndex = "NONE";
 	}
 
 	//sort by item quality, and then by item type
 	bool operator<(const FInventoryItem Other) const 
-	{ 
+	{
+		if (ItemClass == nullptr)
+			return false;
+
 		if (Slot == Other.Slot)
 		{
 			if (Rarity == Other.Rarity)
 			{
 				if (ItemLevel == Other.ItemLevel)
-					return Amount < Amount;
+					return Amount > Amount;
 				else
-					return ItemLevel < Other.ItemLevel;
+					return ItemLevel > Other.ItemLevel;
 			}
 			else
-				return Rarity < Other.Rarity;
+				return Rarity > Other.Rarity;
 		}
 		else
 			return Slot < Other.Slot; 

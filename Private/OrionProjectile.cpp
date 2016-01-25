@@ -43,7 +43,7 @@ void AOrionProjectile::Tick(float DeltaTime)
 	Super::Tick(DeltaTime);
 
 	//if (Role == ROLE_Authority)
-	ValidatePosition();
+	//ValidatePosition();
 }
 
 void AOrionProjectile::ValidatePosition()
@@ -109,7 +109,7 @@ void AOrionProjectile::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp,
 		TracerPSC = nullptr;
 	}*/
 
-	EventHandleImpact();
+	EventHandleImpact(OtherActor, Hit);
 
 	Destroy();
 }

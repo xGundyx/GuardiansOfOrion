@@ -11,7 +11,8 @@ class ORION_API AOrionGrenade : public AActor
 public:
 	AOrionGrenade(const FObjectInitializer& ObjectInitializer);
 
-	void Init(FVector dir);
+	UFUNCTION(BlueprintCallable, Category = Grenade)
+		void Init(FVector dir);
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Grenade)
 		TEnumAsByte<EVoiceType> VoiceType;
@@ -58,10 +59,20 @@ public:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Movement)
 		class UProjectileMovementComponent* ProjectileMovement;
 
+	UPROPERTY(BlueprintReadWrite, Category = Grenade)
+		TEnumAsByte<EGrenadeType> SecondaryGrenadeType;
+
+	UPROPERTY(BlueprintReadWrite, Category = Grenade)
+		bool bMultiGrenade;
+
 	virtual void Tick(float DeltaSeconds) override;
 	virtual void Destroyed() override;
 	void GoBoom();
-	void SetFuseTime(float FuseTime);
+
+	bool bCanSpawnExplosionGrenade;
+
+	UFUNCTION(BlueprintCallable, Category = Grenade)
+		void SetFuseTime(float FuseTime);
 
 	UFUNCTION()
 		void OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
@@ -70,6 +81,9 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Explode"))
 		void EventExplode();
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SecondaryExplode"))
+		void EventSpawnExplosionGrenade();
 
 	void Explode();
 private:

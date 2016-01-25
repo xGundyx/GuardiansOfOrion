@@ -70,6 +70,8 @@ public:
 		int32 ReconXP;
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		int32 TechXP;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
+		int32 PyroXP;
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		TArray<FUnlockedSkills> UnlockedSkills;

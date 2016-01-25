@@ -45,7 +45,9 @@ public:
 	//keep track of the enemies we have yet to spawn
 	int32 SpawnTypes[SPAWN_NUM];
 
-	void AwardXPToAllPlayers(int32 Amount);
+	void AwardXPToAllPlayers(int32 Amount, AOrionPlayerController *PC, const UOrionDamageType *DamageType);
+
+	int32 GetEnemyItemLevel();
 
 	UPROPERTY(BlueprintReadWrite, Category = Gameplay)
 		TEnumAsByte<EGameDifficulty> Difficulty;
@@ -70,6 +72,9 @@ public:
 		TSubclassOf<class AOrionPickupOrb>  DefaultPickupOrbClass;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Classes)
+		TSubclassOf<class AOrionPickupOrb>  DefaultPickupCoinClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Classes)
 		TSubclassOf<class AOrionMusicManager>  DefaultMusicClass;
 
 	UPROPERTY(BlueprintReadOnly, Category = Classes)
@@ -79,6 +84,14 @@ public:
 	virtual void Tick(float DeltaSeconds) override;
 
 	bool bSinglePlayer;
+
+	virtual FString GetGameName() {
+		return "";
+	}
+
+	//determines the level of enemies that will spawn
+	UPROPERTY(BlueprintReadOnly, Category = RPG)
+		int32 ItemLevel;
 
 	virtual int32 GetOrionNumPlayers() 
 	{

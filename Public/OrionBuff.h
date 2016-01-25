@@ -76,4 +76,13 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, Category = Buff)
 		int32 TeamIndex;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Buff)
+		TEnumAsByte<ESuperRareStat> RareStat;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Buff)
+		float DamageBonus;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Buff)
+		TEnumAsByte<EElementalDamageType> ElementalDamageType;
 };
