@@ -4,6 +4,8 @@
 #include "Orion.h"
 #include "OrionCharacter.h"
 #include "OrionDinoPawn.h"
+#include "OrionAbility.h"
+#include "OrionAIController.h"
 #include "OrionMovementComponent.h"
 
 

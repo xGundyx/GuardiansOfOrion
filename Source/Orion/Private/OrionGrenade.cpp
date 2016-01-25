@@ -38,6 +38,11 @@ AOrionGrenade::AOrionGrenade(const FObjectInitializer& ObjectInitializer) : Supe
 
 	PrimaryActorTick.bCanEverTick = true;
 	bReplicates = true;
+
+	GrenadeLife = 2.5f;
+	GrenadeScale = 1.0f;
+
+	bCanSpawnExplosionGrenade = false;
 }
 
 void AOrionGrenade::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
@@ -76,6 +81,10 @@ void AOrionGrenade::Explode()
 {
 	//do some kind of effect (damage/smoke/emp etc)
 	EventExplode();
+
+	//do grenades spawning from grenades
+	if (bCanSpawnExplosionGrenade)
+		EventSpawnExplosionGrenade();
 
 	//play our explosion effect
 	if (ExplosionFX)

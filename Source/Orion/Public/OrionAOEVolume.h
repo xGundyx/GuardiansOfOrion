@@ -3,6 +3,7 @@
 #pragma once
 
 #include "GameFramework/Actor.h"
+#include "OrionTypes.h"
 #include "OrionAOEVolume.generated.h"
 
 /**
@@ -51,13 +52,21 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AOE)
 		TSubclassOf<class AOrionBuff> BuffClass;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AOE)
+		TSubclassOf<class AOrionBuff> ExtraBuffClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = AOE)
+		TEnumAsByte<ESuperRareStat> ExtraBuffStat;
+
 	UFUNCTION()
 		void OnEnter(AActor *Other, UPrimitiveComponent *OtherComp, int32 OtherBodyIndex, bool bFromSweep, const FHitResult &Hit);
 
 	UFUNCTION()
 		void OnLeave(AActor *Other, UPrimitiveComponent *OtherComp, int32 OtherBodyIndex);
 
-	TArray<AOrionCharacter*> Players;
+	UPROPERTY(BlueprintReadOnly, Category = AOE)
+		TArray<AOrionCharacter*> Players;
+
 	void ReTickPlayers();
 	void DestroyAOE();
 

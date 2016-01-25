@@ -26,7 +26,8 @@ public:
 	// Called every frame
 	virtual void Tick( float DeltaSeconds ) override;
 
-	void Init();
+	UFUNCTION(BlueprintCallable, Category = Orb)
+		void Init();
 
 	UFUNCTION()
 		void OnRep_OrbType();
@@ -36,4 +37,8 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Orb)
 		void EventInitOrb();
+
+	//for coins
+	UPROPERTY(BlueprintReadOnly, Category = Mesh)
+		int32 CoinAmount;
 };

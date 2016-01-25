@@ -231,6 +231,17 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], AActor *F
 				NewPawn->SpawnDefaultController();
 				NewPawn->SetAIType(AI_HUNTING);
 				NewPawn->SpawnType = i;
+
+				//setup the enemies level for ilvl stuff
+				NewPawn->Level = Game->GetEnemyItemLevel();
+
+				//setup health based on ilvl
+				NewPawn->HealthMax = NewPawn->HealthMax * NewPawn->Level * 0.1f;
+				NewPawn->Health = NewPawn->HealthMax;
+
+				//same for shields (robots only)
+				NewPawn->ShieldMax = NewPawn->ShieldMax * NewPawn->Level * 0.1f;
+				NewPawn->Shield = NewPawn->ShieldMax;
 			}
 			else if (Game)
 			{

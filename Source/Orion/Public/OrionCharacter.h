@@ -8,6 +8,7 @@
 #include "OrionHealthBar.h"
 #include "OrionGib.h"
 #include "Perception/PawnSensingComponent.h"
+#include "OrionBuff.h"
 //#include "AI/Navigation/NavigationInvokerComponent.h"
 //#include "OrionHoverVehicle.h"
 #include "OrionVoice.h"
@@ -15,14 +16,23 @@
 
 class AOrionHoverVehicle;
 class AOrionFood;
-class AOrionWeaponDroid;
+//class AOrionWeaponDroid;
 class AOrionSquad;
 class AOrionAIController;
 class AOrionShipPawn;
 class AOrionPlayerController;
 class AOrionAbility;
 class AOrionGrenade;
-class AOrionBuff;
+//class AOrionBuff;
+
+USTRUCT(BlueprintType)
+struct FCharacterMaterial
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadOnly, Category = Mat)
+		TArray<UMaterialInstanceDynamic*> Mats;
+};
 
 USTRUCT()
 struct FVoiceReplication
@@ -875,6 +885,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Loot)
 		TSubclassOf<class UOrionInventoryList> LootTable;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Loot)
+		TSubclassOf<class UOrionInventoryList> CraftingLootTable;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = RPG)
 		int32 Level;
 
@@ -1031,14 +1044,23 @@ public:
 	TArray<AOrionPlayerController*> Assisters;
 
 	UPROPERTY(ReplicatedUsing = OnRep_Buffs, BlueprintReadWrite, Category = Buffs)
-		TArray<AOrionBuff*> Buffs;
+		TArray<class AOrionBuff*> Buffs;
 
 	UFUNCTION(BlueprintCallable, Category = Buffs)
-		void AddBuff(TSubclassOf<AOrionBuff> BuffClass, AController *cOwner, int32 TeamIndex);
+		void AddBuff(TSubclassOf<class AOrionBuff> BuffClass, AController *cOwner, int32 TeamIndex);
 
 	void HandleBuffs(float DeltaSeconds);
 
+	UFUNCTION(BlueprintCallable, Category = Ability)
+		void EquipAdrenaline();
+
 	void EquipWeapon(class AOrionWeapon* Weapon);
+
+	UFUNCTION(BlueprintCallable, Category = Adrenaline)
+		void UnequipAdrenaline();
+
+	bool IsOnFire();
+
 	AOrionWeapon *GetWeaponFromType(EItemType Type);
 	void CheckWeaponEquipped();
 
@@ -1619,6 +1641,8 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Change Base Mesh"))
 		void EventSetFemaleMesh();
 
+	void Explode(AOrionPlayerController *EventInstigator);
+
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
@@ -1643,5 +1667,51 @@ public:
 		UUserWidget *MyHealthBar;
 
 	void CreateHealthBar();
+
+	//rpg based stats, only replicated to owner
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float MeleeDamageBoost;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float GrenadeRechargeRate;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float SkillRechargeRate;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float CriticalHitChance;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float CriticalHitMultiplier;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float DamageReduction;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float BluntDamageReduction;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float PiercingDamageReduction;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float ExplosiveDamageReduction;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float ElementalDamageReduction;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float PoisonDamageReduction;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float XPPerKill;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float FireDamage;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float LightningDamage;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float IceDamage;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float PoisonDamage;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float CorrosiveDamage;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float GoldFind;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float MagicFind;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float LargeDinoBoost;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = RPG)
+		float RobotBoost;
+
+	float DamageBonus;
 };
 

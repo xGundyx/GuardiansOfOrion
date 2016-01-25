@@ -38,6 +38,11 @@ void AOrionAchievements::Init()
 	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("TECHNICIAN III"), TEXT("technicianthree"), TEXT("REACH LEVEL 30 WITH TECH"), ACH_TECHLEVEL30, -1, 1, NULL, TEXT(""), 100));
 	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("TECHNICIAN IV"), TEXT("technicianfour"), TEXT("REACH LEVEL 40 WITH TECH"), ACH_TECHLEVEL40, -1, 1, NULL, TEXT(""), 100));
 	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("TECHNICIAN V"), TEXT("technicianfive"), TEXT("REACH LEVEL 50 WITH TECH"), ACH_TECHLEVEL50, -1, 1, NULL, TEXT(""), 250));
+	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("PYRO I"), TEXT("pyroone"), TEXT("REACH LEVEL 10 WITH PYRO"), ACH_PYROLEVEL10, -1, 1, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("PYRO II"), TEXT("pyrotwo"), TEXT("REACH LEVEL 20 WITH PYRO"), ACH_PYROLEVEL20, -1, 1, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("PYRO III"), TEXT("pyrothree"), TEXT("REACH LEVEL 30 WITH PYRO"), ACH_PYROLEVEL30, -1, 1, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("PYRO IV"), TEXT("pyrofour"), TEXT("REACH LEVEL 40 WITH PYRO"), ACH_PYROLEVEL40, -1, 1, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("PYRO V"), TEXT("pyrofive"), TEXT("REACH LEVEL 50 WITH PYRO"), ACH_PYROLEVEL50, -1, 1, NULL, TEXT(""), 250));
 	
 	//combat
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("RAPTOR MASTER I"), TEXT("raptormasterone"), TEXT("KILL 100 RAPTORS"), ACH_RAPTORSKILLEDI, STAT_RAPTORKILL, 100, NULL, TEXT(""), 50));
@@ -336,6 +341,18 @@ void AOrionAchievements::CheckForLevelUnlocks(int32 NewLevel, AOrionPlayerContro
 			UnlockAchievement(ACH_TECHLEVEL40, PC);
 		if (NewLevel >= 50)
 			UnlockAchievement(ACH_TECHLEVEL50, PC);
+		break;
+	case 4:
+		if (NewLevel >= 10)
+			UnlockAchievement(ACH_PYROLEVEL10, PC);
+		if (NewLevel >= 20)
+			UnlockAchievement(ACH_PYROLEVEL20, PC);
+		if (NewLevel >= 30)
+			UnlockAchievement(ACH_PYROLEVEL30, PC);
+		if (NewLevel >= 40)
+			UnlockAchievement(ACH_PYROLEVEL40, PC);
+		if (NewLevel >= 50)
+			UnlockAchievement(ACH_PYROLEVEL50, PC);
 		break;
 	}
 }

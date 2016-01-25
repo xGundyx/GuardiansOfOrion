@@ -19,6 +19,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
 		FString ItemName;
 
+	//playfab item id
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
+		FString ItemID;
+
 	//text describing what this item is/does
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
 		FString ItemDesc;

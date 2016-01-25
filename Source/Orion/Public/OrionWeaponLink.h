@@ -68,6 +68,14 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_LinkTarget, BlueprintReadWrite, Category = Link)
 		class ACharacter *LinkTarget;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Effects)
+		TSubclassOf<class AOrionBuff> FireBuff;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Effects)
+		TSubclassOf<class AOrionBuff> IceBuff;
+
+	void ApplyDamageDebuff(AOrionCharacter *DamagedPawn);
+
 	virtual void StartFire() override;
 	virtual void StopFire() override;
 	virtual void Tick(float DeltaSeconds) override;

@@ -4,6 +4,7 @@
 #include "OrionProjectile.h"
 #include "OrionAbility.h"
 #include "OrionWeapon.h"
+#include "OrionGrenade.h"
 #include "OrionSkeletalMeshComponent.h"
 
 //auto rifle -3.0 30.0 -13.5
@@ -532,6 +533,10 @@ void AOrionWeapon::StartFire()
 
 		if (PC->HasOrbEffect(ORB_ROF))
 			FireRate *= 0.75f;
+
+		AOrionInventoryManager *Inv = PC->GetInventoryManager();
+		if (Inv && Inv->HasStat(RARESTAT_NORELOAD) && InstantConfig.WeaponSlot == 1)
+			FireRate *= 2.0f;
 	}
 
 	if (InstantConfig.bBurst)
@@ -653,6 +658,10 @@ void AOrionWeapon::FireBurst()
 
 		if (PC->HasOrbEffect(ORB_ROF))
 			FireRate *= 0.75f;
+
+		AOrionInventoryManager *Inv = PC->GetInventoryManager();
+		if (Inv && Inv->HasStat(RARESTAT_NORELOAD) && InstantConfig.WeaponSlot == 1)
+			FireRate *= 2.0f;
 	}
 
 	if (BurstCounter > 0)
@@ -766,7 +775,13 @@ int32 AOrionWeapon::GetClipSize() const
 
 		AOrionPlayerController *PC = Cast<AOrionPlayerController>(MyPawn->Controller);
 		if (PC)
+		{
 			Size = int32(float(Size) * (1.0f + float(PC->GetSkillValue(SKILL_CLIPSIZE)) / 100.0f));
+
+			AOrionInventoryManager *Inv = PC->GetInventoryManager();
+			if (Inv && Inv->HasStat(RARESTAT_KILLRELOAD) && InstantConfig.WeaponSlot == 2)
+				Size /= 2.0f;
+		}
 
 		return Size;
 	}
@@ -989,7 +1004,19 @@ void AOrionWeapon::UseAmmo()
 		return;
 	
 	if (Role == ROLE_Authority)
+	{
+		if (MyPawn && InstantConfig.WeaponSlot == 1)
+		{
+			AOrionPlayerController *PC = Cast<AOrionPlayerController>(MyPawn->Controller);
+			if (PC)
+			{
+				AOrionInventoryManager *Inv = PC->GetInventoryManager();
+				if (Inv && Inv->HasStat(RARESTAT_NORELOAD))
+					return;
+			}
+		}
 		AmmoInClip--;
+	}
 
 	//infinite ammo for now
 	////Ammo--;

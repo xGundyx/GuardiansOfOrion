@@ -103,7 +103,7 @@ struct FInstantWeaponData
 	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
 		float FOVTransitionTime;
 
-	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Accuracy)
 		int32 WeaponIndex;
 
 	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
@@ -565,7 +565,7 @@ protected:
 	float TargetViewOffset;
 	float LastAimTime;
 
-private:
+protected:
 	FTimerHandle ReloadTimer;
 	FTimerHandle MeleeTimer;
 	FTimerHandle ReloadStopTimer;

@@ -35,7 +35,7 @@ public:
 	virtual void ValidatePosition();
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "HandleImpact"))
-		void EventHandleImpact();
+		void EventHandleImpact(AActor* OtherActor, const FHitResult& Hit);
 
 	UFUNCTION()
 		void OnRep_Velocity();

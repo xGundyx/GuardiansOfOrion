@@ -29,7 +29,7 @@ AOrionHoverVehicle::AOrionHoverVehicle(const FObjectInitializer& ObjectInitializ
 	VehicleMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
 	VehicleMesh->bCastDynamicShadow = true;
 	VehicleMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	VehicleMesh->bChartDistanceFactor = true;
+	//VehicleMesh->bChartDistanceFactor = true;
 	VehicleMesh->AttachTo(CollisionMesh);
 
 	// Create a CameraComponent	

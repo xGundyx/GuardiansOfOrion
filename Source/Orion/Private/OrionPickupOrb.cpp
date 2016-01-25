@@ -19,6 +19,7 @@ AOrionPickupOrb::AOrionPickupOrb(const FObjectInitializer& ObjectInitializer)
 	RootComponent = BoxCollision;
 
 	bReplicates = true;
+	bOnlyRelevantToOwner = true;
 }
 
 // Called when the game starts or when spawned
@@ -28,7 +29,7 @@ void AOrionPickupOrb::BeginPlay()
 
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
 
-	if (PC && PC->IsLocalPlayerController())
+	if (CoinAmount <= 0 && PC && PC->IsLocalPlayerController())
 		PC->SendTutorialMessage("POWER ORBS", "TOUCH A POWER ORB TO GAIN A TEMPORARY BOOST IN POWER");
 }
 

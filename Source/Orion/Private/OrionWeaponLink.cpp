@@ -51,10 +51,20 @@ void AOrionWeaponLink::StartFire()
 	{
 		ServerStartFire();
 	}
-	else
+	else if (MyPawn)
 	{
-		if (MyPawn && MyPawn->CurrentSkill && MyPawn->CurrentSkill->IsCloaking())
-			MyPawn->CurrentSkill->DeactivateSkill(); //DepleteEnergy();
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(MyPawn->Controller);
+
+		if (PC)
+		{
+			AOrionInventoryManager *Inv = PC->GetInventoryManager();
+			if (Inv && Inv->HasStat(RARESTAT_CLOAKREGEN))
+			{
+			}
+			else
+				if (MyPawn && MyPawn->CurrentSkill && MyPawn->CurrentSkill->IsCloaking())
+					MyPawn->CurrentSkill->DeactivateSkill(); //DepleteEnergy();
+		}
 	}
 
 	if (WeaponState == WEAP_RELOADING)
@@ -555,6 +565,15 @@ void AOrionWeaponLink::HandleLinkTargets(AOrionCharacter *Target, float DeltaSec
 	if (GRI)
 		nPlayers = GRI->PlayerList.Num();
 
+	AOrionInventoryManager *Inv = nullptr;
+
+	if (PC)
+	{
+		Inv = PC->GetInventoryManager();
+		if (Inv && Inv->HasStat(RARESTAT_SUPERHEALER))
+			Rate *= 5.0f;
+	}
+
 	//if the target is the generator, heal it up
 	if (P && P->bIsHealableMachine)
 	{
@@ -589,6 +608,8 @@ void AOrionWeaponLink::HandleLinkTargets(AOrionCharacter *Target, float DeltaSec
 				PointDmg.ShotDirection = FVector(0.0f);
 
 				P->Die(150.0f, PointDmg, MyPawn->Controller, MyPawn);
+
+				ApplyDamageDebuff(P);
 			}
 		}
 	}
@@ -695,6 +716,15 @@ void AOrionWeaponLink::HandleTarget(float DeltaSeconds)
 	if (GRI)
 		nPlayers = GRI->PlayerList.Num();
 
+	AOrionInventoryManager *Inv = nullptr;
+
+	if (PC)
+	{
+		Inv = PC->GetInventoryManager();
+		if (Inv && Inv->HasStat(RARESTAT_SUPERHEALER))
+			Rate *= 5.0f;
+	}
+
 	//if the target is the generator, heal it up
 	if (P && P->bIsHealableMachine)
 	{
@@ -732,6 +762,28 @@ void AOrionWeaponLink::HandleTarget(float DeltaSeconds)
 				PointDmg.ShotDirection = FVector(0.0f);
 
 				P->Die(150.0f, PointDmg, MyPawn->Controller, MyPawn);
+
+				ApplyDamageDebuff(P);
+			}
+		}
+	}
+}
+
+void AOrionWeaponLink::ApplyDamageDebuff(AOrionCharacter *DamagedPawn)
+{
+	if (MyPawn)
+	{
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(MyPawn->Controller);
+
+		if (PC)
+		{
+			AOrionInventoryManager *Inv = PC->GetInventoryManager();
+			AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+
+			if (Inv && PRI)
+			{
+				if (FireBuff && Inv->HasStat(RARESTAT_REGENFIRE)) DamagedPawn->AddBuff(FireBuff, PC, PRI->GetTeamIndex());
+				if (IceBuff && Inv->HasStat(RARESTAT_REGENFREEZE)) DamagedPawn->AddBuff(IceBuff, PC, PRI->GetTeamIndex());
 			}
 		}
 	}

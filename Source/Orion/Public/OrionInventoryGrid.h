@@ -48,6 +48,8 @@ public:
 	//UPROPERTY(BlueprintReadOnly, Category = Inventory)
 	//	int32 Padding;
 
+	FString GetGridName();
+
 	void CreateInventory(int32 height, int32 width, int32 size, int32 pad, EItemType type)
 	{
 		InventoryType = type;

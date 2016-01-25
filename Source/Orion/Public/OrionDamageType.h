@@ -45,5 +45,17 @@ public:
 		bool bIsKnife;
 
 	UPROPERTY(EditDefaultsOnly, Category = Orion)
+		bool bIsBullet;
+
+	UPROPERTY(EditDefaultsOnly, Category = Orion)
 		FString WeaponName;
+
+	UPROPERTY(EditDefaultsOnly, Category = Orion)
+		TEnumAsByte<EDamageType> DamageType;
+
+	UPROPERTY(EditDefaultsOnly, Category = Orion)
+		int32 WeaponSlot;
+
+	UPROPERTY(EditDefaultsOnly, Category = Orion)
+		TEnumAsByte<EWeaponType> WeaponType;
 };

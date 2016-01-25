@@ -89,6 +89,12 @@ struct FLobbyData
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Lobby)
 		FString RoomName;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Lobby)
+		FString GameMode;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Lobby)
+		FString ItemLevel;
 };
 
 USTRUCT(BlueprintType)
@@ -396,6 +402,12 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ToggleHUD"))
 		void EventToggleHUD();
 
+	UFUNCTION(client, reliable)
+		void ClientItemAddedToInventory(FInventoryItem Item, bool bSuccess);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ItemAddedToInventory"))
+		void EventItemAddedToInventory(FInventoryItem Item, bool bSuccess);
+
 	void UpdateOrbEffects();
 
 	UFUNCTION(BlueprintCallable, Category = ORB)
@@ -520,6 +532,12 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = PlayFab)
 		TSubclassOf<class AOrionAchievements> AchievementsClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = PlayFab)
+		TSubclassOf<class AOrionInventoryManager> InventoryManagerClass;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = RPG)
+		TSubclassOf<class AOrionGrenade> FragGrenadeClass;
 	
 	//stats and achievements
 	UFUNCTION(BlueprintCallable, Category = PlayFab)
@@ -667,7 +685,7 @@ public:
 		AOrionDropPod *DropPod;
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
-		void OpenLobby(FString MapName, FString MapDifficulty, FString Gamemode, FString Privacy, FString TOD);
+		void OpenLobby(FString MapName, FString MapDifficulty, FString Gamemode, FString Privacy, FString TOD, FString ItemLevel);
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
 		void LeaveLobby();
@@ -696,16 +714,22 @@ public:
 
 	void HandleGUID(FString GUID);
 
+	UPROPERTY(BlueprintReadOnly, Category = PlayFab)
+		int32 ILevel;
+
+	UFUNCTION(client, reliable)
+		void ClientSetItemLevel(int32 Level);
+
 	UFUNCTION(Server, reliable, WithValidation)
 		void ServerSendGUID(const FString &ID);
 		bool ServerSendGUID_Validate(const FString &ID) { return true; }
 		void ServerSendGUID_Implementation(const FString &ID);
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Photon)
-		void UpdateLobbySettings(const FString& MapName, const FString& Difficulty, const FString& Gamemode, const FString& Privacy, const FString& IP, const FString& Ticket, const FString& Progress, const FString& Version, const FString &GUID, const FString& RoomName, const FString& TOD);
+		void UpdateLobbySettings(const FString& MapName, const FString& Difficulty, const FString& Gamemode, const FString& Privacy, const FString& IP, const FString& Ticket, const FString& Progress, const FString& Version, const FString &GUID, const FString& RoomName, const FString& TOD, const FString& ItemLevel);
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
-		void FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket, FString Wave, FString Version, FString RoomName, FString TOD);
+		void FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket, FString Wave, FString Version, FString RoomName, FString TOD, FString ItemLevel);
 
 	void JoinChatRoom(FString Room);
 
@@ -722,12 +746,12 @@ public:
 		void ClientSetDeathSpectate(APawn *DeadPawn);
 
 	UFUNCTION(client, reliable)
-		void ClientAddDamageNumber(int32 Damage, FVector Pos);
+		void ClientAddDamageNumber(int32 Damage, FVector Pos, bool bCrit);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SpawnDamageNumber"))
-		void EventAddDamageNumber(int32 Damage, FVector Pos);
+		void EventAddDamageNumber(int32 Damage, FVector Pos, bool bCrit);
 
-	void AddDamageNumber(int32 Damage, FVector Pos);
+	void AddDamageNumber(int32 Damage, FVector Pos, bool bCrit);
 
 	//pointer to ragdoll for camera when we die
 	AOrionCharacter *Ragdoll;
@@ -743,6 +767,15 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SpawnXPNumber"))
 		void EventAddXPNumber(int32 Damage, FVector Pos);
+
+	UFUNCTION(client, reliable)
+		void ClientAddCoinAmount(int32 Amount);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SpawnCoinAmount"))
+		void EventAddCoinAmount(int32 Amount);
+
+	UFUNCTION(BlueprintCallable, Category = Coins)
+		void AddCoinAmount(int32 Amount);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "GlobalMessage"))
 		void ShowGlobalMessage(const FString &Msg);
@@ -795,10 +828,10 @@ public:
 	void SeamlessTravelTo(class APlayerController* NewPC) override;
 	void SeamlessTravelFrom(class APlayerController* OldPC) override;
 
-#if WITH_CHEATS
+//#if WITH_CHEATS
 	UFUNCTION(exec)
 		void TestLevel();
-#endif
+//#endif
 
 	//UFUNCTION(exec)
 		virtual void ClearUMG();
