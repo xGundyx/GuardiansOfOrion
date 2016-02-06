@@ -69,6 +69,9 @@ public:
 
 	UBlackboardComponent *GetBlackboard();
 
+	UPROPERTY(BlueprintReadWrite, Category = AI)
+		float FatalitySenseTimer;
+
 	UFUNCTION(BlueprintCallable, Category = Target)
 		virtual void SetEnemy(APawn *pEnemy);
 

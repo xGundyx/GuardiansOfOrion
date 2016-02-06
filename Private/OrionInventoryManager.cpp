@@ -50,6 +50,7 @@ AOrionInventoryManager::AOrionInventoryManager(const FObjectInitializer& ObjectI
 
 	bOnlyRelevantToOwner = true;
 	bReplicates = true;
+	bAlwaysRelevant = true;
 }
 
 bool AOrionInventoryManager::ServerSwapItems_Validate(AOrionInventoryGrid *theGrid1, int32 index1, AOrionInventoryGrid *theGrid2, int32 index2)
@@ -85,8 +86,10 @@ bool AOrionInventoryManager::SwapItems(AOrionInventoryGrid *theGrid1, int32 inde
 			theGrid1->Inventory[index1] = theGrid2->Inventory[index2];
 			theGrid2->Inventory[index2] = tempInv;
 
-			theGrid1->Inventory[index1].bDirty = true;
-			theGrid2->Inventory[index2].bDirty = true;
+			if (theGrid1->Inventory[index1].ItemClass)
+				theGrid1->Inventory[index1].bDirty = true;
+			if (theGrid2->Inventory[index2].ItemClass)
+				theGrid2->Inventory[index2].bDirty = true;
 
 			//check for any equipment changes
 			EItemType Type = theGrid1->InventoryType;
@@ -107,7 +110,7 @@ bool AOrionInventoryManager::SwapItems(AOrionInventoryGrid *theGrid1, int32 inde
 
 			theGrid1->Inventory[index1].SlotIndex = FString::Printf(TEXT("%sy8y%sx8x%i"), *ClassName, *GridName1, index1);
 
-			if (PRI && theGrid1 != Grid)
+			if (PRI && theGrid2 != Grid)
 				ClassName = PRI->ClassType;
 			else
 				ClassName = "";
@@ -118,6 +121,8 @@ bool AOrionInventoryManager::SwapItems(AOrionInventoryGrid *theGrid1, int32 inde
 			SaveInventory();
 
 			DrawInventory();
+
+			SaveEquippedSlots();
 
 			return true;
 		}
@@ -238,6 +243,10 @@ bool AOrionInventoryManager::HandleRightClick(AOrionInventoryGrid *theGrid, int3
 	{
 		bRet = TryToEquip(theGrid, index);
 		DrawInventory();
+
+		if (bRet)
+			EventPlayUISound();
+
 		return bRet;
 	}
 	//otherwise we're trying to unequip something
@@ -356,29 +365,47 @@ void AOrionInventoryManager::EquipItems()
 	PC->ILevel = FMath::Max(1, EquippedStats.ItemLevel / 12);
 	PC->ClientSetItemLevel(PC->ILevel);
 
+	if (PC->GetAchievements())
+	{
+		if (PC->ILevel >= 100)
+			PC->GetAchievements()->UnlockAchievement(ACH_GEARMASTERI, PC);
+		if (PC->ILevel >= 200)
+			PC->GetAchievements()->UnlockAchievement(ACH_GEARMASTERII, PC);
+		if (PC->ILevel >= 300)
+			PC->GetAchievements()->UnlockAchievement(ACH_GEARMASTERIII, PC);
+		if (PC->ILevel >= 400)
+			PC->GetAchievements()->UnlockAchievement(ACH_GEARMASTERIV, PC);
+		if (PC->ILevel >= 500)
+			PC->GetAchievements()->UnlockAchievement(ACH_GEARMASTERV, PC);
+		if (PC->ILevel >= 600)
+			PC->GetAchievements()->UnlockAchievement(ACH_GEARMASTERVI, PC);
+	}
+
 	AOrionCharacter *Pawn = Cast<AOrionCharacter>(PC->GetPawn());
 
 	if (!Pawn)
 		return;
 
+	Pawn->Level = FMath::Max(1, EquippedStats.ItemLevel / 12);
+
 	//primary stats
 	float HealthRatio = Pawn->Health / Pawn->HealthMax;
 
-	Pawn->HealthMax = 1000.0f + EquippedStats.Primary[PRIMARYSTAT_VITALITY] * 1.0f;
+	Pawn->HealthMax = GetLevelScaledValue(FMath::Pow(LEVELPOWER, Pawn->Level / LEVELINTERVAL) * 100.0f, Pawn->Level);
 	Pawn->Health = Pawn->HealthMax * HealthRatio;
 
 	float ShieldRatio = Pawn->Shield / Pawn->ShieldMax;
 
-	Pawn->ShieldMax = 1000.0f + EquippedStats.Primary[PRIMARYSTAT_DISCIPLINE] * 1.0f;
+	Pawn->ShieldMax = 100.0f + EquippedStats.Defense * 1.0f;
 	Pawn->Shield = Pawn->ShieldMax * ShieldRatio;
 
-	Pawn->MeleeDamageBoost = 1.0f + EquippedStats.Primary[PRIMARYSTAT_STRENGTH] * 0.1f;
-	Pawn->GrenadeRechargeRate = 1.0f + EquippedStats.Primary[PRIMARYSTAT_DEXTERITY] * 0.1f;
-	Pawn->SkillRechargeRate = 1.0f + EquippedStats.Primary[PRIMARYSTAT_INTELLIGENCE] * 0.1f;
+	Pawn->MeleeDamageBoost = EquippedStats.Primary[PRIMARYSTAT_STRENGTH] * 0.01f;
+	Pawn->GrenadeRechargeRate = EquippedStats.Primary[PRIMARYSTAT_DEXTERITY] * 0.01f;
+	Pawn->SkillRechargeRate = EquippedStats.Primary[PRIMARYSTAT_INTELLIGENCE] * 0.01f;
 
 	//secondary stats
-	Pawn->CriticalHitChance = 0.0f + EquippedStats.Secondary[SECONDARYSTAT_CRITICALHITCHANCE] + (HasStat(RARESTAT_BONUSCRITCHANCE) ? 15.0f : 0.0f);
-	Pawn->CriticalHitMultiplier = 0.0f + EquippedStats.Secondary[SECONDARYSTAT_CRITICALHITMULTIPLIER] + (HasStat(RARESTAT_BONUSCRITDAMAGE) ? 50.0f : 0.0f);
+	Pawn->CriticalHitChance = 5.0f + EquippedStats.Secondary[SECONDARYSTAT_CRITICALHITCHANCE] + (HasStat(RARESTAT_BONUSCRITCHANCE) ? 15.0f : 0.0f);
+	Pawn->CriticalHitMultiplier = 25.0f + EquippedStats.Secondary[SECONDARYSTAT_CRITICALHITMULTIPLIER] + (HasStat(RARESTAT_BONUSCRITDAMAGE) ? 50.0f : 0.0f);
 	Pawn->DamageReduction = EquippedStats.Secondary[SECONDARYSTAT_DAMAGEREDUCTION]; 
 	Pawn->BluntDamageReduction = EquippedStats.Secondary[SECONDARYSTAT_DAMAGEREDUCTIONBLUNT]; 
 	Pawn->PiercingDamageReduction = EquippedStats.Secondary[SECONDARYSTAT_DAMAGEREDUCTIONPIERCING]; 
@@ -395,15 +422,15 @@ void AOrionInventoryManager::EquipItems()
 	Pawn->MagicFind = EquippedStats.Secondary[SECONDARYSTAT_MAGICFIND] + (HasStat(RARESTAT_MAGICFIND) ? 100.0f : 0.0f); 
 	Pawn->LargeDinoBoost = EquippedStats.Secondary[SECONDARYSTAT_LARGEDINOBOOST]; 
 	Pawn->RobotBoost = EquippedStats.Secondary[SECONDARYSTAT_ROBOTBOOST];
-
-	Pawn->Level = FMath::Max(1, EquippedStats.ItemLevel / 12);
 }
 
 int32 AOrionInventoryManager::GetPrimaryWeaponDamage()
 {
-	if (WeaponSlot1->Inventory[0].ItemClass)
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetOwner());
+
+	if (WeaponSlot1->Inventory[0].ItemClass && PC)
 	{
-		return WeaponSlot1->Inventory[0].MainStat;
+		return FMath::Max(1, GetLevelScaledValue(FMath::Pow(LEVELPOWER, (WeaponSlot1->Inventory[0].MainStat / 2) / LEVELINTERVAL), WeaponSlot1->Inventory[0].ItemLevel));
 	}
 
 	return 1;
@@ -411,9 +438,11 @@ int32 AOrionInventoryManager::GetPrimaryWeaponDamage()
 
 int32 AOrionInventoryManager::GetSecondaryWeaponDamage()
 {
-	if (WeaponSlot2->Inventory[0].ItemClass)
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetOwner());
+
+	if (WeaponSlot2->Inventory[0].ItemClass && PC)
 	{
-		return WeaponSlot2->Inventory[0].MainStat;
+		return FMath::Max(1, GetLevelScaledValue(FMath::Pow(LEVELPOWER, (WeaponSlot2->Inventory[0].MainStat / 2) / LEVELINTERVAL), WeaponSlot2->Inventory[0].ItemLevel));
 	}
 
 	return 1;
@@ -425,15 +454,41 @@ void AOrionInventoryManager::GiveMoney(int32 Amount)
 	{
 		Money += Amount;
 
-		if (Cast<AOrionPlayerController>(OwnerController))
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetOwner());
+
+		if (PC && PC->GetAchievements())
 		{
-			Cast<AOrionPlayerController>(OwnerController)->AddCoinAmount(Amount);
+			PC->AddCoinAmount(Amount);
+
+			if (Money >= 100000)
+				PC->GetAchievements()->UnlockAchievement(ACH_MASTEROFCOINI, PC);
+			if (Money >= 250000)
+				PC->GetAchievements()->UnlockAchievement(ACH_MASTEROFCOINII, PC);
+			if (Money >= 500000)
+				PC->GetAchievements()->UnlockAchievement(ACH_MASTEROFCOINIII, PC);
+			if (Money >= 1000000)
+				PC->GetAchievements()->UnlockAchievement(ACH_MASTEROFCOINIV, PC);
+			if (Money >= 10000000)
+				PC->GetAchievements()->UnlockAchievement(ACH_MASTEROFCOINV, PC);
 		}
 	}
 }
 
 void AOrionInventoryManager::Init(AOrionPlayerController *PC)
 {
+	EquippedSlots.Empty();
+
+	//14 slots * 5 classes
+	for (int32 i = 0; i < 14 * 5; i++)
+	{
+		FEquippedSlot NewSlot;
+
+		NewSlot.Item.Reset();
+		NewSlot.ClassName = "";
+
+		EquippedSlots.Add(NewSlot);
+	}
+
 	FActorSpawnParameters SpawnInfo;
 	SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 	SpawnInfo.Owner = PC;
@@ -503,6 +558,256 @@ void AOrionInventoryManager::Init(AOrionPlayerController *PC)
 #endif
 }
 
+bool AOrionInventoryManager::IsFullyInitialized()
+{
+	return HelmetSlot && BodySlot && HandsSlot && BeltSlot && LegsSlot && BootsSlot &&
+		WeaponSlot1 && WeaponSlot2 && GadgetSlot && AbilitySlot && GrenadeSlot && KnifeSlot &&
+		DisplaySlot && ShaderSlot;
+}
+
+FInventoryItem AOrionInventoryManager::FillInCraftedStats(FInventoryItem Item, int32 Level)
+{
+	int32 index = 0;
+	TArray<FRareStatsInfo> AvailableRares;
+	int32 i = 0;
+
+	FDecodeItemInfo Decoder;
+	Decoder.ItemLevel = Level;
+	Decoder.Slot = Item.Slot;
+	Decoder.Rarity = Item.Rarity;
+
+	Item.ItemLevel = Level;
+
+	Item.PrimaryStats.Empty();
+	Item.SecondaryStats.Empty();
+	Item.RareStats.Empty();
+
+	if (Item.Slot == ITEM_ABILITY)
+		index = 2;
+
+	if (Item.Slot == ITEM_SHADER ||
+		Item.Slot == ITEM_USEABLE ||
+		Item.Slot == ITEM_ANY ||
+		Item.Slot == ITEM_GENERICCRAFTING ||
+		Item.Slot == ITEM_DISPLAYARMOR ||
+		Item.Slot == ITEM_BREAKDOWNABLE ||
+		Item.Slot == ITEM_DISPLAYARMOR)
+		index = 0;
+	else
+	{
+		switch (Item.Rarity)
+		{
+		case RARITY_LEGENDARY:
+			index = FMath::RandRange(2, 3);
+
+			for (; i < RareStats.StatsInfo.Num(); i++)
+			{
+				if (RareStats.StatsInfo[i].Slot == Item.Slot || RareStats.StatsInfo[i].Slot == ITEM_ANY)
+					AvailableRares.Add(RareStats.StatsInfo[i]);
+			}
+
+			if (AvailableRares.Num() > 0)
+				Item.RareStats.Add(AvailableRares[FMath::RandRange(0, AvailableRares.Num() - 1)]);
+			break;
+
+		case RARITY_SUPERENHANCED:
+			index = FMath::RandRange(2, 3);
+			break;
+
+		case RARITY_ENHANCED:
+			index = FMath::RandRange(1, 2);
+			break;
+		default:
+			index = 1;
+			break;
+		}
+	}
+
+	TArray<int32> Primary;
+
+	for (int32 j = 0; j < PRIMARYSTAT_NUM; j++)
+		Primary.AddUnique(j);
+
+	i = 0;
+	//if (PrimaryStats.Num() > 0)
+	//{
+	for (; i < index / 2 && Primary.Num() > 0; i++)
+	{
+		int32 RandomIndex = FMath::RandRange(0, Primary.Num() - 1);
+
+		FPrimaryItemStats StatToAdd;
+
+		StatToAdd.StatType = EPrimaryStats(Primary[RandomIndex]);
+		StatToAdd.MaxValue = int32(Decoder.GetMaxStatValue() * Decoder.GetRarityMultiplier());
+		StatToAdd.MinValue = FMath::Max(1, int32(StatToAdd.MaxValue * 0.7f));
+		StatToAdd.Value = FMath::RandRange(StatToAdd.MinValue, StatToAdd.MaxValue);
+
+		Item.PrimaryStats.Add(StatToAdd);
+
+		Primary.RemoveAt(RandomIndex);
+	}
+	//}
+
+	TArray<int32> Secondary;
+
+	bool bOneElemental = false;
+	for (int32 j = 0; j < SECONDARYSTAT_NUM; j++)
+	{
+		if (j == SECONDARYSTAT_CORROSIVEDAMAGE || j == SECONDARYSTAT_FIREDAMAGE || j == SECONDARYSTAT_ICEDAMAGE || j == SECONDARYSTAT_LIGHTNINGDAMAGE || j == SECONDARYSTAT_POISONDAMAGE)
+		{
+			if (!bOneElemental && (Item.Slot == ITEM_PRIMARYWEAPON || Item.Slot == ITEM_SECONDARYWEAPON))
+			{
+				bOneElemental = true;
+			}
+			else
+				continue;
+		}
+
+		if (Decoder.GetMaxSecondaryStatValue(ESecondaryStats(j)) > 0)
+			Secondary.AddUnique(j);
+	}
+
+	for (; i < index && Secondary.Num() > 0; i++)
+	{
+		int32 RandomIndex = FMath::RandRange(0, Secondary.Num() - 1);
+
+		FSecondaryItemStats StatToAdd;
+
+		StatToAdd.StatType = ESecondaryStats(Secondary[RandomIndex]);
+		StatToAdd.MaxValue = Decoder.GetMaxSecondaryStatValue(ESecondaryStats(StatToAdd.StatType));
+		StatToAdd.MinValue = FMath::Max(1, int32(StatToAdd.MaxValue * 0.7f));
+		StatToAdd.Value = FMath::RandRange(StatToAdd.MinValue, StatToAdd.MaxValue);
+
+		Item.SecondaryStats.Add(StatToAdd);
+
+		Secondary.RemoveAt(RandomIndex);
+	}
+
+	switch (Item.Slot)
+	{
+	case ITEM_HELMET:
+	case ITEM_CHEST:
+	case ITEM_HANDS:
+	case ITEM_LEGS:
+	case ITEM_BELT:
+	case ITEM_BOOTS:
+	case ITEM_ABILITY:
+	case ITEM_PRIMARYWEAPON:
+	case ITEM_SECONDARYWEAPON:
+	case ITEM_GRENADE:
+	case ITEM_KNIFE:
+	case ITEM_GADGET:
+		Item.MainStat = int32(Decoder.GetRarityMultiplier() * FMath::RandRange(int32(Decoder.GetMaxStatValue() * 0.9f), Decoder.GetMaxStatValue()));
+		break;
+	default:
+		Item.MainStat = 0;
+	}
+
+	return Item;
+}
+
+void AOrionInventoryManager::ReduceItemCount(TSubclassOf<UOrionInventoryItem> Item, int32 Amount)
+{
+	if (!Grid)
+		return;
+
+	for (int32 i = 0; i < Grid->Inventory.Num(); i++)
+	{
+		if (Grid->Inventory[i].ItemClass == Item)
+		{
+			if (Grid->Inventory[i].Amount >= Amount || Amount == 1)
+			{
+				Grid->Inventory[i].Amount -= Amount;
+				if (Grid->Inventory[i].Amount == 0)
+					RemoveItemFromInventory(Grid, i);
+				else
+				{
+#if IS_SERVER
+					EventUpdateItemStats(Grid->Inventory[i]);
+#endif
+				}
+
+				Grid->Inventory[i].bDirty = true;
+
+				return;
+			}
+			else
+			{
+				Amount -= Grid->Inventory[i].Amount;
+				RemoveItemFromInventory(Grid, i);
+			}
+		}
+	}
+}
+
+bool AOrionInventoryManager::UseItem(AOrionInventoryGrid *theGrid, int32 index)
+{
+	if (Role != ROLE_Authority)
+	{
+		ServerUseItem(theGrid, index);
+		return true;
+	}
+
+	if (!theGrid)
+		return false;
+
+	if (index < 0 || index > 99)
+	{
+		ClientRedraw(ITEM_ANY, index);
+		return false;
+	}
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(OwnerController);
+	AOrionCharacter *P = nullptr;
+	if (PC)
+		P = Cast<AOrionCharacter>(PC->GetPawn());
+
+	FInventoryItem Item = GetItemAt(theGrid, index);
+
+	if (Item.ItemClass)
+	{
+		UOrionInventoryItem *Inv = Item.ItemClass.GetDefaultObject();
+		if (!Inv || !Inv->bConsumeable)
+		{
+			ClientRedraw(ITEM_ANY, index);
+			return false;
+		}
+
+		switch (Inv->UseableItem.Effect)
+		{
+		case INVENTORYUSE_GRANTXP:
+			if (PC)
+			{
+				PC->AddXP(Inv->UseableItem.Value);
+			}
+			break;
+		case INVENTORYUSE_GRANTITEM:
+			//pick a random item slot
+			EventGrantRandomItem(Inv->UseableItem.Quality);
+			RemoveItemFromInventory(theGrid, index);
+			return true;
+			break;
+		case INVENTORYUSE_HEALTH:
+			if (P)
+				P->AddBuff(Inv->UseableItem.Buff, PC, 0);
+			break;
+		case INVENTORYUSE_SHIELD:
+			if (P)
+				P->AddBuff(Inv->UseableItem.Buff, PC, 0);
+			break;
+		}
+
+		ReduceItemCount(Item.ItemClass, 1);
+	}
+
+	return true;
+}
+
+void AOrionInventoryManager::ServerUseItem_Implementation(AOrionInventoryGrid *theGrid, int32 index)
+{
+	UseItem(theGrid, index);
+}
+
 void AOrionInventoryManager::RemoveItemFromInventory(AOrionInventoryGrid *theGrid, int32 Index)
 {
 	if (!theGrid)
@@ -516,8 +821,13 @@ void AOrionInventoryManager::RemoveItemFromInventory(AOrionInventoryGrid *theGri
 	if (Item.ItemClass)
 	{
 		//tell playfab to consume a use of this item and therefore remove it from our inventory
+#if IS_SERVER
 		EventConsumeItem(Item);
+#endif
 	}
+
+	//remove it from our local inventory
+	theGrid->Inventory[Index].Reset();
 }
 
 void AOrionInventoryManager::DestroyInventory()
@@ -614,9 +924,9 @@ int32 AOrionInventoryManager::AddItemToInventory(AOrionInventoryGrid *theGrid, F
 			{
 				if (theGrid->Inventory[i*theGrid->Width + j].ItemClass == newItem.ItemClass)
 				{
-					if (theGrid->Inventory[i*theGrid->Width + j].Amount < 500)
+					if (theGrid->Inventory[i*theGrid->Width + j].Amount + newItem.Amount <= 500)
 					{
-						theGrid->Inventory[i*theGrid->Width + j].Amount++;
+						theGrid->Inventory[i*theGrid->Width + j].Amount += newItem.Amount;
 						theGrid->Inventory[i*theGrid->Width + j].bDirty = true;
 #if IS_SERVER
 						EventUpdateItemStats(theGrid->Inventory[i*theGrid->Width + j]);
@@ -635,6 +945,7 @@ int32 AOrionInventoryManager::AddItemToInventory(AOrionInventoryGrid *theGrid, F
 		{
 			if (theGrid->Inventory[i*theGrid->Width + j].ItemClass == NULL)
 			{
+				theGrid->Inventory[i*theGrid->Width + j].Reset();
 				theGrid->Inventory[i*theGrid->Width + j] = newItem;
 
 				//tell the client about this!
@@ -835,13 +1146,13 @@ void AOrionInventoryManager::HandleGrantItemQueue()
 
 void AOrionInventoryManager::DrawInventory()
 {
-	if (OwnerController && OwnerController->IsLocalPlayerController())
-		Cast<AOrionPlayerController>(OwnerController)->EventRedrawInventory();
+	if (Cast<AOrionPlayerController>(GetOwner()) && Cast<AOrionPlayerController>(GetOwner())->IsLocalPlayerController())
+		Cast<AOrionPlayerController>(GetOwner())->EventRedrawInventory();
 }
 
 void AOrionInventoryManager::ClientRedraw_Implementation(EItemType type, int32 index)
 {
-	if (GetOwner())
+	if (Cast<AOrionPlayerController>(GetOwner()))
 		Cast<AOrionPlayerController>(GetOwner())->EventRedrawInventory();
 }
 
@@ -873,6 +1184,7 @@ void AOrionInventoryManager::GetLifetimeReplicatedProps(TArray< FLifetimePropert
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, GrenadeSlot, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, KnifeSlot, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, Money, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, OwnerController, COND_OwnerOnly);
 }
 
 bool AOrionInventoryManager::HasStat(ESuperRareStat Stat)
@@ -1067,20 +1379,31 @@ TArray<FCharacterStatEntry> AOrionInventoryManager::GetEquippedStats()
 	//fill in the stats
 	FCharacterStatEntry Entry;
 
-	Entry.StatName = "DEFENSE"; Entry.Value = EquippedStats.Defense; Stats.Add(Entry); Entry.Desc = ""; Entry.DescValue = 0.0f;
+	float ShieldMultiplier = 1.0f;
 
-	Entry.StatName = "STRENGTH"; Entry.Value = EquippedStats.Primary[PRIMARYSTAT_STRENGTH]; Entry.Desc = "x8x% stronger melee"; Entry.DescValue = 0.1f; Stats.Add(Entry);
-	Entry.StatName = "DEXTERITY"; Entry.Value = EquippedStats.Primary[PRIMARYSTAT_DEXTERITY]; Entry.Desc = "x8x% faster grenade charge"; Entry.DescValue = 0.1f; Stats.Add(Entry);
-	Entry.StatName = "INTELLIGENCE"; Entry.Value = EquippedStats.Primary[PRIMARYSTAT_INTELLIGENCE]; Entry.Desc = "x8x% faster energy charge"; Entry.DescValue = 0.1f; Stats.Add(Entry);
-	Entry.StatName = "DISCIPLINE"; Entry.Value = EquippedStats.Primary[PRIMARYSTAT_DISCIPLINE]; Entry.Desc = "x8x extra shields"; Entry.DescValue = 1.0f; Stats.Add(Entry);
-	Entry.StatName = "VITALITY"; Entry.Value = EquippedStats.Primary[PRIMARYSTAT_VITALITY]; Entry.Desc = "x8x extra health"; Entry.DescValue = 1.0f; Stats.Add(Entry);
+	if (OwnerController)
+	{
+		AOrionCharacter *P = Cast<AOrionCharacter>(OwnerController->GetPawn());
+		if (P && P->bDoubleShield)
+			ShieldMultiplier = 2.0f;
+	}
+
+	Entry.StatName = "DEFENSE"; Entry.Value = EquippedStats.Defense; Entry.Desc = "x8x extra Shields"; Entry.DescValue = 1.0f; Stats.Add(Entry);
+	Entry.StatName = "HEALTH"; Entry.Value = 100.0f + GetLevelScaledValue(FMath::Pow(LEVELPOWER, (EquippedStats.ItemLevel / 12) / LEVELINTERVAL) * 100.0f, EquippedStats.ItemLevel / 12); Entry.Desc = ""; Entry.DescValue = 0.0f; Stats.Add(Entry);
+	Entry.StatName = "SHIELD"; Entry.Value = ShieldMultiplier * (100.0f + EquippedStats.Defense); Entry.Desc = ""; Entry.DescValue = 0.0f; Stats.Add(Entry);
+
+	Entry.StatName = "STRENGTH"; Entry.Value = EquippedStats.Primary[PRIMARYSTAT_STRENGTH]; Entry.Desc = "x8x% stronger melee"; Entry.DescValue = 0.01f; Stats.Add(Entry);
+	Entry.StatName = "DEXTERITY"; Entry.Value = EquippedStats.Primary[PRIMARYSTAT_DEXTERITY]; Entry.Desc = "x8x% faster grenade charge"; Entry.DescValue = 0.01f; Stats.Add(Entry);
+	Entry.StatName = "INTELLIGENCE"; Entry.Value = EquippedStats.Primary[PRIMARYSTAT_INTELLIGENCE]; Entry.Desc = "x8x% faster energy charge"; Entry.DescValue = 0.01f; Stats.Add(Entry);
+	//Entry.StatName = "DISCIPLINE"; Entry.Value = EquippedStats.Primary[PRIMARYSTAT_DISCIPLINE]; Entry.Desc = "x8x extra shields"; Entry.DescValue = 1.0f; Stats.Add(Entry);
+	//Entry.StatName = "VITALITY"; Entry.Value = EquippedStats.Primary[PRIMARYSTAT_VITALITY]; Entry.Desc = "x8x extra health"; Entry.DescValue = 1.0f; Stats.Add(Entry);
 	Entry.Desc = ""; Entry.DescValue = 0.0f;
-	Entry.StatName = "CRITICAL HIT CHANCE"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_CRITICALHITCHANCE] + (HasStat(RARESTAT_BONUSCRITCHANCE) ? 15.0f: 0.0f); Stats.Add(Entry);
-	Entry.StatName = "CRITICAL DAMAGE BONUS"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_CRITICALHITMULTIPLIER] + (HasStat(RARESTAT_BONUSCRITDAMAGE) ? 50.0f: 0.0f); Stats.Add(Entry);
+	Entry.StatName = "CRITICAL HIT CHANCE"; Entry.Value = 5.0f + EquippedStats.Secondary[SECONDARYSTAT_CRITICALHITCHANCE] + (HasStat(RARESTAT_BONUSCRITCHANCE) ? 15.0f: 0.0f); Stats.Add(Entry);
+	Entry.StatName = "CRITICAL DAMAGE BONUS"; Entry.Value = 25.0f + EquippedStats.Secondary[SECONDARYSTAT_CRITICALHITMULTIPLIER] + (HasStat(RARESTAT_BONUSCRITDAMAGE) ? 50.0f: 0.0f); Stats.Add(Entry);
 	Entry.StatName = "DAMAGE REDUCTION"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_DAMAGEREDUCTION]; Stats.Add(Entry);
-	Entry.StatName = "BLUNT DAMAGE REDUCTION"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_DAMAGEREDUCTIONBLUNT]; Stats.Add(Entry);
-	Entry.StatName = "PIERCING DAMAGE REDUCTION"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_DAMAGEREDUCTIONPIERCING]; Stats.Add(Entry);
-	Entry.StatName = "EXPLOSIVE DAMAGE REDUCTION"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_DAMAGEREDUCTIONEXPLOSIVE]; Stats.Add(Entry);
+	Entry.StatName = "BLUNT DAMAGE REDUCTION"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_DAMAGEREDUCTIONBLUNT]; Entry.Desc = "tail and stomp attacks"; Stats.Add(Entry);
+	Entry.StatName = "PIERCING DAMAGE REDUCTION"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_DAMAGEREDUCTIONPIERCING]; Entry.Desc = "bite and claw damage"; Stats.Add(Entry);
+	Entry.StatName = "EXPLOSIVE DAMAGE REDUCTION"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_DAMAGEREDUCTIONEXPLOSIVE]; Entry.Desc = ""; Stats.Add(Entry);
 	Entry.StatName = "ELEMENTAL DAMAGE REDUCTION"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_DAMAGEREDUCTIONELEMENTAL]; Stats.Add(Entry);
 	Entry.StatName = "POISON DAMAGE REDUCTION"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_DAMAGEREDUCTIONPOISON]; Stats.Add(Entry);
 	Entry.StatName = "BONUS XP PER KILL"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_EXPBOOST]; Stats.Add(Entry);
@@ -1089,12 +1412,29 @@ TArray<FCharacterStatEntry> AOrionInventoryManager::GetEquippedStats()
 	Entry.StatName = "ICE DAMAGE BONUS"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_ICEDAMAGE]; Stats.Add(Entry);
 	Entry.StatName = "POISON DAMAGE BONUS"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_POISONDAMAGE]; Stats.Add(Entry);
 	Entry.StatName = "CORROSIVE DAMAGE BONUS"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_CORROSIVEDAMAGE]; Stats.Add(Entry);
-	Entry.StatName = "BONUS GOLD"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_GOLDFIND] + (HasStat(RARESTAT_GOLDFIND) ? 100.0f: 0.0f); Stats.Add(Entry);
-	Entry.StatName = "BONUS ITEMS"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_MAGICFIND] + (HasStat(RARESTAT_MAGICFIND) ? 100.0f: 0.0f); Stats.Add(Entry);
+	Entry.StatName = "GOLD FIND"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_GOLDFIND] + (HasStat(RARESTAT_GOLDFIND) ? 100.0f: 0.0f); Stats.Add(Entry);
+	Entry.StatName = "MAGIC FIND"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_MAGICFIND] + (HasStat(RARESTAT_MAGICFIND) ? 100.0f: 0.0f); Stats.Add(Entry);
 	Entry.StatName = "LARGE DINO DAMAGE"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_LARGEDINOBOOST]; Stats.Add(Entry);
 	Entry.StatName = "ROBOT DAMAGE"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_ROBOTBOOST]; Stats.Add(Entry);
 
 	return Stats;
+}
+
+int32 AOrionInventoryManager::GetLevelScaledValue(int32 Value, int32 ItemLevel)
+{
+	//you can only be a max of 50 ilvls higher than the game's item level
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(OwnerController);
+
+	if (GRI && PC)
+	{
+		int32 iLvl = GRI->ItemLevel;
+		int32 Level = ItemLevel;
+
+		return Value / FMath::Pow(LEVELPOWER, float(FMath::Max(0, Level - FMath::Min(iLvl + LEVELSYNC, Level))) / LEVELINTERVAL);
+	}
+
+	return Value;
 }
 
 void AOrionInventoryManager::GetStatsFromSlot(AOrionInventoryGrid *Slot, FArrayHelper &Stats)
@@ -1102,13 +1442,21 @@ void AOrionInventoryManager::GetStatsFromSlot(AOrionInventoryGrid *Slot, FArrayH
 	FInventoryItem Item = GetItemAt(Slot, 0);
 	if (Item.ItemClass)
 	{
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(OwnerController);
+		if (PC && PC->GetAchievements() && Item.Rarity == RARITY_LEGENDARY)
+			PC->GetAchievements()->UnlockAchievement(ACH_LEGEND, PC);
+
 		for (int32 i = 0; i < Item.PrimaryStats.Num(); i++)
 		{
-			Stats.Primary[Item.PrimaryStats[i].StatType] += Item.PrimaryStats[i].Value;
+			Stats.Primary[Item.PrimaryStats[i].StatType] += GetLevelScaledValue(Item.PrimaryStats[i].Value, Item.ItemLevel);
 		}
 		for (int32 i = 0; i < Item.SecondaryStats.Num(); i++)
 		{
-			Stats.Secondary[Item.SecondaryStats[i].StatType] += Item.SecondaryStats[i].Value;
+			/*if (Item.SecondaryStats[i].StatType == SECONDARYSTAT_CORROSIVEDAMAGE || Item.SecondaryStats[i].StatType == SECONDARYSTAT_FIREDAMAGE || Item.SecondaryStats[i].StatType == SECONDARYSTAT_ICEDAMAGE || 
+				Item.SecondaryStats[i].StatType == SECONDARYSTAT_POISONDAMAGE || Item.SecondaryStats[i].StatType == SECONDARYSTAT_LIGHTNINGDAMAGE)
+				Stats.Secondary[Item.SecondaryStats[i].StatType] += GetLevelScaledValue(Item.SecondaryStats[i].Value, Item.ItemLevel);
+			else*/
+				Stats.Secondary[Item.SecondaryStats[i].StatType] += Item.SecondaryStats[i].Value;
 		}
 		for (int32 i = 0; i < Item.RareStats.Num(); i++)
 		{
@@ -1124,8 +1472,10 @@ void AOrionInventoryManager::GetStatsFromSlot(AOrionInventoryGrid *Slot, FArrayH
 		case ITEM_BELT:
 		case ITEM_BOOTS:
 		case ITEM_ABILITY:
-		//case ITEM_GRENADE:
-			Stats.Defense += Item.MainStat;
+		case ITEM_GRENADE:
+		case ITEM_KNIFE:
+		case ITEM_GADGET:
+			Stats.Defense += GetLevelScaledValue(Item.MainStat, Item.ItemLevel);
 			break;
 		}
 
@@ -1154,6 +1504,11 @@ bool AOrionInventoryManager::CraftItem(FInventoryItem ItemToCraft, TArray<FInven
 	//subtract the items from the user's inventory
 	for (int32 i = 0; i < ItemsToRemove.Num(); i++)
 		RemoveItemFromInventory(ItemsToRemove[i].Grid, ItemsToRemove[i].Index);
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetOwner());
+
+	if (PC && PC->GetStats())
+		PC->GetStats()->AddStatValue(STAT_CRAFTITEMS, 1);
 
 	//add the crafted item to our inventory
 	return AddItemToInventory(Grid, ItemToCraft, -1) >= 0;
@@ -1199,6 +1554,11 @@ bool AOrionInventoryManager::DropItem(AOrionInventoryGrid *theGrid, int32 index)
 	//	if (!PC)
 	//		continue;
 
+		FInventoryItem Item = GetItemAt(theGrid, index);
+
+		if (Item.ItemClass == nullptr)
+			return false;
+
 		AOrionPickup *Pickup = GetWorld()->SpawnActor<AOrionPickup>(Game->DefaultPickupClass, pos, FRotator::ZeroRotator, SpawnInfo);
 		if (Pickup)
 		{
@@ -1208,12 +1568,11 @@ bool AOrionInventoryManager::DropItem(AOrionInventoryGrid *theGrid, int32 index)
 
 			Pickup->bGlobalItem = true;
 
-			FInventoryItem Item = GetItemAt(theGrid, index);
-
 			Pickup->Decoder.ItemClass = Item.ItemClass;
 			UOrionInventoryItem *Inv = Cast<UOrionInventoryItem>(Pickup->Decoder.ItemClass->GetDefaultObject());
 
-			Pickup->Decoder.ItemPath = Inv->GetPathName();
+			if (Inv)
+				Pickup->Decoder.ItemPath = Inv->GetPathName();
 
 			if (Inv == nullptr)
 			{
@@ -1231,6 +1590,11 @@ bool AOrionInventoryManager::DropItem(AOrionInventoryGrid *theGrid, int32 index)
 			Pickup->Decoder.SecondaryStats = Item.SecondaryStats;
 			Pickup->Decoder.RareStats = Item.RareStats;
 			Pickup->Decoder.MainStat = Item.MainStat;
+			Pickup->Decoder.Amount = Item.Amount;
+			Pickup->Decoder.ItemID = Item.ItemID;
+
+			//for replication of color
+			Pickup->GearType = Item.Rarity;
 
 			Pickup->EventSetColor(Pickup->Decoder.Rarity);
 
@@ -1290,7 +1654,32 @@ bool AOrionInventoryManager::SortInventory()
 
 	Grid->Inventory.Sort();
 
-	DrawInventory();
+	//mark everything dirty
+	for (int32 i = 0; i < Grid->Inventory.Num(); i++)
+	{
+		if (Grid->Inventory[i].ItemClass)
+		{
+			switch (Grid->Inventory[i].Slot)
+			{
+			case ITEM_GENERICCRAFTING:
+			case ITEM_USEABLE:
+			case ITEM_DISPLAYARMOR:
+			case ITEM_SHADER:
+			case ITEM_BREAKDOWNABLE:
+				Grid->Inventory[i].PrimaryStats.Empty();
+				Grid->Inventory[i].SecondaryStats.Empty();
+				Grid->Inventory[i].RareStats.Empty();
+				Grid->Inventory[i].MainStat = 0;
+				break;
+			}
+
+			Grid->Inventory[i].bDirty = true;
+			//update our slot indices, since sort will mess them all up
+			Grid->Inventory[i].SlotIndex = FString::Printf(TEXT("%sx8x%i"), TEXT("INVENTORY"), i);
+		}
+	}
+	
+	SaveInventory();
 
 	return true;
 }
@@ -1327,18 +1716,6 @@ void AOrionInventoryManager::ForceAddInventoryItem(FInventoryItem Item, FString 
 		Slot = WeaponSlot.Mid(index2 + 3, index - index2 - 3);
 	}
 
-	//don't add other character's gear to our inventory
-	if (OwnerController)
-	{
-		AOrionPRI *PRI = Cast<AOrionPRI>(OwnerController->PlayerState);
-
-		if (PRI)
-		{
-			if (cName != "" && cName == PRI->ClassType)
-				return;
-		}
-	}
-
 	int32 InventoryIndex = FCString::Atoi(*WeaponSlot.Mid(index + 3));
 
 	AOrionInventoryGrid *pGrid = GetGridFromName(Slot);
@@ -1360,6 +1737,118 @@ void AOrionInventoryManager::ForceAddInventoryItem(FInventoryItem Item, FString 
 				{
 					UOrionInventoryItem *Inv = InventoryClass.GetDefaultObject();
 
+					//check and make sure values are within the limits, mainly to fix outdated gear
+					//make sure our main stat is in valid bounds
+					FDecodeItemInfo Decoder;
+					Decoder.Rarity = Item.Rarity;
+					Decoder.Slot = Inv->ItemType;
+					Decoder.ItemLevel = Item.ItemLevel;
+
+					float MaxValue = Decoder.GetMaxStatValue(true) * Decoder.GetRarityMultiplier();
+
+					if (MaxValue <= Item.MainStat)
+						Item.MainStat = MaxValue;
+					else if (Item.MainStat < 0.9f * MaxValue)
+						Item.MainStat = 0.9f * MaxValue;
+					else if (Item.MainStat < 0)
+						Item.MainStat = MaxValue;
+
+					//make sure the elemental damages are valid
+					if (Item.Slot == ITEM_PRIMARYWEAPON || Item.Slot == ITEM_SECONDARYWEAPON)
+					{
+						for (int32 i = 0; i < Item.SecondaryStats.Num(); i++)
+						{
+							if (Item.SecondaryStats[i].StatType == SECONDARYSTAT_CORROSIVEDAMAGE || Item.SecondaryStats[i].StatType == SECONDARYSTAT_POISONDAMAGE || Item.SecondaryStats[i].StatType == SECONDARYSTAT_FIREDAMAGE ||
+								Item.SecondaryStats[i].StatType == SECONDARYSTAT_ICEDAMAGE || Item.SecondaryStats[i].StatType == SECONDARYSTAT_LIGHTNINGDAMAGE)
+							{
+								float MaxSecondaryValue = Decoder.GetMaxSecondaryStatValue(Item.SecondaryStats[i].StatType);
+
+								if (MaxSecondaryValue <= Item.SecondaryStats[i].Value)
+									Item.SecondaryStats[i].Value = MaxSecondaryValue;
+							}
+						}
+					}
+
+					if (Item.Slot == ITEM_GENERICCRAFTING || Item.Slot == ITEM_BREAKDOWNABLE || Item.Slot == ITEM_SHADER || Item.Slot == ITEM_DISPLAYARMOR || Item.Slot == ITEM_USEABLE)
+					{
+						Item.PrimaryStats.Empty();
+						Item.SecondaryStats.Empty();
+						Item.RareStats.Empty();
+						Item.MainStat = 0;
+						Item.ItemLevel = 0;
+					}
+
+					//don't add other character's gear to our inventory
+					if (OwnerController)
+					{
+						AOrionPRI *PRI = Cast<AOrionPRI>(OwnerController->PlayerState);
+
+						if (PRI)
+						{
+							//cache all class equipped gear for changing classes in game
+							if (Slot != "INVENTORY")
+							{
+								int32 index = -1;
+								if (cName == "ASSAULT")
+									index = 0;
+								else if (cName == "SUPPORT")
+									index = 1;
+								else if (cName == "RECON")
+									index = 2;
+								else if (cName == "TECH")
+									index = 3;
+								else if (cName == "PYRO")
+									index = 4;
+
+								int32 sIndex = -1;
+
+								if (Slot == "HELMET")
+									sIndex = 0;
+								else if (Slot == "BODY")
+									sIndex = 1;
+								else if (Slot == "HANDS")
+									sIndex = 2;
+								else if (Slot == "BELT")
+									sIndex = 3;
+								else if (Slot == "LEGS")
+									sIndex = 4;
+								else if (Slot == "BOOTS")
+									sIndex = 5;
+								else if (Slot == "PRIMARY")
+									sIndex = 6;
+								else if (Slot == "SECONDARY")
+									sIndex = 7;
+								else if (Slot == "GADGET")
+									sIndex = 8;
+								else if (Slot == "ABILITY")
+									sIndex = 9;
+								else if (Slot == "SHADER")
+									sIndex = 10;
+								else if (Slot == "DISPLAY")
+									sIndex = 11;
+								else if (Slot == "GRENADE")
+									sIndex = 12;
+								else if (Slot == "KNIFE")
+									sIndex = 13;
+
+								if (index >= 0 && sIndex >= 0)
+								{
+									FEquippedSlot NewSlot;
+
+									NewSlot.Item = Item;
+									NewSlot.ClassName = ClassName;
+
+									EquippedSlots[index * 14 + sIndex] = NewSlot;
+								}
+							}
+
+							if (cName != "" && cName != PRI->ClassType)
+								return;
+							else if (cName == "" && Slot != "INVENTORY")
+								return;
+						}
+					}
+
 					if (Inv)
 					{
 						FInventoryItem NewItem;
@@ -1370,7 +1859,7 @@ void AOrionInventoryManager::ForceAddInventoryItem(FInventoryItem Item, FString 
 						NewItem.SecondaryStats = Item.SecondaryStats;
 						NewItem.RareStats = Item.RareStats;
 						NewItem.ItemName = Item.Rarity == RARITY_LEGENDARY ? Inv->LegendaryName : Inv->ItemName;
-						NewItem.ItemDesc = Item.ItemDesc;
+						NewItem.ItemDesc = Inv->ItemDesc;
 						NewItem.Rarity = Item.Rarity;
 						NewItem.Slot = Inv->ItemType;
 						NewItem.ItemLevel = Item.ItemLevel;
@@ -1401,7 +1890,10 @@ bool AOrionInventoryManager::BreakdownItem(AOrionInventoryGrid *theGrid, int32 i
 	FInventoryItem Item = GetItemAt(theGrid, index);
 
 	if (Item.ItemClass == nullptr)
+	{
+		ClientRedraw(ITEM_ANY, index);
 		return false;
+	}
 
 	TArray< TSubclassOf<UOrionInventoryItem> > ItemsToGrant;
 	TArray<EItemRarity> Rarities;
@@ -1414,6 +1906,7 @@ bool AOrionInventoryManager::BreakdownItem(AOrionInventoryGrid *theGrid, int32 i
 	case ITEM_SHADER:
 	case ITEM_DISPLAYARMOR:
 	case ITEM_USEABLE:
+		ClientRedraw(ITEM_ANY, index);
 		return false;
 		break;
 	case ITEM_HELMET:
@@ -1424,18 +1917,20 @@ bool AOrionInventoryManager::BreakdownItem(AOrionInventoryGrid *theGrid, int32 i
 	case ITEM_BOOTS:
 		ItemsToGrant.Add(DefaultArmorPartsClass);
 		Rarities.Add(RARITY_COMMON);
-		ItemLevels.Add(1);
+		ItemLevels.Add(0);
 		break;
 	case ITEM_PRIMARYWEAPON:
 	case ITEM_SECONDARYWEAPON:
 	case ITEM_GADGET:
 	case ITEM_ABILITY:
 	case ITEM_GRENADE:
+	case ITEM_KNIFE:
 		ItemsToGrant.Add(DefaultWeaponPartsClass);
 		Rarities.Add(RARITY_COMMON);
-		ItemLevels.Add(1);
+		ItemLevels.Add(0);
 		break;
 	default:
+		ClientRedraw(ITEM_ANY, index);
 		return false;
 		break;
 	}
@@ -1445,7 +1940,7 @@ bool AOrionInventoryManager::BreakdownItem(AOrionInventoryGrid *theGrid, int32 i
 	{
 		ItemsToGrant.Add(Item.BreakdownClasses[i]);
 		Rarities.Add(RARITY_COMMON);
-		ItemLevels.Add(1);
+		ItemLevels.Add(0);
 	}
 
 	//give some breakdown items based on quality of item
@@ -1466,7 +1961,7 @@ bool AOrionInventoryManager::BreakdownItem(AOrionInventoryGrid *theGrid, int32 i
 	}
 
 	Rarities.Add(Item.Rarity);
-	ItemLevels.Add(Item.ItemLevel);
+	ItemLevels.Add(0);
 
 	int32 NumSpacesToFind = ItemsToGrant.Num();
 
@@ -1514,7 +2009,7 @@ bool AOrionInventoryManager::BreakdownItem(AOrionInventoryGrid *theGrid, int32 i
 			NewItem.ItemDesc = pItem->ItemDesc;
 			NewItem.Rarity = Rarities[i];
 			NewItem.Slot = pItem->ItemType;
-			NewItem.ItemLevel = ItemLevels[i];
+			NewItem.ItemLevel = 0;// ItemLevels[i];
 			NewItem.MainStat = 0;
 			NewItem.SellValue = 10;
 			NewItem.BreakdownClasses = pItem->BreakdownClass;
@@ -1526,6 +2021,7 @@ bool AOrionInventoryManager::BreakdownItem(AOrionInventoryGrid *theGrid, int32 i
 			if (AddItemToInventory(Grid, NewItem) < 0)
 			{
 				DrawInventory();
+				ClientRedraw(ITEM_ANY, index);
 				return false;
 			}
 		}
@@ -1682,4 +2178,232 @@ FString AOrionInventoryManager::GetSecondaryStatName(ESecondaryStats Stat)
 	}
 
 	return "ERROR";
+}
+
+void AOrionInventoryManager::SaveEquippedSlots()
+{
+	FInventoryItem DummyItem;
+
+	DummyItem.ItemClass = nullptr;
+
+	if (OwnerController)
+	{
+		AOrionPRI *PRI = Cast<AOrionPRI>(OwnerController->PlayerState);
+
+		if (PRI)
+		{
+			int32 index = -1;
+			if (PRI->ClassType == "ASSAULT")
+				index = 0;
+			else if (PRI->ClassType == "SUPPORT")
+				index = 1;
+			else if (PRI->ClassType == "RECON")
+				index = 2;
+			else if (PRI->ClassType == "TECH")
+				index = 3;
+			else if (PRI->ClassType == "PYRO")
+				index = 4;
+
+			if (index >= 0)
+			{
+				for (int32 i = 0; i < 14; i++)
+				{
+					AOrionInventoryGrid *theGrid = nullptr;
+
+					switch (i)
+					{
+					case 0:
+						theGrid = HelmetSlot;
+						break;
+					case 1:
+						theGrid = BodySlot;
+						break;
+					case 2:
+						theGrid = HandsSlot;
+						break;
+					case 3:
+						theGrid = BeltSlot;
+						break;
+					case 4:
+						theGrid = LegsSlot;
+						break;
+					case 5:
+						theGrid = BootsSlot;
+						break;
+					case 6:
+						theGrid = WeaponSlot1;
+						break;
+					case 7:
+						theGrid = WeaponSlot2;
+						break;
+					case 8:
+						theGrid = GadgetSlot;
+						break;
+					case 9:
+						theGrid = AbilitySlot;
+						break;
+					case 10:
+						theGrid = ShaderSlot;
+						break;
+					case 11:
+						theGrid = DisplaySlot;
+						break;
+					case 12:
+						theGrid = GrenadeSlot;
+						break;
+					case 13:
+						theGrid = KnifeSlot;
+						break;
+					}
+
+					if (theGrid && index >= 0)
+					{
+						EquippedSlots[index * 14 + i].Item = theGrid->Inventory[0];
+						EquippedSlots[index * 14 + i].ClassName = GetPathToClass(theGrid->Inventory[0]);// PRI->ClassType;
+					}
+				}
+			}
+		}
+	}
+}
+
+//this is called on class spawn to make sure the right equipment is equipped
+void AOrionInventoryManager::UpdateEquippedSlots()
+{
+	FInventoryItem DummyItem;
+
+	DummyItem.ItemClass = nullptr;
+
+	if (OwnerController)
+	{
+		AOrionPRI *PRI = Cast<AOrionPRI>(OwnerController->PlayerState);
+
+		if (PRI)
+		{
+			int32 index = -1;
+			if (PRI->ClassType == "ASSAULT")
+				index = 0;
+			else if (PRI->ClassType == "SUPPORT")
+				index = 1;
+			else if (PRI->ClassType == "RECON")
+				index = 2;
+			else if (PRI->ClassType == "TECH")
+				index = 3;
+			else if (PRI->ClassType == "PYRO")
+				index = 4;
+
+			if (index >= 0)
+			{
+				for (int32 i = 0; i < 14; i++)
+				{
+					AOrionInventoryGrid *theGrid = nullptr;
+
+					switch (i)
+					{
+					case 0:
+						theGrid = HelmetSlot;
+						break;
+					case 1:
+						theGrid = BodySlot;
+						break;
+					case 2:
+						theGrid = HandsSlot;
+						break;
+					case 3:
+						theGrid = BeltSlot;
+						break;
+					case 4:
+						theGrid = LegsSlot;
+						break;
+					case 5:
+						theGrid = BootsSlot;
+						break;
+					case 6:
+						theGrid = WeaponSlot1;
+						break;
+					case 7:
+						theGrid = WeaponSlot2;
+						break;
+					case 8:
+						theGrid = GadgetSlot;
+						break;
+					case 9:
+						theGrid = AbilitySlot;
+						break;
+					case 10:
+						theGrid = ShaderSlot;
+						break;
+					case 11:
+						theGrid = DisplaySlot;
+						break;
+					case 12:
+						theGrid = GrenadeSlot;
+						break;
+					case 13:
+						theGrid = KnifeSlot;
+						break;
+					}
+
+					if (EquippedSlots[index * 14 + i].ClassName != "")
+					{
+						if (theGrid)
+						{
+							//grab our class reference from string
+							TSubclassOf<UOrionInventoryItem> InventoryClass = LoadClass<UOrionInventoryItem>(nullptr, *EquippedSlots[index * 14 + i].ClassName, nullptr, LOAD_None, nullptr);
+
+							if (InventoryClass)
+							{
+								UOrionInventoryItem *Inv = InventoryClass.GetDefaultObject();
+
+								if (Inv)
+								{
+									FInventoryItem NewItem;
+
+									NewItem.Amount = EquippedSlots[index * 14 + i].Item.Amount;
+									NewItem.ItemClass = InventoryClass;
+									if (Inv->ItemType == ITEM_GENERICCRAFTING)
+									{
+										NewItem.PrimaryStats.Empty();
+										NewItem.SecondaryStats.Empty();
+										NewItem.RareStats.Empty();
+									}
+									else
+									{
+										NewItem.PrimaryStats = EquippedSlots[index * 14 + i].Item.PrimaryStats;
+										NewItem.SecondaryStats = EquippedSlots[index * 14 + i].Item.SecondaryStats;
+										NewItem.RareStats = EquippedSlots[index * 14 + i].Item.RareStats;
+									}
+									NewItem.ItemName = EquippedSlots[index * 14 + i].Item.Rarity == RARITY_LEGENDARY ? Inv->LegendaryName : Inv->ItemName;
+									NewItem.ItemDesc = Inv->ItemDesc;
+									NewItem.Rarity = EquippedSlots[index * 14 + i].Item.Rarity;
+									NewItem.Slot = Inv->ItemType;
+									NewItem.ItemLevel = EquippedSlots[index * 14 + i].Item.ItemLevel;
+									NewItem.MainStat = EquippedSlots[index * 14 + i].Item.MainStat;
+									NewItem.SellValue = 10;
+									NewItem.BreakdownClasses = Inv->BreakdownClass;
+									NewItem.ItemID = EquippedSlots[index * 14 + i].Item.ItemID;
+									NewItem.InstanceID = EquippedSlots[index * 14 + i].Item.InstanceID;
+									NewItem.bDirty = false;
+									NewItem.SlotIndex = EquippedSlots[index * 14 + i].Item.SlotIndex;
+
+									theGrid->Inventory[0] = NewItem;
+								}
+								else
+									if (theGrid)
+										theGrid->Inventory[0] = DummyItem;
+							}
+							else
+								if (theGrid)
+									theGrid->Inventory[0] = DummyItem;
+						}
+					}
+					else
+					{
+						if (theGrid)
+							theGrid->Inventory[0] = DummyItem;
+					}
+				}
+			}
+		}
+	}
 }

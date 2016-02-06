@@ -179,7 +179,7 @@ void AOrionWeaponLink::OnRep_ChainLinks()
 		Target.LinkTarget = Link;
 		Target.BeamPSC = nullptr;
 
-		if (ChainBeamPSC.Find(Target) == INDEX_NONE && LinkTarget)
+		if (ChainBeamPSC.Find(Target) == INDEX_NONE && LinkTarget && Target.LinkTarget && Target.LinkTarget->Health > 0.0f)
 		{
 			Target.BeamPSC = UGameplayStatics::SpawnEmitterAttached(BeamFX, LinkTarget->GetMesh(), "AutoAim");
 
@@ -598,7 +598,13 @@ void AOrionWeaponLink::HandleLinkTargets(AOrionCharacter *Target, float DeltaSec
 	{
 		if (P && P->Health > 0)
 		{
-			P->Health -= DeltaSeconds * 75.0f;
+			if (PC)
+			{
+				AOrionInventoryManager *Inv = Cast<AOrionInventoryManager>(PC->GetInventoryManager());
+
+				if (Inv)
+					P->Health -= DeltaSeconds * 25.0f;// Inv->GetLevelScaledValue(FMath::Pow(LEVELPOWER, P->Level / LEVELINTERVAL), GRI->ItemLevel) * 25.0f;
+			}
 			if (P->Health <= 0)
 			{
 				FPointDamageEvent PointDmg;
@@ -752,7 +758,13 @@ void AOrionWeaponLink::HandleTarget(float DeltaSeconds)
 	{
 		if (P && P->Health > 0)
 		{
-			P->Health -= DeltaSeconds * 150.0f;
+			if (PC)
+			{
+				AOrionInventoryManager *Inv = Cast<AOrionInventoryManager>(PC->GetInventoryManager());
+
+				if (Inv)
+					P->Health -= DeltaSeconds * 50.0f;// Inv->GetLevelScaledValue(FMath::Pow(LEVELPOWER, P->Level / LEVELINTERVAL), GRI->ItemLevel) * 50.0f;
+			}
 			if (P->Health <= 0)
 			{
 				FPointDamageEvent PointDmg;

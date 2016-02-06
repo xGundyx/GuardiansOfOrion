@@ -47,7 +47,7 @@ public:
 
 	void AwardXPToAllPlayers(int32 Amount, AOrionPlayerController *PC, const UOrionDamageType *DamageType);
 
-	int32 GetEnemyItemLevel();
+	virtual int32 GetEnemyItemLevel();
 
 	UPROPERTY(BlueprintReadWrite, Category = Gameplay)
 		TEnumAsByte<EGameDifficulty> Difficulty;

@@ -1046,6 +1046,15 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_Buffs, BlueprintReadWrite, Category = Buffs)
 		TArray<class AOrionBuff*> Buffs;
 
+	TSubclassOf<class AOrionBuff> FireBuff;
+	TSubclassOf<class AOrionBuff> IceBuff;
+	TSubclassOf<class AOrionBuff> LightningBuff;
+	TSubclassOf<class AOrionBuff> PoisonBuff;
+	TSubclassOf<class AOrionBuff> CorrosiveBuff;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = RPG)
+		bool bDoubleShield;
+
 	UFUNCTION(BlueprintCallable, Category = Buffs)
 		void AddBuff(TSubclassOf<class AOrionBuff> BuffClass, AController *cOwner, int32 TeamIndex);
 
@@ -1713,5 +1722,8 @@ public:
 		float RobotBoost;
 
 	float DamageBonus;
+
+	UPROPERTY(Replicated)
+		float SpeedMultiplier;
 };
 

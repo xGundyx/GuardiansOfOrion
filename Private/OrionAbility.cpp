@@ -66,13 +66,13 @@ void AOrionAbility::Tick(float DeltaSeconds)
 				}
 			}
 		}
-		else if (Energy < 100.0f)
+		else if (Energy < 100.0f && !IsFlaming())
 		{
 			if (GetWorld()->TimeSeconds - TimeSinceLastActive > RechargeDelay)
 			{
 				AOrionCharacter *P = Cast<AOrionCharacter>(GetOwner());
 				if (P)
-					Energy = FMath::Min(100.0f, Energy + P->SkillRechargeRate * RechargeRate * DeltaSeconds);
+					Energy = FMath::Min(100.0f, Energy + (1.0f + P->SkillRechargeRate / 100.0f) * RechargeRate * DeltaSeconds);
 			}
 		}
 	}
@@ -206,11 +206,12 @@ bool AOrionAbility::ActivateSkill()
 
 void AOrionAbility::DeactivateSkill()
 {
-	if (bIsSkillActive)
+	if (bIsSkillActive || bIsFlaming)
 	{
 		DoDeactivateEffects();
 		TimeSinceLastActive = GetWorld()->TimeSeconds;
 		bIsSkillActive = false;
+		bIsFlaming = false;
 	}
 }
 

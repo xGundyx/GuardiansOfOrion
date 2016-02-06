@@ -125,6 +125,8 @@ float UOrionDinoMovementComponent::GetMaxSpeed() const
 	{
 		if (OrionCharacterOwner->bChargingAttack)
 			SpeedMod = 0.0f;
+		else if (OrionCharacterOwner->DinoName == "TRex" && OrionCharacterOwner->bFinishingMove)
+			SpeedMod = 0.0f;
 		else if (OrionCharacterOwner->bFly)
 			SpeedMod *= OrionCharacterOwner->bLanding ? 5.0 : 12.0;
 		else if (OrionCharacterOwner->bRun && IsMovingOnGround())

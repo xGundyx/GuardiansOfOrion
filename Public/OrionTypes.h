@@ -28,6 +28,10 @@ class UOrionInventoryItem;
 #define ORION_SURFACE_Flesh			SurfaceType8
 #define ORION_SURFACE_Shield		SurfaceType9
 
+#define LEVELPOWER 1.75f
+#define LEVELINTERVAL 50.0f
+#define LEVELSYNC 25
+
 UENUM(BlueprintType)
 enum EElementalDamageType
 {
@@ -575,6 +579,7 @@ struct FDecodeItemInfo
 	int32 ItemLevel;
 	int32 MainStat;
 	int32 SellValue;
+	int32 Amount;
 
 	TArray< TSubclassOf<class UOrionInventoryItem> > BreakdownClasses;
 
@@ -614,49 +619,58 @@ struct FDecodeItemInfo
 			return 1.0f;
 			break;
 		case RARITY_SUPERENHANCED:
-			return 0.9f;
+			return 0.95f;
 			break;
 		case RARITY_ENHANCED:
-			return 0.8f;
+			return 0.9f;
 			break;
 		default:
-			return 0.6f;
+			return 0.8f;
 		}
 	}
 
-	int32 GetMaxStatValue()
+	int32 GetMaxStatValue(bool bMainStat = false)
 	{
+		float Scale = FMath::Pow(LEVELPOWER, ItemLevel / LEVELINTERVAL) * 100.0f / 10.0f;
+
+		if (!bMainStat)
+			Scale = ItemLevel;
+
 		switch (Slot)
 		{
 		case ITEM_HELMET:
-			return ItemLevel;
+			return int32(1.0f * Scale);
 			break;
 		case ITEM_CHEST:
-			return ItemLevel * 1.5f;
+			return int32(1.5f * Scale);
 			break;
 		case ITEM_HANDS:
-			return ItemLevel;
+			return int32(1.0f * Scale);
 			break;
 		case ITEM_BELT:
-			return ItemLevel * 0.4f;
+			return int32(0.4f * Scale);
 			break;
 		case ITEM_LEGS:
-			return ItemLevel * 1.5f;
+			return int32(1.5f * Scale);
 			break;
 		case ITEM_BOOTS:
-			return ItemLevel * 0.6f;
+			return int32(0.6f * Scale);
 			break;
 		case ITEM_PRIMARYWEAPON:
-			return ItemLevel * 2;
+			return ItemLevel * 2.0f;
 			break;
 		case ITEM_SECONDARYWEAPON:
-			return ItemLevel;
+			return ItemLevel * 2.0f;
 			break;
 		case ITEM_GADGET:
-			return ItemLevel;
+			return int32(1.0f * Scale);
 			break;
 		case ITEM_ABILITY:
-			return ItemLevel;
+			return int32(1.0f * Scale);
+			break;
+		case ITEM_GRENADE:
+		case ITEM_KNIFE:
+			return int32(1.0f * Scale);
 			break;
 		default:
 			return 0;
@@ -674,25 +688,25 @@ struct FDecodeItemInfo
 			switch (Slot)
 			{
 			case ITEM_PRIMARYWEAPON:
-				return 20;
+				return FMath::RandRange(15, 20);
 				break;
 			case ITEM_SECONDARYWEAPON:
-				return 15;
+				return FMath::RandRange(10, 15);
 				break;
 			case ITEM_HELMET:
 			case ITEM_HANDS:
 			case ITEM_BELT:
-				return 10;
+				return FMath::RandRange(5, 10);
 			}
 			break;
 		case SECONDARYSTAT_CRITICALHITMULTIPLIER:
 			switch (Slot)
 			{
 			case ITEM_PRIMARYWEAPON:
-				return 25;
+				return FMath::RandRange(15, 25);
 				break;
 			case ITEM_SECONDARYWEAPON:
-				return 25;
+				return FMath::RandRange(15, 25);
 				break;
 			case ITEM_HELMET:
 			case ITEM_HANDS:
@@ -700,7 +714,9 @@ struct FDecodeItemInfo
 			case ITEM_CHEST:
 			case ITEM_LEGS:
 			case ITEM_BOOTS:
-				return 10;
+			case ITEM_GRENADE:
+			case ITEM_KNIFE:
+				return FMath::RandRange(5, 10);
 			}
 			break;
 		case SECONDARYSTAT_DAMAGEREDUCTION:
@@ -712,7 +728,9 @@ struct FDecodeItemInfo
 			case ITEM_CHEST:
 			case ITEM_LEGS:
 			case ITEM_BOOTS:
-				return 5;
+			case ITEM_GRENADE:
+			case ITEM_KNIFE:
+				return FMath::RandRange(2, 5);
 			}
 			break;
 		case SECONDARYSTAT_DAMAGEREDUCTIONPIERCING:
@@ -728,7 +746,7 @@ struct FDecodeItemInfo
 			case ITEM_CHEST:
 			case ITEM_LEGS:
 			case ITEM_BOOTS:
-				return 10;
+				return FMath::RandRange(2, 5);
 			}
 			break;
 		case SECONDARYSTAT_EXPBOOST:
@@ -743,14 +761,14 @@ struct FDecodeItemInfo
 			{
 			case ITEM_PRIMARYWEAPON:
 			case ITEM_SECONDARYWEAPON:
-				return ItemLevel / 2.0f;
+				return ItemLevel * 0.05f;
 			}
 			break;
 		case SECONDARYSTAT_GOLDFIND:
-			return 10;
+			return FMath::RandRange(10, 20);
 			break;
 		case SECONDARYSTAT_MAGICFIND:
-			return 10;
+			return FMath::RandRange(10, 20);
 			break;
 		case SECONDARYSTAT_LARGEDINOBOOST:
 		case SECONDARYSTAT_ROBOTBOOST:
@@ -760,7 +778,9 @@ struct FDecodeItemInfo
 			case ITEM_SECONDARYWEAPON:
 			case ITEM_GADGET:
 			case ITEM_ABILITY:
-				return 5;
+			case ITEM_GRENADE:
+			case ITEM_KNIFE:
+				return FMath::RandRange(2, 5);
 			}
 			break;
 		}
@@ -967,7 +987,7 @@ struct FRareStats
 		//gadget
 		StatsInfo.Add(FRareStatsInfo(TEXT("regen gun heals downed teammates super fast"), RARESTAT_SUPERHEALER, ITEM_GADGET));//
 		StatsInfo.Add(FRareStatsInfo(TEXT("regen gun lights enemies on fire"), RARESTAT_REGENFIRE, ITEM_GADGET));//
-		StatsInfo.Add(FRareStatsInfo(TEXT("regen gun freezes enemies in place"), RARESTAT_REGENFREEZE, ITEM_GADGET));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("regen gun deals ice and slow damage"), RARESTAT_REGENFREEZE, ITEM_GADGET));//
 
 		//ability
 		StatsInfo.Add(FRareStatsInfo(TEXT("sentry gun now shoots rockets"), RARESTAT_SENTRYROCKETS, ITEM_ABILITY));//
@@ -1042,6 +1062,8 @@ struct FPhotonServerInfo
 		FString GameMode;
 	UPROPERTY(BlueprintReadWrite, Category = Photon)
 		FString ItemLevel;
+	UPROPERTY(BlueprintReadWrite, Category = Photon)
+		FString Region;
 };
 
 UENUM(BlueprintType)
@@ -1116,6 +1138,13 @@ struct FUnlockedSkills
 
 	UPROPERTY(BlueprintReadWrite, Category = Skills)
 		int32 Modifier;
+
+	FUnlockedSkills()
+	{
+		Points = 0;
+		MaxPoints = 0;
+		Modifier = 0;
+	}
 };
 
 UENUM(BlueprintType)
@@ -1294,7 +1323,7 @@ struct FInventoryItem
 	UPROPERTY(BlueprintReadWrite, Category = Inventory)
 		int32 TempUniqueID;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Inventory)
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Inventory)
 		TSubclassOf<UOrionInventoryItem> ItemClass;
 
 	UPROPERTY(BlueprintReadWrite, Category = Inventory)
@@ -1343,6 +1372,11 @@ struct FInventoryItem
 	UPROPERTY(BlueprintReadWrite, Category = Inventory)
 		FString SlotIndex;
 
+	FInventoryItem()
+	{
+		Reset();
+	}
+
 	void Reset()
 	{
 		ItemName = "";
@@ -1353,6 +1387,11 @@ struct FInventoryItem
 		Amount = 0;
 		SellValue = 0;
 		bDirty = false;
+		TempUniqueID = -1;
+		MainStat = 0;
+		ItemLevel = 0;
+		BreakdownClasses.Empty();
+		Rarity = RARITY_COMMON;
 
 		PrimaryStats.Empty();
 		SecondaryStats.Empty();
@@ -1361,11 +1400,46 @@ struct FInventoryItem
 		SlotIndex = "NONE";
 	}
 
+	FInventoryItem(const FInventoryItem &Other)
+	{
+		ItemName = Other.ItemName;
+		ItemDesc = Other.ItemDesc;
+		InstanceID = Other.InstanceID;
+		ItemID = Other.ItemID;
+		ItemClass = Other.ItemClass;
+		Rarity = Other.Rarity;
+		Amount = Other.Amount;
+		SellValue = Other.SellValue;
+		bDirty = Other.bDirty;
+		TempUniqueID = Other.TempUniqueID;
+		MainStat = Other.MainStat;
+		ItemLevel = Other.ItemLevel;
+		BreakdownClasses = Other.BreakdownClasses;
+		Slot = Other.Slot;
+
+		if (Slot == ITEM_BREAKDOWNABLE || Slot == ITEM_GENERICCRAFTING || Slot == ITEM_USEABLE || Slot == ITEM_DISPLAYARMOR || Slot == ITEM_SHADER || Slot == ITEM_BREAKDOWNABLE)
+		{
+			PrimaryStats.Empty();
+			SecondaryStats.Empty();
+			RareStats.Empty();
+		}
+		else
+		{
+			PrimaryStats = Other.PrimaryStats;
+			SecondaryStats = Other.SecondaryStats;
+			RareStats = Other.RareStats;
+		}
+
+		SlotIndex = Other.SlotIndex;
+	}
+
 	//sort by item quality, and then by item type
 	bool operator<(const FInventoryItem Other) const 
 	{
-		if (ItemClass == nullptr)
+		if (ItemClass == nullptr && Other.ItemClass != nullptr)
 			return false;
+		if (ItemClass != nullptr && Other.ItemClass == nullptr)
+			return true;
 
 		if (Slot == Other.Slot)
 		{
@@ -1382,4 +1456,47 @@ struct FInventoryItem
 		else
 			return Slot < Other.Slot; 
 	}
+};
+
+UENUM(BlueprintType)
+enum EUseEffect
+{
+	INVENTORYUSE_GRANTXP,
+	INVENTORYUSE_GRANTITEM,
+	INVENTORYUSE_HEALTH,
+	INVENTORYUSE_SHIELD
+};
+
+
+USTRUCT(BlueprintType)
+struct FUseableItem
+{
+	GENERATED_USTRUCT_BODY()
+public:
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Inventory)
+		TEnumAsByte<EUseEffect> Effect;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Inventory)
+		int32 Value;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Inventory)
+		FInventoryItem Item;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Inventory)
+		TSubclassOf<class AOrionBuff> Buff;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Inventory)
+		TEnumAsByte<EItemRarity> Quality;
+};
+
+USTRUCT(BlueprintType)
+struct FEquippedSlot
+{
+	GENERATED_USTRUCT_BODY()
+public:
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Inventory)
+		FInventoryItem Item;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Inventory)
+		FString ClassName;
 };

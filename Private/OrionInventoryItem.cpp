@@ -23,13 +23,13 @@ void UOrionInventoryItem::CalcStats(FDecodeItemInfo &Info)
 		Info.Slot == ITEM_DISPLAYARMOR ||
 		Info.Slot == ITEM_BREAKDOWNABLE ||
 		Info.Slot == ITEM_DISPLAYARMOR)
-		index = 0;
+		index = -1;
 	else
 	{
 		switch (Info.Rarity)
 		{
 		case RARITY_LEGENDARY:
-			index = FMath::RandRange(4, 6);
+			index = FMath::RandRange(2, 3);
 
 			for (; i < RareStats.StatsInfo.Num(); i++)
 			{
@@ -42,7 +42,7 @@ void UOrionInventoryItem::CalcStats(FDecodeItemInfo &Info)
 			break;
 
 		case RARITY_SUPERENHANCED:
-			index = FMath::RandRange(2, 4);
+			index = FMath::RandRange(2, 3);
 			break;
 
 		case RARITY_ENHANCED:
@@ -57,12 +57,15 @@ void UOrionInventoryItem::CalcStats(FDecodeItemInfo &Info)
 	TArray<int32> Primary;
 
 	for (int32 j = 0; j < PRIMARYSTAT_NUM; j++)
-		Primary.AddUnique(j);
+	{
+		if (j != PRIMARYSTAT_VITALITY && j != PRIMARYSTAT_DISCIPLINE)
+			Primary.AddUnique(j);
+	}
 
 	i = 0;
 	//if (PrimaryStats.Num() > 0)
 	//{
-		for (; i < index / 2 && Primary.Num() > 0; i++)
+		for (; i <= index / 3 && Primary.Num() > 0; i++)
 		{
 			int32 RandomIndex = FMath::RandRange(0, Primary.Num() - 1);
 
@@ -81,31 +84,58 @@ void UOrionInventoryItem::CalcStats(FDecodeItemInfo &Info)
 
 	TArray<int32> Secondary;
 
+	bool bOneElemental = false;
+
 	for (int32 j = 0; j < SECONDARYSTAT_NUM; j++)
 	{
+		if (j == SECONDARYSTAT_CORROSIVEDAMAGE || j == SECONDARYSTAT_FIREDAMAGE || j == SECONDARYSTAT_ICEDAMAGE || j == SECONDARYSTAT_LIGHTNINGDAMAGE || j == SECONDARYSTAT_POISONDAMAGE)
+		{
+			if (!bOneElemental && (Info.Slot == ITEM_PRIMARYWEAPON || Info.Slot == ITEM_SECONDARYWEAPON))
+			{
+				bOneElemental = true;
+			}
+			else
+				continue;
+		}
+
 		if (Info.GetMaxSecondaryStatValue(ESecondaryStats(j)) > 0)
 			Secondary.AddUnique(j);
 	}
 
-	//if (SecondaryStats.Num() > 0)
-	//{
-		for (; i < index && Secondary.Num() > 0; i++)
-		{
-			int32 RandomIndex = FMath::RandRange(0, Secondary.Num() - 1);
+	for (; i < index && Secondary.Num() > 0; i++)
+	{
+		int32 RandomIndex = FMath::RandRange(0, Secondary.Num() - 1);
 
-			FSecondaryItemStats StatToAdd;
+		FSecondaryItemStats StatToAdd;
 
-			StatToAdd.StatType = ESecondaryStats(Secondary[RandomIndex]);
-			StatToAdd.MaxValue = Info.GetMaxSecondaryStatValue(ESecondaryStats(StatToAdd.StatType));
-			StatToAdd.MinValue = FMath::Max(1, int32(StatToAdd.MaxValue * 0.7f));
-			StatToAdd.Value = FMath::RandRange(StatToAdd.MinValue, StatToAdd.MaxValue);
+		StatToAdd.StatType = ESecondaryStats(Secondary[RandomIndex]);
+		StatToAdd.MaxValue = Info.GetMaxSecondaryStatValue(ESecondaryStats(StatToAdd.StatType));
+		StatToAdd.MinValue = FMath::Max(1, int32(StatToAdd.MaxValue * 0.7f));
+		StatToAdd.Value = FMath::RandRange(StatToAdd.MinValue, StatToAdd.MaxValue);
 
-			Info.SecondaryStats.Add(StatToAdd);
+		Info.SecondaryStats.Add(StatToAdd);
 
-			Secondary.RemoveAt(RandomIndex);
-		}
-	//}
+		Secondary.RemoveAt(RandomIndex);
+	}
 
-	Info.MainStat = int32(Info.GetRarityMultiplier() * FMath::RandRange(int32(Info.GetMaxStatValue() * 0.7f), Info.GetMaxStatValue()));
+	switch (Info.Slot)
+	{
+	case ITEM_HELMET:
+	case ITEM_CHEST:
+	case ITEM_HANDS:
+	case ITEM_LEGS:
+	case ITEM_BELT:
+	case ITEM_BOOTS:
+	case ITEM_ABILITY:
+	case ITEM_PRIMARYWEAPON:
+	case ITEM_SECONDARYWEAPON:
+	case ITEM_GRENADE:
+	case ITEM_GADGET:
+	case ITEM_KNIFE:
+		Info.MainStat = int32(Info.GetRarityMultiplier() * FMath::RandRange(int32(Info.GetMaxStatValue(true) * 0.9f), Info.GetMaxStatValue(true)));
+		break;
+	default:
+		Info.MainStat = 0;
+	}
 }
 

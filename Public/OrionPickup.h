@@ -43,14 +43,14 @@ public:
 
 	//called from the client or host to grab the item and let the server know it's been grabbed
 	UFUNCTION(BlueprintCallable, Category = Item)
-		void ClientGrabItem();
+		void ClientGrabItem(AOrionPlayerController *PC);
 
-	void GrabItem();
+	void GrabItem(AOrionPlayerController *PC);
 
 	UFUNCTION(reliable, server, WithValidation)
-		void ServerGrabItem();
-		bool ServerGrabItem_Validate();
-		void ServerGrabItem_Implementation();
+		void ServerGrabItem(AOrionPlayerController *PC);
+		bool ServerGrabItem_Validate(AOrionPlayerController *PC);
+		void ServerGrabItem_Implementation(AOrionPlayerController *PC);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SetColor"))
 		void EventSetColor(EItemRarity Rarity);

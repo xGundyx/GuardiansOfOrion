@@ -68,6 +68,10 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
 		TArray< TSubclassOf<class UOrionInventoryItem> > BreakdownClass;
 
+	//useable item helper
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
+		FUseableItem UseableItem;
+
 	//how many items can be stacked
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
 		int32 StackSize;

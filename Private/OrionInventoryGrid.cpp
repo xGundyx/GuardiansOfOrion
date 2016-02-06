@@ -8,6 +8,7 @@ AOrionInventoryGrid::AOrionInventoryGrid(const FObjectInitializer& ObjectInitial
 {
 	bOnlyRelevantToOwner = true;
 	bReplicates = true;
+	bAlwaysRelevant = true;
 }
 
 void AOrionInventoryGrid::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLifetimeProps) const
