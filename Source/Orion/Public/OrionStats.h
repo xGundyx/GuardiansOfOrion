@@ -92,6 +92,11 @@ enum EStatID// : uint8
 	STAT_SILENCEDSMGKILLS,
 	STAT_SILENCEDSMGBULLETSFIRED,
 	STAT_SILENCEDSMGBULLETSHIT,
+	STAT_AUTOSHOTGUNKILLS,
+	STAT_AUTOSHOTGUNBULLETSFIRED,
+	STAT_AUTOSHOTGUNBULLETSHIT,
+
+	STAT_CRAFTITEMS,
 
 	//levels
 	STAT_RELICLOSSES,
@@ -305,7 +310,12 @@ public:
 	UPROPERTY(/*Replicated, */BlueprintReadWrite, Category = Stats)
 		TArray<FPlayerStats> aStats;
 
+
+	UFUNCTION(BlueprintCallable, Category = Stats)
+		void AddCraftStat();
+
 	void AddStatValue(EStatID ID, int32 Value);
+
 	void SetStatValue(EStatID ID, int32 Value);
 
 	UFUNCTION(BlueprintCallable, Category = Stats)

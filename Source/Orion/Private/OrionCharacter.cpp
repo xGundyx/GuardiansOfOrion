@@ -59,6 +59,26 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	//	DefaultHealthBarClass = (UClass*)HealthBarObject.Object->GeneratedClass;
 	//}
 
+	static ConstructorHelpers::FObjectFinder<UBlueprint> FireBuffHelper(TEXT("/Game/Character/Debuffs/FireDamage"));
+	if (FireBuffHelper.Object)
+		FireBuff = (UClass*)FireBuffHelper.Object->GeneratedClass;
+
+	static ConstructorHelpers::FObjectFinder<UBlueprint> IceBuffHelper(TEXT("/Game/Character/Debuffs/IceDamage"));
+	if (IceBuffHelper.Object)
+		IceBuff = (UClass*)IceBuffHelper.Object->GeneratedClass;
+
+	static ConstructorHelpers::FObjectFinder<UBlueprint> LightningBuffHelper(TEXT("/Game/Character/Debuffs/LightningDamage"));
+	if (LightningBuffHelper.Object)
+		LightningBuff = (UClass*)LightningBuffHelper.Object->GeneratedClass;
+
+	static ConstructorHelpers::FObjectFinder<UBlueprint> PoisonBuffHelper(TEXT("/Game/Character/Debuffs/PoisonDamage"));
+	if (PoisonBuffHelper.Object)
+		PoisonBuff = (UClass*)PoisonBuffHelper.Object->GeneratedClass;
+
+	static ConstructorHelpers::FObjectFinder<UBlueprint> CorrosiveBuffHelper(TEXT("/Game/Character/Debuffs/CorrosiveDamage"));
+	if (CorrosiveBuffHelper.Object)
+		CorrosiveBuff = (UClass*)CorrosiveBuffHelper.Object->GeneratedClass;
+
 	static ConstructorHelpers::FObjectFinder<USoundCue> KnifeHit(TEXT("SoundCue'/Game/Weapons/Knife/Sound/KnifeHitCue.KnifeHitCue'"));
 	if (KnifeHit.Object)
 		KnifeHitSound = Cast<USoundCue>(KnifeHit.Object);
@@ -296,6 +316,15 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	bAlwaysRelevant = true;
 
 	bTempAlwaysRotate = false;
+
+	BluntDamageReduction = 0.0f;
+	PiercingDamageReduction = 0.0f;
+	ExplosiveDamageReduction = 0.0f;
+	ElementalDamageReduction = 0.0f;
+	PoisonDamageReduction = 0.0f;
+	DamageReduction = 0.0f;
+
+	SpeedMultiplier = 1.0f;
 }
 
 void AOrionCharacter::OnRep_Spawned()
@@ -347,6 +376,12 @@ void AOrionCharacter::BeginPlay()
 
 	if (Settings)
 		bThirdPersonCamera = Settings->ThirdPersonEnabled;
+
+	bBlinking = false;
+	bFatality = false;
+	bFinishingMove = false;
+	bLatchedOnto = false;
+	bKnockedDown = false;
 }
 
 void AOrionCharacter::OnRep_IsElite()
@@ -530,7 +565,7 @@ void AOrionCharacter::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
 			CamStart += Offset;
 		}
 
-		ThirdPersonAdjust = FMath::Lerp(ThirdPersonAdjust, bFatality ? 4.5f : (bAim ? 1.0f : 1.75f), DeltaTime * 6.0f);
+		ThirdPersonAdjust = FMath::Lerp(ThirdPersonAdjust, bFatality ? 4.5f : (bAim ? 1.0f : 2.5f), DeltaTime * 6.0f);
 
 		OutResult.Location = CamStart - X*CameraOffset.X * ThirdPersonAdjust + CameraOffset.Y*Y + CameraOffset.Z*Z;
 
@@ -1174,6 +1209,8 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME(AOrionCharacter, bThirdPersonCamera);
 	DOREPLIFETIME(AOrionCharacter, bStunned);
 	DOREPLIFETIME_CONDITION(AOrionCharacter, FatalityVictim, COND_SkipOwner);
+	DOREPLIFETIME(AOrionCharacter, bDoubleShield);
+	DOREPLIFETIME(AOrionCharacter, SpeedMultiplier);
 
 	DOREPLIFETIME(AOrionCharacter, bDowned);
 	DOREPLIFETIME(AOrionCharacter, DownedTime);
@@ -1282,6 +1319,13 @@ void AOrionCharacter::Destroyed()
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
 	if (GRI)
 		GRI->RemoveRagdoll(this);
+
+	if (MyHealthBar)
+	{
+		MyHealthBar->ConditionalBeginDestroy();
+		MyHealthBar->RemoveFromParent();
+		MyHealthBar = nullptr;
+	}
 }
 
 void AOrionCharacter::FinishExitingShip()
@@ -1972,16 +2016,16 @@ void AOrionCharacter::Explode(AOrionPlayerController *EventInstigator)
 
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
-		SpawnInfo.Owner = EventInstigator;
+		SpawnInfo.Owner = EventInstigator->GetPawn();// EventInstigator;
 
 		AOrionGrenade *Grenade = GetWorld()->SpawnActor<AOrionGrenade>(EventInstigator->FragGrenadeClass, GetActorLocation(), FRotator::ZeroRotator, SpawnInfo);
 		if (Grenade)
 		{
-			Grenade->GrenadeLife = 0.01f;
+			Grenade->GrenadeLife = 0.5f;
 			Grenade->GrenadeScale = Grenade->ExplosionScale;
 
 			Grenade->Init(FVector(0.0f));
-			Grenade->SetFuseTime(0.01f);
+			Grenade->SetFuseTime(0.5f);
 		}
 	}
 }
@@ -2005,6 +2049,9 @@ bool AOrionCharacter::IsOnFire()
 float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser)
 {
 	UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject());
+
+	if (!DamageType)
+		return 0.0f;
 
 	//take no damage while blinking
 	if (bBlinking)
@@ -2078,6 +2125,8 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	bool bCrit = false;
 	bool bKnockBack = true;
 
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
 	//apply any gear related stats to this damage
 	if (PC)
 	{
@@ -2086,7 +2135,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 		if (EventInstigator)
 		{
-			AOrionCharacter *EnemyPawn = Cast<AOrionCharacter>(EventInstigator);
+			AOrionCharacter *EnemyPawn = Cast<AOrionCharacter>(EventInstigator->GetPawn());
 
 			if (EnemyPawn)
 			{
@@ -2094,7 +2143,12 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 			}
 		}
 
-		Damage = ((1000.0f * EnemyLevel) / 400.0f) * Damage;// *(1.0f + (EnemyLevel / 100.0f));
+		int32 iLevel = 1;
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+		if (GRI)
+			iLevel = GRI->ItemLevel;
+
+		Damage = (/*Damage + */FMath::Pow(LEVELPOWER, iLevel / LEVELINTERVAL) * Damage) / 4.0f;//((1000.0f + EnemyLevel * 12.0f) / 400.0f) * Damage * (1.0f + (EnemyLevel / 200.0f));
 
 		//do we have the dodge bullet legendary?
 		AOrionInventoryManager *Inv = PC->GetInventoryManager();
@@ -2118,11 +2172,18 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 		}
 	}
 
-	if (AttackerPC)
+	AOrionCharacter *AttackerPawn = nullptr;
+	if (EventInstigator)
+		AttackerPawn = Cast<AOrionCharacter>(EventInstigator->GetPawn());
+
+	if (AttackerPC && AttackerPawn)
 	{
-		if (AttackerPC->GetSkillValue(SKILL_FLAMERDAMAGE) && DamageType->WeaponName == "Flamethrower")
+		if (AttackerPawn->GetWeapon()->InstantConfig.WeaponName.ToUpper() == "FLAMETHROWER" && AttackerPC->GetSkillValue(SKILL_FLAMERDAMAGE))// && DamageType->WeaponName == "Flamethrower")
 			Damage *= 1.0f + (AttackerPC->GetSkillValue(SKILL_FLAMERDAMAGE) / 100.0f);
 	}
+
+	if (AttackerPawn && AttackerPawn->bIsHealableMachine)
+		Damage *= 0.1f * FMath::Pow(LEVELPOWER, FMath::Max(1, GRI->ItemLevel - LEVELSYNC) / LEVELINTERVAL);
 
 	if (AttackerPC)
 	{
@@ -2132,19 +2193,41 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 		{
 			Damage *= 1.0f + AttackerPawn->DamageBonus;
 
+			int32 tIndex = 0;
+
+			AOrionPRI *aPRI = Cast<AOrionPRI>(AttackerPC->PlayerState);
+			if (aPRI)
+				tIndex = aPRI->GetTeamIndex();
+
+			AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
 			//adjust weapon damage
 			if (AttackerPC->GetInventoryManager())
 			{
-				if (DamageType->WeaponSlot == 1 && DamageType->bIsKnife)
-					Damage = Damage * AttackerPC->GetInventoryManager()->GetPrimaryWeaponDamage() * 0.1f;
+				if (DamageType->WeaponSlot == 1)// && DamageType->bIsKnife)
+					Damage = Damage * 0.1f * AttackerPC->GetInventoryManager()->GetPrimaryWeaponDamage();  //Damage * AttackerPC->GetInventoryManager()->GetPrimaryWeaponDamage() * 0.05f;
 				else if (DamageType->WeaponSlot == 2)
-					Damage = Damage * AttackerPC->GetInventoryManager()->GetSecondaryWeaponDamage() * 0.1f;
+					Damage = Damage * 0.1f * AttackerPC->GetInventoryManager()->GetSecondaryWeaponDamage();  //Damage * AttackerPC->GetInventoryManager()->GetSecondaryWeaponDamage() * 0.05f;
+				else //for grenades and regen gun and abilities and etc:p
+					Damage = Damage * 0.1f * 
+					(AttackerPC->GetInventoryManager()->GetPrimaryWeaponDamage() +
+					AttackerPC->GetInventoryManager()->GetSecondaryWeaponDamage())
+									/ 2.0f;
+			}
+
+			if (GRI && !GRI->OnSameTeam(aPRI, PRI) && (DamageType->WeaponSlot == 1 || DamageType->WeaponSlot == 2))
+			{
+				if (AttackerPawn->FireDamage > 0.0f) { /*Damage += AttackerPC->GetInventoryManager()->GetLevelScaledValue(AttackerPawn->FireDamage, AttackerPC->ILevel);*/ AddBuff(FireBuff, AttackerPC, tIndex); }
+				if (AttackerPawn->IceDamage > 0.0f) { /*Damage += AttackerPC->GetInventoryManager()->GetLevelScaledValue(AttackerPawn->IceDamage, AttackerPC->ILevel);*/ AddBuff(IceBuff, AttackerPC, tIndex); }
+				if (AttackerPawn->LightningDamage > 0.0f) { /*Damage += AttackerPC->GetInventoryManager()->GetLevelScaledValue(AttackerPawn->LightningDamage, AttackerPC->ILevel);*/ AddBuff(LightningBuff, AttackerPC, tIndex); }
+				if (AttackerPawn->PoisonDamage > 0.0f) { /*Damage += AttackerPC->GetInventoryManager()->GetLevelScaledValue(AttackerPawn->PoisonDamage, AttackerPC->ILevel);*/ AddBuff(PoisonBuff, AttackerPC, tIndex); }
+				if (AttackerPawn->CorrosiveDamage > 0.0f) { /*Damage += AttackerPC->GetInventoryManager()->GetLevelScaledValue(AttackerPawn->CorrosiveDamage, AttackerPC->ILevel);*/ AddBuff(CorrosiveBuff, AttackerPC, tIndex); }
 			}
 
 			//apply crit damage bonuses
 			if (FMath::FRandRange(0.0f, 100.0f) <= AttackerPawn->CriticalHitChance || (AttackerPC->GetSkillValue(SKILL_FLAMEREXTRADAMAGETOBURNING) > 0 && IsOnFire()))
 			{
-				Damage *= 1.0f + AttackerPawn->CriticalHitMultiplier;
+				Damage *= 1.0f + AttackerPawn->CriticalHitMultiplier / 100.0f;
 				bCrit = true;
 			}
 
@@ -2162,7 +2245,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 			//legendary weapon type damage boosts
 			AOrionInventoryManager *Inv = AttackerPC->GetInventoryManager();
-			if (Inv && !DamageType->bIsKnife)
+			if (Inv && !DamageType->bIsKnife && DamageType->DamageType != DAMAGE_ELEMENTAL && (DamageType->WeaponSlot == 1 || DamageType->WeaponSlot == 2))
 			{
 				if (Inv->HasStat(RARESTAT_PISTOLBONUSDAMAGE) && DamageType->WeaponType == WEAPON_PISTOL) Damage *= 1.5f;
 				if (Inv->HasStat(RARESTAT_PROJECTILEDAMAGEBONUS) && DamageType->WeaponType == WEAPON_PROJECTILE) Damage *= 1.5f;
@@ -2170,9 +2253,9 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 				if (Inv->HasStat(RARESTAT_LMGBONUSDAMAGE) && DamageType->WeaponType == WEAPON_LMG) Damage *= 1.5f;
 				if (Inv->HasStat(RARESTAT_SHOTGUNBONUSDAMAGE) && DamageType->WeaponType == WEAPON_SHOTGUN) Damage *= 1.5f;
 				if (Inv->HasStat(RARESTAT_BONUSMELEE) && DamageType->WeaponType == WEAPON_MELEE) Damage *= 1.5f;
-
-				if (Inv->HasStat(RARESTAT_DOUBLEDAMAGENOSHIELD) && Shield <= 0.0f && DamageType->WeaponSlot == 1) Damage *= 2.0f;
 			}
+
+			if (Inv && Inv->HasStat(RARESTAT_DOUBLEDAMAGENOSHIELD) && Shield <= 0.0f) Damage *= 2.0f;
 		}
 	}
 
@@ -2307,8 +2390,13 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 		bool bShield = Shield > 0.0;
 
-		TotalDamage = FMath::Max(0.0f, TotalDamage - Shield);
-		Shield = FMath::Max(0.0f, Shield - ActualDamage);
+		float S = 1.0f;
+
+		if (bDoubleShield)
+			S = 2.0f;
+
+		TotalDamage = FMath::Max(0.0f, TotalDamage - Shield / S);
+		Shield = FMath::Max(0.0f, Shield - ActualDamage / S);
 
 		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
@@ -2344,6 +2432,8 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 				else if (DamageType && DamageType->bGibAll)
 					Damager->AddDamageNumber(OriginalDamage, GetActorLocation(), bCrit);
 				else if (DamageType && DamageType->WeaponName == "Turret")
+					Damager->AddDamageNumber(OriginalDamage, GetActorLocation(), bCrit);
+				else if (DamageType && DamageType->WeaponName == "Flamethrower")
 					Damager->AddDamageNumber(OriginalDamage, GetActorLocation(), bCrit);
 				else
 					Damager->AddDamageNumber(OriginalDamage, RealEvent->HitInfo.ImpactPoint, bCrit);
@@ -2414,7 +2504,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 					AOrionInventoryManager *Inv = AttackerPC->GetInventoryManager();
 					if (Inv)
 					{
-						if (Inv->HasStat(RARESTAT_KILLRELOAD) && DamageType->WeaponSlot == 2) CurrentWeapon->AmmoInClip = CurrentWeapon->GetClipSize();
+						if (AttackerPawn && AttackerPawn->CurrentWeapon && Inv->HasStat(RARESTAT_KILLRELOAD) && DamageType->WeaponSlot == 2) AttackerPawn->CurrentWeapon->AmmoInClip = AttackerPawn->CurrentWeapon->GetClipSize();
 
 						if (Inv->HasStat(RARESTAT_EXPLODEKILLS) && DamageType->WeaponSlot == 1) Explode(AttackerPC);
 					}
@@ -2599,6 +2689,8 @@ bool AOrionCharacter::Die(float KillingDamage, FDamageEvent const& DamageEvent, 
 				PC->GetStats()->AddStatValue(STAT_AUTOPISTOLKILLS, 1);
 			else if (dType->WeaponName.ToUpper() == TEXT("SMG"))
 				PC->GetStats()->AddStatValue(STAT_SMGKILLS, 1);
+			else if (dType->WeaponName.ToUpper() == TEXT("AUTOSHOTGUN"))
+				PC->GetStats()->AddStatValue(STAT_AUTOSHOTGUNKILLS, 1);
 
 			if (dType->WeaponName.ToUpper() == TEXT("FRAGGRENADE"))
 			{
@@ -2790,6 +2882,15 @@ void AOrionCharacter::CreateHealthBar()
 	//EventCreateHealthBar();
 
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
+
+	AOrionPRI *PRI2 = Cast<AOrionPRI>(PC->PlayerState);
+
+	if (!PRI2)
+	{
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, this, &AOrionCharacter::CreateHealthBar, 0.1f, false);
+		return;
+	}
 
 	if (PC)
 		PC->EventCreateHealthBar(this);
@@ -3385,6 +3486,7 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 		Inv = PC->GetInventoryManager();
 
 	DamageBonus = 0.0f;
+	SpeedMultiplier = 1.0f;
 
 	for (auto Itr(Buffs.CreateIterator()); Itr; ++Itr)
 	{
@@ -3400,11 +3502,24 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 		if (Buff->bBlockSight)
 			HiddenLevel = Buff->UpgradeLevel;
 
-		if (Buff->DamageBonus > 0.0f && Inv && Inv->HasStat(Buff->RareStat))
+		AOrionPlayerController *OwnerPC = Cast<AOrionPlayerController>(Buff->ControllerOwner);
+		AOrionInventoryManager *OwnerInv = nullptr;
+
+		if (OwnerPC)
+			OwnerInv = OwnerPC->GetInventoryManager();
+
+		if (Buff->DamageBonus > 0.0f && OwnerInv && OwnerInv->HasStat(Buff->RareStat))
 			DamageBonus += Buff->DamageBonus;
+
+		if (Buff->BuffName == "DoubleShield")
+			bDoubleShield = true;
+		else
+			bDoubleShield = false;
 
 		//check if we need to tick damage or anything
 		Buff->TickTimer -= DeltaSeconds;
+
+		SpeedMultiplier = FMath::Min(SpeedMultiplier, Buff->SpeedMultiplier);
 
 		if (Buff->TickTimer <= 0.0f)
 		{
@@ -3668,7 +3783,19 @@ void AOrionCharacter::HandleKnockedDown()
 		}
 		else if (Knocker && Knocker->IsValidLowLevel())
 		{
+			AOrionAIController *C = Cast<AOrionAIController>(Knocker->Controller);
 			if (Knocker->Health <= 0.0f)
+			{
+				if (Health > 0)
+					EventGetUp();
+
+				//bKnockedDown = false;
+				Knocker = nullptr;
+
+				//reset dino collision
+				GetCapsuleComponent()->SetCollisionResponseToChannel(ECC_GameTraceChannel4, ECR_Block);
+			}
+			else if (C && C->GetEnemy() != this)
 			{
 				if (Health > 0)
 					EventGetUp();
@@ -3868,6 +3995,10 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 		}
 	}
 
+	//hax
+	if (bBlinking && GetWorld()->TimeSeconds - LastTeleportTime > 1.0f)
+		bBlinking = false;
+
 	if (BuffFX)
 		BuffFX->SetWorldRotation(FRotator::ZeroRotator);
 
@@ -3942,7 +4073,7 @@ void AOrionCharacter::UpdateCooldowns(float DeltaTime)
 		//don't recharge grenade energy while smoke is active
 		if (!bIsGrenadeActive)
 		{
-			float Rate = 1.0f + GrenadeRechargeRate * float(PC->GetSkillValue(SKILL_GRENADECOOLDOWN)) / 25.0f;
+			float Rate = 1.0f + (1.0f + GrenadeRechargeRate / 100.0f) * float(PC->GetSkillValue(SKILL_GRENADECOOLDOWN)) / 25.0f;
 			GrenadeCooldown.Energy = FMath::Min(GrenadeCooldown.Energy + DeltaTime * Rate, float(GrenadeCooldown.SecondsToRecharge * (PC->GetSkillValue(SKILL_EXTRAGRENADE) > 0 ? 2 : 1)));
 		}
 
@@ -4763,6 +4894,9 @@ void AOrionCharacter::Blink(FVector dir)
 				}
 				else // teleport failed, need a better way to handle this
 				{
+					//refund our blink energy
+					BlinkCooldown.Energy += 4.5f;
+
 					EndBlink();
 					return;
 				}
@@ -4772,6 +4906,9 @@ void AOrionCharacter::Blink(FVector dir)
 
 		if (BlinkPos.End == FVector(0, 0, 0))
 		{
+			//refund our blink energy
+			BlinkCooldown.Energy += 4.5f;
+
 			EndBlink();
 			return;
 		}
@@ -4781,6 +4918,9 @@ void AOrionCharacter::Blink(FVector dir)
 	}
 	else
 	{
+		//refund our blink energy
+		BlinkCooldown.Energy += 4.5f;
+
 		EndBlink();
 		return;
 	}
@@ -4827,8 +4967,8 @@ void AOrionCharacter::DoBlinkEffect(bool bOn, FVector pos)
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 	if (PC)
 	{
-		PC->SetIgnoreMoveInput(bOn);
-		PC->SetIgnoreLookInput(bOn);
+		//PC->SetIgnoreMoveInput(bOn);
+		//PC->SetIgnoreLookInput(bOn);
 	}
 
 	if (BlinkFX)

@@ -80,6 +80,11 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 	aStats.Add(FPlayerStats(STAT_SILENCEDSMGKILLS, TEXT("SilencedSMGKills")));
 	aStats.Add(FPlayerStats(STAT_SILENCEDSMGBULLETSFIRED, TEXT("SilencedSMGBulletsFired")));
 	aStats.Add(FPlayerStats(STAT_SILENCEDSMGBULLETSHIT, TEXT("SilencedSMGBulletsHit")));
+	aStats.Add(FPlayerStats(STAT_AUTOSHOTGUNKILLS, TEXT("AutoShotgunKills")));
+	aStats.Add(FPlayerStats(STAT_AUTOSHOTGUNBULLETSFIRED, TEXT("AutoShotgunBulletsFired")));
+	aStats.Add(FPlayerStats(STAT_AUTOSHOTGUNBULLETSHIT, TEXT("AutoShotgunBulletsHit")));
+
+	aStats.Add(FPlayerStats(STAT_CRAFTITEMS, TEXT("Crafting")));
 
 	aStats.Add(FPlayerStats(STAT_RELICLOSSES, TEXT("RelicLosses")));
 	aStats.Add(FPlayerStats(STAT_RELICWINS, TEXT("RelicWins")));
@@ -228,6 +233,11 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 	// everyone
 	DOREPLIFETIME_CONDITION(AOrionStats, aStats, COND_OwnerOnly);
 }*/
+
+void AOrionStats::AddCraftStat()
+{
+	AddStatValue(STAT_CRAFTITEMS, 1);
+}
 
 void AOrionStats::ReadPlayerStats(AOrionPlayerController* PC)
 {

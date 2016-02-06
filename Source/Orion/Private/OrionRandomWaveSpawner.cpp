@@ -236,11 +236,11 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], AActor *F
 				NewPawn->Level = Game->GetEnemyItemLevel();
 
 				//setup health based on ilvl
-				NewPawn->HealthMax = NewPawn->HealthMax * NewPawn->Level * 0.1f;
+				NewPawn->HealthMax = NewPawn->HealthMax * FMath::Pow(LEVELPOWER, NewPawn->Level / LEVELINTERVAL) * 0.1f;
 				NewPawn->Health = NewPawn->HealthMax;
 
 				//same for shields (robots only)
-				NewPawn->ShieldMax = NewPawn->ShieldMax * NewPawn->Level * 0.1f;
+				NewPawn->ShieldMax = NewPawn->ShieldMax * FMath::Pow(LEVELPOWER, NewPawn->Level / LEVELINTERVAL) * 0.1f;
 				NewPawn->Shield = NewPawn->ShieldMax;
 			}
 			else if (Game)

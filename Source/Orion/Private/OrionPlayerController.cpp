@@ -116,6 +116,7 @@ void AOrionPlayerController::SetupInputComponent()
 	Super::SetupInputComponent();
 
 	InputComponent->BindAction("OpenInventory", IE_Pressed, this, &AOrionPlayerController::OpenInventory);
+	InputComponent->BindAction("Gamepad_OpenInventory", IE_Pressed, this, &AOrionPlayerController::OpenInventory);
 
 	InputComponent->BindAction("OpenScores", IE_Pressed, this, &AOrionPlayerController::ShowScores);
 	InputComponent->BindAction("OpenScores", IE_Released, this, &AOrionPlayerController::HideScores);
@@ -662,6 +663,9 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 
 	Super::Possess(aPawn);
 
+	SetIgnoreMoveInput(false);
+	SetIgnoreLookInput(false);
+
 	if (Role == ROLE_Authority)
 	{
 		AOrionCharacter *newPawn = Cast<AOrionCharacter>(GetPawn());
@@ -713,7 +717,7 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 
 			////PRI->InventoryManager->EquipItems(newPawn, ITEM_ANY);
 			if (ClassIndex < 0)
-				ClassIndex = FMath::RandRange(0, 2);
+				ClassIndex = FMath::RandRange(0, 4);
 			
 			ChangeClass(ClassIndex);
 
@@ -747,6 +751,7 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 
 			EventServerGetSkillTreeInfo();
 
+			PRI->InventoryManager->UpdateEquippedSlots();
 			PRI->InventoryManager->EquipItems();
 		}
 	}
@@ -922,8 +927,13 @@ void AOrionPlayerController::ClientAddCoinAmount_Implementation(int32 Amount)
 
 void AOrionPlayerController::AddCoinAmount(int32 Amount)
 {
-	EventAddCoinAmount(Amount);
+	if (GetNetMode() == NM_DedicatedServer)
+	{
+		ClientAddCoinAmount(Amount);
+		return;
+	}
 
+	EventAddCoinAmount(Amount);
 }
 
 void AOrionPlayerController::PlaySlowMotionSound_Implementation(float Length)
@@ -1055,6 +1065,31 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 {
 	Super::PlayerTick(DeltaTime);
 
+	/*if (bMenuOpen || Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
+	{
+		FInputModeGameAndUI Data;
+
+		SetInputMode(Data);
+	}
+	else if (!bThirdPersonCamera)
+	{
+		//bShowMouseCursor = true;
+
+		FInputModeGameOnly Data;
+		//Data.SetLockMouseToViewport(true);
+
+		SetInputMode(Data);
+	}
+	else
+	{
+		//bShowMouseCursor = false;
+
+		FInputModeGameOnly Data;
+		//Data.SetLockMouseToViewport(true);
+
+		SetInputMode(Data);
+	}*/
+
 #if !IS_SERVER
 	//UOrionTCPLink::Update();
 	//UClientConnector::Update();
@@ -1183,6 +1218,8 @@ void AOrionPlayerController::SendPlayerInfoToPhoton()
 				Level = CalculateLevel(PRI->ReconXP);
 			else if (GI->CharacterClass == TEXT("TECH"))
 				Level = CalculateLevel(PRI->TechXP);
+			else if (GI->CharacterClass == TEXT("PYRO"))
+				Level = CalculateLevel(PRI->PyroXP);
 
 			FString strLevel = FString::Printf(TEXT("%i"),Level);
 
@@ -1271,16 +1308,21 @@ void AOrionPlayerController::AddXP(int32 Value)
 			Value *= 1.0f;
 			break;
 		case DIFF_HARD:
-			Value *= 1.5f;
+			Value *= 1.25f;
 			break;
 		case DIFF_INSANE:
-			Value *= 2.0f;
+			Value *= 1.5f;
 			break;
 		case DIFF_REDIKULOUS:
-			Value *= 3.0f;
+			Value *= 2.0f;
 			break;
 		}
 	}
+
+	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
+
+	if(Game)
+		Value *= 1.0f + Game->ItemLevel / 300.0f;
 
 	//make sure stats are valid
 	if (!Stats)
@@ -1484,7 +1526,7 @@ AOrionInventoryManager *AOrionPlayerController::GetInventoryManager()
 //this version is for filling out the player's inventory as a non dedicated server, and also for the character select screen
 void AOrionPlayerController::PopulateInventory(TSharedPtr<FJsonObject> Data)
 {
-	AOrionInventoryManager *InvMan = GetInventoryManager();
+	/*AOrionInventoryManager *InvMan = GetInventoryManager();
 
 	if (InvMan)
 	{
@@ -1509,7 +1551,7 @@ void AOrionPlayerController::PopulateInventory(TSharedPtr<FJsonObject> Data)
 		//equip us fully
 		InvMan->EquipItems();
 		EventRedrawInventory();
-	}
+	}*/
 }
 
 FVector2D AOrionPlayerController::GetTextSize(FString str, FSlateFontInfo Font)
@@ -1979,6 +2021,7 @@ TArray<FString> AOrionPlayerController::GetCharacters()
 	Characters.Add(TEXT("SUPPORT"));
 	Characters.Add(TEXT("RECON"));
 	Characters.Add(TEXT("TECH"));
+	Characters.Add(TEXT("PYRO"));
 
 	return Characters;
 }
@@ -2392,10 +2435,10 @@ void AOrionPlayerController::ResetControllerLayout()
 	UOrionGameSettingsManager::RebindKey("Gamepad_Aim", "Gamepad_LeftTrigger", "Button", 1.0f);
 	UOrionGameSettingsManager::RebindKey("Gamepad_Melee", "Gamepad_RightThumbStick", "Button", 1.0f);
 	UOrionGameSettingsManager::RebindKey("Gamepad_ActivateSkill", "Gamepad_LeftShoulder", "Button", 1.0f);
-	UOrionGameSettingsManager::RebindKey("Gamepad_WeaponSlot3", "Gamepad_DPad_Up", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_WeaponSlot3", "Gamepad_DPad_Right", "Button", 1.0f);
 	UOrionGameSettingsManager::RebindKey("Gamepad_LastWeapon", "Gamepad_FaceButton_Top", "Button", 1.0f);
 	UOrionGameSettingsManager::RebindKey("Gamepad_ThrowGrenade", "Gamepad_RightShoulder", "Button", 1.0f);
-	//UOrionGameSettingsManager::RebindKey("Gamepad_OpenInventory", "Gamepad_DPad_Up", "Button", 1.0f);
+	UOrionGameSettingsManager::RebindKey("Gamepad_OpenInventory", "Gamepad_DPad_Left", "Button", 1.0f);
 	UOrionGameSettingsManager::RebindKey("Gamepad_OpenCharacterSelect", "Gamepad_Special_right", "Button", 1.0f);
 	//UOrionGameSettingsManager::RebindKey("Gamepad_OpenSkillTree", "Gamepad_DPad_Right", "Button", 1.0f);
 	UOrionGameSettingsManager::RebindKey("Gamepad_OpenScores", "Gamepad_Special_Left", "Button", 1.0f);
@@ -2476,7 +2519,7 @@ int32 AOrionPlayerController::GetMaxLevel()
 }
 
 //let photon handle this, so players can join and talk before a match actually starts, will allow multiple platforms to mingle
-void AOrionPlayerController::OpenLobby(FString MapName, FString MapDifficulty, FString Gamemode, FString Privacy, FString TOD, FString ItemLevel)
+void AOrionPlayerController::OpenLobby(FString MapName, FString MapDifficulty, FString Gamemode, FString Privacy, FString TOD, FString ItemLevel, FString Region)
 {
 #if !IS_SERVER
 	if (UPhotonProxy::GetListener())
@@ -2496,7 +2539,7 @@ void AOrionPlayerController::OpenLobby(FString MapName, FString MapDifficulty, F
 
 			FString Version = GetBuildVersion();
 
-			UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*MapDifficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), "", "", TCHAR_TO_UTF8(*ChatRoom), TCHAR_TO_UTF8(*Version), "", TCHAR_TO_UTF8(*TOD), TCHAR_TO_UTF8(*ItemLevel));
+			UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*MapDifficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), "", "", TCHAR_TO_UTF8(*ChatRoom), TCHAR_TO_UTF8(*Version), "", TCHAR_TO_UTF8(*TOD), TCHAR_TO_UTF8(*ItemLevel), TCHAR_TO_UTF8(*Region));
 		}
 	}
 #endif
@@ -2789,12 +2832,12 @@ void AOrionPlayerController::JoinChatRoom(FString Room)
 #endif
 }
 
-void AOrionPlayerController::FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket, FString Wave, FString Version, FString RoomName, FString TOD, FString ItemLevel)
+void AOrionPlayerController::FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket, FString Wave, FString Version, FString RoomName, FString TOD, FString ItemLevel, FString Region)
 {
 #if !IS_SERVER
 	if (UPhotonProxy::GetListener())
 	{
-		UPhotonProxy::GetListener()->SetLobbySettings(TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*Difficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), TCHAR_TO_UTF8(*IP), TCHAR_TO_UTF8(*Ticket), TCHAR_TO_UTF8(*Wave), TCHAR_TO_UTF8(*Version), TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*TOD), TCHAR_TO_UTF8(*ItemLevel));
+		UPhotonProxy::GetListener()->SetLobbySettings(TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*Difficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), TCHAR_TO_UTF8(*IP), TCHAR_TO_UTF8(*Ticket), TCHAR_TO_UTF8(*Wave), TCHAR_TO_UTF8(*Version), TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*TOD), TCHAR_TO_UTF8(*ItemLevel), TCHAR_TO_UTF8(*Region));
 	}
 #endif
 }
@@ -3772,7 +3815,7 @@ void AOrionPlayerController::TickPhoton()
 				FString Wave = GRI->WaveNum > 9 ? FString::Printf(TEXT("WAVE %i"), GRI->WaveNum) : FString::Printf(TEXT("WAVE 0%i"), GRI->WaveNum);
 				UPhotonProxy::GetListener()->SetLobbySettings(TCHAR_TO_UTF8(*ServerInfo.MapName), TCHAR_TO_UTF8(*ServerInfo.Difficulty), TCHAR_TO_UTF8(*ServerInfo.GameMode),
 					TCHAR_TO_UTF8(*ServerInfo.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*ServerInfo.LobbyID), TCHAR_TO_UTF8(*Wave), TCHAR_TO_UTF8(*Version),
-					TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*ServerInfo.TOD), TCHAR_TO_UTF8(*ServerInfo.ItemLevel));
+					TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*ServerInfo.TOD), TCHAR_TO_UTF8(*ServerInfo.ItemLevel), TCHAR_TO_UTF8(*ServerInfo.Region));
 			}
 		}
 	}

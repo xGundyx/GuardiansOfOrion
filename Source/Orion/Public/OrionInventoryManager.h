@@ -165,6 +165,7 @@ struct FArrayHelper
 		LegendaryStats.Empty();
 
 		Defense = 0;
+		ItemLevel = 0;
 	}
 };
 
@@ -280,7 +281,16 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		bool SwapItems(AOrionInventoryGrid *theGrid1, int32 index1, AOrionInventoryGrid *theGrid2, int32 index2);
 
-	APlayerController *OwnerController;
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		void ReduceItemCount(TSubclassOf<UOrionInventoryItem> Item, int32 Amount);
+
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		FInventoryItem FillInCraftedStats(FInventoryItem Item, int32 Level);
+
+	UPROPERTY(Replicated)
+		APlayerController *OwnerController;
+
+	int32 GetLevelScaledValue(int32 Value, int32 ItemLevel);
 
 	void UpdateEquippedStats();
 
@@ -303,6 +313,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		bool BreakdownItem(AOrionInventoryGrid *theGrid, int32 index);
 
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		bool UseItem(AOrionInventoryGrid *theGrid, int32 index);
+
 	UFUNCTION(server, reliable, WithValidation, Category = Inventory)
 		void ServerBreakdownItem(AOrionInventoryGrid *theGrid, int32 index);
 		bool ServerBreakdownItem_Validate(AOrionInventoryGrid *theGrid, int32 index) { return true; }
@@ -323,6 +336,11 @@ public:
 		bool ServerSortInventory_Validate() { return true; }
 		void ServerSortInventory_Implementation();
 
+	UFUNCTION(server, reliable, WithValidation, Category = Inventory)
+		void ServerUseItem(AOrionInventoryGrid *theGrid, int32 index);
+		bool ServerUseItem_Validate(AOrionInventoryGrid *theGrid, int32 index) { return true; }
+		void ServerUseItem_Implementation(AOrionInventoryGrid *theGrid, int32 index);
+
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ReadPlayfabInventory"))
 		void EventReadInventoryFromPlayfab();
 
@@ -337,6 +355,9 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ConsumeItem"))
 		void EventConsumeItem(FInventoryItem Item);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "GrantRandomItem"))
+		void EventGrantRandomItem(EItemRarity Quality);
 
 	void SaveInventory();
 
@@ -383,14 +404,27 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		AOrionInventoryGrid *GetGridFromName(FString Slot);
 
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		void UpdateEquippedSlots();
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "PlayUISound"))
+		void EventPlayUISound();
+
+	void SaveEquippedSlots();
+
 	int32 GetPrimaryWeaponDamage();
 	int32 GetSecondaryWeaponDamage();
+
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		bool IsFullyInitialized();
 
 private:
 	bool TryToEquip(AOrionInventoryGrid *theGrid, int32 index);
 	bool TryToUnEquip(AOrionInventoryGrid *theGrid, int32 index);
 
 	FArrayHelper EquippedStats;
+
+	TArray<FEquippedSlot> EquippedSlots;
 
 	//breakdown generic classes
 	TSubclassOf<class UOrionInventoryItem> DefaultWeaponPartsClass;

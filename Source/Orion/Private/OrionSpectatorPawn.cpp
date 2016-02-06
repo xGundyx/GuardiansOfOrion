@@ -285,7 +285,7 @@ void AOrionSpectatorPawn::Say()
 {
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
-	if (PC)
+	if (PC && !PC->bMenuOpen)
 		PC->EventSay();
 }
 
@@ -293,7 +293,7 @@ void AOrionSpectatorPawn::TeamSay()
 {
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
-	if (PC)
+	if (PC && !PC->bMenuOpen)
 		PC->EventTeamSay();
 }
 

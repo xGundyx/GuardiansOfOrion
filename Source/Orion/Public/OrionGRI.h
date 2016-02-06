@@ -176,6 +176,9 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Generator)
 		TEnumAsByte<EGameDifficulty> Difficulty;
 
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Generator)
+		int32 ItemLevel;
+
 	void SetHeaderMessage(FString Title, FString Desc);
 
 	bool AddPlayerToTeam(AOrionPlayerController *PC, int32 TeamIndex);

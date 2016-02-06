@@ -26,6 +26,7 @@ AOrionGRI::AOrionGRI(const FObjectInitializer& ObjectInitializer)
 	bPlayingIdleMovie = false;
 
 	Difficulty = DIFF_MEDIUM;
+	ItemLevel = 1;
 	TimesHarvDowned = 0;
 	TotalLimbsBlownOff = 0;
 	ServerLocation = TEXT("US-EAST");
@@ -133,6 +134,7 @@ void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionGRI, PhotonGUID);
 	DOREPLIFETIME(AOrionGRI, bNightTime);
 	DOREPLIFETIME(AOrionGRI, HarvKills);
+	DOREPLIFETIME(AOrionGRI, ItemLevel);
 }
 
 void AOrionGRI::HandleVictoryDefeat()

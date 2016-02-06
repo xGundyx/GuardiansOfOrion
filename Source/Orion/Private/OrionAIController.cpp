@@ -31,6 +31,8 @@ void AOrionAIController::Possess(APawn* aPawn)
 
 	bFinishedPath = true;
 
+	FatalitySenseTimer = 0.0f;
+
 	if (Cast<UOrionPathFollowingComponent>(GetPathFollowingComponent()))
 		Cast<UOrionPathFollowingComponent>(GetPathFollowingComponent())->Controller = this;
 
@@ -758,6 +760,10 @@ bool AOrionAIController::IsValidTarget(AOrionCharacter *pTarget)
 
 void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 {
+	//don't change target when getting ready to bite someone
+	if (FatalitySenseTimer > 0.0f)
+		return;
+
 	//for damage taken bugs
 	if (SeenPawn == nullptr || !SeenPawn->IsValidLowLevel())
 		return;
@@ -774,6 +780,7 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
 	AOrionCharacter *pPawn = Cast<AOrionCharacter>(SeenPawn);
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
+	//AOrionCharacter *E = Cast<AOrionCharacter>(GetEnemy());
 
 	//if we're inside a blocking volume like smoke, ignore things we see
 	//if (P && P->bIsHiddenFromView)

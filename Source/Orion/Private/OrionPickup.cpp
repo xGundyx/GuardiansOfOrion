@@ -88,7 +88,7 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 
 			if (P)
 			{
-				Chance = P->MagicFind / 100.0f;
+				Chance = 1.0f + P->MagicFind / 100.0f;
 
 				AOrionInventoryManager *I = PC->GetInventoryManager();
 
@@ -100,17 +100,17 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 			}
 		}
 		float RandomChance = FMath::FRand() / Chance;
-		if (RandomChance < 0.05f)
+		if (RandomChance < 0.01f)
 		{
 			Decoder.Rarity = RARITY_LEGENDARY;
 			Decoder.ItemName = Inv->LegendaryName;
 		}
-		else if (RandomChance < 0.15f)
+		else if (RandomChance < 0.1f)
 		{
 			Decoder.Rarity = RARITY_SUPERENHANCED;
 			Decoder.ItemName = Inv->ItemName;
 		}
-		else if (RandomChance < 0.3f)
+		else if (RandomChance < 0.25f)
 		{
 			Decoder.Rarity = RARITY_ENHANCED;
 			Decoder.ItemName = Inv->ItemName;
@@ -188,36 +188,36 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 }
 
 //let the server know!
-void AOrionPickup::ClientGrabItem()
+void AOrionPickup::ClientGrabItem(AOrionPlayerController *PC)
 {
 	if (Role != ROLE_Authority)
-		ServerGrabItem();
+		ServerGrabItem(PC);
 	else
-		GrabItem();
+		GrabItem(PC);
 }
 
-bool AOrionPickup::ServerGrabItem_Validate()
+bool AOrionPickup::ServerGrabItem_Validate(AOrionPlayerController *PC)
 {
 	return true;
 }
 
-void AOrionPickup::ServerGrabItem_Implementation()
+void AOrionPickup::ServerGrabItem_Implementation(AOrionPlayerController *PC)
 {
-	GrabItem();
+	GrabItem(PC);
 }
 
-void AOrionPickup::GrabItem()
+void AOrionPickup::GrabItem(AOrionPlayerController *PC)
 {
 	if (GetOwner() && !Decoder.ItemPath.IsEmpty())
 	{
-		AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetOwner());
+		//AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetOwner());
 		if (PC)
 		{
 			AOrionInventoryManager *InvMan = PC->GetInventoryManager();
 			if (InvMan)
 			{
 				FInventoryItem Item;
-				Item.Amount = 1;
+				Item.Amount = FMath::Max(1, Decoder.Amount);
 				Item.ItemClass = Decoder.ItemClass;
 				Item.PrimaryStats = Decoder.PrimaryStats;
 				Item.SecondaryStats = Decoder.SecondaryStats;

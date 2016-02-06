@@ -228,6 +228,7 @@ float UOrionMovementComponent::GetMaxSpeed() const
 	float SpeedMod = Super::GetMaxSpeed();
 
 	AOrionCharacter* OrionCharacterOwner = Cast<AOrionCharacter>(PawnOwner);
+	AOrionDinoPawn* Dino = Cast<AOrionDinoPawn>(PawnOwner);
 
 	if (OrionCharacterOwner)
 	{
@@ -246,9 +247,14 @@ float UOrionMovementComponent::GetMaxSpeed() const
 
 		if (OrionCharacterOwner->HasOrbEffect(ORB_SPEED))
 			SpeedMod *= 1.5f;
+
+		if (!PC)
+			SpeedMod *= OrionCharacterOwner->SpeedMultiplier;
 	}
 
-	if (OrionCharacterOwner)
+	if (Dino && Dino->DinoName == "TRex" && Dino->bFinishingMove)
+		SpeedMod = 0.0f;
+	else if (OrionCharacterOwner)
 	{
 		if (OrionCharacterOwner->bStunned)
 			SpeedMod = 0.0f;

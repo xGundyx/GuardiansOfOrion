@@ -297,7 +297,7 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 	AOrionDinoPawn *DeadDino = Cast<AOrionDinoPawn>(KilledPawn);
 	AOrionDroidPawn *DeadDroid = Cast<AOrionDroidPawn>(KilledPawn);
 
-	//when a downed player gets a kill, give them %20 life for small dinos, and full revive for large dinos
+	//when a downed player gets a kill, give them %40 life for small dinos, and full revive for large dinos
 	if (PC && (DeadDino || DeadDroid))
 	{
 		AOrionCharacter *Pawn = Cast<AOrionCharacter>(PC->GetPawn());
@@ -415,7 +415,9 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 	AOrionCharacter *Dino = Cast<AOrionCharacter>(KilledPawn);
 	if (Dino)
 	{
-		SpawnItems(Killer, Dino, DamageType);
+		//harv kills grant no items
+		if (PC)
+			SpawnItems(Killer, Dino, DamageType);
 
 		int32 XP = Dino->ExpValue * 2;
 
@@ -669,7 +671,25 @@ void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FS
 
 	FString GearLevel = UGameplayStatics::ParseOption(Options, TEXT("GearLevel"));
 
-	ItemLevel = FCString::Atoi(*GearLevel);
+	ItemLevel = FMath::Max(1, FCString::Atoi(*GearLevel));
+
+	//cap item level based on difficulty
+	switch (Difficulty)
+	{
+	case DIFF_EASY:
+	case DIFF_MEDIUM:
+		ItemLevel = FMath::Clamp(ItemLevel, 1, 400);
+		break;
+	case DIFF_HARD:
+		ItemLevel = FMath::Clamp(ItemLevel, 100, 400);
+		break;
+	case DIFF_INSANE:
+		ItemLevel = FMath::Clamp(ItemLevel, 200, 500);
+		break;
+	case DIFF_REDIKULOUS:
+		ItemLevel = FMath::Clamp(ItemLevel, 300, 600);
+		break;
+	}
 
 	FString TOD = UGameplayStatics::ParseOption(Options, TEXT("TOD"));
 	bNightTime = TOD.ToUpper().Equals(TEXT("NIGHT"));
@@ -710,6 +730,7 @@ void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FS
 	ServerInfo.LobbyID = LobbyID;
 	ServerInfo.GameMode = GetGameName();
 	ServerInfo.ItemLevel = FString::Printf(TEXT("%i"), ItemLevel);
+	ServerInfo.Region = UGameplayStatics::ParseOption(Options, TEXT("Region"));
 
 	//if (GRI)
 	//	GRI->PhotonGUID = LobbyID;
@@ -762,7 +783,7 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 		else if (Difficulty == DIFF_HARD)
 			Damage *= 0.9f;
 		else if (Difficulty == DIFF_INSANE)
-			Damage *= 0.8f;
+			Damage *= 0.7f;
 		else if (Difficulty == DIFF_REDIKULOUS)
 			Damage *= 0.5f;
 	}
@@ -818,6 +839,8 @@ APlayerController* AOrionGameMode::Login(UPlayer* NewPlayer, ENetRole RemoteRole
 	if (GRI)
 	{
 		GRI->Difficulty = Difficulty;
+		GRI->ItemLevel = ItemLevel;
+		GRI->ServerLocation = ServerInfo.Region;
 #if IS_SERVER
 		GRI->bStatsEnabled = true;
 #else
@@ -1043,13 +1066,13 @@ int32 AOrionGameMode::GetEnemyItemLevel()
 		iLvl = FMath::Clamp(ItemLevel, 1, 400);
 		break;
 	case DIFF_HARD:
-		iLvl = FMath::Clamp(ItemLevel, 50, 500);
+		iLvl = FMath::Clamp(ItemLevel, 100, 500);
 		break;
 	case DIFF_INSANE:
-		iLvl = FMath::Clamp(ItemLevel, 100, 550);
+		iLvl = FMath::Clamp(ItemLevel, 200, 550);
 		break;
 	case DIFF_REDIKULOUS:
-		iLvl = FMath::Clamp(ItemLevel, 150, 600);
+		iLvl = FMath::Clamp(ItemLevel, 300, 600);
 		break;
 	}
 
@@ -1074,14 +1097,29 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 				continue;
 
 			//add some chance based dropping, so not every kill drops stufff
-			float DropChance = 0.1f;
+			float DropChance = 0.04f;
+
+			switch (Difficulty)
+			{
+			case DIFF_HARD:
+				DropChance = 0.05f;
+				break;
+			case DIFF_INSANE:
+				DropChance = 0.06f;
+				break;
+			case DIFF_REDIKULOUS:
+				DropChance = 0.07f;
+				break;
+			}
+
+			DropChance /= 1.5f;
 
 			bool bCraftingMat = false;
 
 			if (FMath::FRand() > DropChance)
 			{
 				//drop some generic crafting mats instead
-				if (FMath::FRand() < 0.15f)
+				if (FMath::FRand() < 0.1f)
 				{
 					bCraftingMat = true;
 				}
@@ -1101,23 +1139,30 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 				{
 					int32 Level = 0;
 
-					switch (Difficulty)
+					if (IsSlaughter())
 					{
-					case DIFF_EASY:
-						Level = 50 + 10 * FMath::RandRange(0, 1);
-						break;
-					case DIFF_MEDIUM:
-						Level = 60 + 10 * FMath::RandRange(0, 2);
-						break;
-					case DIFF_HARD:
-						Level = 80 + 10 * FMath::RandRange(0, 4);
-						break;
-					case DIFF_INSANE:
-						Level = 150 + 10 * FMath::RandRange(0, 5);
-						break;
-					case DIFF_REDIKULOUS:
-						Level = 200 + 10 * FMath::RandRange(0, 5);
-						break;
+						Level = FMath::Min(FMath::Max(10, ItemLevel - 10) + 10 * FMath::RandRange(0, 2), 450);
+					}
+					else
+					{
+						switch (Difficulty)
+						{
+						case DIFF_EASY:
+							Level = FMath::Min(FMath::Max(10, ItemLevel - 10) + 10 * FMath::RandRange(0, 3), 400);
+							break;
+						case DIFF_MEDIUM:
+							Level = FMath::Min(FMath::Max(10, ItemLevel - 10) + 10 * FMath::RandRange(0, 3), 400);
+							break;
+						case DIFF_HARD:
+							Level = FMath::Min(FMath::Max(10, ItemLevel - 10) + 10 * FMath::RandRange(0, 4), 400);
+							break;
+						case DIFF_INSANE:
+							Level = FMath::Min(FMath::Max(10, ItemLevel) + 10 * FMath::RandRange(0, 3), 500);
+							break;
+						case DIFF_REDIKULOUS:
+							Level = FMath::Min(FMath::Max(10, ItemLevel) + 10 * FMath::RandRange(1, 4), 600);
+							break;
+						}
 					}
 
 					if (bCraftingMat)
@@ -1269,7 +1314,7 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 						break;
 					}
 
-					Pickup->CoinAmount = FMath::RandRange(MinAmount, MaxAmount);
+					Pickup->CoinAmount = FMath::RandRange(MinAmount, MaxAmount) * ItemLevel / 100;
 					Pickup->bOnlyRelevantToOwner = true;
 				}
 			}

@@ -1477,7 +1477,8 @@ void AOrionWeapon::DealDamage(const FHitResult& Impact, const FVector& ShootDir)
 	////PointDmg.Params.OuterRadius = 25.0f;
 	////PointDmg.Origin = Impact.Location;
 
-	Impact.GetActor()->TakeDamage(InstantConfig.HitDamage + Variance, PointDmg, MyPawn->Controller, this);
+	if (MyPawn)
+		Impact.GetActor()->TakeDamage(InstantConfig.HitDamage + Variance, PointDmg, MyPawn->Controller, this);
 }
 
 bool AOrionWeapon::ServerNotifyMiss_Validate(FVector ShootDir, int32 RandomSeed, float ReticleSpread)
@@ -1618,8 +1619,8 @@ void AOrionWeapon::InitMaterials()
 	if (Mesh1P) Mesh1P->OverrideMaterials.Empty();
 	if (Mesh3P) Mesh3P->OverrideMaterials.Empty();
 
-	if (Mesh1P) WeaponMats[0] = UMaterialInstanceDynamic::Create(Mesh1P->GetMaterial(0), this); if (WeaponMats[0]) Mesh1P->SetMaterial(0, WeaponMats[0]);
-	if (Mesh3P) WeaponMats[1] = UMaterialInstanceDynamic::Create(Mesh3P->GetMaterial(0), this); if (WeaponMats[1]) Mesh3P->SetMaterial(0, WeaponMats[1]);
+	if (Mesh1P) WeaponMats[0] = UMaterialInstanceDynamic::Create(Mesh1P->GetMaterial(0), this); if (Mesh1P && WeaponMats[0]) Mesh1P->SetMaterial(0, WeaponMats[0]);
+	if (Mesh3P) WeaponMats[1] = UMaterialInstanceDynamic::Create(Mesh3P->GetMaterial(0), this); if (Mesh3P && WeaponMats[1]) Mesh3P->SetMaterial(0, WeaponMats[1]);
 
 	if (Mesh1P) Mesh1P->SetTranslucentSortPriority(2);
 	if (Mesh3P) Mesh3P->SetTranslucentSortPriority(2);
