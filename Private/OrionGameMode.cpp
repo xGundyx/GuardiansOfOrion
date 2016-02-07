@@ -1321,3 +1321,9 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 		}
 	}
 }
+
+/*void AOrionGameMode::AutoLoot()
+{
+	//cycle through the loot and dish it out to the players
+
+}*/

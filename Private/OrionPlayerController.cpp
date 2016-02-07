@@ -139,6 +139,9 @@ void AOrionPlayerController::SetupInputComponent()
 	//camera mode change
 	InputComponent->BindAction("ToggleCamera", IE_Pressed, this, &AOrionPlayerController::ToggleThirdPerson);
 	InputComponent->BindAction("Gamepad_ToggleCamera", IE_Pressed, this, &AOrionPlayerController::ToggleThirdPerson);
+
+	//readyup, controller holds reload to trigger
+	InputComponent->BindAction("ReadyUp", IE_Pressed, this, &AOrionPlayerController::ReadyUp);
 }
 
 void AOrionPlayerController::ShowCharacterSelect()
@@ -415,6 +418,34 @@ void AOrionPlayerController::GetPlayerViewPoint(FVector& OutCamLoc, FRotator& Ou
 	}
 }
 
+void AOrionPlayerController::ReadyUp()
+{
+	//only do this if game is in readyup mode
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
+	if (!GRI || !GRI->bReadyingUp)
+		return;
+
+	if (Role < ROLE_Authority)
+	{
+		ServerSetReady();
+		return;
+	}
+
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+	if (PRI)
+		PRI->bReady = !PRI->bReady;
+
+	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
+
+	if (Game)
+		Game->PlayerIsReady(this);
+}
+
+void AOrionPlayerController::ServerSetReady_Implementation()
+{
+	ReadyUp();
+}
+
 void AOrionPlayerController::Destroyed()
 {
 #if IS_SERVER
@@ -639,6 +670,9 @@ void AOrionPlayerController::ClientSetLastCharacterID_Implementation(const FStri
 	}
 
 	EventSetLastCharacterID();
+
+	SetIgnoreMoveInput(false);
+	SetIgnoreLookInput(false);
 }
 
 //call this re-init inputs
@@ -2049,7 +2083,12 @@ TArray<FString> AOrionPlayerController::GetPrivacySettings()
 
 FString AOrionPlayerController::GetBuildVersion()
 {
-	return TEXT("EA1.2.0");
+	return TEXT("EA1.2.1");
+}
+
+FString AOrionPlayerController::GetReadyButtonKeyboard()
+{
+	return UOrionGameSettingsManager::GetKeyForAction("ReadyUp", false, 0.0f);
 }
 
 FString AOrionPlayerController::GetReviveButtonKeyboard()
@@ -2288,6 +2327,12 @@ TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
 	NewOption.Title = TEXT("TOGGLE CAMERA VIEW");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("ToggleCamera", false, 0.0f);
 	NewOption.Action = TEXT("ToggleCamera");
+	NewOption.Scale = 0.0f;
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("READY UP");
+	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("ReadyUp", false, 0.0f);
+	NewOption.Action = TEXT("ReadyUp");
 	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 

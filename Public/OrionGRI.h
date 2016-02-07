@@ -179,6 +179,9 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Generator)
 		int32 ItemLevel;
 
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = GRI)
+		bool bReadyingUp;
+
 	void SetHeaderMessage(FString Title, FString Desc);
 
 	bool AddPlayerToTeam(AOrionPlayerController *PC, int32 TeamIndex);

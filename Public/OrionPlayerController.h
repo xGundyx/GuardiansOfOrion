@@ -360,6 +360,17 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ToggleSkillTree"))
 		void EventOpenSkillTree();
 
+	//UPROPERTY(BlueprintReadWrite, Category = Ready)
+	//	float ReadyTimer;
+
+	UFUNCTION(BlueprintCallable, Category = Ready)
+		void ReadyUp();
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerSetReady();
+		bool ServerSetReady_Validate() { return true; }
+		void ServerSetReady_Implementation();
+
 	//
 	UFUNCTION(exec)
 		void SpawnSkeletalActor(FName Type, int32 Index);
@@ -692,6 +703,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
 		void LeaveLobby();
+
+	UFUNCTION(BlueprintCallable, Category = Button)
+		FString GetReadyButtonKeyboard();
 
 	UFUNCTION(BlueprintCallable, Category = Button)
 		FString GetReviveButtonKeyboard();

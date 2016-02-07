@@ -1313,7 +1313,6 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 
 void AOrionCharacter::Destroyed()
 {
-	Super::Destroyed();
 	////DestroyInventory();
 
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
@@ -1326,6 +1325,21 @@ void AOrionCharacter::Destroyed()
 		MyHealthBar->RemoveFromParent();
 		MyHealthBar = nullptr;
 	}
+
+	//remove ability and weapons
+	if (CurrentSkill)
+	{
+		CurrentSkill->Destroy();
+		CurrentSkill = nullptr;
+	}
+
+	if (CurrentWeapon)
+	{
+		CurrentWeapon->Destroy();
+		CurrentWeapon = nullptr;
+	}
+
+	Super::Destroyed();
 }
 
 void AOrionCharacter::FinishExitingShip()
