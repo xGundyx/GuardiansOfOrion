@@ -96,11 +96,19 @@ void AOrionAbility::TriggerTarget(AOrionCharacter *Pawn)
 
 	if (PC)
 	{
-		FHitResult Hit;
+		/*FHitResult Hit;
 
-		PC->GetHitResultUnderCursor(ECC_Visibility, false, Hit);
+		if (PC->bThirdPersonCamera)
+		{
+			FVector vStart = Pawn->GetActorLocation() + FVector(0.0f, 0.0f, 150.0f);
+			FVector vEnd = Pawn->GetActorLocation() - FVector(0.0f, 0.0f, 150.0f);
 
-		if (Cast<ALandscape>(Hit.GetActor()))
+			
+		}
+		else
+			PC->GetHitResultUnderCursor(ECC_Visibility, false, Hit);
+
+		if (Cast<ALandscape>(Hit.GetActor()))*/
 		{
 			if((GetActorLocation() - Pawn->GetActorLocation()).Size2D() > 700.0f)
 				return;
@@ -116,7 +124,7 @@ void AOrionAbility::TriggerTarget(AOrionCharacter *Pawn)
 
 			bool bSuccess = false;
 
-			if (GWorld->LineTraceMultiByChannel(Results, GetActorLocation() + FVector(0, 0, 25.0f), GetActorLocation() - FVector(0, 0, 25.0f), ECollisionChannel::ECC_Visibility, TraceParams))
+			if (GWorld->SweepMultiByChannel(Results, GetActorLocation() + FVector(0, 0, 25.0f), GetActorLocation() - FVector(0, 0, 50.0f), FQuat::Identity, ECollisionChannel::ECC_Visibility, FCollisionShape::MakeSphere(5), TraceParams))
 			{
 				for (int32 j = 0; j < Results.Num(); j++)
 				{

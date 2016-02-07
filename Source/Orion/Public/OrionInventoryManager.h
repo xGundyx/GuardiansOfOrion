@@ -149,6 +149,8 @@ struct FArrayHelper
 	int32 Defense;
 	int32 ItemLevel;
 
+	bool bAllLegendary;
+
 	FArrayHelper()
 	{
 		Reset();
@@ -166,6 +168,7 @@ struct FArrayHelper
 
 		Defense = 0;
 		ItemLevel = 0;
+		bAllLegendary = false;
 	}
 };
 

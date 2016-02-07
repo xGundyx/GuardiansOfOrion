@@ -9,6 +9,7 @@ AOrionPRI::AOrionPRI(const FObjectInitializer& ObjectInitializer)
 	Kills = 0;
 	Assists = 0;
 	Deaths = 0;
+	bReady = false;
 }
 
 void AOrionPRI::SeamlessTravelTo(APlayerState * NewPlayerState)
@@ -385,6 +386,7 @@ void AOrionPRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionPRI, TeamIndex);
 	DOREPLIFETIME(AOrionPRI, ControlledPawn);
 	DOREPLIFETIME(AOrionPRI, HUDStatus);
+	DOREPLIFETIME(AOrionPRI, bReady);
 
 	//playfab ids and stuff
 	DOREPLIFETIME(AOrionPRI, PlayFabID);

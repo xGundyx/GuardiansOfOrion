@@ -1350,6 +1350,8 @@ void AOrionInventoryManager::UpdateEquippedStats()
 {
 	EquippedStats.Reset();
 
+	EquippedStats.bAllLegendary = true;
+
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetOwner());
 
 	if (!PC)
@@ -1368,6 +1370,12 @@ void AOrionInventoryManager::UpdateEquippedStats()
 	GetStatsFromSlot(GrenadeSlot, EquippedStats);
 	GetStatsFromSlot(KnifeSlot, EquippedStats);
 	GetStatsFromSlot(AbilitySlot, EquippedStats);
+
+	if (PC && Role == ROLE_Authority && EquippedStats.bAllLegendary)
+	{
+		if (PC->GetAchievements())
+			PC->GetAchievements()->UnlockAchievement(ACH_600MAN, PC);
+	}
 }
 
 TArray<FCharacterStatEntry> AOrionInventoryManager::GetEquippedStats()
@@ -1482,6 +1490,9 @@ void AOrionInventoryManager::GetStatsFromSlot(AOrionInventoryGrid *Slot, FArrayH
 		if (Item.Slot != ITEM_SHADER && Item.Slot != ITEM_DISPLAYARMOR)
 			Stats.ItemLevel += Item.ItemLevel;
 	}
+
+	if (Item.Rarity != RARITY_LEGENDARY || Item.ItemLevel < 600)
+		Stats.bAllLegendary = false;
 }
 
 bool AOrionInventoryManager::CraftItem(FInventoryItem ItemToCraft, TArray<FInventoryHelper> ItemsToRemove)

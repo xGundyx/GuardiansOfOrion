@@ -62,6 +62,8 @@ public:
 	int32 ExitCounter;
 	FTimerHandle ExitTimer;
 
+	virtual void PlayerIsReady(AOrionPlayerController *PC) {}
+
 	enum EStatID GetStatID(AController *KilledController, bool bVictim);
 	void HandleStats(AController* Killer, AController* KilledPlayer, APawn* KilledPawn, const UDamageType* DamageType);
 

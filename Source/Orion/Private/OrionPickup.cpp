@@ -100,7 +100,7 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 			}
 		}
 		float RandomChance = FMath::FRand() / Chance;
-		if (RandomChance < 0.01f)
+		if (RandomChance < 0.02f)
 		{
 			Decoder.Rarity = RARITY_LEGENDARY;
 			Decoder.ItemName = Inv->LegendaryName;
