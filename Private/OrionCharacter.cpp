@@ -735,6 +735,18 @@ void AOrionCharacter::PlayHarvesterVoice(EVoiceType Type)
 	if (GetWorld()->TimeSeconds - LastVoiceTime < 4.0f)
 		return;
 
+	//convert from harv speak to normal speak
+	if (Type == VOICE_TAKINGDAMAGE)
+		Type = EVoiceType(0);
+	else if (Type == VOICE_WOUNDED)
+		Type = EVoiceType(1);
+	else if (Type == VOICE_REVIVE)
+		Type = EVoiceType(2);
+	else if (Type == VOICE_REQUESTBACKUP)
+		Type = EVoiceType(3);
+	else if (Type == VOICE_BOSSKILL)
+		Type = EVoiceType(4);
+
 	VoiceRep.Type = Type;
 	VoiceRep.bToggle = !VoiceRep.bToggle;
 
@@ -2037,6 +2049,7 @@ void AOrionCharacter::Explode(AOrionPlayerController *EventInstigator)
 		{
 			Grenade->GrenadeLife = 0.5f;
 			Grenade->GrenadeScale = Grenade->ExplosionScale;
+			Grenade->bIsMiniGrenade = true;
 
 			Grenade->Init(FVector(0.0f));
 			Grenade->SetFuseTime(0.5f);

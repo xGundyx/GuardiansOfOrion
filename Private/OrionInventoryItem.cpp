@@ -58,7 +58,7 @@ void UOrionInventoryItem::CalcStats(FDecodeItemInfo &Info)
 
 	for (int32 j = 0; j < PRIMARYSTAT_NUM; j++)
 	{
-		if (j != PRIMARYSTAT_VITALITY && j != PRIMARYSTAT_DISCIPLINE)
+		//if (j != PRIMARYSTAT_VITALITY && j != PRIMARYSTAT_DISCIPLINE)
 			Primary.AddUnique(j);
 	}
 

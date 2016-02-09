@@ -135,6 +135,8 @@ void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionGRI, bNightTime);
 	DOREPLIFETIME(AOrionGRI, HarvKills);
 	DOREPLIFETIME(AOrionGRI, ItemLevel);
+	DOREPLIFETIME(AOrionGRI, OrionGameMode);
+	DOREPLIFETIME(AOrionGRI, bReadyingUp);
 }
 
 void AOrionGRI::HandleVictoryDefeat()

@@ -592,7 +592,10 @@ FInventoryItem AOrionInventoryManager::FillInCraftedStats(FInventoryItem Item, i
 		Item.Slot == ITEM_DISPLAYARMOR ||
 		Item.Slot == ITEM_BREAKDOWNABLE ||
 		Item.Slot == ITEM_DISPLAYARMOR)
+	{
+		Item.ItemLevel = 0;
 		index = 0;
+	}
 	else
 	{
 		switch (Item.Rarity)
@@ -626,7 +629,10 @@ FInventoryItem AOrionInventoryManager::FillInCraftedStats(FInventoryItem Item, i
 	TArray<int32> Primary;
 
 	for (int32 j = 0; j < PRIMARYSTAT_NUM; j++)
-		Primary.AddUnique(j);
+	{
+		//if (j != PRIMARYSTAT_VITALITY && j != PRIMARYSTAT_DISCIPLINE)
+			Primary.AddUnique(j);
+	}
 
 	i = 0;
 	//if (PrimaryStats.Num() > 0)
@@ -697,7 +703,7 @@ FInventoryItem AOrionInventoryManager::FillInCraftedStats(FInventoryItem Item, i
 	case ITEM_GRENADE:
 	case ITEM_KNIFE:
 	case ITEM_GADGET:
-		Item.MainStat = int32(Decoder.GetRarityMultiplier() * FMath::RandRange(int32(Decoder.GetMaxStatValue() * 0.9f), Decoder.GetMaxStatValue()));
+		Item.MainStat = int32(Decoder.GetRarityMultiplier() * FMath::RandRange(int32(Decoder.GetMaxStatValue(true) * 0.9f), Decoder.GetMaxStatValue(true)));
 		break;
 	default:
 		Item.MainStat = 0;
@@ -2053,9 +2059,9 @@ EPrimaryStats AOrionInventoryManager::GetPrimaryStat(FString StatName)
 	else if (StatName == "INTELLIGENCE")
 		return PRIMARYSTAT_INTELLIGENCE;
 	else if (StatName == "DISCIPLINE")
-		return PRIMARYSTAT_DISCIPLINE;
+		return PRIMARYSTAT_STRENGTH;
 	else if (StatName == "VITALITY")
-		return PRIMARYSTAT_VITALITY;
+		return PRIMARYSTAT_STRENGTH;
 
 	return PRIMARYSTAT_NUM;
 }
@@ -2116,12 +2122,12 @@ FString AOrionInventoryManager::GetPrimaryStatName(EPrimaryStats Stat)
 	case PRIMARYSTAT_INTELLIGENCE:
 		return "INTELLIGENCE";
 		break;
-	case PRIMARYSTAT_DISCIPLINE:
-		return "DISCIPLINE";
-		break;
-	case PRIMARYSTAT_VITALITY:
-		return "VITALITY";
-		break;
+	//case PRIMARYSTAT_DISCIPLINE:
+	//	return "DISCIPLINE";
+	//	break;
+	//case PRIMARYSTAT_VITALITY:
+	//	return "VITALITY";
+	//	break;
 	}
 
 	return "ERROR";
