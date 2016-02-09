@@ -46,7 +46,7 @@ void AOrionHUD::DrawHUD()
 		Canvas->DrawItem(LoadItem);
 	}
 
-	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetOwningPlayerController());
+	/*AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetOwningPlayerController());
 
 	if (PC && (!PC->bThirdPersonCamera || PC->bToggleHUD || PC->OverviewCamera))
 		return;
@@ -69,6 +69,6 @@ void AOrionHUD::DrawHUD()
 	// draw the crosshair
 	FCanvasTileItem TileItem( CrosshairDrawPosition, CrosshairTex->Resource, FLinearColor::White);
 	TileItem.BlendMode = SE_BLEND_Translucent;
-	Canvas->DrawItem( TileItem );
+	Canvas->DrawItem( TileItem );*/
 }
 

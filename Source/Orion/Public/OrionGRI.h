@@ -174,6 +174,9 @@ public:
 		bool bStatsEnabled;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Generator)
+		FString OrionGameMode;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Generator)
 		TEnumAsByte<EGameDifficulty> Difficulty;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Generator)

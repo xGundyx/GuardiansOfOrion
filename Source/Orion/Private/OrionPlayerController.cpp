@@ -141,7 +141,7 @@ void AOrionPlayerController::SetupInputComponent()
 	InputComponent->BindAction("Gamepad_ToggleCamera", IE_Pressed, this, &AOrionPlayerController::ToggleThirdPerson);
 
 	//readyup, controller holds reload to trigger
-	InputComponent->BindAction("ReadyUp", IE_Pressed, this, &AOrionPlayerController::ReadyUp);
+	//InputComponent->BindAction("ReadyUp", IE_Pressed, this, &AOrionPlayerController::ReadyUp);
 }
 
 void AOrionPlayerController::ShowCharacterSelect()
@@ -418,22 +418,25 @@ void AOrionPlayerController::GetPlayerViewPoint(FVector& OutCamLoc, FRotator& Ou
 	}
 }
 
-void AOrionPlayerController::ReadyUp()
+void AOrionPlayerController::ReadyUp(bool bPlayerIsReady)
 {
 	//only do this if game is in readyup mode
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
 	if (!GRI || !GRI->bReadyingUp)
 		return;
 
-	if (Role < ROLE_Authority)
-	{
-		ServerSetReady();
-		return;
-	}
-
 	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
 	if (PRI)
 		PRI->bReady = !PRI->bReady;
+
+	if (Role < ROLE_Authority)
+	{
+		ServerSetReady(PRI->bReady);
+		return;
+	}
+
+	if (!IsLocalController() && PRI)
+		PRI->bReady = bPlayerIsReady;
 
 	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
 
@@ -441,9 +444,9 @@ void AOrionPlayerController::ReadyUp()
 		Game->PlayerIsReady(this);
 }
 
-void AOrionPlayerController::ServerSetReady_Implementation()
+void AOrionPlayerController::ServerSetReady_Implementation(bool bPlayerIsReady)
 {
-	ReadyUp();
+	ReadyUp(bPlayerIsReady);
 }
 
 void AOrionPlayerController::Destroyed()
@@ -2042,6 +2045,7 @@ TArray<FString> AOrionPlayerController::GetMaps()
 	Maps.Add(TEXT("GOO-OUTBACK"));
 	Maps.Add(TEXT("GOO-ARID"));
 	Maps.Add(TEXT("GOO-SUMMIT"));
+	Maps.Add(TEXT("GOO-WHITEOUT"));
 
 	return Maps;
 }
@@ -2330,11 +2334,11 @@ TArray<FKeyboardOptionsData> AOrionPlayerController::GetKeyboardOptions()
 	NewOption.Scale = 0.0f;
 	Options.Add(NewOption);
 
-	NewOption.Title = TEXT("READY UP");
+	/*NewOption.Title = TEXT("READY UP");
 	NewOption.Key = UOrionGameSettingsManager::GetKeyForAction("ReadyUp", false, 0.0f);
 	NewOption.Action = TEXT("ReadyUp");
 	NewOption.Scale = 0.0f;
-	Options.Add(NewOption);
+	Options.Add(NewOption);*/
 
 	return Options;
 }

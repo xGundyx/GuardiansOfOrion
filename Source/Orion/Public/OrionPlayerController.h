@@ -364,12 +364,12 @@ public:
 	//	float ReadyTimer;
 
 	UFUNCTION(BlueprintCallable, Category = Ready)
-		void ReadyUp();
+		void ReadyUp(bool bPlayerIsReady);
 
 	UFUNCTION(Reliable, server, WithValidation)
-		void ServerSetReady();
-		bool ServerSetReady_Validate() { return true; }
-		void ServerSetReady_Implementation();
+		void ServerSetReady(bool bPlayerIsReady);
+		bool ServerSetReady_Validate(bool bPlayerIsReady) { return true; }
+		void ServerSetReady_Implementation(bool bPlayerIsReady);
 
 	//
 	UFUNCTION(exec)

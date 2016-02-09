@@ -841,6 +841,7 @@ APlayerController* AOrionGameMode::Login(UPlayer* NewPlayer, ENetRole RemoteRole
 		GRI->Difficulty = Difficulty;
 		GRI->ItemLevel = ItemLevel;
 		GRI->ServerLocation = ServerInfo.Region;
+		GRI->OrionGameMode = IsSlaughter() ? "SLAUGHTER" : "SURVIVAL";
 #if IS_SERVER
 		GRI->bStatsEnabled = true;
 #else
@@ -1112,6 +1113,9 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 				break;
 			}
 
+			if (IsSlaughter())
+				DropChance /= 10.0f;
+
 			DropChance /= 1.5f;
 
 			bool bCraftingMat = false;
@@ -1141,7 +1145,7 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 
 					if (IsSlaughter())
 					{
-						Level = FMath::Min(FMath::Max(10, ItemLevel - 10) + 10 * FMath::RandRange(0, 2), 450);
+						Level = FMath::Min(FMath::Max(10, ItemLevel - 100) + 10 * FMath::RandRange(0, 2), 600);
 					}
 					else
 					{
@@ -1314,7 +1318,7 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 						break;
 					}
 
-					Pickup->CoinAmount = FMath::RandRange(MinAmount, MaxAmount) * ItemLevel / 100;
+					Pickup->CoinAmount = int32(float(FMath::RandRange(MinAmount, MaxAmount)) * (1.0f + float(ItemLevel) / 100.0f));
 					Pickup->bOnlyRelevantToOwner = true;
 				}
 			}
