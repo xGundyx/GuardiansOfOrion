@@ -2087,7 +2087,7 @@ TArray<FString> AOrionPlayerController::GetPrivacySettings()
 
 FString AOrionPlayerController::GetBuildVersion()
 {
-	return TEXT("EA1.2.1");
+	return TEXT("EA1.2.2");
 }
 
 FString AOrionPlayerController::GetReadyButtonKeyboard()
@@ -2877,6 +2877,16 @@ void AOrionPlayerController::JoinChatRoom(FString Room)
 		//only join chat rooms while in the main menu for lobbies, no chat channels while in game for now
 		if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
 			UPhotonProxy::JoinChannel(TCHAR_TO_UTF8(*Room));
+	}
+#endif
+}
+
+void AOrionPlayerController::GrabLobbySettings()
+{
+#if !IS_SERVER
+	if (UPhotonProxy::GetListener())
+	{
+		UPhotonProxy::GetListener()->GrabRoomSettings();
 	}
 #endif
 }
@@ -3845,9 +3855,11 @@ void AOrionPlayerController::TickPhoton()
 		UPhotonProxy::GetListener()->PCOwner = this;
 		UPhotonProxy::GetListener()->UpdatePlayerSettings();
 		SendPlayerInfoToPhoton();
+
+		UPhotonProxy::GetListener()->GrabRoomSettings();
 	
 		//update our lobby settings while in game
-		if (IsLobbyLeader())// UPhotonProxy::GetListener()->IsLobbyLeader())
+		/*if (IsLobbyLeader())
 		{
 			AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
 			AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
@@ -3866,7 +3878,7 @@ void AOrionPlayerController::TickPhoton()
 					TCHAR_TO_UTF8(*ServerInfo.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*ServerInfo.LobbyID), TCHAR_TO_UTF8(*Wave), TCHAR_TO_UTF8(*Version),
 					TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*ServerInfo.TOD), TCHAR_TO_UTF8(*ServerInfo.ItemLevel), TCHAR_TO_UTF8(*ServerInfo.Region));
 			}
-		}
+		}*/
 	}
 #endif
 }

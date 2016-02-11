@@ -1002,7 +1002,7 @@ struct FRareStats
 		StatsInfo.Add(FRareStatsInfo(TEXT("take no damage while cloaking"), RARESTAT_CLOAKIMMUNE, ITEM_ABILITY));//
 		StatsInfo.Add(FRareStatsInfo(TEXT("melee is 5 times stronger while cloaking"), RARESTAT_CLOAKMELEE, ITEM_ABILITY));//
 		StatsInfo.Add(FRareStatsInfo(TEXT("can use regen gun while cloaked"), RARESTAT_CLOAKREGEN, ITEM_ABILITY));//
-		StatsInfo.Add(FRareStatsInfo(TEXT("take no damage while flamethrower is active"), RARESTAT_PYROINVULNERABLE, ITEM_ABILITY));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("reduce 50% damage taken while flamethrower is active"), RARESTAT_PYROINVULNERABLE, ITEM_ABILITY));//
 		StatsInfo.Add(FRareStatsInfo(TEXT("flamethrower heals allies as well as damages enemies"), RARESTAT_PYROHEALS, ITEM_ABILITY));//
 		StatsInfo.Add(FRareStatsInfo(TEXT("flamethrower freezes enemies instead of burning them"), RARESTAT_PYROFREEZE, ITEM_ABILITY));//
 	};
