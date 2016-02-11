@@ -746,6 +746,10 @@ public:
 		void UpdateLobbySettings(const FString& MapName, const FString& Difficulty, const FString& Gamemode, const FString& Privacy, const FString& IP, const FString& Ticket, const FString& Progress, const FString& Version, const FString &GUID, const FString& RoomName, const FString& TOD, const FString& ItemLevel, const FString& Region);
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
+		void GrabLobbySettings();
+
+
+	UFUNCTION(BlueprintCallable, Category = Photon)
 		void FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket, FString Wave, FString Version, FString RoomName, FString TOD, FString ItemLevel, FString Region);
 
 	void JoinChatRoom(FString Room);

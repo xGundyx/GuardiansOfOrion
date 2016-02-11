@@ -604,6 +604,8 @@ void AOrionWeaponLink::HandleLinkTargets(AOrionCharacter *Target, float DeltaSec
 
 				if (Inv)
 					P->Health -= DeltaSeconds * 25.0f;// Inv->GetLevelScaledValue(FMath::Pow(LEVELPOWER, P->Level / LEVELINTERVAL), GRI->ItemLevel) * 25.0f;
+
+				ApplyDamageDebuff(P);
 			}
 			if (P->Health <= 0)
 			{
@@ -614,8 +616,6 @@ void AOrionWeaponLink::HandleLinkTargets(AOrionCharacter *Target, float DeltaSec
 				PointDmg.ShotDirection = FVector(0.0f);
 
 				P->Die(150.0f, PointDmg, MyPawn->Controller, MyPawn);
-
-				ApplyDamageDebuff(P);
 			}
 		}
 	}
@@ -764,6 +764,8 @@ void AOrionWeaponLink::HandleTarget(float DeltaSeconds)
 
 				if (Inv)
 					P->Health -= DeltaSeconds * 50.0f;// Inv->GetLevelScaledValue(FMath::Pow(LEVELPOWER, P->Level / LEVELINTERVAL), GRI->ItemLevel) * 50.0f;
+
+				ApplyDamageDebuff(P);
 			}
 			if (P->Health <= 0)
 			{
@@ -774,8 +776,6 @@ void AOrionWeaponLink::HandleTarget(float DeltaSeconds)
 				PointDmg.ShotDirection = FVector(0.0f);
 
 				P->Die(150.0f, PointDmg, MyPawn->Controller, MyPawn);
-
-				ApplyDamageDebuff(P);
 			}
 		}
 	}

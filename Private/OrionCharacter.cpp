@@ -2183,7 +2183,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 		{
 			if (Inv->HasStat(RARESTAT_JETPACKIMMUNE) && CurrentSkill && CurrentSkill->IsJetpacking()) return 0.0f;
 			if (Inv->HasStat(RARESTAT_CLOAKIMMUNE) && CurrentSkill && CurrentSkill->IsCloaking()) return 0.0f;
-			if (Inv->HasStat(RARESTAT_PYROINVULNERABLE) && CurrentSkill && CurrentSkill->IsFlaming()) return 0.0f;
+			if (Inv->HasStat(RARESTAT_PYROINVULNERABLE) && CurrentSkill && CurrentSkill->IsFlaming()) Damage /= 2.0f;
 
 			if (Inv->HasStat(RARESTAT_BULLETDODGER) && DamageType->bIsBullet && FMath::FRand() <= 0.5f) return 0.0f;
 
@@ -3555,7 +3555,7 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 			{
 				if (Inv && Inv->HasStat(Buff->RareStat) && !bDowned && Buff->DamageBonus == 0.0f)
 				{
-					Heal(int32(Buff->Damage));
+					Heal(int32(HealthMax / 3));
 				}
 				else
 				{
@@ -4021,6 +4021,9 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 			Health = FMath::Min(HealthMax, Health + DeltaSeconds * (float(PC->GetSkillValue(SKILL_CLOAKREGEN)) / 100.0f)  * HealthMax);
 		}
 	}
+
+	if (Role == ROLE_Authority && bDowned && Health >= HealthMax)
+		Revived();
 
 	//hax
 	if (bBlinking && GetWorld()->TimeSeconds - LastTeleportTime > 1.0f)
