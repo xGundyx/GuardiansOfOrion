@@ -490,6 +490,11 @@ enum ESuperRareStat
 	RARESTAT_PYROHEALS, //heal teammates and harvester
 	RARESTAT_PYROFREEZE, //freeze enemies instead of burning them, frozen enemies move slower
 
+	//knife
+	RARESTAT_INVULNFAT,
+	RARESTAT_KNIFEREGEN,
+	RARESTAT_KNIFERELOAD,
+
 	RARESTAT_NUM //don't put anything after this
 };
 
@@ -898,7 +903,8 @@ enum ECharacterClass
 	CLASS_SUPPORT,
 	CLASS_RECON,
 	CLASS_TECH,
-	CLASS_PYRO
+	CLASS_PYRO,
+	CLASS_MARKSMAN
 };
 
 UENUM(BlueprintType)
@@ -1005,6 +1011,11 @@ struct FRareStats
 		StatsInfo.Add(FRareStatsInfo(TEXT("reduce 50% damage taken while flamethrower is active"), RARESTAT_PYROINVULNERABLE, ITEM_ABILITY));//
 		StatsInfo.Add(FRareStatsInfo(TEXT("flamethrower heals allies as well as damages enemies"), RARESTAT_PYROHEALS, ITEM_ABILITY));//
 		StatsInfo.Add(FRareStatsInfo(TEXT("flamethrower freezes enemies instead of burning them"), RARESTAT_PYROFREEZE, ITEM_ABILITY));//
+
+		//knife
+		StatsInfo.Add(FRareStatsInfo(TEXT("take no damage while performing knife based fatalities"), RARESTAT_INVULNFAT, ITEM_KNIFE));
+		StatsInfo.Add(FRareStatsInfo(TEXT("recover 50% max health when killing an enemy with your knife"), RARESTAT_KNIFEREGEN, ITEM_KNIFE));
+		StatsInfo.Add(FRareStatsInfo(TEXT("reload all weapons when earning a knife kill"), RARESTAT_KNIFERELOAD, ITEM_KNIFE));
 	};
 };
 
@@ -1020,8 +1031,12 @@ static int32 CalculateLevel(int32 XP)
 
 	while (XPRemaining >= 0)
 	{
+		if (Level >= 30)
+			XPRemaining -= (BASEXP + 4 * (XPINCREASE * Level));
+		else
+			XPRemaining -= (BASEXP + (XPINCREASE * Level));
+
 		Level++;
-		XPRemaining -= (BASEXP + (XPINCREASE * (Level - 1)));
 	}
 
 	return Level;
@@ -1032,7 +1047,12 @@ static int32 CalculateExpToLevel(int32 Level)
 	int32 XP = 0;
 
 	for (int32 i = 0; i < Level - 1; i++)
-		XP += BASEXP + (XPINCREASE * i);
+	{
+		if (i >= 30)
+			XP += BASEXP + 4 * (XPINCREASE * i);
+		else
+			XP += BASEXP + (XPINCREASE * i);
+	}
 
 	return XP;
 }

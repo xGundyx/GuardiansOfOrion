@@ -72,6 +72,8 @@ public:
 		int32 TechXP;
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		int32 PyroXP;
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
+		int32 MarksmanXP;
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = GRI)
 		bool bReady;

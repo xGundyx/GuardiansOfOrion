@@ -780,13 +780,28 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 				PRI->ClassType = TEXT("PYRO");
 				PRI->CharacterClass = TEXT("PYRO");
 				break;
+			case 5:
+				PRI->ClassType = TEXT("MARKSMAN");
+				PRI->CharacterClass = TEXT("MARKSMAN");
+				break;
 			default:
 				PRI->ClassType = TEXT("NONE");
 				PRI->CharacterClass = TEXT("NONE");
 				break;
 			}
 
-			EventServerGetSkillTreeInfo();
+			if (SavedGame)
+			{
+				SavedGame->CharacterClass = PRI->ClassType;
+
+				if (MySkillTree)
+				{
+					MySkillTree->Skills = SavedGame->CharacterData[ClassIndex].SkillTree;
+					SetSkillTreeValuesForUse();
+				}
+			}
+			else
+				EventServerGetSkillTreeInfo();
 
 			PRI->InventoryManager->UpdateEquippedSlots();
 			PRI->InventoryManager->EquipItems();
@@ -826,6 +841,8 @@ int32 AOrionPlayerController::GetClassIndex()
 		return 3;
 	else if (ClassType == TEXT("PYRO"))
 		return 4;
+	else if (ClassType == TEXT("MARKSMAN"))
+		return 5;
 
 	return 0;
 }
@@ -1257,6 +1274,8 @@ void AOrionPlayerController::SendPlayerInfoToPhoton()
 				Level = CalculateLevel(PRI->TechXP);
 			else if (GI->CharacterClass == TEXT("PYRO"))
 				Level = CalculateLevel(PRI->PyroXP);
+			else if (GI->CharacterClass == TEXT("MARKSMAN"))
+				Level = CalculateLevel(PRI->MarksmanXP);
 
 			FString strLevel = FString::Printf(TEXT("%i"),Level);
 
@@ -1332,7 +1351,7 @@ void AOrionPlayerController::TestSettings()
 
 void AOrionPlayerController::AddXP(int32 Value)
 {
-#if IS_SERVER
+//#if IS_SERVER
 	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
 
@@ -1405,6 +1424,13 @@ void AOrionPlayerController::AddXP(int32 Value)
 			PRI->PyroXP = Stats->aStats[STAT_PYROEXP].StatValue;
 			NewCharacterXP = Stats->aStats[STAT_PYROEXP].StatValue;
 		}
+		else if (ClassIndex == 5)
+		{
+			OldCharacterXP = Stats->aStats[STAT_MARKSMANEXP].StatValue;
+			Stats->AddStatValue(STAT_MARKSMANEXP, Value);
+			PRI->MarksmanXP = Stats->aStats[STAT_MARKSMANEXP].StatValue;
+			NewCharacterXP = Stats->aStats[STAT_MARKSMANEXP].StatValue;
+		}
 
 		int32 OldLevel = CalculateLevel(OldCharacterXP);
 		int32 NewLevel = CalculateLevel(NewCharacterXP);
@@ -1414,7 +1440,7 @@ void AOrionPlayerController::AddXP(int32 Value)
 			DoLevelUp(NewLevel);
 		}
 	}
-#endif
+//#endif
 }
 
 void AOrionPlayerController::DoLevelUp(int32 NewLevel)
@@ -2020,6 +2046,316 @@ void AOrionPlayerController::SaveSoundOptions(FString ClassName, float Volume)
 	}
 }
 
+TArray<FString> AOrionPlayerController::GetSavedGames()
+{
+	TArray<FString> Games;
+
+	//load up the master save and get a list of all save games
+	//if (!MasterSaveFile)
+	MasterSaveFile = Cast<UOrionSaveGame>(UGameplayStatics::LoadGameFromSlot("Master", 0));
+
+	if (MasterSaveFile)
+	{
+		Games = MasterSaveFile->SavedGames;
+	}
+
+	return Games;
+}
+
+bool AOrionPlayerController::CreateGameFile(FString Slot)
+{
+	//see if this file already exists
+	if (!UGameplayStatics::DoesSaveGameExist(Slot, 0))
+	{
+		if (Slot == "Master")
+		{
+			if (!MasterSaveFile)
+			{
+				MasterSaveFile = Cast<UOrionSaveGame>(UGameplayStatics::CreateSaveGameObject(UOrionSaveGame::StaticClass()));
+				//MasterSaveFile = Cast<UOrionSaveGame>(UGameplayStatics::LoadGameFromSlot(Slot, 0));
+			}
+
+			return UGameplayStatics::SaveGameToSlot(MasterSaveFile, Slot, 0);
+		}
+		else
+		{
+			if (MasterSaveFile)
+			{
+				MasterSaveFile->SavedGames.AddUnique(Slot);
+				UGameplayStatics::SaveGameToSlot(MasterSaveFile, "Master", 0);
+			}
+
+			if (!SavedGame)
+			{
+				SavedGame = Cast<UOrionSaveGame>(UGameplayStatics::CreateSaveGameObject(UOrionSaveGame::StaticClass()));
+
+				SavedGame->FileName = Slot;
+				SavedGame->CharacterClass = "ASSAULT";
+
+				SavedGame->Gold = 0;
+
+				//setup some default values
+				if (SavedGame)
+				{
+					if (GetStats())
+						SavedGame->Stats = GetStats()->aStats;
+
+					AOrionInventoryManager *Inv = GetInventoryManager();
+
+					if (Inv)
+					{
+						TArray<FInventoryItem> Items;
+
+						/*FInventoryItem Item;
+
+						for (int32 i = 0; i < 100 + 6 * 14; i++)
+						{
+							Items.Add(Item);
+						}*/
+
+						SavedGame->InventoryData = Items;
+					}
+				}
+
+				TArray<FSavedCharacterData> CharacterData;
+
+				for (int32 i = 0; i < 6; i++)
+				{
+					FSavedCharacterData Data;
+
+					Data.Level = 1;
+					Data.ItemLevel = 0;
+
+					CharacterData.Add(Data);
+				}
+
+				SavedGame->CharacterData = CharacterData;
+			}
+
+			return UGameplayStatics::SaveGameToSlot(SavedGame, Slot, 0);
+		}
+	}
+	else if (Slot == "Master")
+	{
+		if (!MasterSaveFile)
+		{
+			MasterSaveFile = Cast<UOrionSaveGame>(UGameplayStatics::CreateSaveGameObject(UOrionSaveGame::StaticClass()));
+			MasterSaveFile = Cast<UOrionSaveGame>(UGameplayStatics::LoadGameFromSlot(Slot, 0));
+		}
+
+		return true;
+	}
+
+	return false;
+}
+
+void AOrionPlayerController::RetryLoad()
+{
+	LoadGameFromFile(SavedGameFile);
+}
+
+void AOrionPlayerController::LoadGameFromFile(FString Slot)
+{
+	if (Slot == "NONE")
+	{
+		SavedGame = nullptr;
+		return;
+	}
+
+	SavedGameFile = Slot;
+	//make sure we're fully ready to load
+
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	if (!Stats || !GetInventoryManager() || !MySkillTree || !PRI)
+	{
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, this, &AOrionPlayerController::RetryLoad, 0.1, false);
+		return;
+	}
+
+	SavedGame = Cast<UOrionSaveGame>(UGameplayStatics::LoadGameFromSlot(Slot, 0));
+
+	if (SavedGame && !Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
+	{
+		//grab our desired class
+		if (SavedGame->CharacterClass == "ASSAULT")
+		{
+			ClassIndex = 0;
+			PRI->ClassType = SavedGame->CharacterClass;
+			PRI->CharacterClass = SavedGame->CharacterClass;
+		}
+		else if (SavedGame->CharacterClass == "SUPPORT")
+		{
+			ClassIndex = 1;
+			PRI->ClassType = SavedGame->CharacterClass;
+			PRI->CharacterClass = SavedGame->CharacterClass;
+		}
+		else if (SavedGame->CharacterClass == "RECON")
+		{
+			ClassIndex = 2;
+			PRI->ClassType = SavedGame->CharacterClass;
+			PRI->CharacterClass = SavedGame->CharacterClass;
+		}
+		else if (SavedGame->CharacterClass == "TECH")
+		{
+			ClassIndex = 3;
+			PRI->ClassType = SavedGame->CharacterClass;
+			PRI->CharacterClass = SavedGame->CharacterClass;
+		}
+		else if (SavedGame->CharacterClass == "PYRO")
+		{
+			ClassIndex = 4;
+			PRI->ClassType = SavedGame->CharacterClass;
+			PRI->CharacterClass = SavedGame->CharacterClass;
+		}
+		else if (SavedGame->CharacterClass == "MARKSMAN")
+		{
+			ClassIndex = 5;
+			PRI->ClassType = SavedGame->CharacterClass;
+			PRI->CharacterClass = SavedGame->CharacterClass;
+		}
+		else
+		{
+			ClassIndex = 0;
+			PRI->ClassType = "ASSAULT";
+			PRI->CharacterClass = "ASSAULT";
+		}
+
+		if (Stats)
+		{
+			Stats->aStats = SavedGame->Stats;
+			Stats->FillInLevels();
+			Stats->SetInitialized(true);
+		}
+
+		//player inventory
+		AOrionInventoryManager *Inv = GetInventoryManager();
+		if (Inv && Inv->IsFullyInitialized())
+		{
+			for (int32 i = 0; i < SavedGame->InventoryData.Num(); i++)
+			{
+				FInventoryItem Item = SavedGame->InventoryData[i];
+
+				Inv->OwnerController = this;
+				Inv->ForceAddInventoryItem(Item, Inv->GetPathToClass(Item));
+			}
+
+			Inv->Money = SavedGame->Gold;
+
+			Inv->UpdateEquippedSlots();
+			Inv->EquipItems();
+		}
+
+		//character datas
+		if (MySkillTree)
+		{
+			MySkillTree->Skills = SavedGame->CharacterData[ClassIndex].SkillTree;
+		}
+	}
+}
+
+void AOrionPlayerController::SaveGameToFile(FString Slot)
+{
+	if (SavedGame && GetStats())
+	{
+		//character class
+		switch (ClassIndex)
+		{
+		case 0:
+			SavedGame->CharacterClass = TEXT("ASSAULT");
+			break;
+		case 1:
+			SavedGame->CharacterClass = TEXT("SUPPORT");
+			break;
+		case 2:
+			SavedGame->CharacterClass = TEXT("RECON");
+			break;
+		case 3:
+			SavedGame->CharacterClass = TEXT("TECH");
+			break;
+		case 4:
+			SavedGame->CharacterClass = TEXT("PYRO");
+			break;
+		case 5:
+			SavedGame->CharacterClass = TEXT("MARKSMAN");
+			break;
+		default:
+			SavedGame->CharacterClass = TEXT("ASSAULT");
+			break;
+		}
+
+		//don't override our stats from inside the main menu
+		if (!Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
+		{
+			SavedGame->Stats = GetStats()->aStats;
+
+			TArray<FInventoryItem> Items;
+
+			//inventory
+			AOrionInventoryManager *Inv = GetInventoryManager();
+			if (Inv && Inv->IsFullyInitialized())
+			{
+				for (int32 i = 0; i < Inv->Grid->Inventory.Num(); i++)
+				{
+					if (Inv->Grid->Inventory[i].ItemClass)
+						Items.Add(Inv->Grid->Inventory[i]);
+				}
+
+				//add all equipped stuff
+				for (int32 i = 0; i < Inv->EquippedSlots.Num(); i++)
+				{
+					if (Inv->EquippedSlots[i].Item.ItemClass)
+						Items.Add(Inv->EquippedSlots[i].Item);
+				}
+
+				SavedGame->Gold = Inv->Money;
+			}
+
+			SavedGame->InventoryData = Items;
+
+			//character data
+			AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+			if (SavedGame->CharacterData.Num() > ClassIndex && MySkillTree && PRI)
+			{
+				int32 Level = 1;
+
+				if (PRI)
+				{
+					switch (ClassIndex)
+					{
+					case CLASS_ASSAULT:
+						Level = CalculateLevel(PRI->AssaultXP);
+						break;
+					case CLASS_SUPPORT:
+						Level = CalculateLevel(PRI->SupportXP);
+						break;
+					case CLASS_RECON:
+						Level = CalculateLevel(PRI->ReconXP);
+						break;
+					case CLASS_TECH:
+						Level = CalculateLevel(PRI->TechXP);
+						break;
+					case CLASS_PYRO:
+						Level = CalculateLevel(PRI->PyroXP);
+						break;
+					case CLASS_MARKSMAN:
+						Level = CalculateLevel(PRI->MarksmanXP);
+						break;
+					};
+				}
+
+				SavedGame->CharacterData[ClassIndex].SkillTree = MySkillTree->Skills;
+				SavedGame->CharacterData[ClassIndex].ItemLevel = ILevel;
+				SavedGame->CharacterData[ClassIndex].Level = Level;
+			}
+		}
+
+		UGameplayStatics::SaveGameToSlot(SavedGame, Slot, 0);
+	}
+}
+
 TArray<FString> AOrionPlayerController::GetDifficultySettings()
 {
 	TArray<FString> Difficulties;
@@ -2060,6 +2396,7 @@ TArray<FString> AOrionPlayerController::GetCharacters()
 	Characters.Add(TEXT("RECON"));
 	Characters.Add(TEXT("TECH"));
 	Characters.Add(TEXT("PYRO"));
+	Characters.Add(TEXT("MARKSMAN"));
 
 	return Characters;
 }
@@ -2087,7 +2424,7 @@ TArray<FString> AOrionPlayerController::GetPrivacySettings()
 
 FString AOrionPlayerController::GetBuildVersion()
 {
-	return TEXT("EA1.2.2");
+	return TEXT("EA1.3.0");
 }
 
 FString AOrionPlayerController::GetReadyButtonKeyboard()
@@ -2903,6 +3240,9 @@ void AOrionPlayerController::FlushLobbySettings(FString MapName, FString Difficu
 
 void AOrionPlayerController::UpdateRotation(float DeltaTime)
 {
+	if (bMenuOpen)
+		return;
+
 	// Calculate Delta to be applied on ViewRotation
 	FRotator DeltaRot(RotationInput);
 
@@ -3913,7 +4253,6 @@ void AOrionPlayerController::InitStatsAndAchievements()
 
 		Stats = GetWorld()->SpawnActor<AOrionStats>(StatsClass, SpawnInfo);
 
-//#if IS_SERVER
 		if (Stats && Role == ROLE_Authority)
 		{
 			if (!Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
@@ -3921,22 +4260,22 @@ void AOrionPlayerController::InitStatsAndAchievements()
 
 			Stats->PCOwner = this;
 		}
-//#endif
 
-		Achievements = GetWorld()->SpawnActor<AOrionAchievements>(AchievementsClass, SpawnInfo);
-
-		if (Achievements)
-			Achievements->Init();
-
-//#if IS_SERVER
-		if (Stats && Role == ROLE_Authority)
+		//if (!SavedGame)
 		{
-			if (!Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
-				Achievements->ReadPlayerAchievements(this);
-			
-			Achievements->PCOwner = this;
+			Achievements = GetWorld()->SpawnActor<AOrionAchievements>(AchievementsClass, SpawnInfo);
+
+			if (Achievements)
+				Achievements->Init();
+
+			if (Stats && Role == ROLE_Authority)
+			{
+				if (!Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
+					Achievements->ReadPlayerAchievements(this);
+
+				Achievements->PCOwner = this;
+			}
 		}
-//#endif
 	}
 }
 

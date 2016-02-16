@@ -421,13 +421,13 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		bool IsFullyInitialized();
 
+	TArray<FEquippedSlot> EquippedSlots;
+
 private:
 	bool TryToEquip(AOrionInventoryGrid *theGrid, int32 index);
 	bool TryToUnEquip(AOrionInventoryGrid *theGrid, int32 index);
 
 	FArrayHelper EquippedStats;
-
-	TArray<FEquippedSlot> EquippedSlots;
 
 	//breakdown generic classes
 	TSubclassOf<class UOrionInventoryItem> DefaultWeaponPartsClass;

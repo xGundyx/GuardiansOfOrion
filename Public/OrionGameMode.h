@@ -161,7 +161,7 @@ public:
 	//UFUNCTION(BlueprintNativeEvent, Category = "Game")
 		virtual bool ReadyToStartMatch_Implementation() override;
 
-private:
+public:
 	FTimerHandle GRITimer;
 	FTimerHandle WarmupTimer;
 	FTimerHandle MatchTimer;

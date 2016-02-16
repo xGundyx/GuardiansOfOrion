@@ -31,6 +31,7 @@ AOrionGRI::AOrionGRI(const FObjectInitializer& ObjectInitializer)
 	TotalLimbsBlownOff = 0;
 	ServerLocation = TEXT("US-EAST");
 	bStatsEnabled = false;
+	bIsLobby = false;
 
 	HarvKills = 0;
 }
@@ -137,6 +138,7 @@ void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionGRI, ItemLevel);
 	DOREPLIFETIME(AOrionGRI, OrionGameMode);
 	DOREPLIFETIME(AOrionGRI, bReadyingUp);
+	DOREPLIFETIME(AOrionGRI, bIsLobby);
 }
 
 void AOrionGRI::HandleVictoryDefeat()

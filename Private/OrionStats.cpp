@@ -33,6 +33,7 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 	aStats.Add(FPlayerStats(STAT_ASSAULTKILL, TEXT("AssaultKills")));
 	aStats.Add(FPlayerStats(STAT_TECHKILL, TEXT("TechKills")));
 	aStats.Add(FPlayerStats(STAT_PYROKILL, TEXT("PyroKills")));
+	aStats.Add(FPlayerStats(STAT_MARKSMANKILL, TEXT("MarksmanKills")));
 
 	aStats.Add(FPlayerStats(STAT_RAPTORDEATH, TEXT("RaptorDeaths")));
 	aStats.Add(FPlayerStats(STAT_TREXDEATH, TEXT("TRexDeaths")));
@@ -58,6 +59,7 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 	aStats.Add(FPlayerStats(STAT_ASSAULTDEATH, TEXT("AssaultDeaths")));
 	aStats.Add(FPlayerStats(STAT_TECHDEATH, TEXT("TechDeaths")));
 	aStats.Add(FPlayerStats(STAT_PYRODEATH, TEXT("PyroDeaths")));
+	aStats.Add(FPlayerStats(STAT_MARKSMANDEATH, TEXT("MarksmanDeaths")));
 
 	aStats.Add(FPlayerStats(STAT_MAGNUMKILLS, TEXT("MagnumKills")));
 	aStats.Add(FPlayerStats(STAT_MAGNUMBULLETSFIRED, TEXT("MagnumBulletsFired")));
@@ -102,6 +104,7 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 	aStats.Add(FPlayerStats(STAT_RECONEXP, TEXT("ReconExp")));
 	aStats.Add(FPlayerStats(STAT_TECHEXP, TEXT("TechExp")));
 	aStats.Add(FPlayerStats(STAT_PYROEXP, TEXT("PyroExp")));
+	aStats.Add(FPlayerStats(STAT_MARKSMANEXP, TEXT("MarksmanExp")));
 	aStats.Add(FPlayerStats(STAT_EXPEARNED, TEXT("ExpEarned")));
 
 	aStats.Add(FPlayerStats(STAT_ELITERAPTORKILL, TEXT("EliteRaptorKills")));
@@ -128,6 +131,7 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 	aStats.Add(FPlayerStats(STAT_ELITEASSAULTKILL, TEXT("EliteAssaultKills")));
 	aStats.Add(FPlayerStats(STAT_ELITETECHKILL, TEXT("EliteTechKills")));
 	aStats.Add(FPlayerStats(STAT_ELITEPYROKILL, TEXT("ElitePyroKills")));
+	aStats.Add(FPlayerStats(STAT_ELITEMARKSMANKILL, TEXT("EliteMarksmanKills")));
 
 	aStats.Add(FPlayerStats(STAT_ELITERAPTORDEATH, TEXT("EliteRaptorDeaths")));
 	aStats.Add(FPlayerStats(STAT_ELITETREXDEATH, TEXT("EliteTRexDeaths")));
@@ -153,6 +157,7 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 	aStats.Add(FPlayerStats(STAT_ELITEASSAULTDEATH, TEXT("EliteAssaultDeaths")));
 	aStats.Add(FPlayerStats(STAT_ELITETECHDEATH, TEXT("EliteTechDeaths")));
 	aStats.Add(FPlayerStats(STAT_ELITEPYRODEATH, TEXT("ElitePyroDeaths")));
+	aStats.Add(FPlayerStats(STAT_ELITEMARKSMANDEATH, TEXT("EliteMarksmanDeaths")));
 
 	aStats.Add(FPlayerStats(STAT_PVPWINS, TEXT("PVPWins")));
 	aStats.Add(FPlayerStats(STAT_PVPLOSSES, TEXT("PVPLosses")));
@@ -186,16 +191,19 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 	aStats.Add(FPlayerStats(STAT_KILLSASRECON, TEXT("KillsAsRecon")));
 	aStats.Add(FPlayerStats(STAT_KILLSASTECH, TEXT("KillsAsTech")));
 	aStats.Add(FPlayerStats(STAT_KILLSASPYRO, TEXT("KillsAsPyro")));
+	aStats.Add(FPlayerStats(STAT_KILLSASMARKSMAN, TEXT("KillsAsMarksman")));
 	aStats.Add(FPlayerStats(STAT_KILLSASASSAULT, TEXT("AssistsAsAssault")));
 	aStats.Add(FPlayerStats(STAT_KILLSASSUPPORT, TEXT("AssistsAsSupport")));
 	aStats.Add(FPlayerStats(STAT_KILLSASRECON, TEXT("AssistsAsRecon")));
 	aStats.Add(FPlayerStats(STAT_KILLSASTECH, TEXT("AssistsAsTech")));
 	aStats.Add(FPlayerStats(STAT_KILLSASPYRO, TEXT("AssistsAsPyro")));
+	aStats.Add(FPlayerStats(STAT_KILLSASMARKSMAN, TEXT("AssistsAsMarksman")));
 	aStats.Add(FPlayerStats(STAT_DEATHSASASSAULT, TEXT("DeathsAsAssault")));
 	aStats.Add(FPlayerStats(STAT_DEATHSASSUPPORT, TEXT("DeathsAsSupport")));
 	aStats.Add(FPlayerStats(STAT_DEATHSASRECON, TEXT("DeathsAsRecon")));
 	aStats.Add(FPlayerStats(STAT_DEATHSASTECH, TEXT("DeathsAsTech")));
 	aStats.Add(FPlayerStats(STAT_DEATHSASPYRO, TEXT("DeathsAsPyro")));
+	aStats.Add(FPlayerStats(STAT_DEATHSASMARKSMAN, TEXT("DeathsAsMarksman")));
 
 	aStats.Add(FPlayerStats(STAT_EASYWINS, TEXT("EasyWins")));
 	aStats.Add(FPlayerStats(STAT_EASYLOSSES, TEXT("EasyLosses")));
@@ -255,8 +263,8 @@ void AOrionStats::AddStatValue(EStatID ID, int32 Value)
 			aStats[ID].bDirty = true;
 
 			//don't want people going over the level cap of 30
-			if (ID == STAT_RECONEXP || ID == STAT_ASSAULTEXP || ID == STAT_SUPPORTEXP || ID == STAT_TECHEXP || ID == STAT_PYROEXP)
-				aStats[ID].StatValue = FMath::Min(aStats[ID].StatValue + Value, CalculateExpToLevel(30));
+			if (ID == STAT_RECONEXP || ID == STAT_ASSAULTEXP || ID == STAT_SUPPORTEXP || ID == STAT_TECHEXP || ID == STAT_PYROEXP || ID == STAT_MARKSMANEXP)
+				aStats[ID].StatValue = FMath::Min(aStats[ID].StatValue + Value, CalculateExpToLevel(50));
 			else
 				aStats[ID].StatValue += Value;
 
@@ -311,6 +319,12 @@ void AOrionStats::FlushPlayerStats(AOrionPlayerController* PC)
 		for (int32 i = 0; i < aStats.Num(); i++)
 			aStats[i].bDirty = false;
 	}
+#else
+	//local save file
+	if (PC && PC->SavedGame)
+	{
+		PC->SaveGameToFile(PC->SavedGame->FileName);
+	}
 #endif
 }
 
@@ -339,6 +353,11 @@ void AOrionStats::SetStatValues(TArray<FPlayerStats> StatsRead)
 		}
 	}
 
+	FillInLevels();
+}
+
+void AOrionStats::FillInLevels()
+{
 	TArray<AActor*> Controllers;
 
 	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
@@ -357,6 +376,7 @@ void AOrionStats::SetStatValues(TArray<FPlayerStats> StatsRead)
 				PRI->ReconXP = aStats[STAT_RECONEXP].StatValue;
 				PRI->TechXP = aStats[STAT_TECHEXP].StatValue;
 				PRI->PyroXP = aStats[STAT_PYROEXP].StatValue;
+				PRI->MarksmanXP = aStats[STAT_MARKSMANEXP].StatValue;
 			}
 		}
 	}
