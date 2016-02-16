@@ -141,6 +141,9 @@ public:
 	UFUNCTION()
 		void OnRep_GlobalMessage();
 
+	UPROPERTY(Replicated)
+		bool bIsLobby;
+
 	UPROPERTY(ReplicatedUsing = OnRep_GlobalMessage)
 		FString GlobalMessage;
 
@@ -184,6 +187,11 @@ public:
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = GRI)
 		bool bReadyingUp;
+
+	FString Player1;
+	FString Player2;
+	FString Player3;
+	FString Player4;
 
 	void SetHeaderMessage(FString Title, FString Desc);
 

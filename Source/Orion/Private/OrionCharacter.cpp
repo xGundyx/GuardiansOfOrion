@@ -2181,6 +2181,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 		AOrionInventoryManager *Inv = PC->GetInventoryManager();
 		if (Inv)
 		{
+			if (Inv->HasStat(RARESTAT_INVULNFAT) && bFinishingMove) return 0.0f;
 			if (Inv->HasStat(RARESTAT_JETPACKIMMUNE) && CurrentSkill && CurrentSkill->IsJetpacking()) return 0.0f;
 			if (Inv->HasStat(RARESTAT_CLOAKIMMUNE) && CurrentSkill && CurrentSkill->IsCloaking()) return 0.0f;
 			if (Inv->HasStat(RARESTAT_PYROINVULNERABLE) && CurrentSkill && CurrentSkill->IsFlaming()) Damage /= 2.0f;
@@ -2203,18 +2204,18 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	if (EventInstigator)
 		AttackerPawn = Cast<AOrionCharacter>(EventInstigator->GetPawn());
 
-	if (AttackerPC && AttackerPawn)
+	if (AttackerPC && AttackerPawn && AttackerPawn->GetWeapon())
 	{
 		if (AttackerPawn->GetWeapon()->InstantConfig.WeaponName.ToUpper() == "FLAMETHROWER" && AttackerPC->GetSkillValue(SKILL_FLAMERDAMAGE))// && DamageType->WeaponName == "Flamethrower")
 			Damage *= 1.0f + (AttackerPC->GetSkillValue(SKILL_FLAMERDAMAGE) / 100.0f);
 	}
 
-	if (AttackerPawn && AttackerPawn->bIsHealableMachine)
+	if (GRI && AttackerPawn && AttackerPawn->bIsHealableMachine)
 		Damage *= 0.1f * FMath::Pow(LEVELPOWER, FMath::Max(1, GRI->ItemLevel - LEVELSYNC) / LEVELINTERVAL);
 
 	if (AttackerPC)
 	{
-		AOrionCharacter *AttackerPawn = Cast<AOrionCharacter>(AttackerPC->GetPawn());
+		//AOrionCharacter *AttackerPawn = Cast<AOrionCharacter>(AttackerPC->GetPawn());
 
 		if (AttackerPawn)
 		{
@@ -2282,7 +2283,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 				if (Inv->HasStat(RARESTAT_BONUSMELEE) && DamageType->WeaponType == WEAPON_MELEE) Damage *= 1.5f;
 			}
 
-			if (Inv && Inv->HasStat(RARESTAT_DOUBLEDAMAGENOSHIELD) && Shield <= 0.0f) Damage *= 2.0f;
+			if (Inv && Inv->HasStat(RARESTAT_DOUBLEDAMAGENOSHIELD) && AttackerPawn->Shield <= 0.0f) Damage *= 2.0f;
 		}
 	}
 
@@ -2534,6 +2535,8 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 						if (AttackerPawn && AttackerPawn->CurrentWeapon && Inv->HasStat(RARESTAT_KILLRELOAD) && DamageType->WeaponSlot == 2) AttackerPawn->CurrentWeapon->AmmoInClip = AttackerPawn->CurrentWeapon->GetClipSize();
 
 						if (Inv->HasStat(RARESTAT_EXPLODEKILLS) && DamageType->WeaponSlot == 1) Explode(AttackerPC);
+						if (Inv->HasStat(RARESTAT_KNIFEREGEN) && DamageType->bIsKnife && bFinishingMove && AttackerPawn) AttackerPawn->Health = FMath::Min(AttackerPawn->HealthMax, AttackerPawn->Health + 0.5f * AttackerPawn->HealthMax);
+						if (Inv->HasStat(RARESTAT_KNIFERELOAD) && DamageType->bIsKnife && AttackerPawn && AttackerPawn->GetWeapon()) AttackerPawn->GetWeapon()->AmmoInClip = AttackerPawn->GetWeapon()->InstantConfig.ClipSize;
 					}
 				}
 				Die(ActualDamage, DamageEvent, EventInstigator, DamageCauser);
@@ -3906,6 +3909,9 @@ void AOrionCharacter::Revived()
 
 		for (int32 i = 0; i < GRI->PlayerList.Num(); i++)
 		{
+			if (!GRI->PlayerList[i] || !GRI->PlayerList[i]->IsValidLowLevel())
+				continue;
+
 			if (GRI->PlayerList[i]->ControlledPawn == this)
 				continue;
 
@@ -4638,7 +4644,11 @@ void AOrionCharacter::Use()
 	if (ShouldIgnoreControls())
 		return;
 
-	ServerUse();
+	if (Role < ROLE_Authority)
+	{
+		ServerUse();
+		return;
+	}
 }
 
 void AOrionCharacter::BehindView()
@@ -5375,7 +5385,7 @@ void AOrionCharacter::StopSprint()
 
 void AOrionCharacter::DoMelee()
 {
-	if (ShouldIgnoreControls())
+	if (ShouldIgnoreControls() && CurrentWeapon)
 	{
 		if (bKnockedDown)
 		{
@@ -5602,7 +5612,8 @@ void AOrionCharacter::AddAimKick(FRotator Kick)
 {
 	LastAimKickTime = GetWorld()->TimeSeconds;
 
-	Kick.Pitch *= CurrentWeapon->GetSpreadModifier();
+	if (CurrentWeapon)
+		Kick.Pitch *= CurrentWeapon->GetSpreadModifier();
 
 	TargetAimKick.Pitch = FMath::Min(TargetAimKick.Pitch + (TargetAimKick.Pitch>2.0f ? Kick.Pitch - 1.0f : Kick.Pitch), 4.0f);
 	TargetAimKick.Yaw = FMath::Clamp(TargetAimKick.Yaw + Kick.Yaw, -2.0f, 2.0f);
@@ -5728,6 +5739,9 @@ void AOrionCharacter::TouchStarted(const ETouchIndex::Type FingerIndex, const FV
 
 void AOrionCharacter::MoveForward(float Value)
 {
+	if (ShouldIgnoreControls())
+		return;
+
 	if (Value != 0.0f)
 	{
 		// find out which way is forward
@@ -5780,6 +5794,9 @@ float AOrionCharacter::GetFootOffset(FName Socket) const
 
 void AOrionCharacter::MoveRight(float Value)
 {
+	if (ShouldIgnoreControls())
+		return;
+
 	if (Value != 0.0f)
 	{
 		// find out which way is right

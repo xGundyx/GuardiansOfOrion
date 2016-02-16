@@ -14,7 +14,7 @@ AOrionWeaponDroid::AOrionWeaponDroid(const FObjectInitializer& ObjectInitializer
 	DroidGunMesh->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPose;
 	DroidGunMesh->bCastDynamicShadow = true;
 	DroidGunMesh->PrimaryComponentTick.TickGroup = TG_PrePhysics;
-	DroidGunMesh->bChartDistanceFactor = true;
+	//DroidGunMesh->bChartDistanceFactor = true;
 	DroidGunMesh->bGenerateOverlapEvents = false;
 	//DroidGunMesh->AttachParent = Mesh;
 	//DroidGunMesh->SetMasterPoseComponent(Mesh);

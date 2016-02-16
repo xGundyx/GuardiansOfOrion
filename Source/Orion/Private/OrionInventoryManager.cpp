@@ -5,6 +5,7 @@
 #include "OrionCharacter.h"
 #include "OrionInventoryManager.h"
 #include "OrionPickup.h"
+#include "OrionGameMode.h"
 #include "OrionInventoryArmor.h"
 
 class AOrionGameMode;
@@ -328,7 +329,7 @@ bool AOrionInventoryManager::TryToUnEquip(AOrionInventoryGrid *theGrid, int32 in
 {
 	FInventoryItem Inv = theGrid->Inventory[index];
 
-	if (Inv.ItemClass)
+	if (Inv.ItemClass && Grid)
 	{
 		//make sure we have an empty inventory slot for this item
 		bool bSpotOpen = false;
@@ -428,7 +429,7 @@ int32 AOrionInventoryManager::GetPrimaryWeaponDamage()
 {
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetOwner());
 
-	if (WeaponSlot1->Inventory[0].ItemClass && PC)
+	if(WeaponSlot1 && WeaponSlot1->Inventory[0].ItemClass && PC)
 	{
 		return FMath::Max(1, GetLevelScaledValue(FMath::Pow(LEVELPOWER, (WeaponSlot1->Inventory[0].MainStat / 2) / LEVELINTERVAL), WeaponSlot1->Inventory[0].ItemLevel));
 	}
@@ -440,7 +441,7 @@ int32 AOrionInventoryManager::GetSecondaryWeaponDamage()
 {
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetOwner());
 
-	if (WeaponSlot2->Inventory[0].ItemClass && PC)
+	if (WeaponSlot2 && WeaponSlot2->Inventory[0].ItemClass && PC)
 	{
 		return FMath::Max(1, GetLevelScaledValue(FMath::Pow(LEVELPOWER, (WeaponSlot2->Inventory[0].MainStat / 2) / LEVELINTERVAL), WeaponSlot2->Inventory[0].ItemLevel));
 	}
@@ -838,6 +839,9 @@ void AOrionInventoryManager::RemoveItemFromInventory(AOrionInventoryGrid *theGri
 
 void AOrionInventoryManager::DestroyInventory()
 {
+	if (!Grid)
+		return;
+
 	for (int32 i = 0; i < Grid->Height; i++)
 	{
 		for (int32 j = 0; j < Grid->Width; j++)
@@ -849,7 +853,7 @@ void AOrionInventoryManager::DestroyInventory()
 		}
 	}
 
-	if (HelmetSlot->Inventory[0].ItemClass)
+	/*if (HelmetSlot->Inventory[0].ItemClass)
 	{
 		HelmetSlot->Inventory[0].Reset();
 	}
@@ -867,17 +871,22 @@ void AOrionInventoryManager::DestroyInventory()
 	if (LegsSlot->Inventory[0].ItemClass)
 	{
 		LegsSlot->Inventory[0].Reset();
-	}
+	}*/
 }
 
 void AOrionInventoryManager::SaveInventory()
 {
 	if (bSaveInventoryOperationInProgress)
 		GetWorldTimerManager().SetTimer(SaveInventoryTimer, this, &AOrionInventoryManager::SaveInventory, 0.1f, false);
-	else
+	else if(IsFullyInitialized())
 	{
 #if IS_SERVER
 		EventSaveInventoryToPlayfab();
+#else
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(OwnerController);
+
+		if (PC && PC->SavedGame)
+			PC->SaveGameToFile(PC->SavedGame->FileName);
 #endif
 		for (int32 i = 0; i < Grid->Inventory.Num(); i++)
 		{
@@ -920,6 +929,9 @@ int32 AOrionInventoryManager::AddItemToInventory(AOrionInventoryGrid *theGrid, F
 	}*/
 
 	int32 Success = -1;
+
+	if (!theGrid || !Grid)
+		return Success;
 
 	//if we are stackable, try to find us a stack to join
 	if (newItem.ItemClass.GetDefaultObject() && newItem.ItemClass.GetDefaultObject()->bStackable)
@@ -1003,6 +1015,9 @@ FString AOrionInventoryManager::GetPathToClass(FInventoryItem Item)
 TArray<FInventoryItem> AOrionInventoryManager::GetFullInventoryList()
 {
 	TArray<FInventoryItem> Items;
+
+	if (!IsFullyInitialized())
+		return Items;
 
 	for (int32 i = 0; i < Grid->Inventory.Num(); i++)
 	{
@@ -1117,6 +1132,9 @@ AOrionInventoryGrid *AOrionInventoryManager::GetGridFromName(FString Slot)
 
 void AOrionInventoryManager::SetItemInstanceID(FInventoryItem Item, FString ID)
 {
+	if (!Grid)
+		return;
+
 	for (int32 i = 0; i < Grid->Inventory.Num(); i++)
 	{
 		if (Grid->Inventory[i].TempUniqueID == Item.TempUniqueID)
@@ -1672,7 +1690,7 @@ bool AOrionInventoryManager::SortInventory()
 	Grid->Inventory.Sort();
 
 	//mark everything dirty
-	for (int32 i = 0; i < Grid->Inventory.Num(); i++)
+	for (int32 i = 0; Grid && i < Grid->Inventory.Num(); i++)
 	{
 		if (Grid->Inventory[i].ItemClass)
 		{
@@ -1983,7 +2001,7 @@ bool AOrionInventoryManager::BreakdownItem(AOrionInventoryGrid *theGrid, int32 i
 	int32 NumSpacesToFind = ItemsToGrant.Num();
 
 	//see if we have enough room for the new stuff we're getting
-	for (int32 i = 0; i < Grid->Inventory.Num() && NumSpacesToFind > 0; i++)
+	for (int32 i = 0; Grid && i < Grid->Inventory.Num() && NumSpacesToFind > 0; i++)
 	{
 		if (Grid->Inventory[i].ItemClass == nullptr)
 			NumSpacesToFind--;

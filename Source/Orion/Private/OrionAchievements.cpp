@@ -43,6 +43,11 @@ void AOrionAchievements::Init()
 	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("PYRO III"), TEXT("pyrothree"), TEXT("REACH LEVEL 30 WITH PYRO"), ACH_PYROLEVEL30, -1, 1, NULL, TEXT(""), 100));
 	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("PYRO IV"), TEXT("pyrofour"), TEXT("REACH LEVEL 40 WITH PYRO"), ACH_PYROLEVEL40, -1, 1, NULL, TEXT(""), 100));
 	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("PYRO V"), TEXT("pyrofive"), TEXT("REACH LEVEL 50 WITH PYRO"), ACH_PYROLEVEL50, -1, 1, NULL, TEXT(""), 250));
+	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("MARKSMAN I"), TEXT("marksmanone"), TEXT("REACH LEVEL 10 WITH MARKSMAN"), ACH_MARKSMANLEVEL10, -1, 1, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("MARKSMAN II"), TEXT("marksmantwo"), TEXT("REACH LEVEL 20 WITH MARKSMAN"), ACH_MARKSMANLEVEL20, -1, 1, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("MARKSMAN III"), TEXT("marksmanthree"), TEXT("REACH LEVEL 30 WITH MARKSMAN"), ACH_MARKSMANLEVEL30, -1, 1, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("MARKSMAN IV"), TEXT("marksmanfour"), TEXT("REACH LEVEL 40 WITH MARKSMAN"), ACH_MARKSMANLEVEL40, -1, 1, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("MARKSMAN V"), TEXT("marksmanfive"), TEXT("REACH LEVEL 50 WITH MARKSMAN"), ACH_MARKSMANLEVEL50, -1, 1, NULL, TEXT(""), 250));
 	
 	//combat
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("RAPTOR MASTER I"), TEXT("raptormasterone"), TEXT("KILL 100 RAPTORS"), ACH_RAPTORSKILLEDI, STAT_RAPTORKILL, 100, NULL, TEXT(""), 50));
@@ -381,6 +386,18 @@ void AOrionAchievements::CheckForLevelUnlocks(int32 NewLevel, AOrionPlayerContro
 			UnlockAchievement(ACH_PYROLEVEL40, PC);
 		if (NewLevel >= 50)
 			UnlockAchievement(ACH_PYROLEVEL50, PC);
+		break;
+	case 5:
+		if (NewLevel >= 10)
+			UnlockAchievement(ACH_MARKSMANLEVEL10, PC);
+		if (NewLevel >= 20)
+			UnlockAchievement(ACH_MARKSMANLEVEL20, PC);
+		if (NewLevel >= 30)
+			UnlockAchievement(ACH_MARKSMANLEVEL30, PC);
+		if (NewLevel >= 40)
+			UnlockAchievement(ACH_MARKSMANLEVEL40, PC);
+		if (NewLevel >= 50)
+			UnlockAchievement(ACH_MARKSMANLEVEL50, PC);
 		break;
 	}
 }

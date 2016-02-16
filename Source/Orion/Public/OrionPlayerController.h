@@ -305,9 +305,27 @@ public:
 	void CreateInventory();
 	void GetDefaultInventory();
 
+	void RetryLoad();
+	FString SavedGameFile;
+
 	virtual void Possess(APawn* aPawn) override;
 
-	UOrionSaveGame *SavedGame;
+	UOrionSaveGame *MasterSaveFile;
+
+	UPROPERTY(BlueprintReadWrite, Category = Save)
+		UOrionSaveGame *SavedGame;
+
+	UFUNCTION(BlueprintCallable, Category = Save)
+		TArray<FString> GetSavedGames();
+
+	UFUNCTION(BlueprintCallable, Category = Save)
+		void LoadGameFromFile(FString Slot);
+
+	UFUNCTION(BlueprintCallable, Category = Save)
+		void SaveGameToFile(FString Slot);
+
+	UFUNCTION(BlueprintCallable, Category = Save)
+		bool CreateGameFile(FString Slot);
 
 	UFUNCTION(BlueprintCallable, Category = Steam)
 		FString GetSteamID();
@@ -741,6 +759,9 @@ public:
 		void ServerSendGUID(const FString &ID);
 		bool ServerSendGUID_Validate(const FString &ID) { return true; }
 		void ServerSendGUID_Implementation(const FString &ID);
+
+	UFUNCTION(BlueprintImplementableEvent, Category = Player)
+		void EventCheckUse();
 
 	UFUNCTION(BlueprintImplementableEvent, Category = Photon)
 		void UpdateLobbySettings(const FString& MapName, const FString& Difficulty, const FString& Gamemode, const FString& Privacy, const FString& IP, const FString& Ticket, const FString& Progress, const FString& Version, const FString &GUID, const FString& RoomName, const FString& TOD, const FString& ItemLevel, const FString& Region);

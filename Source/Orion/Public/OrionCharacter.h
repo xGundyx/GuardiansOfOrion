@@ -9,6 +9,7 @@
 #include "OrionGib.h"
 #include "Perception/PawnSensingComponent.h"
 #include "OrionBuff.h"
+#include "OrionInventoryList.h"
 //#include "AI/Navigation/NavigationInvokerComponent.h"
 //#include "OrionHoverVehicle.h"
 #include "OrionVoice.h"
@@ -23,6 +24,7 @@ class AOrionShipPawn;
 class AOrionPlayerController;
 class AOrionAbility;
 class AOrionGrenade;
+class UOrionInventoryList;
 //class AOrionBuff;
 
 USTRUCT(BlueprintType)
@@ -883,10 +885,10 @@ public:
 
 	//every enemy type can have it's own loottable
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Loot)
-		TSubclassOf<class UOrionInventoryList> LootTable;
+		TSubclassOf<UOrionInventoryList> LootTable;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Loot)
-		TSubclassOf<class UOrionInventoryList> CraftingLootTable;
+		TSubclassOf<UOrionInventoryList> CraftingLootTable;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Replicated, Category = RPG)
 		int32 Level;

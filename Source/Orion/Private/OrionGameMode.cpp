@@ -334,7 +334,7 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 	{
 		PlaySlowMotion(7.0f);
 
-		if (PC)
+		if (PC && PC->GetAchievements())
 		{
 			PC->LastTRexKill = GetWorld()->GetTimeSeconds();
 
@@ -349,7 +349,7 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 	else if (PC && DeadDino && DeadDino->DinoName.ToString().ToUpper() == TEXT("NAMOR"))
 	{
 		PC->LastNamorKill = GetWorld()->GetTimeSeconds();
-		if (PC->LastNamorKill - PC->LastTRexKill <= 5.0f)
+		if (PC->GetAchievements() && PC->LastNamorKill - PC->LastTRexKill <= 5.0f)
 			PC->GetAchievements()->UnlockAchievement(ACH_TREXNAMOR, PC);
 	}
 
@@ -385,6 +385,9 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 							break;
 						case 4:
 							C->GetStats()->AddStatValue(STAT_ASSISTSASPYRO, 1);
+							break;
+						case 5:
+							C->GetStats()->AddStatValue(STAT_ASSISTSASMARKSMAN, 1);
 							break;
 						};
 
@@ -531,6 +534,8 @@ EStatID AOrionGameMode::GetStatID(AController *KilledController, bool bVictim)
 			return bVictim ? (AI->bIsElite ? STAT_ELITETECHDEATH : STAT_TECHDEATH) : (AI->bIsElite ? STAT_ELITETECHKILL : STAT_TECHKILL);
 		else if (AI->AIName == TEXT("Pyro"))
 			return bVictim ? (AI->bIsElite ? STAT_ELITEPYRODEATH : STAT_PYRODEATH) : (AI->bIsElite ? STAT_ELITEPYROKILL : STAT_PYROKILL);
+		else if (AI->AIName == TEXT("Marksman"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITEMARKSMANDEATH : STAT_MARKSMANDEATH) : (AI->bIsElite ? STAT_ELITEMARKSMANKILL : STAT_MARKSMANKILL);
 	}
 
 	return STAT_ERROR;
@@ -607,6 +612,9 @@ void AOrionGameMode::HandleStats(AController* Killer, AController* KilledPlayer,
 				case 4:
 					KillerPC->GetStats()->AddStatValue(STAT_KILLSASPYRO, 1);
 					break;
+				case 5:
+					KillerPC->GetStats()->AddStatValue(STAT_KILLSASMARKSMAN, 1);
+					break;
 				};
 			}
 			KillerPRI->Kills++;
@@ -639,6 +647,9 @@ void AOrionGameMode::HandleStats(AController* Killer, AController* KilledPlayer,
 					break;
 				case 4:
 					KilledPC->GetStats()->AddStatValue(STAT_DEATHSASPYRO, 1);
+					break;
+				case 5:
+					KilledPC->GetStats()->AddStatValue(STAT_DEATHSASMARKSMAN, 1);
 					break;
 				};
 			}
@@ -873,8 +884,28 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 	FString pfTicket = UGameplayStatics::ParseOption(Options, TEXT("LobbyTicket"));
 	FString pfClass = UGameplayStatics::ParseOption(Options, TEXT("CharacterClass"));
 
-	//if this session and id aren't valid, kick the bitch
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(NewPlayerController);
+
+#if !IS_SERVER
+	//these are for local and local coop saved games
+	AOrionGRI *GRI = Cast<AOrionGRI>(GameState);
+
+	if (GRI)
+	{
+		GRI->Player1 = UGameplayStatics::ParseOption(Options, TEXT("Player1"));
+		GRI->Player2 = UGameplayStatics::ParseOption(Options, TEXT("Player2"));
+		GRI->Player3 = UGameplayStatics::ParseOption(Options, TEXT("Player3"));
+		GRI->Player4 = UGameplayStatics::ParseOption(Options, TEXT("Player4"));
+
+		if (PC)
+		{
+			PC->InitStatsAndAchievements();
+			PC->LoadGameFromFile(GRI->Player1);
+		}
+	}
+#endif
+
+	//if this session and id aren't valid, kick the bitch
 	if (PC)
 	{
 		AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
@@ -909,6 +940,8 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 			PC->ClassIndex = 3;
 		else if (pfClass == TEXT("PYRO"))
 			PC->ClassIndex = 4;
+		else if (pfClass == TEXT("MARKSMAN"))
+			PC->ClassIndex = 5;
 		else
 			PC->ClassIndex = 0;
 	}
