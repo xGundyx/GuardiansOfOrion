@@ -567,12 +567,13 @@ void AOrionWeaponLink::HandleLinkTargets(AOrionCharacter *Target, float DeltaSec
 
 	AOrionInventoryManager *Inv = nullptr;
 
-	if (PC)
+	if (PC && P)
 	{
 		Inv = PC->GetInventoryManager();
-		if (Inv && Inv->HasStat(RARESTAT_SUPERHEALER))
+		if (P->bDowned && Inv && Inv->HasStat(RARESTAT_SUPERHEALER))
 			Rate *= 5.0f;
 	}
+
 
 	//if the target is the generator, heal it up
 	if (P && P->bIsHealableMachine)
@@ -724,10 +725,10 @@ void AOrionWeaponLink::HandleTarget(float DeltaSeconds)
 
 	AOrionInventoryManager *Inv = nullptr;
 
-	if (PC)
+	if (PC && P)
 	{
 		Inv = PC->GetInventoryManager();
-		if (Inv && Inv->HasStat(RARESTAT_SUPERHEALER))
+		if (P->bDowned && Inv && Inv->HasStat(RARESTAT_SUPERHEALER))
 			Rate *= 5.0f;
 	}
 

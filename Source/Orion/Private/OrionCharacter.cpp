@@ -47,6 +47,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	// Create a CameraComponent	
 	FirstPersonCameraComponent = ObjectInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("FirstPersonCamera"));
 	FirstPersonCameraComponent->AttachParent = GetCapsuleComponent();
+	FirstPersonCameraComponent->bUsePawnControlRotation = true;
 	FirstPersonCameraComponent->RelativeLocation = FVector(0, 0, 64.f); // Position the camera
 
 	ThirdPersonCameraComponent = ObjectInitializer.CreateDefaultSubobject<UCameraComponent>(this, TEXT("ThirdPersonCamera"));
@@ -382,6 +383,8 @@ void AOrionCharacter::BeginPlay()
 	bFinishingMove = false;
 	bLatchedOnto = false;
 	bKnockedDown = false;
+
+	UpdatePawnMeshes();
 }
 
 void AOrionCharacter::OnRep_IsElite()
@@ -1074,7 +1077,7 @@ void AOrionCharacter::DestroyInventory()
 	for (int32 i = Inventory.Num() - 1; i >= 0; i--)
 	{
 		AOrionWeapon* Weapon = Inventory[i];
-		if (Weapon)
+		if (Weapon && Weapon->IsValidLowLevel())
 		{
 			RemoveWeapon(Weapon);
 			//don't destroy it, it will still exist inside the inventory manager!
@@ -2281,6 +2284,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 				if (Inv->HasStat(RARESTAT_LMGBONUSDAMAGE) && DamageType->WeaponType == WEAPON_LMG) Damage *= 1.5f;
 				if (Inv->HasStat(RARESTAT_SHOTGUNBONUSDAMAGE) && DamageType->WeaponType == WEAPON_SHOTGUN) Damage *= 1.5f;
 				if (Inv->HasStat(RARESTAT_BONUSMELEE) && DamageType->WeaponType == WEAPON_MELEE) Damage *= 1.5f;
+				if (Inv->HasStat(RARESTAT_BONUSSNIPER) && DamageType->WeaponType == WEAPON_SNIPER) Damage *= 1.5f;
 			}
 
 			if (Inv && Inv->HasStat(RARESTAT_DOUBLEDAMAGENOSHIELD) && AttackerPawn->Shield <= 0.0f) Damage *= 2.0f;
@@ -2856,7 +2860,7 @@ void AOrionCharacter::SetClassArmor(int32 index)
 		if (index == 2)
 		{
 			bFemale = true;
-			EventSetFemaleMesh();
+			//EventSetFemaleMesh();
 		}
 	//}
 }
@@ -3460,9 +3464,12 @@ void AOrionCharacter::UpdatePawnMeshes()
 	//Flight2Mesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	Flight2Mesh->SetHiddenInGame(bFirst || bBlinking); //SetOwnerNoSee(bFirst);
 
-	//Arms1PArmorMesh->MeshComponentUpdateFlag = !bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	if(Arms1PArmorMesh)
 		Arms1PArmorMesh->SetHiddenInGame(!bFirst || bBlinking); //SetOwnerNoSee(!bFirst);
+
+	//hide first person stuff for now
+	////if (Arms1PArmorMesh) Arms1PArmorMesh->SetHiddenInGame(true);
+	////if (Arms1PMesh) Arms1PMesh->SetHiddenInGame(true);
 
 	if (CurrentWeapon)
 	{
@@ -3621,6 +3628,19 @@ void AOrionCharacter::AddBuff(TSubclassOf<AOrionBuff> BuffClass, AController *cO
 	//only living players can be buffed/debuffed
 	if (Health <= 0)
 		return;
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+	if (PC)
+	{
+		AOrionInventoryManager *Inv = PC->GetInventoryManager();
+		if (Inv)
+		{
+			if (Inv->HasStat(RARESTAT_INVULNFAT) && bFinishingMove) return;
+			if (Inv->HasStat(RARESTAT_JETPACKIMMUNE) && CurrentSkill && CurrentSkill->IsJetpacking()) return;
+			if (Inv->HasStat(RARESTAT_CLOAKIMMUNE) && CurrentSkill && CurrentSkill->IsCloaking()) return;
+		}
+	}
 
 	//first check if we already have this buff, if we do, add any stacks and refresh the timer
 	for (int32 i = 0; i < Buffs.Num(); i++)

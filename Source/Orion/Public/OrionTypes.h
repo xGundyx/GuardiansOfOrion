@@ -495,6 +495,9 @@ enum ESuperRareStat
 	RARESTAT_KNIFEREGEN,
 	RARESTAT_KNIFERELOAD,
 
+	//extra
+	RARESTAT_BONUSSNIPER,
+
 	RARESTAT_NUM //don't put anything after this
 };
 
@@ -915,7 +918,8 @@ enum EWeaponType
 	WEAPON_AUTORIFLE,
 	WEAPON_PROJECTILE, 
 	WEAPON_LMG,
-	WEAPON_MELEE
+	WEAPON_MELEE,
+	WEAPON_SNIPER
 };
 
 UENUM(BlueprintType)
@@ -1016,6 +1020,9 @@ struct FRareStats
 		StatsInfo.Add(FRareStatsInfo(TEXT("take no damage while performing knife based fatalities"), RARESTAT_INVULNFAT, ITEM_KNIFE));
 		StatsInfo.Add(FRareStatsInfo(TEXT("recover 50% max health when killing an enemy with your knife"), RARESTAT_KNIFEREGEN, ITEM_KNIFE));
 		StatsInfo.Add(FRareStatsInfo(TEXT("reload all weapons when earning a knife kill"), RARESTAT_KNIFERELOAD, ITEM_KNIFE));
+
+		//extras
+		StatsInfo.Add(FRareStatsInfo(TEXT("50% bonus damage to sniper rifles"), RARESTAT_BONUSSNIPER, ITEM_HELMET));
 	};
 };
 

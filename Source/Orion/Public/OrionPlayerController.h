@@ -676,7 +676,10 @@ public:
 		TArray<FControllerOptionsData> GetControllerOptions();
 
 	UFUNCTION(BlueprintCallable, Category = Menu)
-		FString GetBuildVersion();
+		FString GetBuildVersion() { return TEXT("EA1.3.0"); }
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
+		FString GetLobbyVersion() { return TEXT("LOBBY1.3.0"); }
 
 	void AddXP(int32 Value);
 	void DoLevelUp(int32 NewLevel);

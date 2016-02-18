@@ -122,7 +122,7 @@ public:
 
 	virtual bool IsSlaughter() { return false; }
 
-	void InitGRI();
+	virtual void InitGRI();
 	void WarmupOver();
 	void StartMatch() override;
 

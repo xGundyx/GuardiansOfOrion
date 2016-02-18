@@ -5,6 +5,7 @@
 
 FMatrix UOrionSkeletalMeshComponent::GetRenderMatrix() const
 {
+	return Super::GetRenderMatrix();
 	APlayerController* playerController = GetWorld()->GetFirstPlayerController();
 	if (playerController)
 	{

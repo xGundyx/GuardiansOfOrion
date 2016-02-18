@@ -459,7 +459,7 @@ void AOrionGameMode::AwardXPToAllPlayers(int32 Amount, AOrionPlayerController *P
 			if (C->HasOrbEffect(ORB_EXP))
 				XP *= 2;
 
-			if (PC == C && DamageType)
+			if (PC && PC == C && DamageType)
 			{
 				AOrionCharacter *P = Cast<AOrionCharacter>(PC->GetPawn());
 				if (P)
@@ -972,15 +972,18 @@ void AOrionGameMode::PlayerAuthed(class AOrionPlayerController *PC, bool bSucces
 		//GameSession->KickPlayer(PC, FText::FromString(TEXT("Playfab Authentication Failed.")));
 		//return;
 	}
-
-	AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
-
-	if (PRI)
+	
+	if(PC)
 	{
-		UPlayFabRequestProxy::ServerNotifyMatchmakerPlayerJoined(PRI->PlayFabID, LobbyID);
+		AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+
+		if (PRI)
+		{
+			UPlayFabRequestProxy::ServerNotifyMatchmakerPlayerJoined(PRI->PlayFabID, LobbyID);
+		}
 	}
 
-	if (!bSinglePlayer)
+	if (!bSinglePlayer && PC)
 	{
 		if (!bLobbyCreated)
 			PC->CreateInGameLobby(ServerInfo);
@@ -992,9 +995,12 @@ void AOrionGameMode::PlayerAuthed(class AOrionPlayerController *PC, bool bSucces
 #endif
 
 	//login was successfull, let the player spawn
-	PC->bAuthenticated = true;
-	PC->ClientSetAuthed(true);
-	PC->InitStatsAndAchievements();
+	if (PC)
+	{
+		PC->bAuthenticated = true;
+		PC->ClientSetAuthed(true);
+		PC->InitStatsAndAchievements();
+	}
 
 	//this is for people who load and get authenticated really slow
 	SetSpawnTimer();
@@ -1100,10 +1106,10 @@ int32 AOrionGameMode::GetEnemyItemLevel()
 		iLvl = FMath::Clamp(ItemLevel, 1, 400);
 		break;
 	case DIFF_HARD:
-		iLvl = FMath::Clamp(ItemLevel, 100, 500);
+		iLvl = FMath::Clamp(ItemLevel, 100, 400);
 		break;
 	case DIFF_INSANE:
-		iLvl = FMath::Clamp(ItemLevel, 200, 550);
+		iLvl = FMath::Clamp(ItemLevel, 200, 500);
 		break;
 	case DIFF_REDIKULOUS:
 		iLvl = FMath::Clamp(ItemLevel, 300, 600);

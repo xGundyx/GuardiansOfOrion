@@ -229,10 +229,11 @@ void AOrionPlayerController::ConnectToIP(FString IP)
 	//add our playfab credentials to the url so the server can verify us
 	FString newURL;
 
-	GI->ServerIP = IP;
-
 	if (GI)
+	{
+		GI->ServerIP = IP;
 		newURL = FString::Printf(TEXT("open %s?PlayFabID=%s?PlayFabSession=%s?PlayFabCharacter=%s?PlayFabName=%s?LobbyTicket=%s?CharacterClass=%s"), *IP, *GI->PlayFabID, *GI->SessionTicket, *GI->CharacterID, *GI->PlayFabName, *GI->LobbyTicket, *GI->CharacterClass);
+	}
 
 	//UE_LOG(LogTemp, Log, TEXT("GundyReallyTravel: %s"), *newURL);
 
@@ -454,7 +455,8 @@ void AOrionPlayerController::Destroyed()
 #if IS_SERVER
 	//UOrionTCPLink::SaveCharacter(this);
 #else
-	if(Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+	if(Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) || (GRI && GRI->bIsLobby))
 		LeaveLobby();
 #endif
 
@@ -1149,7 +1151,9 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 	//UClientConnector::Update();
 
 	//photon only in menu for now
-	if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+	if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) || (GRI && GRI->bIsLobby))
 		UPhotonProxy::Update(DeltaTime);
 
 	ProcessNotifications();
@@ -2125,6 +2129,7 @@ bool AOrionPlayerController::CreateGameFile(FString Slot)
 
 					Data.Level = 1;
 					Data.ItemLevel = 0;
+					Data.SkillTree = MySkillTree->Skills;
 
 					CharacterData.Add(Data);
 				}
@@ -2420,11 +2425,6 @@ TArray<FString> AOrionPlayerController::GetPrivacySettings()
 	PrivacySettings.Add(TEXT("PRIVACY - PUBLIC"));
 
 	return PrivacySettings;
-}
-
-FString AOrionPlayerController::GetBuildVersion()
-{
-	return TEXT("EA1.3.0");
 }
 
 FString AOrionPlayerController::GetReadyButtonKeyboard()
@@ -3212,7 +3212,9 @@ void AOrionPlayerController::JoinChatRoom(FString Room)
 	if (Room.Len() > 1)
 	{
 		//only join chat rooms while in the main menu for lobbies, no chat channels while in game for now
-		if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+		if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) || (GRI && GRI->bIsLobby))
 			UPhotonProxy::JoinChannel(TCHAR_TO_UTF8(*Room));
 	}
 #endif
@@ -3375,6 +3377,7 @@ void AOrionPlayerController::BeginPlay()
 	bPhotonReady = false;
 
 	AOrionGameMenu *Menu = Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode());
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
 
 #if !IS_SERVER
 	if (IsLocalPlayerController())
@@ -3396,7 +3399,7 @@ void AOrionPlayerController::BeginPlay()
 
 		//UOrionTCPLink::GetCharacterData(this);
 
-		if (Menu)
+		if (Menu || (GRI && GRI->bIsLobby))
 		{
 			FTimerHandle Handle;
 			GetWorldTimerManager().SetTimer(Handle, this, &AOrionPlayerController::TickPhoton, 0.5f, true);
@@ -3456,7 +3459,7 @@ void AOrionPlayerController::BeginPlay()
 		SetLobbyName("");
 
 		//if we're no in the main menu, reset photon junk
-		if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) == nullptr)
+		if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) == nullptr && GRI && !GRI->bIsLobby)
 			UPhotonProxy::Reset();
 
 		SetThirdPerson();
@@ -3504,6 +3507,18 @@ void AOrionPlayerController::SetThirdPerson()
 		return;
 	}
 
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+	if (GRI && GRI->bIsLobby)
+	{
+		bThirdPersonCamera = true;
+
+		if (Role < ROLE_Authority)
+			ServerSetThirdPersonCamera(bThirdPersonCamera);
+
+		return;
+	}
+
 	UOrionGameUserSettings *Settings = nullptr;
 
 	if (GEngine && GEngine->GameUserSettings)
@@ -3521,6 +3536,11 @@ void AOrionPlayerController::SetThirdPerson()
 void AOrionPlayerController::ToggleThirdPerson() 
 { 
 	if (bMenuOpen)
+		return;
+
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+	if (GRI && GRI->bIsLobby)
 		return;
 
 	bThirdPersonCamera = !bThirdPersonCamera; 
@@ -4187,7 +4207,9 @@ void AOrionPlayerController::TickPhoton()
 {
 #if !IS_SERVER
 	//only tick photon during the main menu
-	if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) == nullptr)
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+	if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) == nullptr && (!GRI || !GRI->bIsLobby))
 		return;
 
 	if (UPhotonProxy::GetListener())

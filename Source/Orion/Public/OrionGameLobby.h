@@ -14,6 +14,7 @@ class ORION_API AOrionGameLobby : public AOrionGameMode
 	GENERATED_BODY()
 public:
 	AOrionGameLobby(const FObjectInitializer& ObjectInitializer);
-	void InitGRI();
+	virtual void InitGRI() override;
+	virtual void BeginPlay() override;
 	
 };

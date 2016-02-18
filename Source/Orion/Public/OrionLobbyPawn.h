@@ -14,6 +14,8 @@ class ORION_API AOrionLobbyPawn : public AOrionCharacter
 	GENERATED_BODY()
 	
 public:
+	AOrionLobbyPawn(const FObjectInitializer& ObjectInitializer);
+
 	bool IsFirstPerson() const override;
 	
 	void Say();
