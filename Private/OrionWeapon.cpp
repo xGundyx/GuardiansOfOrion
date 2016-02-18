@@ -1158,7 +1158,7 @@ void AOrionWeapon::StopWeaponAnimation(const FWeaponAnim& Animation)
 		UAnimMontage* UseAnim = MyPawn->IsFirstPerson() ? Animation.Pawn1P : Animation.Pawn3P;
 		if (UseAnim)
 		{
-			MyPawn->IsFirstPerson() ? Mesh1P->AnimScriptInstance->Montage_Stop(0.1) : MyPawn->StopAnimMontage(UseAnim);
+			MyPawn->IsFirstPerson() ? (Mesh1P->AnimScriptInstance ? Mesh1P->AnimScriptInstance->Montage_Stop(0.1) : MyPawn = MyPawn) : MyPawn->StopAnimMontage(UseAnim);
 		}
 	}
 
@@ -1491,9 +1491,9 @@ void AOrionWeapon::ServerNotifyMiss_Implementation(FVector ShootDir, int32 Rando
 	const FVector Origin = GetMuzzleLocation();
 
 	// play FX on remote clients
-	////HitNotify.Origin = Origin + ShootDir * InstantConfig.WeaponRange; //Origin;
-	////HitNotify.RandomSeed = RandomSeed;
-	////HitNotify.ReticleSpread = ReticleSpread;
+	HitNotify.Origin = Origin + ShootDir * InstantConfig.WeaponRange; //Origin;
+	HitNotify.RandomSeed = RandomSeed;
+	HitNotify.ReticleSpread = ReticleSpread;
 
 	// play FX locally
 	if (GetNetMode() != NM_DedicatedServer)
@@ -1525,6 +1525,11 @@ void AOrionWeapon::SpawnImpactEffects(const FHitResult& Impact)
 		Trans.SetLocation(Impact.ImpactPoint);
 		Trans.SetRotation(Impact.ImpactNormal.Rotation().Quaternion());
 
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
+		float Scale = 1.0f;
+		if (GRI && GRI->bIsLobby)
+			Scale = 0.5f;
+
 		AOrionImpactEffect* EffectActor = GetWorld()->SpawnActorDeferred<AOrionImpactEffect>(ImpactTemplate, Trans, Instigator, Instigator, ESpawnActorCollisionHandlingMethod::AlwaysSpawn);
 		if (EffectActor)
 		{
@@ -1532,6 +1537,7 @@ void AOrionWeapon::SpawnImpactEffects(const FHitResult& Impact)
 			UGameplayStatics::FinishSpawningActor(EffectActor, FTransform(Impact.ImpactNormal.Rotation(), Impact.ImpactPoint));
 
 			EffectActor->SetLifeSpan(5.0f);
+			EffectActor->SetActorScale3D(FVector(Scale));
 		}
 	}
 }
@@ -1587,7 +1593,7 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 		if (MuzzlePSC > 0)
 		{
 			//MuzzlePSC->SetVectorParameter(FName("FlashScale"), FVector(InstantConfig.MuzzleScale));
-			MuzzlePSC->SetWorldScale3D(FVector(InstantConfig.MuzzleScale * (MyPawn && MyPawn->IsTopDown() && !MyPawn->bThirdPersonCamera ? 2.5 : 1.0)));
+			MuzzlePSC->SetWorldScale3D(FVector(InstantConfig.MuzzleScale * (MyPawn && MyPawn->IsTopDown() && !MyPawn->bThirdPersonCamera ? 2.5 : MyPawn && MyPawn->IsFirstPerson() ? 0.35 : 1.0)));
 		}
 	}
 

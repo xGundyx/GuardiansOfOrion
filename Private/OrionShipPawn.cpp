@@ -35,7 +35,8 @@ void AOrionShipPawn::UnloadPlayers()
 {
 	for (int32 i = 0; i < Passengers.Num(); i++)
 	{
-		Passengers[i]->SetShip(Cast<AOrionPlayerController>(Passengers[i]->GetController()), nullptr);
+		if (Passengers[i] && Passengers[i]->IsValidLowLevel())
+			Passengers[i]->SetShip(Cast<AOrionPlayerController>(Passengers[i]->GetController()), nullptr);
 	}
 
 	//remove us from the game mode
@@ -46,7 +47,7 @@ void AOrionShipPawn::UnloadPlayers()
 
 void AOrionShipPawn::AddPassenger(AOrionPlayerController *PC, AOrionCharacter *Pawn)
 {
-	if (Pawn)
+	if (Pawn && Pawn->IsValidLowLevel())
 	{
 		if (Pawn->SetShip(PC, this))
 			Passengers.Add(Pawn);

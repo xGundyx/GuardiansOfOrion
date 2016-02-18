@@ -87,7 +87,7 @@ void AOrionGameLobby::InitGRI()
 
 	if (!GRI)
 	{
-		GetWorldTimerManager().SetTimer(GRITimer, this, &AOrionGameMode::InitGRI, 0.1, false);
+		GetWorldTimerManager().SetTimer(GRITimer, this, &AOrionGameLobby::InitGRI, 0.1, false);
 		return;
 	}
 
@@ -95,6 +95,27 @@ void AOrionGameLobby::InitGRI()
 	GRI->bAlwaysShowCursor = bAlwaysShowCursor;
 	GRI->bTopDown = bTopDown;
 	GRI->bIsLobby = true;
+
+	TArray<AActor*> Controllers;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
+		if (C)
+		{
+			C->SetThirdPerson();
+		}
+	}
+}
+
+void AOrionGameLobby::BeginPlay()
+{
+	Super::BeginPlay();
+
+	if (GameSession)
+		GameSession->MaxPlayers = 40;
 }
 
 
