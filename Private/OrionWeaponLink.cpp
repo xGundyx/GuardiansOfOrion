@@ -289,7 +289,7 @@ void AOrionWeaponLink::StopBeamEffects()
 {
 	if (BeamPSC)
 	{
-		if (EndSound)
+		if (EndSound && MyPawn && MyPawn->IsValidLowLevel())
 			UGameplayStatics::PlaySoundAtLocation(GetWorld(), EndSound, MyPawn->GetActorLocation());
 
 		BeamPSC->DeactivateSystem();

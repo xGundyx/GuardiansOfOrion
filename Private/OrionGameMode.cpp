@@ -395,6 +395,16 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 					}
 					AssistPRI->Assists++;
 
+					//assists help you get up
+					AOrionCharacter *Pawn = Cast<AOrionCharacter>(C->GetPawn());
+					if (Pawn && Pawn->bDowned)
+					{
+						Pawn->Health = FMath::Min(Pawn->HealthMax, Pawn->Health + (Pawn->HealthMax * 0.4f));
+
+						if (Pawn->Health >= Pawn->HealthMax)
+							Pawn->Revived();
+					}
+
 					if (AssistPRI->Assists >= 200 && C && C->GetAchievements())
 						C->GetAchievements()->UnlockAchievement(ACH_200ASSIST, C);
 				}

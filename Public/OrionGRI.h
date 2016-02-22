@@ -141,7 +141,7 @@ public:
 	UFUNCTION()
 		void OnRep_GlobalMessage();
 
-	UPROPERTY(Replicated)
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Game)
 		bool bIsLobby;
 
 	UPROPERTY(ReplicatedUsing = OnRep_GlobalMessage)

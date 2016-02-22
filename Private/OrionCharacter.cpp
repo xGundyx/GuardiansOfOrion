@@ -2852,6 +2852,11 @@ void AOrionCharacter::SetClassArmor(int32 index)
 {
 	//if (ArmorList.Num() > index)
 	//{
+		UnEquipArmor(ITEM_HELMET);
+		UnEquipArmor(ITEM_CHEST);
+		UnEquipArmor(ITEM_LEGS);
+		UnEquipArmor(ITEM_HANDS);
+
 		EquipArmor(EventGetArmor(ITEM_HELMET, index).GetDefaultObject());
 		EquipArmor(EventGetArmor(ITEM_CHEST, index).GetDefaultObject());
 		EquipArmor(EventGetArmor(ITEM_LEGS, index).GetDefaultObject());
@@ -5906,6 +5911,7 @@ void AOrionCharacter::UnEquipArmor(EItemType Slot)
 	case ITEM_CHEST:
 		BodyArmor = nullptr;
 		SetBodyMesh(nullptr);
+		SetFlight1Mesh(nullptr);
 		break;
 	case ITEM_HANDS:
 		ArmsArmor = nullptr;
