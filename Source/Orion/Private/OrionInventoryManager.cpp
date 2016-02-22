@@ -480,7 +480,7 @@ void AOrionInventoryManager::Init(AOrionPlayerController *PC)
 	EquippedSlots.Empty();
 
 	//14 slots * 5 classes
-	for (int32 i = 0; i < 14 * 5; i++)
+	for (int32 i = 0; i < 14 * 6; i++)
 	{
 		FEquippedSlot NewSlot;
 
@@ -766,8 +766,12 @@ bool AOrionInventoryManager::UseItem(AOrionInventoryGrid *theGrid, int32 index)
 
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(OwnerController);
 	AOrionCharacter *P = nullptr;
+	AOrionPRI *PRI = nullptr;
 	if (PC)
+	{
 		P = Cast<AOrionCharacter>(PC->GetPawn());
+		PRI = Cast<AOrionPRI>(PC->PlayerState);
+	}
 
 	FInventoryItem Item = GetItemAt(theGrid, index);
 
@@ -801,6 +805,12 @@ bool AOrionInventoryManager::UseItem(AOrionInventoryGrid *theGrid, int32 index)
 		case INVENTORYUSE_SHIELD:
 			if (P)
 				P->AddBuff(Inv->UseableItem.Buff, PC, 0);
+			break;
+		case INVENTORYUSE_COIN:
+#if IS_SERVER
+			if (PRI)
+				UPlayFabRequestProxy::ServerAddUserVirtualCurrency(PRI->PlayFabID, TEXT("TC"), Inv->UseableItem.Value);
+#endif
 			break;
 		}
 
@@ -1209,6 +1219,7 @@ void AOrionInventoryManager::GetLifetimeReplicatedProps(TArray< FLifetimePropert
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, KnifeSlot, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, Money, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, OwnerController, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, MaxItemLevel, COND_OwnerOnly);
 }
 
 bool AOrionInventoryManager::HasStat(ESuperRareStat Stat)
@@ -1834,6 +1845,8 @@ void AOrionInventoryManager::ForceAddInventoryItem(FInventoryItem Item, FString 
 									index = 3;
 								else if (cName == "PYRO")
 									index = 4;
+								else if (cName == "MARKSMAN")
+									index = 5;
 
 								int32 sIndex = -1;
 
@@ -1883,6 +1896,8 @@ void AOrionInventoryManager::ForceAddInventoryItem(FInventoryItem Item, FString 
 								return;
 						}
 					}
+
+					MaxItemLevel = GetMaxItemLevel();
 
 					if (Inv)
 					{
@@ -2238,6 +2253,8 @@ void AOrionInventoryManager::SaveEquippedSlots()
 				index = 3;
 			else if (PRI->ClassType == "PYRO")
 				index = 4;
+			else if (PRI->ClassType == "MARKSMAN")
+				index = 5;
 
 			if (index >= 0)
 			{
@@ -2300,6 +2317,8 @@ void AOrionInventoryManager::SaveEquippedSlots()
 			}
 		}
 	}
+
+	MaxItemLevel = GetMaxItemLevel();
 }
 
 //this is called on class spawn to make sure the right equipment is equipped
@@ -2326,6 +2345,8 @@ void AOrionInventoryManager::UpdateEquippedSlots()
 				index = 3;
 			else if (PRI->ClassType == "PYRO")
 				index = 4;
+			else if (PRI->ClassType == "MARKSMAN")
+				index = 5;
 
 			if (index >= 0)
 			{
@@ -2441,4 +2462,26 @@ void AOrionInventoryManager::UpdateEquippedSlots()
 			}
 		}
 	}
+}
+
+int32 AOrionInventoryManager::GetMaxItemLevel()
+{
+	int32 MaxLevel = 1;
+
+	for (int32 i = 0; i < EquippedSlots.Num(); i += 14)
+	{
+		int32 Level = 0;
+		for (int32 j = 0; j < 14; j++)
+		{
+			if (EquippedSlots[i + j].Item.ItemClass)
+				Level += EquippedSlots[i + j].Item.ItemLevel;
+		}
+
+		Level /= 12;
+
+		if (Level > MaxLevel)
+			MaxLevel = Level;
+	}
+
+	return MaxLevel;
 }

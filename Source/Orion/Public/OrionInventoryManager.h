@@ -364,6 +364,12 @@ public:
 
 	void SaveInventory();
 
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		int32 GetMaxItemLevel();
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
+		int32 MaxItemLevel;
+
 	//don't allow multiple operations of the same type to happen at the same time
 	UPROPERTY(BlueprintReadWrite, Category = Inventory)
 		bool bGrantItemOperationInProgress;

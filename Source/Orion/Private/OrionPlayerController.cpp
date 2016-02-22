@@ -166,6 +166,15 @@ void AOrionPlayerController::SetCharacterClass(int32 Index, FString CharID)
 		//AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
 		//if (PRI)
 		//	PRI->CharacterID = CharID;
+
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
+		if (GRI && GRI->bIsLobby)
+		{
+			if (GetPawn())
+			{
+				Possess(GetPawn());
+			}
+		}
 	}
 }
 
@@ -268,7 +277,10 @@ void AOrionPlayerController::SetServerInfo_Implementation(FPhotonServerInfo Info
 	UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
 
 	if (GI)
-		ServerInfo.RoomName = GI->PlayFabName.Append("'S SERVER");
+	{
+		FString sName = GI->PlayFabName;
+		ServerInfo.RoomName = sName.Append("'S SERVER");
+	}
 
 	EventSetServerInfo();
 
@@ -287,7 +299,10 @@ void AOrionPlayerController::CreateInGameLobby_Implementation(FPhotonServerInfo 
 		UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetWorld()->GetGameInstance());
 
 		if (GI)
-			ServerInfo.RoomName = GI->PlayFabName.Append("'S SERVER");
+		{
+			FString sName = GI->PlayFabName;
+			ServerInfo.RoomName = sName.Append("'S SERVER");
+		}
 
 		EventSetServerInfo();
 
@@ -700,7 +715,14 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 {
 	Ragdoll = nullptr;
 
+	AOrionCharacter *OldPawn = Cast<AOrionCharacter>(GetPawn());
+
 	Super::Possess(aPawn);
+
+	bool bSamePawn = false;
+
+	if (aPawn == OldPawn)
+		bSamePawn = true;
 
 	SetIgnoreMoveInput(false);
 	SetIgnoreLookInput(false);
@@ -727,8 +749,11 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 					PRI->CharacterID = NextSpawnID;
 			}
 
-			newPawn->bNotSpawnedYet = false;
-			EventBlackFade();
+			if (!bSamePawn)
+			{
+				newPawn->bNotSpawnedYet = false;
+				EventBlackFade();
+			}
 
 			if (!IsLocalPlayerController())
 				ClientSetLastCharacterID(PRI->CharacterID);

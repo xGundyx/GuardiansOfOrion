@@ -106,6 +106,9 @@ struct FInstantWeaponData
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Accuracy)
 		int32 WeaponIndex;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Accuracy)
+		int32 WeaponIndex1P;
+
 	UPROPERTY(EditDefaultsOnly, Category = Accuracy)
 		int32 WeaponSlot;
 
@@ -215,6 +218,13 @@ public:
 		UMaterialInstance *CloakParent;
 
 	void InitMaterials();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation)
+		UAnimSequence *IdleAnim;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation)
+		UAnimSequence *AimIdleAnim;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Animation)
+		UAnimSequence *RunAnim;
 
 	/** reload animations */
 	UPROPERTY(EditDefaultsOnly, Category = Animation)

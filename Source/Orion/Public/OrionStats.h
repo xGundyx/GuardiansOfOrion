@@ -97,6 +97,9 @@ enum EStatID// : uint8
 	STAT_AUTOSHOTGUNKILLS,
 	STAT_AUTOSHOTGUNBULLETSFIRED,
 	STAT_AUTOSHOTGUNBULLETSHIT,
+	STAT_SNIPERKILLS,
+	STAT_SNIPERBULLETSFIRED,
+	STAT_SNIPERBULLETSHIT,
 
 	STAT_CRAFTITEMS,
 
@@ -272,24 +275,47 @@ struct FPlayerStats
 		FString StatName;		//human readable name, sent to playfab
 	UPROPERTY(BlueprintReadWrite, Category = Stats)
 		bool bDirty;			//only need to update stats that are dirty
+	UPROPERTY(BlueprintReadWrite, Category = Stats)
+		FString FriendlyName;	//name used in the menu
 
 	FPlayerStats()
 	{
 		StatID = -1;
 		StatValue = 0;
 		StatName = TEXT("");
+		FriendlyName = TEXT("");
 		bDirty = false;
 	}
 
-	FPlayerStats(EStatID ID, FString sName)
+	FPlayerStats(EStatID ID, FString sName, FString fName)
 	{
 		StatID = int32(ID);
 		StatValue = 0;
 		StatName = sName;
+		FriendlyName = fName;
 		bDirty = false;
 	}
 
 	bool operator==(const FPlayerStats Other) const { return StatName == Other.StatName; }
+};
+
+USTRUCT(BlueprintType)
+struct FEnhancedPlayerStats
+{
+	GENERATED_USTRUCT_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = Stats)
+		FString FriendlyName;
+	UPROPERTY(BlueprintReadWrite, Category = Stats)
+		FString StatValue;
+
+	FEnhancedPlayerStats()
+	{
+		StatValue = TEXT("");
+		FriendlyName = TEXT("");
+	}
+
+	bool operator==(const FEnhancedPlayerStats Other) const { return FriendlyName == Other.FriendlyName; }
 };
 
 UCLASS()
@@ -339,6 +365,11 @@ public:
 
 	FTimerHandle SaveTimer;
 	AOrionPlayerController *SaveStatsPC;
+
+	UFUNCTION(BlueprintCallable, Category = Stats)
+		TArray<FEnhancedPlayerStats> GetEnhancedStats();
+
+	FString GetDinoNameFromStat(EStatID ID);
 	
 private:
 	bool bInitialized;

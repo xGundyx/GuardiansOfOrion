@@ -170,7 +170,7 @@ void AOrionWeapon::AttachMeshToPawn()
 				Mesh3P->SetHiddenInGame(MyPawn->IsFirstPerson() || MyPawn->bBlinking);
 			//Mesh1P->AttachTo(PawnMesh1p, AttachPoint);
 			if (PawnMesh1p && PawnMesh1p->SkeletalMesh)
-				AttachRootComponentTo(PawnMesh1p, AttachPoint);// , EAttachLocation::KeepWorldPosition);
+				Mesh1P->AttachTo(PawnMesh1p, AttachPoint); //AttachRootComponentTo(PawnMesh1p, AttachPoint);// , EAttachLocation::KeepWorldPosition);
 			if (Mesh3P && Mesh3P->SkeletalMesh)
 				Mesh3P->AttachTo(PawnMesh3p, AttachPoint);
 
