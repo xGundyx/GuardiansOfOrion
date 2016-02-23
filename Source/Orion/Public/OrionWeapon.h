@@ -434,6 +434,7 @@ public:
 	FVector GetAdjustedAim() const;
 	FVector GetCameraDamageStartLocation(const FVector& AimDir) const;
 	FHitResult WeaponTrace(const FVector& StartTrace, const FVector& EndTrace) const;
+	FHitResult WeaponPenetrateTrace(const FVector& StartTrace, const FVector& EndTrace) const;
 	float GetCurrentSpread() const;
 	virtual FVector GetMuzzleLocation() const;
 	virtual FVector GetMuzzleDirection() const;

@@ -441,6 +441,7 @@ public:
 		int32 OutOfBoundsCounter;
 
 	void HandleHealEffects(float DeltaSeconds);
+	void HandleThermalVision(float DeltaSeconds);
 
 	//UPROPERTY(VisibleDefaultsOnly, Category = Mesh)
 		//class USkeletalMeshComponent* Arms1PLegsMesh;

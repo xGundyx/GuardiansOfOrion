@@ -1482,7 +1482,33 @@ bool AOrionCharacter::IsOnShip()
 void AOrionCharacter::InitMaterials()
 {
 	if (!CloakParent)
+	{
+		CharacterMats.Empty();
+		CharacterCloakMats.Empty();
+
+		if (GetMesh()) GetMesh()->OverrideMaterials.Empty();
+
+		int32 NumMaterials = 0;
+		if (GetMesh() && GetMesh()->SkeletalMesh)NumMaterials += GetMesh()->SkeletalMesh->Materials.Num();
+
+		CharacterMats.SetNumUninitialized(NumMaterials);
+
+		int32 Counter = 0;
+
+		if (GetMesh() && GetMesh()->SkeletalMesh)
+		{
+			for (int32 i = 0; i < GetMesh()->SkeletalMesh->Materials.Num(); i++)
+			{
+				CharacterMats[Counter] = UMaterialInstanceDynamic::Create(GetMesh()->GetMaterial(i), this);
+				if (CharacterMats[Counter])
+					GetMesh()->SetMaterial(i, CharacterMats[Counter]);
+
+				Counter++;
+			}
+		}
+
 		return;
+	}
 
 	//setup some materials
 	CharacterMats.Empty();
@@ -2133,6 +2159,8 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 	if (PC)
 	{
+		Damage *= 1.0f - PC->GetSkillValue(SKILL_THERMALDR) / 100.0f;
+
 		if (CurrentSkill && CurrentSkill->IsCloaking() && PC->GetSkillValue(SKILL_CLOAKTEAMMATES) > 0)
 		{
 			Damage *= 0.5f;
@@ -2188,6 +2216,8 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 			if (Inv->HasStat(RARESTAT_JETPACKIMMUNE) && CurrentSkill && CurrentSkill->IsJetpacking()) return 0.0f;
 			if (Inv->HasStat(RARESTAT_CLOAKIMMUNE) && CurrentSkill && CurrentSkill->IsCloaking()) return 0.0f;
 			if (Inv->HasStat(RARESTAT_PYROINVULNERABLE) && CurrentSkill && CurrentSkill->IsFlaming()) Damage /= 2.0f;
+			if (Inv->HasStat(RARESTAT_MARKDR) && CurrentSkill && CurrentSkill->IsThermalVisioning()) Damage /= 2.0f;
+
 
 			if (Inv->HasStat(RARESTAT_BULLETDODGER) && DamageType->bIsBullet && FMath::FRand() <= 0.5f) return 0.0f;
 
@@ -2209,6 +2239,11 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 	if (AttackerPC && AttackerPawn && AttackerPawn->GetWeapon())
 	{
+		if (AttackerPawn->GetWeapon()->InstantConfig.WeaponName == "SNIPER RIFLE")
+		{
+			Damage *= 1.0f + AttackerPC->GetSkillValue(SKILL_THERMALDAMAGE) / 100.0f;
+		}
+
 		if (AttackerPawn->GetWeapon()->InstantConfig.WeaponName.ToUpper() == "FLAMETHROWER" && AttackerPC->GetSkillValue(SKILL_FLAMERDAMAGE))// && DamageType->WeaponName == "Flamethrower")
 			Damage *= 1.0f + (AttackerPC->GetSkillValue(SKILL_FLAMERDAMAGE) / 100.0f);
 	}
@@ -3998,6 +4033,8 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 
 	HandleHealEffects(DeltaSeconds);
 
+	//HandleThermalVision(DeltaSeconds);
+
 	HandleKnockedDown();
 
 	HandleRevivingTeammates(DeltaSeconds);
@@ -4118,6 +4155,30 @@ void AOrionCharacter::HandleHealEffects(float DeltaTime)
 			{
 				CharacterMats[i]->SetScalarParameterValue("HealAmount", HealAmount);
 			}
+		}
+	}
+}
+
+void AOrionCharacter::HandleThermalVision(float DeltaTime)
+{
+	//update our thermal vision
+	bool bThermal = false;
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
+	if (PC)
+	{
+		AOrionCharacter *Pawn = Cast<AOrionCharacter>(PC->GetPawn());
+		if (Pawn)
+		{
+			if (Pawn->CurrentSkill && Pawn->CurrentSkill->IsThermalVisioning())
+				bThermal = true;
+		}
+	}
+
+	for (int32 i = 0; i < CharacterMats.Num(); i++)
+	{
+		if (CharacterMats[i])
+		{
+			CharacterMats[i]->SetScalarParameterValue("ThermalVision", bThermal ? 1.0f : 0.0f);
 		}
 	}
 }

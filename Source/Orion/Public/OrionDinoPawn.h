@@ -24,7 +24,7 @@ class ORION_API AOrionDinoPawn : public AOrionCharacter
 public:
 	AOrionDinoPawn(const FObjectInitializer& ObjectInitializer);
 
-	void InitMaterials() override {}
+	//void InitMaterials() override {}
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		UAnimMontage *BlinkAnimation;

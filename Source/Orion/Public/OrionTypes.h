@@ -497,6 +497,9 @@ enum ESuperRareStat
 
 	//extra
 	RARESTAT_BONUSSNIPER,
+	RARESTAT_MARKPENETRATE,
+	RARESTAT_MARKDR,
+	RARESTAT_MARKTHERMALLENGTH,
 
 	RARESTAT_NUM //don't put anything after this
 };
@@ -985,7 +988,7 @@ struct FRareStats
 		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explodes into 4 mini frag grenades"), RARESTAT_MULTIGRENADE, ITEM_GRENADE));//
 
 		//primary
-		StatsInfo.Add(FRareStatsInfo(TEXT("this weapon never needs a reload, but fires at half speed"), RARESTAT_NORELOAD, ITEM_PRIMARYWEAPON));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("this weapon never needs a reload"), RARESTAT_NORELOAD, ITEM_PRIMARYWEAPON));//
 		StatsInfo.Add(FRareStatsInfo(TEXT("enemies killed with this weapon explode"), RARESTAT_EXPLODEKILLS, ITEM_PRIMARYWEAPON));//
 		StatsInfo.Add(FRareStatsInfo(TEXT("double damage when your shields are down"), RARESTAT_DOUBLEDAMAGENOSHIELD, ITEM_PRIMARYWEAPON));//
 
@@ -1023,6 +1026,9 @@ struct FRareStats
 
 		//extras
 		StatsInfo.Add(FRareStatsInfo(TEXT("50% bonus damage to sniper rifles"), RARESTAT_BONUSSNIPER, ITEM_HELMET));
+		StatsInfo.Add(FRareStatsInfo(TEXT("sniper bullets pierce up to 10 enemies"), RARESTAT_MARKPENETRATE, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("take 50% less damage while using thermal vision"), RARESTAT_MARKDR, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("double thermal vision length"), RARESTAT_MARKTHERMALLENGTH, ITEM_ABILITY));
 	};
 };
 
@@ -1148,6 +1154,10 @@ enum ESkillTreeUnlocks
 	SKILL_FLAMERREGENHEALTH,
 	SKILL_FLAMERDAMAGE,
 	SKILL_FLAMEREXTRADAMAGETOBURNING,
+	SKILL_THERMALZOOM,
+	SKILL_THERMALDR,
+	SKILL_THERMALDAMAGE,
+	SKILL_THERMALPENETRATE,
 
 	SKILL_NUMPLUSONE
 };
