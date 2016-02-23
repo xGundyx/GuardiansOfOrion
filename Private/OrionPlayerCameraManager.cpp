@@ -34,7 +34,14 @@ void AOrionPlayerCameraManager::UpdateCamera(float DeltaTime)
 		}
 
 		if (MyPawn->GetWeapon())
+		{
 			TargetingFOV = MyPawn->GetWeapon()->InstantConfig.AimFOV;
+
+			if (PC &&  MyPawn->GetWeapon()->InstantConfig.WeaponName == "SNIPER RIFLE")
+			{
+				TargetingFOV *= 1.0f - (PC->GetSkillValue(SKILL_THERMALZOOM) / 100.0f);
+			}
+		}
 		else
 			TargetingFOV = 60.0f;
 

@@ -15,7 +15,7 @@ class ORION_API AOrionDroidPawn : public AOrionCharacter
 public:
 	AOrionDroidPawn(const FObjectInitializer& ObjectInitializer);
 
-	void InitMaterials() override {}
+	//void InitMaterials() override {}
 	void BeginPlay() override;
 	virtual void Tick(float DeltaSeconds) override;
 

@@ -74,6 +74,9 @@ public:
 		bool IsFlaming() { return Cast<AOrionCharacter>(GetOwner()) && Cast<AOrionCharacter>(GetOwner())->Health > 0.0f && bIsFlaming; }
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
+		bool IsThermalVisioning() { return Cast<AOrionCharacter>(GetOwner()) && Cast<AOrionCharacter>(GetOwner())->Health > 0.0f && bIsThermalVisioning; }
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
 		void SetJetpacking(bool bActive) { bIsJetpacking = bActive; }
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
@@ -87,6 +90,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
 		void SetFlaming(bool bActive) { bIsFlaming = bActive; }
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
+		void SetThermalVisioning(bool bActive) { bIsThermalVisioning = bActive; }
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Skill)
 		bool bOneShotAbility;
@@ -139,6 +145,8 @@ private:
 		bool bIsOvercharging;
 	UPROPERTY(Replicated)
 		bool bIsFlaming;
+	UPROPERTY(Replicated)
+		bool bIsThermalVisioning;
 
 	//active when we have the turret placer visible
 	bool bIsTurreting;

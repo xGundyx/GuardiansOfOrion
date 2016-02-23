@@ -57,6 +57,23 @@ void AOrionAbility::Tick(float DeltaSeconds)
 					}
 				}
 
+				if (IsThermalVisioning())
+				{
+					AOrionCharacter *P = Cast<AOrionCharacter>(GetOwner());
+					if (P)
+					{
+						AOrionPlayerController *PC = Cast<AOrionPlayerController>(P->Controller);
+						if (PC)
+						{
+							AOrionInventoryManager *Inv = PC->GetInventoryManager();
+							if (Inv)
+							{
+								Rate *= Inv->HasStat(RARESTAT_MARKTHERMALLENGTH) ? 0.5f : 1.0f;
+							}
+						}
+					}
+				}
+
 				Energy = FMath::Max(0.0f, Energy - Rate * DeltaSeconds);
 
 				if (Energy <= 0.0f)
@@ -234,6 +251,7 @@ void AOrionAbility::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & Out
 	DOREPLIFETIME(AOrionAbility, bIsCloaking);
 	DOREPLIFETIME(AOrionAbility, bIsOvercharging);
 	DOREPLIFETIME(AOrionAbility, bIsFlaming);
+	DOREPLIFETIME(AOrionAbility, bIsThermalVisioning);
 }
 
 void AOrionAbility::DoSkillAbility(float DeltaSeconds)

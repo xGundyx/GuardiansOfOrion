@@ -534,9 +534,9 @@ void AOrionWeapon::StartFire()
 		if (PC->HasOrbEffect(ORB_ROF))
 			FireRate *= 0.75f;
 
-		AOrionInventoryManager *Inv = PC->GetInventoryManager();
-		if (Inv && Inv->HasStat(RARESTAT_NORELOAD) && InstantConfig.WeaponSlot == 1)
-			FireRate *= 2.0f;
+		//AOrionInventoryManager *Inv = PC->GetInventoryManager();
+		//if (Inv && Inv->HasStat(RARESTAT_NORELOAD) && InstantConfig.WeaponSlot == 1)
+		//	FireRate *= 2.0f;
 	}
 
 	if (InstantConfig.bBurst)
@@ -659,9 +659,9 @@ void AOrionWeapon::FireBurst()
 		if (PC->HasOrbEffect(ORB_ROF))
 			FireRate *= 0.75f;
 
-		AOrionInventoryManager *Inv = PC->GetInventoryManager();
-		if (Inv && Inv->HasStat(RARESTAT_NORELOAD) && InstantConfig.WeaponSlot == 1)
-			FireRate *= 2.0f;
+		//AOrionInventoryManager *Inv = PC->GetInventoryManager();
+		//if (Inv && Inv->HasStat(RARESTAT_NORELOAD) && InstantConfig.WeaponSlot == 1)
+		//	FireRate *= 2.0f;
 	}
 
 	if (BurstCounter > 0)
@@ -674,7 +674,7 @@ void AOrionWeapon::FireBurst()
 
 void AOrionWeapon::FireWeapon()
 {
-	if (!CanFire())
+	if (!CanFire() || !MyPawn)
 		return;
 
 	float FireRate = InstantConfig.TimeBetweenShots;
@@ -725,8 +725,57 @@ void AOrionWeapon::FireWeapon()
 		const FVector ShootDir = WeaponRandomStream.VRandCone(AimDir, ConeHalfAngle, ConeHalfAngle);
 		const FVector EndTrace = StartTrace + ShootDir * FMath::Min(6000.0f, InstantConfig.WeaponRange);
 
-		const FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
-		ProcessInstantHit(Impact, StartTrace, ShootDir, RandomSeed, CurrentSpread);
+		FHitResult Impact;
+
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(MyPawn->Controller);
+		if (MyPawn->CurrentSkill && MyPawn->CurrentSkill->IsThermalVisioning() && PC && PC->GetSkillValue(SKILL_THERMALPENETRATE) > 0)
+		{
+			AOrionInventoryManager *Inv = PC->GetInventoryManager();
+			if (Inv && Inv->HasStat(RARESTAT_MARKPENETRATE))
+			{
+				FVector vStart = StartTrace;
+				int32 Counter = 0;
+				AOrionCharacter *LastHitEnemy = nullptr;
+				while (true)
+				{
+					Impact = WeaponPenetrateTrace(vStart, EndTrace);
+					ProcessInstantHit(Impact, vStart, ShootDir, RandomSeed, CurrentSpread);
+
+					if ((Impact.ImpactPoint - EndTrace).Size() < 1.0f)
+						break;
+
+					if (Impact.ImpactPoint.Size() < 1.0f)
+						return;
+
+					FVector dir = (EndTrace - StartTrace).GetSafeNormal();
+
+					if (FVector::DotProduct((EndTrace - Impact.ImpactPoint).GetSafeNormal(), dir) < 0.98f)
+						break;
+
+					vStart = Impact.ImpactPoint + dir * 50.0f;
+
+					if (LastHitEnemy && Impact.GetActor() == LastHitEnemy)
+						continue;
+
+					LastHitEnemy = Cast<AOrionCharacter>(Impact.GetActor());
+
+					Counter++;
+
+					if (Counter >= 10)
+						break;
+				}
+			}
+			else
+			{
+				Impact = WeaponPenetrateTrace(StartTrace, EndTrace);
+				ProcessInstantHit(Impact, StartTrace, ShootDir, RandomSeed, CurrentSpread);
+			}
+		}
+		else
+		{
+			Impact = WeaponTrace(StartTrace, EndTrace);
+			ProcessInstantHit(Impact, StartTrace, ShootDir, RandomSeed, CurrentSpread);
+		}
 
 		//DrawDebugSphere(GetWorld(), StartTrace, 100, 12, FColor(255, 0, 0, 255), false); 
 		//DrawDebugSphere(GetWorld(), EndTrace, 100, 12, FColor(0, 255, 0, 255), false);
@@ -870,6 +919,50 @@ FHitResult AOrionWeapon::WeaponTrace(const FVector& StartTrace, const FVector& E
 		GetWorld()->LineTraceSingleByChannel(Hit, StartTrace, EndTrace, COLLISION_WEAPON, TraceParams);
 
 	return Hit;
+}
+
+FHitResult AOrionWeapon::WeaponPenetrateTrace(const FVector& StartTrace, const FVector& EndTrace) const
+{
+	static FName WeaponFireTag = FName(TEXT("WeaponPenetrateTrace"));
+
+	// Perform trace to retrieve hit info
+	FCollisionQueryParams TraceParams(WeaponFireTag, false, Instigator);
+	TraceParams.bTraceAsyncScene = false;
+	TraceParams.bReturnPhysicalMaterial = false;
+
+	FVector vStart = StartTrace;
+
+	FHitResult Hit(ForceInit);
+	FHitResult RetHit(ForceInit);
+	if (GetWorld())
+	{
+		while (true)
+		{
+			GetWorld()->LineTraceSingleByChannel(Hit, vStart, EndTrace, COLLISION_WEAPON, TraceParams);
+
+			AOrionCharacter *P = Cast<AOrionCharacter>(Hit.GetActor());
+			if (P)
+			{
+				RetHit = Hit;
+				break;
+			}
+
+			if (Hit.ImpactPoint.Size() <= 1.0f)
+				break;
+
+			if ((Hit.ImpactPoint - EndTrace).Size() < 1.0f)
+				break;
+
+			FVector dir = (EndTrace - StartTrace).GetSafeNormal();
+
+			if (FVector::DotProduct((EndTrace - Hit.ImpactPoint).GetSafeNormal(), dir) < 0.98f)
+				break;
+
+			vStart = Hit.ImpactPoint + (EndTrace - StartTrace).GetSafeNormal() * 10.0f;
+		}
+	}
+
+	return RetHit;
 }
 
 FVector AOrionWeapon::GetAdjustedAim() const
