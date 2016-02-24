@@ -779,8 +779,16 @@ void AOrionCharacter::PlayVoice(EVoiceType Type)
 
 	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
 
+	AOrionInventoryManager *Inv = nullptr;
+	if (PRI)
+		Inv = PRI->InventoryManager;
+
 	VoiceRep.Type = Type;
 	VoiceRep.bToggle = !VoiceRep.bToggle;
+
+	if (Inv && Inv->HasStat(RARESTAT_BONESVOICE)) VoiceRep.VoiceType = 1;
+	else if (Inv && Inv->HasStat(RARESTAT_BONESVOICE)) VoiceRep.VoiceType = 2;
+	else VoiceRep.VoiceType = 0;
 
 #if !IS_SERVER
 	OnRep_VoiceType();
@@ -795,6 +803,11 @@ void AOrionCharacter::OnRep_VoiceType()
 		return;
 
 	TArray<FVoiceHelper> Voices = VoiceClass.GetDefaultObject()->Voices;
+
+	if (VoiceRep.VoiceType == 1 && BonesVoiceClass)
+		Voices = BonesVoiceClass.GetDefaultObject()->Voices;
+	else if (VoiceRep.VoiceType == 2 && GrumpsVoiceClass)
+		Voices = GrumpsVoiceClass.GetDefaultObject()->Voices;
 
 	/*for (int32 i = 0; i < Voices.Num(); i++)
 	{
@@ -2760,6 +2773,8 @@ bool AOrionCharacter::Die(float KillingDamage, FDamageEvent const& DamageEvent, 
 				PC->GetStats()->AddStatValue(STAT_SMGKILLS, 1);
 			else if (dType->WeaponName.ToUpper() == TEXT("AUTOSHOTGUN"))
 				PC->GetStats()->AddStatValue(STAT_AUTOSHOTGUNKILLS, 1);
+			else if (dType->WeaponName.ToUpper() == TEXT("SNIPER"))
+				PC->GetStats()->AddStatValue(STAT_SNIPERKILLS, 1);
 
 			if (dType->WeaponName.ToUpper() == TEXT("FRAGGRENADE"))
 			{
@@ -4103,7 +4118,8 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
 	if (PRI && PRI->OrbEffects.Num() > 0)
 	{
-		LastHealTime = GetWorld()->GetTimeSeconds();
+		if (!bDowned)
+			LastHealTime = GetWorld()->GetTimeSeconds();
 		HealTarget = 5.0f;
 	}
 

@@ -355,10 +355,10 @@ public:
 		void ServerNotifyMiss_Implementation(FVector ShootDir, int32 RandomSeed, float ReticleSpread);
 
 	/** process the instant hit and notify the server if necessary */
-	void ProcessInstantHit(const FHitResult& Impact, const FVector& Origin, const FVector& ShootDir, int32 RandomSeed, float ReticleSpread);
+	void ProcessInstantHit(const FHitResult& Impact, const FVector& Origin, const FVector& ShootDir, int32 RandomSeed, float ReticleSpread, bool Success = true);
 
 	/** continue processing the instant hit, as if it has been confirmed by the server */
-	void ProcessInstantHit_Confirmed(const FHitResult& Impact, const FVector& Origin, const FVector& ShootDir, int32 RandomSeed, float ReticleSpread);
+	void ProcessInstantHit_Confirmed(const FHitResult& Impact, const FVector& Origin, const FVector& ShootDir, int32 RandomSeed, float ReticleSpread, bool Success = true);
 
 	/** check if weapon should deal damage to actor */
 	//bool ShouldDealDamage(AActor* TestActor) const;

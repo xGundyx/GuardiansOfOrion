@@ -1034,6 +1034,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Skill)
 		void SetSkillTreeValuesForUse();
 
+	bool bFirstSpawn;
+
 	void SetDefaultSkills();
 
 	UFUNCTION(server, reliable, WithValidation)

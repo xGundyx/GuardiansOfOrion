@@ -17,6 +17,7 @@ public:
 	AOrionLobbyPawn(const FObjectInitializer& ObjectInitializer);
 
 	bool IsFirstPerson() const override;
+	virtual void BeginPlay() override;
 	
 	void Say();
 	void TeamSay();

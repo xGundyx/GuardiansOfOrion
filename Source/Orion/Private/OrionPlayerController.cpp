@@ -15,6 +15,7 @@
 #include "OrionSpectatorPawn.h"
 #include "OrionGameInstance.h"
 #include "AudioDevice.h"
+#include "OrionGameLobby.h"
 #include "Animation/SkeletalMeshActor.h"
 #include <steam/steam_api.h>
 #include "OnlineSubsystem.h"
@@ -749,10 +750,11 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 					PRI->CharacterID = NextSpawnID;
 			}
 
-			if (!bSamePawn)
+			if (bFirstSpawn || !Cast<AOrionGameLobby>(GetWorld()->GetAuthGameMode()))
 			{
 				newPawn->bNotSpawnedYet = false;
 				EventBlackFade();
+				bFirstSpawn = false;
 			}
 
 			if (!IsLocalPlayerController())
@@ -3397,6 +3399,8 @@ void AOrionPlayerController::DoPounceTutorial()
 void AOrionPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+
+	bFirstSpawn = true;
 
 	bHereFromStart = false;
 	bPhotonReady = false;
