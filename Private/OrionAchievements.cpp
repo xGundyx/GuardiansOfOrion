@@ -48,6 +48,8 @@ void AOrionAchievements::Init()
 	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("MARKSMAN III"), TEXT("marksmanthree"), TEXT("REACH LEVEL 30 WITH MARKSMAN"), ACH_MARKSMANLEVEL30, -1, 1, NULL, TEXT(""), 100));
 	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("MARKSMAN IV"), TEXT("marksmanfour"), TEXT("REACH LEVEL 40 WITH MARKSMAN"), ACH_MARKSMANLEVEL40, -1, 1, NULL, TEXT(""), 100));
 	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("MARKSMAN V"), TEXT("marksmanfive"), TEXT("REACH LEVEL 50 WITH MARKSMAN"), ACH_MARKSMANLEVEL50, -1, 1, NULL, TEXT(""), 250));
+	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("REACHING THE SKY"), TEXT("reachingthesky"), TEXT("REACH LEVEL 50 WITH ANY CLASS"), ACH_LEVEL50I, -1, 1, NULL, TEXT(""), 500));
+	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("REACHING OVER THE SKY"), TEXT("reachingoverthesky"), TEXT("REACH LEVEL 50 WITH 5 CLASSES"), ACH_LEVEL50II, -1, 1, NULL, TEXT(""), 2500));
 	
 	//combat
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("RAPTOR MASTER I"), TEXT("raptormasterone"), TEXT("KILL 100 RAPTORS"), ACH_RAPTORSKILLEDI, STAT_RAPTORKILL, 100, NULL, TEXT(""), 50));
@@ -167,6 +169,11 @@ void AOrionAchievements::Init()
 	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("AUTO SHOTGUN MASTER III"), TEXT("autshotgunmasterthree"), TEXT("KILL 1000 ENEMIES WITH THE AUTO SHOTGUN"), ACH_AUTOSHOTGUNKILLSIII, STAT_AUTOSHOTGUNKILLS, 1000, NULL, TEXT(""), 100));
 	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("AUTO SHOTGUN MASTER IV"), TEXT("autshotgunmasterfour"), TEXT("KILL 2500 ENEMIES WITH THE AUTO SHOTGUN"), ACH_AUTOSHOTGUNKILLSIV, STAT_AUTOSHOTGUNKILLS, 2500, NULL, TEXT(""), 100));
 	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("AUTO SHOTGUN MASTER V"), TEXT("autshotgunmasterfive"), TEXT("KILL 5000 ENEMIES WITH THE AUTO SHOTGUN"), ACH_AUTOSHOTGUNKILLSV, STAT_AUTOSHOTGUNKILLS, 5000, NULL, TEXT(""), 250));
+	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("SNIPER RIFLE MASTER I"), TEXT("sniperriflemasterone"), TEXT("KILL 100 ENEMIES WITH THE SNIPER RIFLE"), ACH_SNIPERRIFLEKILLSI, STAT_SNIPERKILLS, 100, NULL, TEXT(""), 50));
+	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("SNIPER RIFLE MASTER II"), TEXT("sniperriflemastertwo"), TEXT("KILL 500 ENEMIES WITH THE SNIPER RIFLE"), ACH_SNIPERRIFLEKILLSII, STAT_SNIPERKILLS, 500, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("SNIPER RIFLE MASTER III"), TEXT("sniperriflemasterthree"), TEXT("KILL 1000 ENEMIES WITH THE SNIPER RIFLE"), ACH_SNIPERRIFLEKILLSIII, STAT_SNIPERKILLS, 1000, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("SNIPER RIFLE MASTER IV"), TEXT("sniperriflemasterfour"), TEXT("KILL 2500 ENEMIES WITH THE SNIPER RIFLE"), ACH_SNIPERRIFLEKILLSIV, STAT_SNIPERKILLS, 2500, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("SNIPER RIFLE MASTER V"), TEXT("sniperriflemasterfive"), TEXT("KILL 5000 ENEMIES WITH THE SNIPER RIFLE"), ACH_SNIPERRIFLEKILLSV, STAT_SNIPERKILLS, 5000, NULL, TEXT(""), 250));
 
 	//loot
 	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("LEGEND"), TEXT("legend"), TEXT("EQUIP A LEGENDARY PIECE OF GEAR"), ACH_LEGEND, -1, -1, NULL, TEXT(""), 250));
@@ -181,11 +188,11 @@ void AOrionAchievements::Init()
 	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("MASTER CRAFTER III"), TEXT("mastercrafterthree"), TEXT("CRAFT 250 ITEMS"), ACH_MASTERCRAFTERIII, STAT_CRAFTITEMS, 250, NULL, TEXT(""), 250));
 	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("MASTER CRAFTER IV"), TEXT("mastercrafterfour"), TEXT("CRAFT 500 ITEMS"), ACH_MASTERCRAFTERIV, STAT_CRAFTITEMS, 500, NULL, TEXT(""), 250));
 	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("MASTER CRAFTER V"), TEXT("mastercrafterfive"), TEXT("CRAFT 1000 ITEMS"), ACH_MASTERCRAFTERV, STAT_CRAFTITEMS, 1000, NULL, TEXT(""), 250));
-	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("MASTER OF COIN I"), TEXT("masterofcoinone"), TEXT("REACH 100,000 GOLD"), ACH_MASTEROFCOINI, -1, -1, NULL, TEXT(""), 250));
-	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("MASTER OF COIN II"), TEXT("masterofcointwo"), TEXT("REACH 250,000 GOLD"), ACH_MASTEROFCOINII, -1, -1, NULL, TEXT(""), 250));
-	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("MASTER OF COIN III"), TEXT("masterofcointhree"), TEXT("REACH 500,000 GOLD"), ACH_MASTEROFCOINIII, -1, -1, NULL, TEXT(""), 250));
-	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("MASTER OF COIN IV"), TEXT("masterofcoinfour"), TEXT("REACH 1,000,000 GOLD"), ACH_MASTEROFCOINIV, -1, -1, NULL, TEXT(""), 500));
-	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("MASTER OF COIN V"), TEXT("masterofcoinfive"), TEXT("REACH 10,000,000 GOLD"), ACH_MASTEROFCOINV, -1, -1, NULL, TEXT(""), 1000));
+	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("MASTER OF COIN I"), TEXT("masterofcoinone"), TEXT("REACH 100,000 ION"), ACH_MASTEROFCOINI, -1, -1, NULL, TEXT(""), 250));
+	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("MASTER OF COIN II"), TEXT("masterofcointwo"), TEXT("REACH 250,000 ION"), ACH_MASTEROFCOINII, -1, -1, NULL, TEXT(""), 250));
+	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("MASTER OF COIN III"), TEXT("masterofcointhree"), TEXT("REACH 500,000 ION"), ACH_MASTEROFCOINIII, -1, -1, NULL, TEXT(""), 250));
+	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("MASTER OF COIN IV"), TEXT("masterofcoinfour"), TEXT("REACH 1,000,000 ION"), ACH_MASTEROFCOINIV, -1, -1, NULL, TEXT(""), 500));
+	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("MASTER OF COIN V"), TEXT("masterofcoinfive"), TEXT("REACH 10,000,000 ION"), ACH_MASTEROFCOINV, -1, -1, NULL, TEXT(""), 1000));
 
 	//misc
 	Achievements.Add(FAchievement(ACHCATEGORY_MISC, TEXT("ORB MASTER I"), TEXT("orbmasterone"), TEXT("COLLECT 50 POWER ORBS"), ACH_ORBMASTERI, -1, 1, NULL, TEXT(""), 50));
@@ -399,6 +406,22 @@ void AOrionAchievements::CheckForLevelUnlocks(int32 NewLevel, AOrionPlayerContro
 		if (NewLevel >= 50)
 			UnlockAchievement(ACH_MARKSMANLEVEL50, PC);
 		break;
+	}
+
+	//check how many level 50s we have
+	int32 Num50 = 0;
+	if (PCOwner && PCOwner->GetStats())
+	{
+		AOrionStats *Stats = PCOwner->GetStats();
+		if (CalculateLevel(Stats->aStats[STAT_ASSAULTEXP].StatValue) >= 50) Num50++;
+		if (CalculateLevel(Stats->aStats[STAT_SUPPORTEXP].StatValue) >= 50) Num50++;
+		if (CalculateLevel(Stats->aStats[STAT_RECONEXP].StatValue) >= 50) Num50++;
+		if (CalculateLevel(Stats->aStats[STAT_TECHEXP].StatValue) >= 50) Num50++;
+		if (CalculateLevel(Stats->aStats[STAT_PYROEXP].StatValue) >= 50) Num50++;
+		if (CalculateLevel(Stats->aStats[STAT_MARKSMANEXP].StatValue) >= 50) Num50++;
+
+		if (Num50 >= 1) UnlockAchievement(ACH_LEVEL50I, PCOwner);
+		if (Num50 >= 5) UnlockAchievement(ACH_LEVEL50II, PCOwner);
 	}
 }
 

@@ -17,4 +17,7 @@ public:
 	virtual void InitGRI() override;
 	virtual void BeginPlay() override;
 	
+	virtual void HandleMatchHasStarted() override;
+	void HandleRespawns();
+	virtual void SetSpawnTimer() override;
 };

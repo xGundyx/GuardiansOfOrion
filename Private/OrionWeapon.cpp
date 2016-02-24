@@ -7,6 +7,8 @@
 #include "OrionGrenade.h"
 #include "OrionSkeletalMeshComponent.h"
 
+class AOrionLobbyPawn;
+
 //auto rifle -3.0 30.0 -13.5
 //auto pistol -4.7, 12.65, -8.04
 
@@ -1056,7 +1058,7 @@ FVector AOrionWeapon::GetCameraDamageStartLocation(const FVector& AimDir) const
 	return OutStartTrace;
 }
 
-void AOrionWeapon::ProcessInstantHit(const FHitResult& Impact, const FVector& Origin, const FVector& ShootDir, int32 RandomSeed, float ReticleSpread)
+void AOrionWeapon::ProcessInstantHit(const FHitResult& Impact, const FVector& Origin, const FVector& ShootDir, int32 RandomSeed, float ReticleSpread, bool Success)
 {
 	if (MyPawn && MyPawn->IsLocallyControlled() && GetNetMode() == NM_Client)
 	{
@@ -1082,7 +1084,7 @@ void AOrionWeapon::ProcessInstantHit(const FHitResult& Impact, const FVector& Or
 	}
 
 	// process a confirmed hit
-	ProcessInstantHit_Confirmed(Impact, Origin, ShootDir, RandomSeed, ReticleSpread);
+	ProcessInstantHit_Confirmed(Impact, Origin, ShootDir, RandomSeed, ReticleSpread, Success);
 }
 
 bool AOrionWeapon::CanFire() const
@@ -1370,13 +1372,13 @@ void AOrionWeapon::ServerHandleFiring_Implementation()
 	//}
 }
 
-void AOrionWeapon::ProcessInstantHit_Confirmed(const FHitResult& Impact, const FVector& Origin, const FVector& ShootDir, int32 RandomSeed, float ReticleSpread)
+void AOrionWeapon::ProcessInstantHit_Confirmed(const FHitResult& Impact, const FVector& Origin, const FVector& ShootDir, int32 RandomSeed, float ReticleSpread, bool Success)
 {
 	// play FX on remote clients
 	if (Role == ROLE_Authority)
 	{
 		// handle damage
-		if (Impact.GetActor() != NULL)
+		if (Success && Impact.GetActor() != NULL)
 			DealDamage(Impact, ShootDir);
 
 		const FVector EndTrace = Origin + ShootDir * FMath::Min(6000.0f, InstantConfig.WeaponRange);
@@ -1430,7 +1432,7 @@ void AOrionWeapon::ServerNotifyHit_Implementation(const FHitResult Impact, FVect
 		AOrionCharacter *Victim = Cast<AOrionCharacter>(Impact.GetActor());
 
 		// is the angle between the hit and the view within allowed limits (limit + weapon max angle)
-		const float ViewDotHitDir = FVector::DotProduct(Pawn ? (Pawn->AimPos - Pawn->GetActorLocation()).GetSafeNormal() : Instigator->GetViewRotation().Vector(), ViewDir);
+		const float ViewDotHitDir = FVector::DotProduct((Pawn && !Cast<AOrionLobbyPawn>(Pawn) && !Pawn->bThirdPersonCamera)? (Pawn->AimPos - Pawn->GetActorLocation()).GetSafeNormal() : Instigator->GetViewRotation().Vector(), ViewDir);
 
 		if (Victim && Victim->Health <= 0)
 			ProcessInstantHit_Confirmed(Impact, Origin, ShootDir, RandomSeed, ReticleSpread);
@@ -1440,10 +1442,10 @@ void AOrionWeapon::ServerNotifyHit_Implementation(const FHitResult Impact, FVect
 			//{
 			if (Impact.GetActor() == NULL)
 			{
-				if (Impact.bBlockingHit)
-				{
+				//if (Impact.bBlockingHit)
+				//{
 					ProcessInstantHit_Confirmed(Impact, Origin, ShootDir, RandomSeed, ReticleSpread);
-				}
+				//}
 			}
 			// assume it told the truth about static things because the don't move and the hit 
 			// usually doesn't have significant gameplay implications
@@ -1477,6 +1479,7 @@ void AOrionWeapon::ServerNotifyHit_Implementation(const FHitResult Impact, FVect
 				}
 				else
 				{
+					ProcessInstantHit_Confirmed(Impact, Origin, ShootDir, RandomSeed, ReticleSpread, false);
 					//UE_LOG(LogOrionWeapon, Log, TEXT("%s Rejected client side hit of %s (outside bounding box tolerance)"), *GetNameSafe(this), *GetNameSafe(Impact.GetActor()));
 				}
 			}
@@ -1484,10 +1487,12 @@ void AOrionWeapon::ServerNotifyHit_Implementation(const FHitResult Impact, FVect
 		}
 		else if (ViewDotHitDir <= InstantConfig.AllowedViewDotHitDir)
 		{
+			ProcessInstantHit_Confirmed(Impact, Origin, ShootDir, RandomSeed, ReticleSpread, false);
 			//UE_LOG(LogOrionWeapon, Log, TEXT("%s Rejected client side hit of %s (facing too far from the hit direction)"), *GetNameSafe(this), *GetNameSafe(Impact.GetActor()));
 		}
 		else
 		{
+			ProcessInstantHit_Confirmed(Impact, Origin, ShootDir, RandomSeed, ReticleSpread, false);
 			//UE_LOG(LogOrionWeapon, Log, TEXT("%s Rejected client side hit of %s"), *GetNameSafe(this), *GetNameSafe(Impact.GetActor()));
 		}
 	}

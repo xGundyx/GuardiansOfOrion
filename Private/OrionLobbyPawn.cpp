@@ -19,6 +19,12 @@ AOrionLobbyPawn::AOrionLobbyPawn(const FObjectInitializer& ObjectInitializer)
 	//Arms1PMesh->SetHiddenInGame(true);
 }
 
+void AOrionLobbyPawn::BeginPlay()
+{
+	Super::BeginPlay();
+	bShoulderCamera = false;
+}
+
 bool AOrionLobbyPawn::IsFirstPerson() const
 {
 	return IsAlive() && Controller && Controller->IsLocalPlayerController();

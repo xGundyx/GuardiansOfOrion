@@ -46,6 +46,10 @@ struct FVoiceReplication
 
 	UPROPERTY()
 		TEnumAsByte<EVoiceType> Type;
+
+	//0 = normal, 1 = bones, 2 = grumps
+	UPROPERTY()
+		int32 VoiceType;
 };
 
 USTRUCT()
@@ -1349,6 +1353,12 @@ public:
 
 	UPROPERTY(Replicated, EditDefaultsOnly, BlueprintReadWrite, Category = Voice)
 		TSubclassOf<AOrionVoice> VoiceClass;
+
+	UPROPERTY(Replicated, EditDefaultsOnly, BlueprintReadWrite, Category = Voice)
+		TSubclassOf<AOrionVoice> BonesVoiceClass;
+
+	UPROPERTY(Replicated, EditDefaultsOnly, BlueprintReadWrite, Category = Voice)
+		TSubclassOf<AOrionVoice> GrumpsVoiceClass;
 
 	UFUNCTION(BlueprintCallable, Category = Voice)
 		void PlayVoice(EVoiceType Type);

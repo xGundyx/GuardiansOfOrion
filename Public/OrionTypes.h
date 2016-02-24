@@ -500,6 +500,8 @@ enum ESuperRareStat
 	RARESTAT_MARKPENETRATE,
 	RARESTAT_MARKDR,
 	RARESTAT_MARKTHERMALLENGTH,
+	RARESTAT_BONESVOICE,
+	RARESTAT_GRUMPSVOICE,
 
 	RARESTAT_NUM //don't put anything after this
 };
@@ -1029,6 +1031,8 @@ struct FRareStats
 		StatsInfo.Add(FRareStatsInfo(TEXT("sniper bullets pierce up to 10 enemies"), RARESTAT_MARKPENETRATE, ITEM_ABILITY));
 		StatsInfo.Add(FRareStatsInfo(TEXT("take 50% less damage while using thermal vision"), RARESTAT_MARKDR, ITEM_ABILITY));
 		StatsInfo.Add(FRareStatsInfo(TEXT("double thermal vision length"), RARESTAT_MARKTHERMALLENGTH, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("changes your voice to sound like a bones droid"), RARESTAT_BONESVOICE, ITEM_HELMET));
+		StatsInfo.Add(FRareStatsInfo(TEXT("changes your voice to sound like a grumps droid"), RARESTAT_GRUMPSVOICE, ITEM_HELMET));
 	};
 };
 

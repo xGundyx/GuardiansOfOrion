@@ -118,4 +118,81 @@ void AOrionGameLobby::BeginPlay()
 		GameSession->MaxPlayers = 40;
 }
 
+void AOrionGameLobby::SetSpawnTimer()
+{
+	FTimerHandle Timer;
+	GetWorldTimerManager().SetTimer(Timer, this, &AOrionGameLobby::HandleRespawns, 1.0f, true);
+}
+
+void AOrionGameLobby::HandleRespawns()
+{
+	for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+	{
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(*Iterator);
+		if (PC && PC->IsValidLowLevel())
+		{
+			//ignore players who are waiting for auth
+#if !WITH_EDITOR
+			if (!PC->bAuthenticated)
+				continue;
+#endif
+			AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+
+			if (!PRI)
+				continue;
+
+			if (((PC->IsInState(NAME_Spectating) && PC->bPlayerIsWaiting) || PC->IsInState(NAME_Inactive)) && !PC->IsFrozen())
+			{
+				RestartPlayer(PC);
+			}
+		}
+	}
+}
+
+void AOrionGameLobby::HandleMatchHasStarted()
+{
+	GameSession->HandleMatchHasStarted();
+
+	// start human players first
+	for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+	{
+		APlayerController* PlayerController = *Iterator;
+		if ((PlayerController->GetPawn() == NULL) && PlayerCanRestart(PlayerController))
+		{
+			//RestartPlayer(PlayerController);
+		}
+	}
+
+	// Make sure level streaming is up to date before triggering NotifyMatchStarted
+	GEngine->BlockTillLevelStreamingCompleted(GetWorld());
+
+	// First fire BeginPlay, if we haven't already in waiting to start match
+	GetWorldSettings()->NotifyBeginPlay();
+
+	// Then fire off match started
+	GetWorldSettings()->NotifyMatchStarted();
+
+	// if passed in bug info, send player to right location
+	FString BugLocString = UGameplayStatics::ParseOption(OptionsString, TEXT("BugLoc"));
+	FString BugRotString = UGameplayStatics::ParseOption(OptionsString, TEXT("BugRot"));
+	if (!BugLocString.IsEmpty() || !BugRotString.IsEmpty())
+	{
+		for (FConstPlayerControllerIterator Iterator = GetWorld()->GetPlayerControllerIterator(); Iterator; ++Iterator)
+		{
+			APlayerController* PlayerController = *Iterator;
+			if (PlayerController->CheatManager != NULL)
+			{
+				//`log( "BugLocString:" @ BugLocString );
+				//`log( "BugRotString:" @ BugRotString );
+
+				PlayerController->CheatManager->BugItGoString(BugLocString, BugRotString);
+			}
+		}
+	}
+
+	HandleRespawns();
+	//GetWorldTimerManager().SetTimer(RespawnTimer, this, &AOrionGameTopDown::HandleRespawns, 25.0f, false);
+}
+
+
 
