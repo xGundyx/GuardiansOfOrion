@@ -4304,7 +4304,7 @@ void AOrionPlayerController::InitStatsAndAchievements()
 
 		Stats = GetWorld()->SpawnActor<AOrionStats>(StatsClass, SpawnInfo);
 
-		if (Stats && Role == ROLE_Authority)
+		if (Stats)// && Role == ROLE_Authority)
 		{
 			if (!Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
 				Stats->ReadPlayerStats(this);
@@ -4319,7 +4319,7 @@ void AOrionPlayerController::InitStatsAndAchievements()
 			if (Achievements)
 				Achievements->Init();
 
-			if (Stats && Role == ROLE_Authority)
+			if (Achievements)// && Role == ROLE_Authority)
 			{
 				if (!Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
 					Achievements->ReadPlayerAchievements(this);

@@ -81,6 +81,31 @@ AOrionGameLobby::AOrionGameLobby(const FObjectInitializer& ObjectInitializer)
 	InactivePlayerStateLifeSpan = 0.1f;
 }
 
+void AOrionGameLobby::HandleEmptyServer()
+{
+	//if there are 0 players left after this player leaves, close the server
+	TArray<AActor*> Controllers;
+	int32 Counter = 0;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
+		if (C)
+			Counter++;
+	}
+
+	if (GEngine && Counter == 0 && !GetWorldTimerManager().IsTimerActive(EmptyServerTimer))
+	{
+		GetWorldTimerManager().SetTimer(EmptyServerTimer, this, &AOrionGameMode::CloseGame, 120.0f, false);
+	}
+	else if (GEngine && Counter > 0 && GetWorldTimerManager().IsTimerActive(EmptyServerTimer))
+	{
+		GetWorldTimerManager().ClearTimer(EmptyServerTimer);
+	}
+}
+
 void AOrionGameLobby::InitGRI()
 {
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
@@ -147,6 +172,8 @@ void AOrionGameLobby::HandleRespawns()
 			}
 		}
 	}
+
+	HandleEmptyServer();
 }
 
 void AOrionGameLobby::HandleMatchHasStarted()
