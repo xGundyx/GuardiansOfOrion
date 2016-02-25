@@ -26,6 +26,8 @@ public:
 
 	void CloseGame();
 
+	virtual void HandleEmptyServer();
+
 	virtual void SetSpawnTimer() {}
 
 	void AddChatMessage(const FString &msg);

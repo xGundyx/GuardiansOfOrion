@@ -20,4 +20,7 @@ public:
 	virtual void HandleMatchHasStarted() override;
 	void HandleRespawns();
 	virtual void SetSpawnTimer() override;
+	virtual void HandleEmptyServer() override;
+
+	FTimerHandle EmptyServerTimer;
 };

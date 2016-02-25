@@ -1048,30 +1048,34 @@ void AOrionGameMode::Logout(AController* Exiting)
 			UPlayFabRequestProxy::ServerNotifyMatchmakerPlayerLeft(PRI->PlayFabID, LobbyID);
 		}
 
-		//if there are 0 players left after this player leaves, close the server
-		TArray<AActor*> Controllers;
-		int32 Counter = 0;
-
-		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
-
-		for (int32 i = 0; i < Controllers.Num(); i++)
-		{
-			AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
-			if (C && C != Exiting)
-				Counter++;
-		}
-
-		if (GEngine && Counter == 0)
-		{
-			//GEngine->Exec(nullptr, TEXT("QUIT"), *GLog);
-			FTimerHandle Handle;
-			GetWorldTimerManager().SetTimer(Handle, this, &AOrionGameMode::CloseGame, 5.0f, false);
-			return;
-		}
+		HandleEmptyServer();
 #endif
 	}
 
 	Super::Logout(Exiting);
+}
+
+void AOrionGameMode::HandleEmptyServer()
+{
+	//if there are 0 players left after this player leaves, close the server
+	TArray<AActor*> Controllers;
+	int32 Counter = 0;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
+		if (C && C != Exiting)
+			Counter++;
+	}
+
+	if (GEngine && Counter == 0)
+	{
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, this, &AOrionGameMode::CloseGame, 5.0f, false);
+		return;
+	}
 }
 
 void AOrionGameMode::CloseGame()
