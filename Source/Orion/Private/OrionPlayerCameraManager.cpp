@@ -18,6 +18,13 @@ AOrionPlayerCameraManager::AOrionPlayerCameraManager(const FObjectInitializer& O
 
 void AOrionPlayerCameraManager::UpdateCamera(float DeltaTime)
 {
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
+	if (GRI && GRI->bIsLocalCoop)
+	{
+		Super::UpdateCamera(DeltaTime);
+		return;
+	}
+
 	AOrionCharacter* MyPawn = PCOwner ? Cast<AOrionCharacter>(PCOwner->GetPawn()) : NULL;
 	AActor* MyDropPod = PCOwner ? Cast<AOrionPlayerController>(PCOwner)->DropPod : NULL;
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(PCOwner);

@@ -25,6 +25,8 @@
 //#include "SPanel.h"
 #include "OrionPlayerController.generated.h"
 
+
+class AOrionPRI;
 /**
 *
 */
@@ -310,7 +312,10 @@ public:
 
 	virtual void Possess(APawn* aPawn) override;
 
-	UOrionSaveGame *MasterSaveFile;
+	static UOrionSaveGame *MasterSaveFile;
+
+	UFUNCTION(exec)
+		void TestCoop();
 
 	UPROPERTY(BlueprintReadWrite, Category = Save)
 		UOrionSaveGame *SavedGame;
@@ -326,6 +331,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Save)
 		bool CreateGameFile(FString Slot);
+
+	UFUNCTION(BlueprintCallable, Category = Save)
+		void DeleteGameFile(FString Slot);
 
 	UFUNCTION(BlueprintCallable, Category = Steam)
 		FString GetSteamID();
@@ -578,6 +586,9 @@ public:
 	//read in the stats from playfab
 	void ReadStats();
 
+	UPROPERTY(BlueprintReadOnly, Category = LocalCoop)
+		int32 ControllerIndex;
+
 	//only the server can actually save stats
 	void SaveStats();
 
@@ -650,7 +661,10 @@ public:
 		AOrionChatManager *GetChatManager();
 
 	UFUNCTION(BlueprintCallable, Category = Respawn)
-		void SetDropPod(AOrionDropPod *Pod);
+		void SetDropPod(AOrionDropPod *Pod, AActor *Target);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SetPodInfo"))
+		void EventSetPodInfo(AOrionDropPod *Pod, AActor *Target);
 
 	UFUNCTION(BlueprintCallable, Category = Menu)
 		TArray<FOptionsData> GetGameplayOptions();
@@ -716,8 +730,11 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = PlayFab)
 		TArray<FCharacterData> CharacterDatas;
 
-	UPROPERTY()
+	UPROPERTY(BlueprintReadWrite, Category = Spawn)
 		AOrionDropPod *DropPod;
+
+	UPROPERTY(BlueprintReadWrite, Category = Spawn)
+		AActor *DropPodTarget;
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
 		void OpenLobby(FString MapName, FString MapDifficulty, FString Gamemode, FString Privacy, FString TOD, FString ItemLevel, FString Region);
@@ -907,14 +924,92 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Raptor)
 		void DoPounceTutorial();
 
-	void SetLobbyName(FString lName);
+	void SetLobbyName(FString lName, FString PartyName);
 	FString LobbyName;
 
-	UFUNCTION(BlueprintCallable, Category = Steam)
-		void InviteFriendToLobby(FString FriendSteamID);
+	FString CurrentPartyName;
+
+	UFUNCTION(BlueprintCallable, Category = Lobby)
+		void UpdatePartySettings(const FString &MapName, const FString &Diff, const FString &Gamemode, const FString &DiffScale, const FString &MinILevel, const FString &Region, const FString &TOD, const FString &Privacy, const FString &IP, const FString &LobbyID);
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerUpdatePartySettings(const FString &MapName, const FString &Diff, const FString &Gamemode, const FString &DiffScale, const FString &MinILevel, const FString &Region, const FString &TOD, const FString &Privacy, const FString &IP, const FString &LobbyID);
+		bool ServerUpdatePartySettings_Validate(const FString &MapName, const FString &Diff, const FString &Gamemode, const FString &DiffScale, const FString &MinILevel, const FString &Region, const FString &TOD, const FString &Privacy, const FString &IP, const FString &LobbyID) { return true; }
+		void ServerUpdatePartySettings_Implementation(const FString &MapName, const FString &Diff, const FString &Gamemode, const FString &DiffScale, const FString &MinILevel, const FString &Region, const FString &TOD, const FString &Privacy, const FString &IP, const FString &LobbyID);
+
+	UFUNCTION(BlueprintCallable, Category = Lobby)
+		void CreateParty(const FString &PartyName, const FString &MapName, const FString &Diff, const FString &Gamemode, const FString &DiffScale, const FString &MinILevel, const FString &Region, const FString &TOD, const FString &Privacy);
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerCreateParty(const FString &PartyName, const FString &MapName, const FString &Diff, const FString &Gamemode, const FString &DiffScale, const FString &MinILevel, const FString &Region, const FString &TOD, const FString &Privacy);
+		bool ServerCreateParty_Validate(const FString &PartyName, const FString &MapName, const FString &Diff, const FString &Gamemode, const FString &DiffScale, const FString &MinILevel, const FString &Region, const FString &TOD, const FString &Privacy) { return true; }
+		void ServerCreateParty_Implementation(const FString &PartyName, const FString &MapName, const FString &Diff, const FString &Gamemode, const FString &DiffScale, const FString &MinILevel, const FString &Region, const FString &TOD, const FString &Privacy);
+
+	UFUNCTION(BlueprintCallable, Category = Lobby)
+		void LeaveParty(const FString &PartyName);
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerLeaveParty(const FString &PartyName);
+		bool ServerLeaveParty_Validate(const FString &PartyName) { return true; }
+		void ServerLeaveParty_Implementation(const FString &PartyName);
+
+	UFUNCTION(BlueprintCallable, Category = Lobby)
+		void JoinParty(const FString &PartyName);
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerJoinParty(const FString &PartyName);
+		bool ServerJoinParty_Validate(const FString &PartyName) { return true; }
+		void ServerJoinParty_Implementation(const FString &PartyName);
+
+	UFUNCTION(BlueprintCallable, Category = Lobby)
+		void UpdatePartyPlayer(int32 sLevel, const FString &sClass);
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerUpdatePartyPlayer(int32 sLevel, const FString &sClass);
+		bool ServerUpdatePartyPlayer_Validate(int32 sLevel, const FString &sClass) { return true; }
+		void ServerUpdatePartyPlayer_Implementation(int32 sLevel, const FString &sClass);
+
+	UFUNCTION(BlueprintCallable, Category = Lobby)
+		void InvitePlayerToParty(AOrionPRI *Member);
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerInvitePlayerToParty(AOrionPRI *Member);
+		bool ServerInvitePlayerToParty_Validate(AOrionPRI *Member) { return true; }
+		void ServerInvitePlayerToParty_Implementation(AOrionPRI *Member);
+
+	UFUNCTION(BlueprintCallable, Category = Lobby)
+		void KickPlayerFromParty(AOrionPRI *Member);
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerKickPlayerFromParty(AOrionPRI *Member);
+		bool ServerKickPlayerFromParty_Validate(AOrionPRI *Member) { return true; }
+		void ServerKickPlayerFromParty_Implementation(AOrionPRI *Member);
+
+	UFUNCTION(Reliable, client)
+		void ReceivePartyInvite(const FString &Inviter, const FString &PartyName);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ReceivePartyInvite"))
+		void EventReceivePartyInvite(const FString &Inviter);
+
+	FString InvitePartyName;
+
+	UFUNCTION(BlueprintCallable, Category = Lobby)
+		void AcceptPartyInvite(bool bAccepted);
+
+	UFUNCTION(Reliable, client)
+		void ClientPartyCreated(bool bSuccess);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "PartyCreated"))
+		void EventPartyCreated(bool bSuccess);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "UpdatePartyInfo"))
+		void EventUpdateParty();
 
 	UFUNCTION(BlueprintCallable, Category = Steam)
-		void SetPresenceInfo(FString LobbyID);
+		void InviteFriendToLobby(FString FriendSteamID, FString LobbyID, FString TeamName);
+
+	UFUNCTION(BlueprintCallable, Category = Steam)
+		void SetPresenceInfo(FString LobbyID, FString TeamName);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ReceiveChat"))
 		void EventAddChatMessage(const FString &msg);
@@ -988,6 +1083,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, Category = Lobby)
 		void EventJoinLobbySuccess();
 
+	UFUNCTION(BlueprintImplementableEvent, Category = Lobby)
+		void EventJoinLobby(const FString &ServerIP, const FString &TeamName);
+
 	UFUNCTION(BlueprintImplementableEvent, Category = Spawn)
 		void EventBlackFade();
 
@@ -1009,7 +1107,7 @@ public:
 		void EventUpdateLobbyList();
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
-		void JoinLobby(FString ServerName);
+		void JoinLobby(FString ServerName, FString TeamName);
 
 	//list of visible lobbies for us to choose from
 	UPROPERTY(BlueprintReadWrite, Category = Photon)
@@ -1131,6 +1229,42 @@ public:
 
 	UPROPERTY()//VisibleAnywhere, BlueprintReadOnly, Category = Rain)
 		UParticleSystemComponent *RainPSC;
+
+	UFUNCTION(Reliable, client)
+		void FindLobbyForParty();
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Find Party Lobby"))
+		void EventFindPartyLobby();
+
+	UFUNCTION(BlueprintCallable, Category = Lobby)
+		void SetPartyLobbyInfo(const FString &LobbyID);
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerSetPartyLobbyInfo(const FString &LobbyID);
+		bool ServerSetPartyLobbyInfo_Validate(const FString &LobbyID) { return true; }
+		void ServerSetPartyLobbyInfo_Implementation(const FString& LobbyID);
+
+	UFUNCTION(Reliable, client)
+		void ConnectToLobbyID(const FString &LobbyID);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Connect To LobbyID"))
+		void EventConnectToLobbyID(const FString &LobbyID);
+
+	UFUNCTION(Reliable, client)
+		void ShowVoteOptions(EVoteType Type);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Show Vote"))
+		void EventShowVoteOptions(EVoteType Type);
+
+	UFUNCTION(BlueprintCallable, Category = Vote)
+		void CastVote(int32 Index);
+
+	int32 VoteIndex;
+
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerCastVote(int32 Index);
+		bool ServerCastVote_Validate(int32 Index) { return true; }
+		void ServerCastVote_Implementation(int32 Index);
 
 	std::map<std::string,std::string> GetInventoryData();
 	void PopulateInventory(TSharedPtr<FJsonObject> Data);

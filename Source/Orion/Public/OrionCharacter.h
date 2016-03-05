@@ -608,6 +608,9 @@ public:
 	UPROPERTY()
 		UMaterialInstanceDynamic *RingMat;
 
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Mesh)
+		UMaterial *ThermalMat;
+
 	void UpdatePlayerRingColor();
 
 	bool bIsGrenadeActive;

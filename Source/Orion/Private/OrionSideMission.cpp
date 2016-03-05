@@ -9,6 +9,12 @@
 AOrionSideMission::AOrionSideMission(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
+	static ConstructorHelpers::FObjectFinder<UBlueprint> CrateObject(TEXT("/Game/OrionActors/LootCrate/Blueprint/LargeLootCrate"));
+	if (CrateObject.Object != NULL)
+	{
+		DefaultCrateClass = (UClass*)CrateObject.Object->GeneratedClass;
+	}
+
  	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -78,10 +84,89 @@ void AOrionSideMission::SpawnMissionEnemies(FSpawnNumbers TypesToSpawn, AActor *
 	}
 
 	//SpawnWave(Types, Target);
+
+	float BonusTime = 600.0f;
+
+	if (Game)
+	{
+		if (Game->Difficulty == DIFF_HARD)
+			BonusTime = 360.0f;
+		else if (Game->Difficulty == DIFF_INSANE)
+			BonusTime = 240.0f;
+		else if (Game->Difficulty == DIFF_REDIKULOUS)
+			BonusTime = 180.0f;
+	}
+
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+	if (GRI)
+		GRI->bBonusWon = false;
+
+	bBonus = true;
+	GetWorldTimerManager().SetTimer(BonusTimer, this, &AOrionSideMission::BonusFailed, BonusTime, false);
+}
+
+void AOrionSideMission::BonusFailed()
+{
+	bBonus = false;
 }
 
 //just single wave for testing
 void AOrionSideMission::FinishWave()
 {
+	if (GetWorldTimerManager().IsTimerActive(BonusTimer))
+		GetWorldTimerManager().ClearTimer(BonusTimer);
+
+	//spawn a reward chest if completed on time
+	if (bBonus && DefaultCrateClass)
+	{
+		//spawn us around the center point of the side objective, 1 for each player
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+		if (GRI)
+			GRI->bBonusWon = true;
+
+		FActorSpawnParameters SpawnInfo;
+		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+		int32 Counter = 0;
+		FVector Offset[4];
+		Offset[0] = FVector(0.707f, 0.707f, 0.0f);
+		Offset[1] = FVector(0.707f, -0.707f, 0.0f);
+		Offset[2] = FVector(-0.707f, 0.707f, 0.0f);
+		Offset[3] = FVector(-0.707f, -0.707f, 0.0f);
+
+		for (TActorIterator<AOrionPlayerController> ActorItr(GetWorld()); ActorItr; ++ActorItr)
+		{
+			AOrionPlayerController *PC = *ActorItr;
+			if (PC)
+			{
+				SpawnInfo.Owner = PC;
+				AOrionLootCrate *Crate = GetWorld()->SpawnActor<AOrionLootCrate>(DefaultCrateClass, GetActorLocation() + Offset[Counter] * 250.0f, Offset[Counter].Rotation(), SpawnInfo);
+
+				if (Crate)
+				{
+				}
+			}
+		}
+	}
+
+	//if this is the last side mission before the match is over, tell the gri about it
+	/*if (Tier == 2)
+	{
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+		if (GRI)
+		{
+			GRI->
+		}
+	}*/
+
+	//let the gamemode know we're done, if this is the end, make sure to keep all players together and send them back to the space station
 	MissionComplete();
+}
+
+float AOrionSideMission::GetBonusTimeRemaining()
+{
+	if (GetWorldTimerManager().IsTimerActive(BonusTimer))
+		return GetWorldTimerManager().GetTimerRemaining(BonusTimer);
+
+	return 0.0f;
 }

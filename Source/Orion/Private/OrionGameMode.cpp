@@ -84,6 +84,7 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 	TimeLimit = 0;
 	WarmupTime = 0;
 	bWarmingUp = true;
+	bLocalCheck = false;
 
 	// do this so the match doesn't accidently start on us
 	bDelayedStart = true;
@@ -264,6 +265,7 @@ void AOrionGameMode::InitGRI()
 	GRI->bTeamGame = bTeamGame;
 	GRI->bAlwaysShowCursor = bAlwaysShowCursor;
 	GRI->bTopDown = bTopDown;
+	GRI->bInitialized = true;
 }
 
 void AOrionGameMode::Tick(float DeltaSeconds)
@@ -307,7 +309,7 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 
 		if (Pawn && DeadPawn && Pawn->bDowned)
 		{
-			Pawn->Health = FMath::Min(Pawn->HealthMax, Pawn->Health + (Pawn->HealthMax * ((DeadPawn->bIsBigDino || (!IsSlaughter() && Difficulty <= DIFF_MEDIUM)) ? 1.0f : 0.4f)));
+			Pawn->Health = FMath::Min(Pawn->HealthMax, Pawn->Health + (Pawn->HealthMax * (1.0f + (float(PC->GetSkillValue(SKILL_REVIVEBARBOOST) / 100.0f)) * ((DeadPawn->bIsBigDino || (!IsSlaughter() && Difficulty <= DIFF_MEDIUM)) ? 1.0f : 0.4f))));
 
 			if (Pawn->Health >= Pawn->HealthMax)
 				Pawn->Revived();
@@ -561,7 +563,13 @@ void AOrionGameMode::SaveAllUsersStats()
 	{
 		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controllers[i]);
 		if (PC)
+		{
 			PC->GetStats()->FlushPlayerStats(PC);
+
+			AOrionInventoryManager *Inv = PC->GetInventoryManager();
+			if (Inv)
+				Inv->SaveInventory();
+		}
 	}
 }
 
@@ -740,6 +748,11 @@ void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FS
 		break;
 	}
 
+	Player1 = UGameplayStatics::ParseOption(Options, TEXT("Player1"));
+	Player2 = UGameplayStatics::ParseOption(Options, TEXT("Player2"));
+	Player3 = UGameplayStatics::ParseOption(Options, TEXT("Player3"));
+	Player4 = UGameplayStatics::ParseOption(Options, TEXT("Player4"));
+
 	FString Type = UGameplayStatics::ParseOption(Options, TEXT("GameType"));
 
 	if (Type.ToUpper() == "SINGLEPLAYER")
@@ -893,25 +906,15 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 	FString pfName = UGameplayStatics::ParseOption(Options, TEXT("PlayFabName"));
 	FString pfTicket = UGameplayStatics::ParseOption(Options, TEXT("LobbyTicket"));
 	FString pfClass = UGameplayStatics::ParseOption(Options, TEXT("CharacterClass"));
+	FString pfTeam = UGameplayStatics::ParseOption(Options, TEXT("TeamName"));
 
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(NewPlayerController);
 
 #if !IS_SERVER
-	//these are for local and local coop saved games
-	AOrionGRI *GRI = Cast<AOrionGRI>(GameState);
-
-	if (GRI)
+	if (GEngine && !bLocalCheck)
 	{
-		GRI->Player1 = UGameplayStatics::ParseOption(Options, TEXT("Player1"));
-		GRI->Player2 = UGameplayStatics::ParseOption(Options, TEXT("Player2"));
-		GRI->Player3 = UGameplayStatics::ParseOption(Options, TEXT("Player3"));
-		GRI->Player4 = UGameplayStatics::ParseOption(Options, TEXT("Player4"));
-
-		if (PC)
-		{
-			PC->InitStatsAndAchievements();
-			PC->LoadGameFromFile(GRI->Player1);
-		}
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, this, &AOrionGameMode::CheckLocal, 1.0f, false);
 	}
 #endif
 
@@ -928,6 +931,7 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 			PRI->LobbyTicket = pfTicket;
 			PRI->CharacterClass = pfClass;
 			PRI->ClassType = pfClass;
+			PRI->TeamName = pfTeam;
 			//PRI->ServerInfo = ServerInfo;
 		}
 
@@ -957,6 +961,48 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 	}
 
 	return ret;
+}
+
+void AOrionGameMode::CheckLocal()
+{
+	//these are for local and local coop saved games
+	AOrionGRI *GRI = Cast<AOrionGRI>(GameState);
+
+	if (GRI)
+	{
+		bLocalCheck = true;
+
+		GRI->Player1 = Player1;
+		GRI->Player2 = Player2;
+		GRI->Player3 = Player3;
+		GRI->Player4 = Player4;
+
+		if (Cast<AOrionGameMenu>(this))
+		{
+			//create extra characters to register button pushes for local coop menu
+			UGameplayStatics::CreatePlayer(GetWorld(), -1, true);
+			UGameplayStatics::CreatePlayer(GetWorld(), -1, true);
+			UGameplayStatics::CreatePlayer(GetWorld(), -1, true);
+		}
+
+		if (!GRI->Player2.IsEmpty())
+		{
+			UGameplayStatics::CreatePlayer(GetWorld(), 1, true);
+			GRI->bIsLocalCoop = true;
+		}
+
+		if (!GRI->Player3.IsEmpty())
+		{
+			UGameplayStatics::CreatePlayer(GetWorld(), 2, true);
+			GRI->bIsLocalCoop = true;
+		}
+
+		if (!GRI->Player4.IsEmpty())
+		{
+			UGameplayStatics::CreatePlayer(GetWorld(), 3, true);
+			GRI->bIsLocalCoop = true;
+		}
+	}
 }
 
 void AOrionGameMode::AddChatMessage(const FString &msg)
@@ -1055,7 +1101,7 @@ void AOrionGameMode::Logout(AController* Exiting)
 	Super::Logout(Exiting);
 }
 
-void AOrionGameMode::HandleEmptyServer()
+void AOrionGameMode::HandleEmptyServer(AController *Exiting)
 {
 	//if there are 0 players left after this player leaves, close the server
 	TArray<AActor*> Controllers;
@@ -1136,6 +1182,13 @@ int32 AOrionGameMode::GetEnemyItemLevel()
 //spawned from killing various types of enemies, vehicles, opening things, etc.
 void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDamageType* DamageType)
 {
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
+
+	if (!GRI)
+		return;
+
+	bool bLocalCoop = GRI->bIsLocalCoop;
+
 	bool bSuccess = false;
 	//for testing purposes, just spawn random items (turn off for now!)
 	if (DefaultPickupClass)
@@ -1234,6 +1287,9 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 				if (!bSuccess)
 					Pickup->Destroy();
 			}
+
+			if (bLocalCoop)
+				break;
 		}
 	}
 
@@ -1296,6 +1352,9 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 					Pickup->bOnlyRelevantToOwner = true;
 				}
 			}
+
+			if (bLocalCoop)
+				break;
 		}
 	}
 
@@ -1371,10 +1430,12 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 						break;
 					}
 
-					Pickup->CoinAmount = int32(float(FMath::RandRange(MinAmount, MaxAmount)) * (1.0f + float(ItemLevel) / 100.0f));
+					Pickup->CoinAmount = (1.0f + float(PC->GetSkillValue(SKILL_GOLDHEAL)) / 100.0f) * int32(float(FMath::RandRange(MinAmount, MaxAmount)) * (1.0f + float(ItemLevel) / 100.0f));
 					Pickup->bOnlyRelevantToOwner = true;
 				}
 			}
+			if (bLocalCoop)
+				break;
 		}
 	}
 }

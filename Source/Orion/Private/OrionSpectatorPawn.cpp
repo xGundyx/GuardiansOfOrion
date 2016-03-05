@@ -14,7 +14,9 @@ void AOrionSpectatorPawn::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResul
 	//for now, just view through the playercontroller's camera
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
-	if (PC && PC->OverviewCamera)
+	if (PC && PC->DropPod)
+		PC->DropPod->SpawnCameraComponent->GetCameraView(DeltaTime, OutResult);
+	else if (PC && PC->OverviewCamera)
 	{
 		PC->OverviewCamera->GetCameraView(DeltaTime, OutResult);
 		PC->bSpawnHax = false;

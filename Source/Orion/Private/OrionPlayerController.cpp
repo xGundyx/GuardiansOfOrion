@@ -49,6 +49,8 @@ class AOrionDinoPawn;
 class AOrionGameMenu;
 class AOrionAchievements;
 
+UOrionSaveGame *AOrionPlayerController::MasterSaveFile = nullptr;
+
 AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObjectInitializer)
 : Super(ObjectInitializer)
 {
@@ -68,6 +70,8 @@ AOrionPlayerController::AOrionPlayerController(const FObjectInitializer& ObjectI
 	LastTutorialTime = -20.0f;
 
 	bSpawnHax = true;
+
+	ControllerIndex = -1;
 }
 
 void AOrionPlayerController::AttemptLogin(FString UserName, FString Password)
@@ -285,7 +289,7 @@ void AOrionPlayerController::SetServerInfo_Implementation(FPhotonServerInfo Info
 
 	EventSetServerInfo();
 
-	SetLobbyName(Info.LobbyID);
+	SetLobbyName(Info.LobbyID, CurrentPartyName);
 
 	//ServerSendGUID(Info.LobbyID);
 }
@@ -307,13 +311,71 @@ void AOrionPlayerController::CreateInGameLobby_Implementation(FPhotonServerInfo 
 
 		EventSetServerInfo();
 
-		SetLobbyName(Info.LobbyID);
+		SetLobbyName(Info.LobbyID, CurrentPartyName);
 
 		//ServerSendGUID(Info.LobbyID);
 
 		//CreateLobbyForReal();
 	}
 #endif
+}
+
+void AOrionPlayerController::FindLobbyForParty_Implementation()
+{
+	EventFindPartyLobby();
+}
+
+void AOrionPlayerController::SetPartyLobbyInfo(const FString &LobbyID)
+{
+	if (Role < ROLE_Authority)
+		ServerSetPartyLobbyInfo(LobbyID);
+	else
+	{
+		//make sure the match is actually over, don't want clients faking this call
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+		if (!GRI || !GRI->bMatchIsOver)
+			return;
+
+		//tell all other controllers to connect to this
+		TArray<AActor*> Controllers;
+
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+		for (int32 i = 0; i < Controllers.Num(); i++)
+		{
+			AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controllers[i]);
+			if (PC && PC != this)
+			{
+				PC->ConnectToLobbyID(LobbyID);
+			}
+		}
+	}
+}
+
+void AOrionPlayerController::ServerSetPartyLobbyInfo_Implementation(const FString &LobbyID)
+{
+	SetPartyLobbyInfo(LobbyID);
+}
+
+void AOrionPlayerController::ConnectToLobbyID_Implementation(const FString &LobbyID)
+{
+	EventConnectToLobbyID(LobbyID);
+}
+
+void AOrionPlayerController::CastVote(int32 Index)
+{
+
+}
+
+void AOrionPlayerController::ShowVoteOptions_Implementation(EVoteType Type)
+{
+	EventShowVoteOptions(Type);
+}
+
+void AOrionPlayerController::ServerCastVote_Implementation(int32 Index)
+{
+	VoteIndex = Index;
 }
 
 void AOrionPlayerController::TryToCreateLobbyAgain()
@@ -512,9 +574,12 @@ void AOrionPlayerController::PostInitializeComponents()
 	////InitStatsAndAchievements();
 }
 
-void AOrionPlayerController::SetDropPod(AOrionDropPod *Pod)
+void AOrionPlayerController::SetDropPod(AOrionDropPod *Pod, AActor *Target)
 {
 	DropPod = Pod;
+	DropPodTarget = Target;
+
+	EventSetPodInfo(Pod, Target);
 }
 
 void AOrionPlayerController::CalcCamera(float DeltaTime, struct FMinimalViewInfo& OutResult)
@@ -887,7 +952,7 @@ bool AOrionPlayerController::InputKey(FKey Key, EInputEvent EventType, float Amo
 {
 	bool bRet = Super::InputKey(Key, EventType, AmountDepressed, bGamepad);
 
-	if (!bGamepad || EventType == EInputEvent::IE_Pressed)
+	if ((Key != FKey("Escape") && !bGamepad) || EventType == EInputEvent::IE_Pressed)
 		EventPressKey(Key, bGamepad);
 
 	return bRet;
@@ -1143,6 +1208,19 @@ void AOrionPlayerController::TestLobby()
 #endif
 }
 
+void AOrionPlayerController::TestCoop()
+{
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+	if (GRI)
+	{
+		GRI->bIsLocalCoop = true;
+		UGameplayStatics::CreatePlayer(GetWorld(), -1, true);
+		UGameplayStatics::CreatePlayer(GetWorld(), -1, true);
+		UGameplayStatics::CreatePlayer(GetWorld(), -1, true);
+	}
+}
+
 //only gets called on the local controller
 void AOrionPlayerController::PlayerTick(float DeltaTime)
 {
@@ -1174,14 +1252,40 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 	}*/
 
 #if !IS_SERVER
-	//UOrionTCPLink::Update();
-	//UClientConnector::Update();
+	if (GetWorld()->GetNetMode() == NM_Client)
+		ControllerIndex = 0;
+	else
+	{
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
 
-	//photon only in menu for now
-	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+		if (GRI && GRI->bInitialized && ControllerIndex == -1)
+		{
+			ControllerIndex = NetPlayerIndex;
 
-	if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) || (GRI && GRI->bIsLobby))
-		UPhotonProxy::Update(DeltaTime);
+			InitStatsAndAchievements();
+
+			if (ControllerIndex == 0 && !GRI->Player1.IsEmpty())
+				LoadGameFromFile(GRI->Player1);
+			else if (ControllerIndex == 1 && !GRI->Player2.IsEmpty())
+				LoadGameFromFile(GRI->Player2);
+			else if (ControllerIndex == 2 && !GRI->Player3.IsEmpty())
+				LoadGameFromFile(GRI->Player3);
+			else if (ControllerIndex == 3 && !GRI->Player4.IsEmpty())
+				LoadGameFromFile(GRI->Player4);
+
+			bThirdPersonCamera = false;
+			//SetThirdPerson();
+		}
+
+		if (!Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) && GRI && GRI->bInitialized && ControllerIndex == 0 && SavedGameFile.IsEmpty() && !GRI->Player1.IsEmpty())
+		{
+			bThirdPersonCamera = false;
+			LoadGameFromFile(GRI->Player1);
+		}
+	}
+
+	//if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) || (GRI && GRI->bIsLobby))
+	//	UPhotonProxy::Update(DeltaTime);
 
 	ProcessNotifications();
 
@@ -1224,6 +1328,7 @@ void AOrionPlayerController::PlayerTick(float DeltaTime)
 		}
 	}*/
 #else
+	ControllerIndex = 0;
 #endif
 }
 
@@ -1269,12 +1374,21 @@ void AOrionPlayerController::JoinLobbySuccess(int32 PlayerNumber)
 bool AOrionPlayerController::IsLobbyLeader()
 {
 #if !IS_SERVER
-	if (UPhotonProxy::GetListener())
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+	if (PRI)
+	{
+		if (PRI->MyParty.PartyMembers.Num() > 0)
+		{
+			if (PRI->MyParty.PartyMembers[0].PC == this)
+				return true;
+		}
+	}
+	/*if (UPhotonProxy::GetListener())
 	{
 		int32 Leader = UPhotonProxy::GetListener()->GetRoomLeader();
 
 		return Leader == LobbyPlayerNumber && Leader > 0;
-	}
+	}*/
 #endif
 
 	return false;
@@ -1283,9 +1397,9 @@ bool AOrionPlayerController::IsLobbyLeader()
 void AOrionPlayerController::SendPlayerInfoToPhoton()
 {
 #if !IS_SERVER
-	if (UPhotonProxy::GetListener())
+	//if (UPhotonProxy::GetListener())
 	{
-		UPhotonProxy::GetListener()->PCOwner = this;
+		//UPhotonProxy::GetListener()->PCOwner = this;
 
 		UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetGameInstance());
 
@@ -1308,12 +1422,32 @@ void AOrionPlayerController::SendPlayerInfoToPhoton()
 			else if (GI->CharacterClass == TEXT("MARKSMAN"))
 				Level = CalculateLevel(PRI->MarksmanXP);
 
-			FString strLevel = FString::Printf(TEXT("%i"),Level);
+			//FString strLevel = FString::Printf(TEXT("%i"),Level);
 
-			UPhotonProxy::GetListener()->SetPlayerSettings(LobbyPlayerNumber, TCHAR_TO_UTF8(*GI->PlayFabName), TCHAR_TO_UTF8(*GI->CharacterClass), TCHAR_TO_UTF8(*strLevel));
+			//UPhotonProxy::GetListener()->SetPlayerSettings(LobbyPlayerNumber, TCHAR_TO_UTF8(*GI->PlayFabName), TCHAR_TO_UTF8(*GI->CharacterClass), TCHAR_TO_UTF8(*strLevel));
+			UpdatePartyPlayer(Level, GI->CharacterClass);
 		}
 	}
 #endif
+}
+
+void AOrionPlayerController::UpdatePartyPlayer(int32 sLevel, const FString &sClass)
+{
+	if (Role < ROLE_Authority)
+		ServerUpdatePartyPlayer(sLevel, sClass);
+	else
+	{
+		AOrionGameLobby *Lobby = Cast<AOrionGameLobby>(GetWorld()->GetAuthGameMode());
+		if (Lobby)
+		{
+			Lobby->UpdatePartyPlayer(CurrentPartyName, this, sLevel, sClass);
+		}
+	}
+}
+
+void AOrionPlayerController::ServerUpdatePartyPlayer_Implementation(int32 sLevel, const FString &sClass)
+{
+	UpdatePartyPlayer(sLevel, sClass);
 }
 
 void AOrionPlayerController::AddLobbyPlayer(int32 pNumber, FString pName, FString pClass, FString pLevel)
@@ -1405,6 +1539,8 @@ void AOrionPlayerController::AddXP(int32 Value)
 			break;
 		}
 	}
+
+	Value *= 1.0f + float(GetSkillValue(SKILL_BONUSXP)) / 100.0f;
 
 	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
 
@@ -2090,6 +2226,16 @@ TArray<FString> AOrionPlayerController::GetSavedGames()
 		Games = MasterSaveFile->SavedGames;
 	}
 
+	//cycle through each game file and make sure it exists, a player might have deleted it
+	for (int32 i = 0; i < Games.Num(); i++)
+	{
+		if (!UGameplayStatics::DoesSaveGameExist(Games[i], 0))
+		{
+			Games.RemoveSingle(Games[i]);
+			i = -1;
+		}
+	}
+
 	return Games;
 }
 
@@ -2277,12 +2423,18 @@ void AOrionPlayerController::LoadGameFromFile(FString Slot)
 
 			Inv->UpdateEquippedSlots();
 			Inv->EquipItems();
+			Inv->MaxItemLevel = Inv->GetMaxItemLevel();
 		}
 
 		//character datas
 		if (MySkillTree)
 		{
 			MySkillTree->Skills = SavedGame->CharacterData[ClassIndex].SkillTree;
+		}
+
+		if (PRI)
+		{
+			PRI->PlayFabName = SavedGameFile;
 		}
 	}
 }
@@ -2386,6 +2538,11 @@ void AOrionPlayerController::SaveGameToFile(FString Slot)
 
 		UGameplayStatics::SaveGameToSlot(SavedGame, Slot, 0);
 	}
+}
+
+void AOrionPlayerController::DeleteGameFile(FString File)
+{
+	UGameplayStatics::DeleteGameInSlot(File, 0);
 }
 
 TArray<FString> AOrionPlayerController::GetDifficultySettings()
@@ -3066,15 +3223,16 @@ void AOrionPlayerController::DestroyLobbySession()
 	GetMoviePlayer()->SetupLoadingScreen(LoadingScreen);
 }*/
 
-void AOrionPlayerController::JoinLobby(FString ServerName)
+void AOrionPlayerController::JoinLobby(FString ServerIP, FString TeamName)
 {
 #if !IS_SERVER
-	if (UPhotonProxy::GetListener())
+	EventJoinLobby(ServerIP, TeamName);
+	/*if (UPhotonProxy::GetListener())
 	{
 		UPhotonProxy::GetListener()->JoinRoom(TCHAR_TO_UTF8(*ServerName), false);
 
 		//EventShowLobbyScreen();
-	}
+	}*/
 #endif
 }
 
@@ -3082,28 +3240,24 @@ void AOrionPlayerController::JoinLobby(FString ServerName)
 void AOrionPlayerController::LeaveLobby()
 {
 #if !IS_SERVER
-	if (UPhotonProxy::GetListener())
+	LeaveParty(CurrentPartyName);
+	/*if (UPhotonProxy::GetListener())
 	{
 		UPhotonProxy::GetListener()->leave();
 
 		JoinChatRoom(TEXT("Global"));
 
 		IOnlineSubsystem* OnlineSub = IOnlineSubsystem::Get();
-
-		/*if (OnlineSub)
-		{
-			IOnlineSessionPtr Sess = OnlineSub->GetSessionInterface();
-
-			if (!Sess.IsValid())
-				return;
-
-			Sess->EndSession("Lobby");
-		}*/
-	}
+	}*/
 #endif
 }
 
-void AOrionPlayerController::SetLobbyName(FString lName)
+void AOrionPlayerController::ClientPartyCreated_Implementation(bool bSuccess)
+{
+	EventPartyCreated(bSuccess);
+}
+
+void AOrionPlayerController::SetLobbyName(FString lName, FString PartyName)
 {
 	LobbyName = lName;
 
@@ -3113,6 +3267,8 @@ void AOrionPlayerController::SetLobbyName(FString lName)
 		if (SteamFriends()->SetRichPresence("connect", TCHAR_TO_UTF8(*ConnectionURL)))
 		{
 			SteamFriends()->SetRichPresence("ROOMNAME", TCHAR_TO_UTF8(*LobbyName));
+			SteamFriends()->SetRichPresence("TEAMNAME", TCHAR_TO_UTF8(*PartyName));
+
 			//UE_LOG(LogTemp, Log, TEXT("Rich Presence Info %s"), *lName);
 
 			if (lName == "")
@@ -3123,7 +3279,62 @@ void AOrionPlayerController::SetLobbyName(FString lName)
 	}
 }
 
-void AOrionPlayerController::InviteFriendToLobby(FString FriendSteamID)
+void AOrionPlayerController::AcceptPartyInvite(bool bAccepted)
+{
+	if (bAccepted)
+		JoinParty(InvitePartyName);
+
+	InvitePartyName = "";
+}
+
+void AOrionPlayerController::InvitePlayerToParty(AOrionPRI *Member)
+{
+	if (Role < ROLE_Authority)
+		ServerInvitePlayerToParty(Member);
+	else
+	{
+		AOrionGameLobby *Lobby = Cast<AOrionGameLobby>(GetWorld()->GetAuthGameMode());
+		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+		if (Lobby && PRI)
+		{
+			Lobby->InvitePlayerToLobby(Member, PRI->MyParty.PartyName, PRI->PlayFabName);
+		}
+	}
+}
+
+void AOrionPlayerController::ServerInvitePlayerToParty_Implementation(AOrionPRI *Member)
+{
+	InvitePlayerToParty(Member);
+}
+
+void AOrionPlayerController::ReceivePartyInvite_Implementation(const FString &Inviter, const FString &PartyName)
+{
+	InvitePartyName = PartyName;
+
+	EventReceivePartyInvite(Inviter);
+}
+
+void AOrionPlayerController::KickPlayerFromParty(AOrionPRI *Member)
+{
+	if (Role < ROLE_Authority)
+		ServerKickPlayerFromParty(Member);
+	else
+	{
+		AOrionGameLobby *Lobby = Cast<AOrionGameLobby>(GetWorld()->GetAuthGameMode());
+		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+		if (Lobby && PRI)
+		{
+			Lobby->KickPlayerFromParty(Member, PRI->MyParty.PartyName);
+		}
+	}
+}
+
+void AOrionPlayerController::ServerKickPlayerFromParty_Implementation(AOrionPRI *Member)
+{
+	KickPlayerFromParty(Member);
+}
+
+void AOrionPlayerController::InviteFriendToLobby(FString FriendSteamID, FString LobbyID, FString TeamName)
 {
 	if (SteamAPI_Init())
 	{
@@ -3154,7 +3365,7 @@ void AOrionPlayerController::InviteFriendToLobby(FString FriendSteamID)
 						//FOnlineSessionInfoSteam* SessionInfo = (FOnlineSessionInfoSteam*)(Session->SessionInfo.Get());
 
 						// Create the connection string
-						FString ConnectionURL = FString::Printf(TEXT("?SteamConnectIP=\"%s\""), *LobbyName);
+						FString ConnectionURL = FString::Printf(TEXT("?SteamConnectIP=\"%sx8x%s\""), *LobbyID, *TeamName);
 
 						CSteamID steamID(*(uint64*)OutBytes);
 
@@ -3177,7 +3388,7 @@ void AOrionPlayerController::InviteFriendToLobby(FString FriendSteamID)
 	}
 }
 
-void AOrionPlayerController::SetPresenceInfo(FString LobbyID)
+void AOrionPlayerController::SetPresenceInfo(FString LobbyID, FString TeamName)
 {
 	if (SteamAPI_Init() && LobbyID.Len() > 0)
 	{
@@ -3194,6 +3405,7 @@ void AOrionPlayerController::SetPresenceInfo(FString LobbyID)
 			FPresenceProperties Props;
 
 			Props.Add(TEXT("LOBBYID"), LobbyID);
+			Props.Add(TEXT("TEAMNAME"), TeamName);
 
 			Info.Properties = Props;
 			Info.State = EOnlinePresenceState::Online;
@@ -3485,7 +3697,7 @@ void AOrionPlayerController::BeginPlay()
 		}
 
 		//clear our steam rich presence if needed
-		SetLobbyName("");
+		SetLobbyName("", "");
 
 		//if we're no in the main menu, reset photon junk
 		if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) == nullptr && GRI && !GRI->bIsLobby)
@@ -3516,7 +3728,7 @@ void AOrionPlayerController::BeginPlay()
 
 #if !IS_SERVER
 	if (Menu && !Menu->LobbyIP.IsEmpty())
-		JoinLobby(Menu->LobbyIP);
+		JoinLobby(Menu->LobbyIP, Menu->TeamName);
 #endif
 }
 
@@ -3537,6 +3749,12 @@ void AOrionPlayerController::SetThirdPerson()
 	}
 
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
+	if (GRI && GRI->bIsLocalCoop)
+	{
+		bThirdPersonCamera = false;
+		return;
+	}
 
 	if (GRI && GRI->bIsLobby)
 	{
@@ -3569,7 +3787,7 @@ void AOrionPlayerController::ToggleThirdPerson()
 
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
 
-	if (GRI && GRI->bIsLobby)
+	if (GRI && (GRI->bIsLobby || GRI->bIsLocalCoop))
 		return;
 
 	bThirdPersonCamera = !bThirdPersonCamera; 
@@ -3630,6 +3848,7 @@ void AOrionPlayerController::ServerSetThirdPersonCamera_Implementation(bool bOn)
 void AOrionPlayerController::OnFindSession(int32 LocalUserNum, bool bWasSuccessful, const FOnlineSessionSearchResult& SearchResult)
 {
 	FString LobbyID = SearchResult.Session.SessionSettings.Settings.Find(FName("ROOMNAME"))->ToString();
+	FString TeamName = SearchResult.Session.SessionSettings.Settings.Find(FName("TEAMNAME"))->ToString();
 
 	//trim off the end shenanigans
 	int32 index = LobbyID.Find(" :");
@@ -3639,7 +3858,7 @@ void AOrionPlayerController::OnFindSession(int32 LocalUserNum, bool bWasSuccessf
 		LobbyID = LobbyID.Left(index);
 	}
 
-	JoinLobby(LobbyID);
+	JoinLobby(LobbyID, TeamName);
 
 	UE_LOG(LogTemp, Log, TEXT("Joining Lobby: %s"), *LobbyID);
 }
@@ -3668,8 +3887,9 @@ void AOrionPlayerController::OnAcceptFriendInvite(int32 UserNum, bool bWasSucces
 			IPresence->GetCachedPresence(FriendId, Presence);
 
 			FString LobbyID = Presence->Status.Properties[TEXT("ROOMNAME")].ToString();
+			FString TeamName = Presence->Status.Properties[TEXT("TEAMNAME")].ToString();
 
-			JoinLobby(LobbyID);
+			JoinLobby(LobbyID, TeamName);
 
 			UE_LOG(LogTemp, Log, TEXT("GundyInviteAcceptedReal: %s"), *LobbyID);
 		}
@@ -3691,13 +3911,91 @@ void AOrionPlayerController::OnFriendInviteAccepted(const FUniqueNetId& UserID, 
 			IPresence->GetCachedPresence(FriendID, Presence);
 
 			FString LobbyID = Presence->Status.Properties[TEXT("ROOMNAME")].ToString();
-
-			JoinLobby(LobbyID);
+			FString TeamName = Presence->Status.Properties[TEXT("TEAMNAME")].ToString();
+			
+			JoinLobby(LobbyID, TeamName);
 
 			UE_LOG(LogTemp, Log, TEXT("GundyInviteAcceptedReal: %s"), *LobbyID);
 		}
 
 	}
+}
+
+void AOrionPlayerController::UpdatePartySettings(const FString &MapName, const FString &Diff, const FString &Gamemode, const FString &DiffScale, const FString &MinILevel, const FString &Region, const FString &TOD, const FString &Privacy, const FString &IP, const FString &LobbyID)
+{
+	//send the info to the server
+	if (Role < ROLE_Authority)
+		ServerUpdatePartySettings(MapName, Diff, Gamemode, DiffScale, MinILevel, Region, TOD, Privacy, IP, LobbyID);
+	else
+	{
+		AOrionGameLobby *Lobby = Cast<AOrionGameLobby>(GetWorld()->GetAuthGameMode());
+		if (Lobby)
+		{
+			Lobby->UpdatePartySettings(this, CurrentPartyName, MapName, Diff, Gamemode, DiffScale, MinILevel, Region, TOD, Privacy, IP, LobbyID);
+		}
+	}
+}
+
+void AOrionPlayerController::ServerUpdatePartySettings_Implementation(const FString &MapName, const FString &Diff, const FString &Gamemode, const FString &DiffScale, const FString &MinILevel, const FString &Region, const FString &TOD, const FString &Privacy, const FString &IP, const FString &LobbyID)
+{
+	UpdatePartySettings(MapName, Diff, Gamemode, DiffScale, MinILevel, Region, TOD, Privacy, IP, LobbyID);
+}
+
+void AOrionPlayerController::CreateParty(const FString &PartyName, const FString &MapName, const FString &Diff, const FString &Gamemode, const FString &DiffScale, const FString &MinILevel, const FString &Region, const FString &TOD, const FString &Privacy)
+{
+	if (Role < ROLE_Authority)
+		ServerCreateParty(PartyName, MapName, Diff, Gamemode, DiffScale, MinILevel, Region, TOD, Privacy);
+	else
+	{
+		AOrionGameLobby *Lobby = Cast<AOrionGameLobby>(GetWorld()->GetAuthGameMode());
+		if (Lobby)
+		{
+			Lobby->CreateParty(this, PartyName, MapName, Diff, Gamemode, DiffScale, MinILevel, Region, TOD, Privacy);
+		}
+	}
+}
+
+void AOrionPlayerController::ServerCreateParty_Implementation(const FString &PartyName, const FString &MapName, const FString &Diff, const FString &Gamemode, const FString &DiffScale, const FString &MinILevel, const FString &Region, const FString &TOD, const FString &Privacy)
+{
+	CreateParty(PartyName, MapName, Diff, Gamemode, DiffScale, MinILevel, Region, TOD, Privacy);
+}
+
+void AOrionPlayerController::LeaveParty(const FString &PartyName)
+{
+	if (Role < ROLE_Authority)
+		ServerLeaveParty(PartyName);
+	else
+	{
+		AOrionGameLobby *Lobby = Cast<AOrionGameLobby>(GetWorld()->GetAuthGameMode());
+		if (Lobby)
+		{
+			Lobby->RemovePlayerFromParty(this, PartyName);
+		}
+	}
+}
+
+void AOrionPlayerController::ServerLeaveParty_Implementation(const FString &PartyName)
+{
+	LeaveParty(PartyName);
+}
+
+void AOrionPlayerController::JoinParty(const FString &PartyName)
+{
+	if (Role < ROLE_Authority)
+		ServerJoinParty(PartyName);
+	else
+	{
+		AOrionGameLobby *Lobby = Cast<AOrionGameLobby>(GetWorld()->GetAuthGameMode());
+		if (Lobby)
+		{
+			Lobby->AddPlayerToParty(this, PartyName);
+		}
+	}
+}
+
+void AOrionPlayerController::ServerJoinParty_Implementation(const FString &PartyName)
+{
+	JoinParty(PartyName);
 }
 
 void AOrionPlayerController::OnInviteAccepted(const bool bWasSuccessful, const int32 LocalUserNum, TSharedPtr<const FUniqueNetId> FriendID, const FOnlineSessionSearchResult &SessionToJoin)
@@ -3712,6 +4010,7 @@ void AOrionPlayerController::OnInviteAccepted(const bool bWasSuccessful, const i
 			CSteamID steamID = (*(uint64*)OutBytes);
 
 			const char* ID = SteamFriends()->GetFriendRichPresence(steamID, "ROOMNAME");
+			const char* Team = SteamFriends()->GetFriendRichPresence(steamID, "TEAMNAME");
 
 			/*int32 Num = SteamFriends()->GetFriendRichPresenceKeyCount(steamID);
 
@@ -3722,13 +4021,15 @@ void AOrionPlayerController::OnInviteAccepted(const bool bWasSuccessful, const i
 				UE_LOG(LogTemp, Log, TEXT("GundyInviteAcceptedReal: %s"), Test);
 			}*/
 
-			EventJoinServerID(ID);
+			////EventJoinServerID(ID);
+			JoinLobby(ID, Team);
 			//JoinLobby(ID);
 		}
 		return;
 	}
 
 	FString LobbyID = SessionToJoin.Session.SessionSettings.Settings.Find(FName("ROOMNAME"))->ToString();
+	FString TeamName = SessionToJoin.Session.SessionSettings.Settings.Find(FName("TEAMNAME"))->ToString();
 
 	//trim off the end shenanigans
 	int32 index = LobbyID.Find(" :");
@@ -3739,7 +4040,8 @@ void AOrionPlayerController::OnInviteAccepted(const bool bWasSuccessful, const i
 	}
 
 	//JoinLobby(LobbyID);
-	EventJoinServerID(LobbyID);
+	//EventJoinServerID(LobbyID);
+	JoinLobby(LobbyID, TeamName);
 
 	UE_LOG(LogTemp, Log, TEXT("Invite Accepted to Lobby: %s"), *LobbyID);
 
@@ -4234,6 +4536,7 @@ void AOrionPlayerController::ReadFriendsDelegate(int32 LocalUserNum, bool bSucce
 
 void AOrionPlayerController::TickPhoton()
 {
+	return;
 #if !IS_SERVER
 	//only tick photon during the main menu
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
@@ -4248,28 +4551,6 @@ void AOrionPlayerController::TickPhoton()
 		SendPlayerInfoToPhoton();
 
 		UPhotonProxy::GetListener()->GrabRoomSettings();
-	
-		//update our lobby settings while in game
-		/*if (IsLobbyLeader())
-		{
-			AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
-			AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
-			UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetGameInstance());
-			if (!Game && GRI && GI)
-			{
-				FString RoomName = GI->PlayFabName;// Info.RoomName;
-				RoomName.Append(TEXT("'s Server"));
-				FString Version = GetBuildVersion();
-
-				//if (ServerInfo.GameMode.Find("SLAUGHTER") >= 0)
-				//	ServerInfo.Difficulty = "SLAUGHTER";
-
-				FString Wave = GRI->WaveNum > 9 ? FString::Printf(TEXT("WAVE %i"), GRI->WaveNum) : FString::Printf(TEXT("WAVE 0%i"), GRI->WaveNum);
-				UPhotonProxy::GetListener()->SetLobbySettings(TCHAR_TO_UTF8(*ServerInfo.MapName), TCHAR_TO_UTF8(*ServerInfo.Difficulty), TCHAR_TO_UTF8(*ServerInfo.GameMode),
-					TCHAR_TO_UTF8(*ServerInfo.Privacy), TCHAR_TO_UTF8(*GI->ServerIP), TCHAR_TO_UTF8(*ServerInfo.LobbyID), TCHAR_TO_UTF8(*Wave), TCHAR_TO_UTF8(*Version),
-					TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*ServerInfo.TOD), TCHAR_TO_UTF8(*ServerInfo.ItemLevel), TCHAR_TO_UTF8(*ServerInfo.Region));
-			}
-		}*/
 	}
 #endif
 }
@@ -4296,8 +4577,10 @@ void AOrionPlayerController::GetDefaultInventory()
 
 void AOrionPlayerController::InitStatsAndAchievements()
 {
-	if (StatsClass)
+	if (StatsClass && (!Stats || !Stats->IsValidLowLevel()))
 	{
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+
 		FActorSpawnParameters SpawnInfo;
 		SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 		SpawnInfo.Owner = this;
@@ -4306,10 +4589,16 @@ void AOrionPlayerController::InitStatsAndAchievements()
 
 		if (Stats)// && Role == ROLE_Authority)
 		{
+			Stats->PCOwner = this;
+
+			if (GRI && GRI->bIsLocalCoop)
+			{
+				Stats->SetInitialized(true);
+				return;
+			}
+
 			if (!Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()))
 				Stats->ReadPlayerStats(this);
-
-			Stats->PCOwner = this;
 		}
 
 		//if (!SavedGame)

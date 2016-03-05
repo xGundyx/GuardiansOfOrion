@@ -966,7 +966,7 @@ struct FRareStats
 
 		//belt
 		StatsInfo.Add(FRareStatsInfo(TEXT("100% increased magic find"), RARESTAT_MAGICFIND, ITEM_BELT));//
-		StatsInfo.Add(FRareStatsInfo(TEXT("100% increased gold find"), RARESTAT_GOLDFIND, ITEM_BELT));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("100% increased ion find"), RARESTAT_GOLDFIND, ITEM_BELT));//
 		StatsInfo.Add(FRareStatsInfo(TEXT("50% increase to melee damage"), RARESTAT_BONUSMELEE, ITEM_BELT));//
 
 		//legs
@@ -1104,6 +1104,16 @@ struct FPhotonServerInfo
 };
 
 UENUM(BlueprintType)
+enum EVoteType
+{
+	VOTE_NONE = 0,
+	VOTE_MAP,
+	VOTE_KICK,
+	VOTE_DIFFICULTY,
+	VOTE_GAMEMODE
+};
+
+UENUM(BlueprintType)
 enum ESkillTreeUnlocks
 {
 	SKILL_NONE = 0,
@@ -1162,6 +1172,22 @@ enum ESkillTreeUnlocks
 	SKILL_THERMALDR,
 	SKILL_THERMALDAMAGE,
 	SKILL_THERMALPENETRATE,
+	//level 30+ skills
+	SKILL_BLINKRECHARGE,
+	SKILL_HEALINGDR,
+	SKILL_BONUSXP,
+	SKILL_DR,
+	SKILL_DAMAGEBOOST,
+	SKILL_CRITDAMAGE,
+	SKILL_CRITCHANCE,
+	SKILL_ELEMENTALDAMAGE,
+	SKILL_REVIVEBARBOOST,
+	SKILL_ELEMENTALLENGTH,
+	SKILL_MAGICFIND,
+	SKILL_GOLDFIND,
+	SKILL_GOLDAMOUNT,
+	SKILL_SELFHEAL,
+	SKILL_GOLDHEAL,
 
 	SKILL_NUMPLUSONE
 };
@@ -1506,7 +1532,8 @@ enum EUseEffect
 	INVENTORYUSE_GRANTITEM,
 	INVENTORYUSE_HEALTH,
 	INVENTORYUSE_SHIELD,
-	INVENTORYUSE_COIN
+	INVENTORYUSE_COIN,
+	INVENTORYUSE_BUNDLE
 };
 
 
@@ -1530,6 +1557,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Inventory)
 		TEnumAsByte<EItemRarity> Quality;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Inventory)
+		TArray< TSubclassOf<UOrionInventoryItem> > BundleItems;
 };
 
 USTRUCT(BlueprintType)
@@ -1541,4 +1571,60 @@ public:
 		FInventoryItem Item;
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Inventory)
 		FString ClassName;
+};
+
+USTRUCT(BlueprintType)
+struct FSpacePartyMember
+{
+	GENERATED_USTRUCT_BODY()
+public:
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		class AOrionPlayerController *PC;
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		class AOrionPRI *PRI;
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		FString PlayerName;
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		FString PlayerClass;
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		int32 PlayerLevel;
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		int32 PlayerILevel;
+
+	bool operator==(const FSpacePartyMember Other) const { return PC == Other.PC || PRI == Other.PRI; }
+};
+
+USTRUCT(BlueprintType)
+struct FSpaceParty
+{
+	GENERATED_USTRUCT_BODY()
+public:
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		FString PartyName;
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		TArray<FSpacePartyMember> PartyMembers;
+
+	//game settings
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		FString GameMode;
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		FString Difficulty;
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		FString MapName;
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		FString Region;
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		FString TOD;
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		FString DifficultyScale;
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		FString MinILevel;
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		FString Privacy;
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		FString IP;
+	UPROPERTY(BlueprintReadOnly, Category = Lobby)
+		FString LobbyID;
+
+	bool operator==(const FSpaceParty Other) const { return PartyName == Other.PartyName; }
 };
