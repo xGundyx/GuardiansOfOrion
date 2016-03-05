@@ -39,6 +39,6 @@ public:
 		void EventInitOrb();
 
 	//for coins
-	UPROPERTY(BlueprintReadOnly, Category = Mesh)
+	UPROPERTY(BlueprintReadWrite, Category = Mesh)
 		int32 CoinAmount;
 };

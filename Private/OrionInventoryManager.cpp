@@ -119,11 +119,11 @@ bool AOrionInventoryManager::SwapItems(AOrionInventoryGrid *theGrid1, int32 inde
 			FString GridName2 = theGrid2->GetGridName();
 			theGrid2->Inventory[index2].SlotIndex = FString::Printf(TEXT("%sy8y%sx8x%i"), *ClassName, *GridName2, index2);
 
-			SaveInventory();
-
 			DrawInventory();
 
 			SaveEquippedSlots();
+
+			SaveInventory();
 
 			return true;
 		}
@@ -405,8 +405,8 @@ void AOrionInventoryManager::EquipItems()
 	Pawn->SkillRechargeRate = EquippedStats.Primary[PRIMARYSTAT_INTELLIGENCE] * 0.01f;
 
 	//secondary stats
-	Pawn->CriticalHitChance = 5.0f + EquippedStats.Secondary[SECONDARYSTAT_CRITICALHITCHANCE] + (HasStat(RARESTAT_BONUSCRITCHANCE) ? 15.0f : 0.0f);
-	Pawn->CriticalHitMultiplier = 25.0f + EquippedStats.Secondary[SECONDARYSTAT_CRITICALHITMULTIPLIER] + (HasStat(RARESTAT_BONUSCRITDAMAGE) ? 50.0f : 0.0f);
+	Pawn->CriticalHitChance = 5.0f + EquippedStats.Secondary[SECONDARYSTAT_CRITICALHITCHANCE] + PC->GetSkillValue(SKILL_CRITCHANCE) + (HasStat(RARESTAT_BONUSCRITCHANCE) ? 15.0f : 0.0f);
+	Pawn->CriticalHitMultiplier = 25.0f + EquippedStats.Secondary[SECONDARYSTAT_CRITICALHITMULTIPLIER] + PC->GetSkillValue(SKILL_CRITDAMAGE) + (HasStat(RARESTAT_BONUSCRITDAMAGE) ? 50.0f : 0.0f);
 	Pawn->DamageReduction = EquippedStats.Secondary[SECONDARYSTAT_DAMAGEREDUCTION]; 
 	Pawn->BluntDamageReduction = EquippedStats.Secondary[SECONDARYSTAT_DAMAGEREDUCTIONBLUNT]; 
 	Pawn->PiercingDamageReduction = EquippedStats.Secondary[SECONDARYSTAT_DAMAGEREDUCTIONPIERCING]; 
@@ -419,10 +419,12 @@ void AOrionInventoryManager::EquipItems()
 	Pawn->IceDamage = EquippedStats.Secondary[SECONDARYSTAT_ICEDAMAGE]; //
 	Pawn->PoisonDamage = EquippedStats.Secondary[SECONDARYSTAT_POISONDAMAGE]; //
 	Pawn->CorrosiveDamage = EquippedStats.Secondary[SECONDARYSTAT_CORROSIVEDAMAGE]; //
-	Pawn->GoldFind = EquippedStats.Secondary[SECONDARYSTAT_GOLDFIND] + (HasStat(RARESTAT_GOLDFIND) ? 100.0f : 0.0f); //
-	Pawn->MagicFind = EquippedStats.Secondary[SECONDARYSTAT_MAGICFIND] + (HasStat(RARESTAT_MAGICFIND) ? 100.0f : 0.0f); 
+	Pawn->GoldFind = EquippedStats.Secondary[SECONDARYSTAT_GOLDFIND] + (HasStat(RARESTAT_GOLDFIND) ? 100.0f : 0.0f) + PC->GetSkillValue(SKILL_GOLDFIND); //
+	Pawn->MagicFind = EquippedStats.Secondary[SECONDARYSTAT_MAGICFIND] + (HasStat(RARESTAT_MAGICFIND) ? 100.0f : 0.0f) + PC->GetSkillValue(SKILL_MAGICFIND);
 	Pawn->LargeDinoBoost = EquippedStats.Secondary[SECONDARYSTAT_LARGEDINOBOOST]; 
 	Pawn->RobotBoost = EquippedStats.Secondary[SECONDARYSTAT_ROBOTBOOST];
+
+	MaxItemLevel = GetMaxItemLevel();
 }
 
 int32 AOrionInventoryManager::GetPrimaryWeaponDamage()
@@ -457,10 +459,21 @@ void AOrionInventoryManager::GiveMoney(int32 Amount)
 
 		AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetOwner());
 
-		if (PC && PC->GetAchievements())
+		if (PC)
 		{
 			PC->AddCoinAmount(Amount);
 
+			AOrionCharacter *P = Cast<AOrionCharacter>(PC->GetPawn());
+			if (P)
+			{
+				float Rate = float(PC->GetSkillValue(SKILL_GOLDHEAL)) / 100.0f;
+
+				P->AddHealth(Rate * P->HealthMax);
+			}
+		}
+
+		if (PC && PC->GetAchievements())
+		{
 			if (Money >= 100000)
 				PC->GetAchievements()->UnlockAchievement(ACH_MASTEROFCOINI, PC);
 			if (Money >= 250000)
@@ -812,6 +825,11 @@ bool AOrionInventoryManager::UseItem(AOrionInventoryGrid *theGrid, int32 index)
 				UPlayFabRequestProxy::ServerAddUserVirtualCurrency(PRI->PlayFabID, TEXT("TC"), Inv->UseableItem.Value);
 #endif
 			break;
+		case INVENTORYUSE_BUNDLE:
+			if(EventOpenBundle(Inv->UseableItem.BundleItems, Inv->UseableItem.Value))
+				RemoveItemFromInventory(theGrid, index);
+			return true;
+			break;
 		}
 
 		ReduceItemCount(Item.ItemClass, 1);
@@ -952,9 +970,9 @@ int32 AOrionInventoryManager::AddItemToInventory(AOrionInventoryGrid *theGrid, F
 			{
 				if (theGrid->Inventory[i*theGrid->Width + j].ItemClass == newItem.ItemClass)
 				{
-					if (theGrid->Inventory[i*theGrid->Width + j].Amount + newItem.Amount <= 500)
+					if (theGrid->Inventory[i*theGrid->Width + j].Amount + newItem.Amount <= 5000)
 					{
-						theGrid->Inventory[i*theGrid->Width + j].Amount += newItem.Amount;
+						theGrid->Inventory[i*theGrid->Width + j].Amount += FMath::Min(1, newItem.Amount);
 						theGrid->Inventory[i*theGrid->Width + j].bDirty = true;
 #if IS_SERVER
 						EventUpdateItemStats(theGrid->Inventory[i*theGrid->Width + j]);
@@ -1455,7 +1473,7 @@ TArray<FCharacterStatEntry> AOrionInventoryManager::GetEquippedStats()
 	Entry.StatName = "ICE DAMAGE BONUS"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_ICEDAMAGE]; Stats.Add(Entry);
 	Entry.StatName = "POISON DAMAGE BONUS"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_POISONDAMAGE]; Stats.Add(Entry);
 	Entry.StatName = "CORROSIVE DAMAGE BONUS"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_CORROSIVEDAMAGE]; Stats.Add(Entry);
-	Entry.StatName = "GOLD FIND"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_GOLDFIND] + (HasStat(RARESTAT_GOLDFIND) ? 100.0f: 0.0f); Stats.Add(Entry);
+	Entry.StatName = "ION FIND"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_GOLDFIND] + (HasStat(RARESTAT_GOLDFIND) ? 100.0f: 0.0f); Stats.Add(Entry);
 	Entry.StatName = "MAGIC FIND"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_MAGICFIND] + (HasStat(RARESTAT_MAGICFIND) ? 100.0f: 0.0f); Stats.Add(Entry);
 	Entry.StatName = "LARGE DINO DAMAGE"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_LARGEDINOBOOST]; Stats.Add(Entry);
 	Entry.StatName = "ROBOT DAMAGE"; Entry.Value = EquippedStats.Secondary[SECONDARYSTAT_ROBOTBOOST]; Stats.Add(Entry);

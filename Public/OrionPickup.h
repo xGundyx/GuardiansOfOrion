@@ -27,7 +27,8 @@ public:
 		class UBoxComponent* BoxCollision;
 
 	//search the current loot table for some drop to assign us
-	bool Init(UClass *LootTable, int32 Level);
+	UFUNCTION(BlueprintCallable, Category = Pickup)
+		bool Init(UClass *LootTable, int32 Level, EItemRarity ForceQuality = RARITY_COMMON);
 
 	UPROPERTY(BlueprintReadOnly, Category = Pickup)
 		bool bGlobalItem;

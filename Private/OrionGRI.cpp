@@ -32,8 +32,10 @@ AOrionGRI::AOrionGRI(const FObjectInitializer& ObjectInitializer)
 	ServerLocation = TEXT("US-EAST");
 	bStatsEnabled = false;
 	bIsLobby = false;
+	bIsLocalCoop = false;
+	bInitialized = false;
 
-	HarvKills = 0;
+	HarvKills = 0; 
 }
 
 bool AOrionGRI::HarvHasMostKills()
@@ -139,6 +141,90 @@ void AOrionGRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionGRI, OrionGameMode);
 	DOREPLIFETIME(AOrionGRI, bReadyingUp);
 	DOREPLIFETIME(AOrionGRI, bIsLobby);
+	DOREPLIFETIME(AOrionGRI, bIsLocalCoop);
+	DOREPLIFETIME(AOrionGRI, BonusTime);
+	DOREPLIFETIME(AOrionGRI, bMatchIsOver);
+	DOREPLIFETIME(AOrionGRI, bBonusWon);
+}
+
+void AOrionGRI::StartVote(EVoteType Type)
+{
+	//send a message to each client, asking for their vote
+	TArray<AActor*> Controllers;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+	VoteType = Type;
+	Voters.Empty();
+
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
+		if (C)
+		{
+			Voters.Add(C);
+			C->VoteIndex = -1;
+			C->ShowVoteOptions(Type);
+		}
+	}
+
+	//vote lasts 2 minutes or until everyone has successfully voted
+	GetWorldTimerManager().SetTimer(VoteTimer, this, &AOrionGRI::VoteEnded, 120.0, false);
+}
+
+void AOrionGRI::VoteEnded()
+{
+	int32 VoteTally[10];
+	TArray<FString> Maps;
+
+	for (int32 i = 0; i < 10; i++)
+		VoteTally[i] = 0;
+
+	TArray<AActor*> Controllers;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
+		if (C)
+		{
+			if (C->VoteIndex >= 0 && C->VoteIndex < 10)
+				VoteTally[C->VoteIndex]++;
+
+			if (VoteType == VOTE_MAP)
+				Maps = C->GetMaps();
+		}
+	}
+
+	Voters.Empty();
+
+	int32 MaxVote = 0;
+	bool bTie;
+
+	for (int32 i = 0; i < 10; i++)
+	{
+		if (VoteTally[i] == VoteTally[MaxVote])
+			bTie = true;
+		else if (VoteTally[i] > VoteTally[MaxVote])
+		{
+			MaxVote = i;
+			bTie = false;
+		}
+	}
+
+	//award the winner based on type
+	switch (VoteType)
+	{
+	case VOTE_MAP:
+		if (MaxVote < Maps.Num())
+			NextMapVote = Maps[MaxVote];
+		else
+			NextMapVote = Maps[FMath::RandRange(0, Maps.Num() - 1)];
+
+		//start new map in 10 seconds
+		break;
+	}
 }
 
 void AOrionGRI::HandleVictoryDefeat()
@@ -223,6 +309,99 @@ void AOrionGRI::Tick(float DeltaSeconds)
 			WorldTime = Weather->TheTime;
 		}
 	}
+
+	//handle the voting situation
+	if (GetWorldTimerManager().IsTimerActive(VoteTimer))
+	{
+
+	}
+
+	//calculate the camera information here and the player will just grab the results
+	if (bIsLocalCoop)
+	{
+		//FVector vCenter(0.0f);
+		//int32 nPlayers = 0;
+
+		FVector MinBounds(999999.0f, 999999.0f, 999999.0f);
+		FVector MaxBounds(-999999.0f, -999999.0f, -999999.0f);
+
+		TArray<FVector> Points;
+
+		TArray<AActor*> Controllers;
+
+		UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+		FRotator rot = FRotator(-50.0f/*CameraPitch*/, 45.0f/*CameraYaw*/, 0.0f);
+
+		for (int32 i = 0; i < Controllers.Num(); i++)
+		{
+			AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
+			if (C)
+			{
+				AOrionCharacter *P = Cast<AOrionCharacter>(C->GetPawn());
+				if (P)
+				{
+					//vCenter += P->GetActorLocation();
+					//nPlayers++;
+
+					//MinBounds.X = FMath::Min(MinBounds.X, P->GetActorLocation().X);
+					//MinBounds.Y = FMath::Min(MinBounds.Y, P->GetActorLocation().Y);
+
+					//MaxBounds.X = FMath::Max(MaxBounds.X, P->GetActorLocation().X);
+					//MaxBounds.Y = FMath::Max(MaxBounds.Y, P->GetActorLocation().Y);
+
+					Points.Add(FVector(FVector::DotProduct(P->GetActorLocation(), FRotationMatrix(rot).GetScaledAxis(EAxis::X)),
+						FVector::DotProduct(P->GetActorLocation(), FRotationMatrix(rot).GetScaledAxis(EAxis::Y)),
+						FVector::DotProduct(P->GetActorLocation(), FRotationMatrix(rot).GetScaledAxis(EAxis::Z))
+						));
+				}
+			}
+		}
+
+		for (int32 i = 0; i < Points.Num(); i++)
+		{
+			MinBounds.X = FMath::Min(MinBounds.X, Points[i].X);
+			MinBounds.Y = FMath::Min(MinBounds.Y, Points[i].Y);
+			MinBounds.Z = FMath::Min(MinBounds.Z, Points[i].Z);
+
+			MaxBounds.X = FMath::Max(MaxBounds.X, Points[i].X);
+			MaxBounds.Y = FMath::Max(MaxBounds.Y, Points[i].Y);
+			MaxBounds.Z = FMath::Max(MaxBounds.Z, Points[i].Z);
+		}
+
+		//if (nPlayers > 0)
+		//	vCenter /= nPlayers;
+
+		//use the max/min to calculate our camera distance with an fov of 60.0f
+		float Distance = 2500.0f;
+
+		//convert our camera location from camera space back to world space
+		FVector vCenter = FVector((MaxBounds.X + MinBounds.X) / 2.0f, (MaxBounds.Y + MinBounds.Y) / 2.0f, (MaxBounds.Z + MinBounds.Z) / 2.0f);
+		FVector wCenter = FVector(FVector::DotProduct(vCenter, FRotationMatrix(rot.GetInverse()).GetScaledAxis(EAxis::X)),
+			FVector::DotProduct(vCenter, FRotationMatrix(rot.GetInverse()).GetScaledAxis(EAxis::Y)),
+			FVector::DotProduct(vCenter, FRotationMatrix(rot.GetInverse()).GetScaledAxis(EAxis::Z)));
+
+		CameraCenter = wCenter;
+
+		float Scale = 2.5f;
+		int32 x = 0;
+		int32 y = 0;
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
+		if (PC)
+		{
+			PC->GetViewportSize(x, y);
+			Scale = 2.0f * float(x) / float(y);
+		}
+
+		//add some extra buffer length to the bounds
+		MaxBounds *= FVector(1.0f, 1.25f, Scale);
+		MinBounds *= FVector(1.0f, 1.25f, Scale);
+
+		Distance = FMath::Max(Distance, FMath::Max(MaxBounds.Y - MinBounds.Y, MaxBounds.Z - MinBounds.Z) / (2.0f * FMath::Tan(FMath::DegreesToRadians(30.0f))));
+
+		CoopCameraLocation = wCenter - rot.Vector() * Distance/*CameraDistance*/ + FVector(0.0f/*CameraDistX*/, 0.0f, 0.0f);
+		CoopCameraRotation = rot;
+	}
 }
 
 FString AOrionGRI::GetMapName()
@@ -245,6 +424,8 @@ FTimeOfDay AOrionGRI::GetWorldTime() const
 void AOrionGRI::BeginPlay()
 {
 	Super::BeginPlay();
+
+	bMatchIsOver = false;
 
 	//initialize our mapper
 	FActorSpawnParameters SpawnInfo;

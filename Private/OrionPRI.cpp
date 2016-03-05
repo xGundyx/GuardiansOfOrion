@@ -317,6 +317,39 @@ void AOrionPRI::AddOrbEffect(EOrbType Type, float Duration)
 	}
 }
 
+int32 AOrionPRI::GetCharacterLevelFromClass(FString Type)
+{
+	int XP = 0;
+
+	if (Type == "ASSAULT")
+		XP = AssaultXP;
+	else if (Type == "SUPPORT")
+		XP = SupportXP;
+	else if (Type == "RECON")
+		XP = ReconXP;
+	else if (Type == "TECH")
+		XP = TechXP;
+	else if (Type == "PYRO")
+		XP = PyroXP;
+	else if (Type == "MARKSMAN")
+		XP = MarksmanXP;
+	else
+		return 1;
+
+	return CalculateLevel(XP);
+}
+
+void AOrionPRI::OnRep_MyParty()
+{
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
+	if (PC)
+	{
+		PC->CurrentPartyName = MyParty.PartyName;
+		PC->SetLobbyName(PC->ServerInfo.LobbyID, MyParty.PartyName);
+		PC->EventUpdateParty();
+	}
+}
+
 int32 AOrionPRI::GetCharacterLevel(ECharacterClass CharacterType)
 {
 	int XP = 0;
@@ -394,12 +427,16 @@ void AOrionPRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionPRI, HUDStatus);
 	DOREPLIFETIME(AOrionPRI, bReady);
 
+	//party time
+	DOREPLIFETIME_CONDITION(AOrionPRI, MyParty, COND_OwnerOnly);
+
 	//playfab ids and stuff
 	DOREPLIFETIME(AOrionPRI, PlayFabID);
 	DOREPLIFETIME(AOrionPRI, SessionTicket);
 	DOREPLIFETIME(AOrionPRI, CharacterID);
 	DOREPLIFETIME(AOrionPRI, PlayFabName);
 	DOREPLIFETIME(AOrionPRI, UnlockedSkills);
+	DOREPLIFETIME(AOrionPRI, TeamName);
 
 	//scores
 	DOREPLIFETIME(AOrionPRI, Kills);

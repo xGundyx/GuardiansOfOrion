@@ -62,6 +62,9 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = Score)
 		FString ClassType;
 
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Score)
+		FString TeamName;
+
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
 		int32 AssaultXP;
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = PlayFab)
@@ -95,6 +98,15 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = RPG)
 		int32 GetCharacterLevel(ECharacterClass CharacterType);
+
+	UFUNCTION(BlueprintCallable, Category = RPG)
+		int32 GetCharacterLevelFromClass(FString Type);
+
+	UFUNCTION()
+		void OnRep_MyParty();
+
+	UPROPERTY(ReplicatedUsing = OnRep_MyParty, BlueprintReadOnly, Category = Lobby)
+		FSpaceParty MyParty;
 
 	UFUNCTION(BlueprintCallable, server, Reliable, WithValidation, Category = HUD)
 		void ServerSetTyping(bool bTyping);

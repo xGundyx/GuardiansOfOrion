@@ -362,6 +362,9 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "GrantRandomItem"))
 		void EventGrantRandomItem(EItemRarity Quality);
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "OpenBundle"))
+		bool EventOpenBundle(const TArray<TSubclassOf<UOrionInventoryItem> > &Items, int32 Amount);
+
 	void SaveInventory();
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)

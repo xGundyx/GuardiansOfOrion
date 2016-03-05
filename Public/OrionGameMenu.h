@@ -26,6 +26,9 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = Steam)
 		FString LobbyIP;
 
+	UPROPERTY(BlueprintReadWrite, Category = Steam)
+		FString TeamName;
+
 	UFUNCTION(BlueprintCallable, Category = Loading)
 		void DisplayLoadingScreen();
 

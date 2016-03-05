@@ -4,6 +4,7 @@
 
 #include "GameFramework/Actor.h"
 #include "OrionRandomWaveSpawner.h"
+#include "OrionLootCrate.h"
 #include "OrionSideMission.generated.h"
 
 UCLASS()
@@ -44,7 +45,20 @@ public:
 		void SpawnMissionEnemies(FSpawnNumbers TypesToSpawn, AActor *Target);
 
 	void FinishWave();
+	float GetBonusTimeRemaining();
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Mission)
 		bool bBossMission;
+
+	//time to complete this side objective and receive a bonus
+	float TimeLimit;
+
+	bool bBonus;
+	void BonusFailed();
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Mission)
+		TSubclassOf<AOrionLootCrate> DefaultCrateClass;
+
+private:
+	FTimerHandle BonusTimer;
 };

@@ -54,7 +54,7 @@ void AOrionPickup::OnRep_GearType()
 	EventSetColor(GearType);
 }
 
-bool AOrionPickup::Init(UClass *LootTable, int32 Level)
+bool AOrionPickup::Init(UClass *LootTable, int32 Level, EItemRarity ForceQuality)
 {
 	if (Role != ROLE_Authority)
 		return false;
@@ -100,17 +100,18 @@ bool AOrionPickup::Init(UClass *LootTable, int32 Level)
 			}
 		}
 		float RandomChance = FMath::FRand() / Chance;
-		if (RandomChance < 0.02f)
+
+		if (RandomChance < 0.02f || ForceQuality == RARITY_LEGENDARY)
 		{
 			Decoder.Rarity = RARITY_LEGENDARY;
 			Decoder.ItemName = Inv->LegendaryName;
 		}
-		else if (RandomChance < 0.1f)
+		else if (RandomChance < 0.1f || ForceQuality == RARITY_SUPERENHANCED)
 		{
 			Decoder.Rarity = RARITY_SUPERENHANCED;
 			Decoder.ItemName = Inv->ItemName;
 		}
-		else if (RandomChance < 0.25f)
+		else if (RandomChance < 0.25f || ForceQuality == RARITY_ENHANCED)
 		{
 			Decoder.Rarity = RARITY_ENHANCED;
 			Decoder.ItemName = Inv->ItemName;

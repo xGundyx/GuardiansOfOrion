@@ -38,7 +38,17 @@ void AOrionGameMenu::InitGame(const FString& MapName, const FString& Options, FS
 {
 	Super::InitGame(MapName, Options, ErrorMessage);
 
-	LobbyIP = UGameplayStatics::ParseOption(Options, TEXT("SteamConnectIP"));
+	FString IPName = UGameplayStatics::ParseOption(Options, TEXT("SteamConnectIP"));
+
+	int32 Index = IPName.Find("x8x");
+
+	if (Index != INDEX_NONE)
+	{
+		LobbyIP = IPName.Mid(0, Index);
+		TeamName = IPName.Mid(Index + 3);
+	}
+	else
+		LobbyIP = IPName;
 }
 
 void AOrionGameMenu::DisplayLoadingScreen()

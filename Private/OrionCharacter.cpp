@@ -92,6 +92,10 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	if (Stun.Object)
 		StunnedFX = Cast<UParticleSystem>(Stun.Object);
 
+	static ConstructorHelpers::FObjectFinder<UMaterial> ThermalHelper(TEXT("Material'/Game/Character/Skills/ThermalVision/ThermalFresnel.ThermalFresnel'"));
+	if (ThermalHelper.Object)
+		ThermalMat = Cast<UMaterial>(ThermalHelper.Object);
+
 	// Default offset from the character location for projectiles to spawn
 	GunOffset = FVector(100.0f, 30.0f, 10.0f);
 
@@ -385,6 +389,36 @@ void AOrionCharacter::BeginPlay()
 	bKnockedDown = false;
 
 	UpdatePawnMeshes();
+
+#if !IS_SERVER
+	//check if we need to be thermal visioned
+	TArray<AActor*> Controllers;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+	if (ThermalMat)
+	{
+		for (int32 i = 0; i < Controllers.Num(); i++)
+		{
+			AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
+
+			if (C)
+			{
+				AOrionCharacter *P = Cast<AOrionCharacter>(C->GetPawn());
+				if (P && P->CurrentSkill && P->CurrentSkill->IsThermalVisioning())
+				{
+					//change our material to use thermal
+					for (int32 j = 0; j < GetMesh()->GetMaterials().Num(); j++)
+					{
+						GetMesh()->SetMaterial(j, ThermalMat);
+					}
+
+					break;
+				}
+			}
+		}
+	}
+#endif
 }
 
 void AOrionCharacter::OnRep_IsElite()
@@ -2172,7 +2206,14 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 	if (PC)
 	{
-		Damage *= 1.0f - PC->GetSkillValue(SKILL_THERMALDR) / 100.0f;
+		if (GetWorld()->TimeSeconds - LastHealTime < 1.0f)
+		{
+			Damage *= 1.0f - float(PC->GetSkillValue(SKILL_HEALINGDR)) / 100.0f;
+		}
+
+		Damage *= 1.0f - float(PC->GetSkillValue(SKILL_DR)) / 100.0f;
+
+		Damage *= 1.0f - float(PC->GetSkillValue(SKILL_THERMALDR)) / 100.0f;
 
 		if (CurrentSkill && CurrentSkill->IsCloaking() && PC->GetSkillValue(SKILL_CLOAKTEAMMATES) > 0)
 		{
@@ -2268,6 +2309,8 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	{
 		//AOrionCharacter *AttackerPawn = Cast<AOrionCharacter>(AttackerPC->GetPawn());
 
+		Damage *= 1.0f + float(AttackerPC->GetSkillValue(SKILL_DAMAGEBOOST)) / 100.0f;
+
 		if (AttackerPawn)
 		{
 			Damage *= 1.0f + AttackerPawn->DamageBonus;
@@ -2322,6 +2365,9 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 			if (bIsBigDino) Damage *= 1.0f + (AttackerPawn->LargeDinoBoost / 100.0f);
 			if (Cast<AOrionDroidPawn>(this)) Damage *= 1.0f + (AttackerPawn->RobotBoost / 100.0f);
 
+			//elemental skills
+			if (DamageType->DamageType == DAMAGE_ELEMENTAL) Damage *= 1.0f + float(AttackerPC->GetSkillValue(SKILL_ELEMENTALDAMAGE)) / 100.0f;
+
 			//legendary weapon type damage boosts
 			AOrionInventoryManager *Inv = AttackerPC->GetInventoryManager();
 			if (Inv && !DamageType->bIsKnife && DamageType->DamageType != DAMAGE_ELEMENTAL && (DamageType->WeaponSlot == 1 || DamageType->WeaponSlot == 2))
@@ -2363,7 +2409,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 			Damage *= 1.0f + (MeleeDamageBoost / 100.0f);
 
 			AOrionInventoryManager *Inv = AttackerPC->GetInventoryManager();
-			if (Inv && Inv->HasStat(RARESTAT_CLOAKMELEE) && CurrentSkill && CurrentSkill->IsCloaking()) Damage *= 5.0f;
+			if (AttackerPawn && Inv && Inv->HasStat(RARESTAT_CLOAKMELEE) && AttackerPawn->CurrentSkill && AttackerPawn->CurrentSkill->IsCloaking()) Damage *= 5.0f;
 		}
 	}
 
@@ -3371,7 +3417,42 @@ void AOrionCharacter::UpdatePlayerRingColor()
 		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
 		if (PRI && GRI)
 		{
-			if (PC == Controller)
+			if (GRI->bIsLocalCoop)
+			{
+				AOrionPlayerController *MyPC = Cast<AOrionPlayerController>(Controller);
+				if (MyPC)
+				{
+					if (MyPC->ControllerIndex == 0)
+					{
+						col.R = 0.0f;
+						col.G = 5.0f;
+						col.B = 0.0f;
+						col.A = 1.0f;
+					}
+					else if (MyPC->ControllerIndex == 1)
+					{
+						col.R = 0.0f;
+						col.G = 0.0f;
+						col.B = 5.0f;
+						col.A = 1.0f;
+					}
+					else if (MyPC->ControllerIndex == 2)
+					{
+						col.R = 5.0f;
+						col.G = 0.0f;
+						col.B = 5.0f;
+						col.A = 1.0f;
+					}
+					else if (MyPC->ControllerIndex == 3)
+					{
+						col.R = 5.0f;
+						col.G = 5.0f;
+						col.B = 0.0f;
+						col.A = 1.0f;
+					}
+				}
+			}
+			else if (PC == Controller)
 			{
 				col.R = 0.0f;
 				col.G = 5.0f;
@@ -3425,6 +3506,18 @@ void AOrionCharacter::PossessedBy(class AController* InController)
 				if (!PRI->PlayFabID.IsEmpty())
 					PRI->InventoryManager->EquipItems(this, ITEM_ANY);
 			}*/
+
+			//set our stencil index, 0 means off
+			if (PC->ControllerIndex > -1)
+			{
+				GetMesh()->CustomDepthStencilValue = PC->ControllerIndex + 1;
+				BodyMesh->CustomDepthStencilValue = PC->ControllerIndex + 1;
+				HelmetMesh->CustomDepthStencilValue = PC->ControllerIndex + 1;
+				ArmsMesh->CustomDepthStencilValue = PC->ControllerIndex + 1;
+				LegsMesh->CustomDepthStencilValue = PC->ControllerIndex + 1;
+				Flight1Mesh->CustomDepthStencilValue = PC->ControllerIndex + 1;
+				Flight2Mesh->CustomDepthStencilValue = PC->ControllerIndex + 1;
+			}
 		}
 	}
 }
@@ -3580,6 +3673,8 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 	DamageBonus = 0.0f;
 	SpeedMultiplier = 1.0f;
 
+	bDoubleShield = false;
+
 	for (auto Itr(Buffs.CreateIterator()); Itr; ++Itr)
 	{
 		AOrionBuff *Buff = *Itr;
@@ -3605,8 +3700,6 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 
 		if (Buff->BuffName == "DoubleShield")
 			bDoubleShield = true;
-		else
-			bDoubleShield = false;
 
 		//check if we need to tick damage or anything
 		Buff->TickTimer -= DeltaSeconds;
@@ -3620,7 +3713,7 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 			{
 				if (Inv && Inv->HasStat(Buff->RareStat) && !bDowned && Buff->DamageBonus == 0.0f)
 				{
-					Heal(int32(HealthMax / 3));
+					AddHealth(int32(HealthMax / 3));
 				}
 				else
 				{
@@ -3642,7 +3735,7 @@ void AOrionCharacter::HandleBuffs(float DeltaSeconds)
 				}
 			}
 			else if (Buff->Damage < 0.0f && !bDowned)
-				Heal(int32(-Buff->Damage));
+				AddHealth(int32(-Buff->Damage));
 
 			if (Buff->HealPercent > 0.0f && !bDowned)
 			{
@@ -3721,6 +3814,10 @@ void AOrionCharacter::AddBuff(TSubclassOf<AOrionBuff> BuffClass, AController *cO
 		Buff->LastRefreshedTime = GetWorld()->GetTimeSeconds();
 		Buff->ControllerOwner = cOwner;
 		Buff->TeamIndex = TeamIndex;
+
+		UOrionDamageType *dType = Cast<UOrionDamageType>(Buff->DamageType);
+		if (PC && dType && dType->DamageType == DAMAGE_ELEMENTAL)
+			Buff->Duration += PC->GetSkillValue(SKILL_ELEMENTALLENGTH);
 
 		Buffs.Add(Buff);
 
@@ -4228,7 +4325,10 @@ void AOrionCharacter::UpdateCooldowns(float DeltaTime)
 			}
 		}
 
-		BlinkCooldown.Energy = FMath::Min(BlinkCooldown.Energy + DeltaTime, float(BlinkCooldown.SecondsToRecharge * blinkCharges));
+		float BlinkRate = 1.0f;
+		if(PC)
+			BlinkRate += float(PC->GetSkillValue(SKILL_BLINKRECHARGE)) / 100.0f;
+		BlinkCooldown.Energy = FMath::Min(BlinkCooldown.Energy + BlinkRate * DeltaTime, float(BlinkCooldown.SecondsToRecharge * blinkCharges));
 
 		RollCooldown = FMath::Max(0.0f, RollCooldown - DeltaTime);
 	}
@@ -4741,7 +4841,7 @@ void AOrionCharacter::ExitVehicle()
 	DrivenVehicle = nullptr;
 }
 
-void AOrionCharacter::Use()
+/*void AOrionCharacter::Use()
 {
 	if (ShouldIgnoreControls())
 		return;
@@ -4751,6 +4851,25 @@ void AOrionCharacter::Use()
 		ServerUse();
 		return;
 	}
+}*/
+
+void AOrionCharacter::Use()
+{
+	if (ShouldIgnoreControls())
+		return;
+
+	//stuff that only happens client side
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+	if (PC && IsLocallyControlled())
+	{
+		PC->EventCheckUse();
+	}
+
+	/*if (Role < ROLE_Authority)
+	{
+	ServerUse();
+	return;
+	}*/
 }
 
 void AOrionCharacter::BehindView()

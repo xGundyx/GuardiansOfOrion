@@ -753,6 +753,18 @@ void AOrionWeaponLink::HandleTarget(float DeltaSeconds)
 		}
 		else if (P && P->Shield < P->ShieldMax)
 			P->Shield = FMath::Min(P->ShieldMax, P->Shield + DeltaSeconds * Rate * P->ShieldMax / 10.0f);
+
+		float sRate = float(PC->GetSkillValue(SKILL_SELFHEAL)) / 100.0f;
+
+		if (sRate > 0.0f && P && MyPawn->Health < MyPawn->HealthMax)
+		{
+			MyPawn->Health = FMath::Min(MyPawn->HealthMax, MyPawn->Health + sRate * DeltaSeconds * Rate * MyPawn->HealthMax / 10.0f);
+
+			if (MyPawn->Health >= MyPawn->HealthMax)
+				MyPawn->Revived();
+		}
+		else if (sRate > 0.0f && P && MyPawn->Shield < MyPawn->ShieldMax)
+			MyPawn->Shield = FMath::Min(MyPawn->ShieldMax, MyPawn->Shield + sRate * DeltaSeconds * Rate * MyPawn->ShieldMax / 10.0f);
 	}
 	//if the target is an enemy, hurt/slow them
 	else if (GRI && !GRI->OnSameTeam(PRI1, PRI2))

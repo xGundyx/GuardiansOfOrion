@@ -26,7 +26,15 @@ public:
 
 	void CloseGame();
 
-	virtual void HandleEmptyServer();
+	FString Player1;
+	FString Player2;
+	FString Player3;
+	FString Player4;
+
+	bool bLocalCheck;
+	void CheckLocal();
+
+	virtual void HandleEmptyServer(AController *Exiting = nullptr);
 
 	virtual void SetSpawnTimer() {}
 

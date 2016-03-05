@@ -401,7 +401,7 @@ TArray<FEnhancedPlayerStats> AOrionStats::GetEnhancedStats()
 	int32 Deaths = 0;
 	for (int32 i = STAT_RAPTORDEATH; i < STAT_ASSAULTDEATH; i++)
 		Deaths += aStats[i].StatValue;
-	SingleStat.StatValue = FString::Printf(TEXT("%i"), aStats[STAT_TOTALKILLS].StatValue);
+	SingleStat.StatValue = FString::Printf(TEXT("%i"), Deaths);
 	StatsRet.Add(SingleStat);
 
 	//total assists

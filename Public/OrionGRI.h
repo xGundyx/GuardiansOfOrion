@@ -188,10 +188,39 @@ public:
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = GRI)
 		bool bReadyingUp;
 
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = GRI)
+		int32 BonusTime;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = GRI)
+		bool bBonusWon;
+
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = GRI)
+		bool bMatchIsOver;
+
+	void StartVote(EVoteType Type);
+
+	TArray<AOrionPlayerController*> Voters;
+	FTimerHandle VoteTimer;
+	EVoteType VoteType;
+	FString NextMapVote;
+
+	void VoteEnded();
+
 	FString Player1;
 	FString Player2;
 	FString Player3;
 	FString Player4;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = GRI)
+		bool bIsLocalCoop;
+
+	bool bInitialized;
+
+	UPROPERTY(BlueprintReadOnly, Category = MiniMap)
+		FVector CameraCenter;
+
+	FVector CoopCameraLocation;
+	FRotator CoopCameraRotation;
 
 	void SetHeaderMessage(FString Title, FString Desc);
 

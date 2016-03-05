@@ -5,6 +5,7 @@
 #include "OrionAbility.h"
 #include "OrionWeapon.h"
 #include "OrionGrenade.h"
+#include "OrionLobbyPawn.h"
 #include "OrionSkeletalMeshComponent.h"
 
 class AOrionLobbyPawn;
@@ -19,7 +20,7 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 
 	Mesh1P = ObjectInitializer.CreateDefaultSubobject<UOrionSkeletalMeshComponent>(this, TEXT("WeaponMesh1P"));
 	//Mesh1P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
-	Mesh1P->bChartDistanceFactor = false;
+	//Mesh1P->bChartDistanceFactor = false;
 	Mesh1P->bReceivesDecals = false;
 	Mesh1P->CastShadow = false;
 	Mesh1P->SetCollisionObjectType(ECC_WorldDynamic);
@@ -34,7 +35,7 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 
 	Mesh3P = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("WeaponMesh3P"));
 	//Mesh3P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
-	Mesh3P->bChartDistanceFactor = true;
+	//Mesh3P->bChartDistanceFactor = true;
 	Mesh3P->bReceivesDecals = false;
 	Mesh3P->CastShadow = true;
 	Mesh3P->SetCollisionObjectType(ECC_WorldDynamic);
@@ -49,7 +50,7 @@ AOrionWeapon::AOrionWeapon(const FObjectInitializer& ObjectInitializer) : Super(
 
 	KnifeMesh = ObjectInitializer.CreateDefaultSubobject<USkeletalMeshComponent>(this, TEXT("KnifeMesh"));
 	//Mesh3P->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered;
-	KnifeMesh->bChartDistanceFactor = true;
+	//KnifeMesh->bChartDistanceFactor = true;
 	KnifeMesh->bReceivesDecals = false;
 	KnifeMesh->CastShadow = true;
 	KnifeMesh->SetCollisionObjectType(ECC_WorldDynamic);
@@ -185,7 +186,11 @@ void AOrionWeapon::AttachMeshToPawn()
 
 			//add it to the outliner
 			if (MyPawn->PlayerState && !MyPawn->PlayerState->bIsABot)
+			{
 				Mesh3P->SetRenderCustomDepth(true);
+				if (PC)
+					Mesh3P->CustomDepthStencilValue = PC->ControllerIndex + 1;
+			}
 
 			if (PawnMesh1p && PawnMesh1p->SkeletalMesh)
 			{
@@ -630,7 +635,7 @@ void AOrionWeapon::FireSpecial(FName SocketName, FVector Direction)
 	const FVector AimDir = GetAdjustedAim();
 	const FVector StartTrace = GetBarrelLocation(SocketName);
 	const FVector ShootDir = Direction;
-	const FVector EndTrace = StartTrace + ShootDir * FMath::Min(6000.0f, InstantConfig.WeaponRange);
+	const FVector EndTrace = StartTrace + ShootDir * FMath::Max(6000.0f, InstantConfig.WeaponRange);
 
 	const FHitResult Impact = WeaponTrace(StartTrace, EndTrace);
 	ProcessInstantHit(Impact, StartTrace, ShootDir, RandomSeed, CurrentSpread);
@@ -725,7 +730,7 @@ void AOrionWeapon::FireWeapon()
 		const FVector AimDir = GetAdjustedAim();
 		const FVector StartTrace = GetCameraDamageStartLocation(AimDir);
 		const FVector ShootDir = WeaponRandomStream.VRandCone(AimDir, ConeHalfAngle, ConeHalfAngle);
-		const FVector EndTrace = StartTrace + ShootDir * FMath::Min(6000.0f, InstantConfig.WeaponRange);
+		const FVector EndTrace = StartTrace + ShootDir * FMath::Max(6000.0f, InstantConfig.WeaponRange);
 
 		FHitResult Impact;
 
@@ -1381,7 +1386,7 @@ void AOrionWeapon::ProcessInstantHit_Confirmed(const FHitResult& Impact, const F
 		if (Success && Impact.GetActor() != NULL)
 			DealDamage(Impact, ShootDir);
 
-		const FVector EndTrace = Origin + ShootDir * FMath::Min(6000.0f, InstantConfig.WeaponRange);
+		const FVector EndTrace = Origin + ShootDir * FMath::Max(6000.0f, InstantConfig.WeaponRange);
 		const FVector EndPoint = Impact.GetActor() ? Impact.ImpactPoint : EndTrace;
 
 		HitNotify.Origin = EndPoint;// Origin;
@@ -1395,7 +1400,7 @@ void AOrionWeapon::ProcessInstantHit_Confirmed(const FHitResult& Impact, const F
 	// play FX locally
 	if (GetNetMode() != NM_DedicatedServer)
 	{
-		const FVector EndTrace = Origin + ShootDir * FMath::Min(6000.0f, InstantConfig.WeaponRange);
+		const FVector EndTrace = Origin + ShootDir * FMath::Max(6000.0f, InstantConfig.WeaponRange);
 		const FVector EndPoint = Impact.bBlockingHit ? Impact.ImpactPoint : EndTrace;// Impact.GetActor() ? Impact.ImpactPoint : EndTrace;
 
 		SpawnTrailEffect(EndPoint);
@@ -1596,7 +1601,7 @@ void AOrionWeapon::ServerNotifyMiss_Implementation(FVector ShootDir, int32 Rando
 	// play FX locally
 	if (GetNetMode() != NM_DedicatedServer)
 	{
-		const FVector EndTrace = Origin + ShootDir * FMath::Min(6000.0f, InstantConfig.WeaponRange);
+		const FVector EndTrace = Origin + ShootDir * FMath::Max(6000.0f, InstantConfig.WeaponRange);
 		SpawnTrailEffect(EndTrace);
 	}
 }
