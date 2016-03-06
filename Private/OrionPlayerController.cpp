@@ -1514,38 +1514,41 @@ void AOrionPlayerController::TestSettings()
 }
 #endif
 
-void AOrionPlayerController::AddXP(int32 Value)
+void AOrionPlayerController::AddXP(int32 Value, bool bAbsolute)
 {
 //#if IS_SERVER
 	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
 
-	if(GRI)
+	if (!bAbsolute)
 	{
-		switch (GRI->Difficulty)
+		if (GRI)
 		{
-		case DIFF_EASY:
-		case DIFF_MEDIUM:
-			Value *= 1.0f;
-			break;
-		case DIFF_HARD:
-			Value *= 1.25f;
-			break;
-		case DIFF_INSANE:
-			Value *= 1.5f;
-			break;
-		case DIFF_REDIKULOUS:
-			Value *= 2.0f;
-			break;
+			switch (GRI->Difficulty)
+			{
+			case DIFF_EASY:
+			case DIFF_MEDIUM:
+				Value *= 1.0f;
+				break;
+			case DIFF_HARD:
+				Value *= 1.25f;
+				break;
+			case DIFF_INSANE:
+				Value *= 1.5f;
+				break;
+			case DIFF_REDIKULOUS:
+				Value *= 2.0f;
+				break;
+			}
 		}
+
+		Value *= 1.0f + float(GetSkillValue(SKILL_BONUSXP)) / 100.0f;
+
+		AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
+
+		if (Game)
+			Value *= 1.0f + Game->ItemLevel / 300.0f;
 	}
-
-	Value *= 1.0f + float(GetSkillValue(SKILL_BONUSXP)) / 100.0f;
-
-	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
-
-	if(Game)
-		Value *= 1.0f + Game->ItemLevel / 300.0f;
 
 	//make sure stats are valid
 	if (!Stats)

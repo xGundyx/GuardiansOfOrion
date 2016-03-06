@@ -1468,9 +1468,9 @@ void AOrionWeapon::ServerNotifyHit_Implementation(const FHitResult Impact, FVect
 				BoxExtent *= InstantConfig.ClientSideHitLeeway;
 
 				// avoid precision errors with really thin objects
-				BoxExtent.X = FMath::Max(20.0f, BoxExtent.X);
-				BoxExtent.Y = FMath::Max(20.0f, BoxExtent.Y);
-				BoxExtent.Z = FMath::Max(20.0f, BoxExtent.Z);
+				BoxExtent.X = FMath::Max(150.0f, BoxExtent.X);
+				BoxExtent.Y = FMath::Max(150.0f, BoxExtent.Y);
+				BoxExtent.Z = FMath::Max(150.0f, BoxExtent.Z);
 
 				// Get the box center
 				const FVector BoxCenter = (HitBox.Min + HitBox.Max) * 0.5;

@@ -1591,7 +1591,7 @@ public:
 	UPROPERTY(BlueprintReadOnly, Category = Lobby)
 		int32 PlayerILevel;
 
-	bool operator==(const FSpacePartyMember Other) const { return PC == Other.PC || PRI == Other.PRI; }
+	bool operator==(const FSpacePartyMember Other) const { return ((PC && Other.PC) && (PC == Other.PC)) || ((PRI && Other.PRI) && PRI == Other.PRI); }
 };
 
 USTRUCT(BlueprintType)
