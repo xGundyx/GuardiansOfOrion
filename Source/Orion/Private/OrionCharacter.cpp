@@ -133,7 +133,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	GetMesh()->SetCollisionResponseToChannel(COLLISION_PROJECTILE, ECR_Block);
 	GetMesh()->SetCollisionResponseToChannel(ECC_Visibility, ECR_Block);
 	GetMesh()->MeshComponentUpdateFlag = EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	GetMesh()->StreamingDistanceMultiplier = 10.0f;
+	GetMesh()->StreamingDistanceMultiplier = 1.0f;
 	GetMesh()->LDMaxDrawDistance = 12500.0f;
 
 	//InvokerComponent = ObjectInitializer.CreateOptionalDefaultSubobject<UNavigationInvokerComponent>(this, TEXT("NavInvoker"));
@@ -198,7 +198,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
 	BodyMesh->AttachParent = GetMesh();
 	BodyMesh->SetMasterPoseComponent(GetMesh());
-	BodyMesh->StreamingDistanceMultiplier = 10.0f;
+	BodyMesh->StreamingDistanceMultiplier = 1.0f;
 
 	HelmetMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Helmet"));
 	HelmetMesh->AlwaysLoadOnClient = true;
@@ -213,7 +213,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
 	HelmetMesh->AttachParent = GetMesh();
 	HelmetMesh->SetMasterPoseComponent(GetMesh());
-	HelmetMesh->StreamingDistanceMultiplier = 10.0f;
+	HelmetMesh->StreamingDistanceMultiplier = 1.0f;
 
 	ArmsMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Arms"));
 	ArmsMesh->AlwaysLoadOnClient = true;
@@ -228,7 +228,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
 	ArmsMesh->AttachParent = GetMesh();
 	ArmsMesh->SetMasterPoseComponent(GetMesh());
-	ArmsMesh->StreamingDistanceMultiplier = 10.0f;
+	ArmsMesh->StreamingDistanceMultiplier = 1.0f;
 
 	LegsMesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Legs"));
 	LegsMesh->AlwaysLoadOnClient = true;
@@ -243,7 +243,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
 	LegsMesh->AttachParent = GetMesh();
 	LegsMesh->SetMasterPoseComponent(GetMesh());
-	LegsMesh->StreamingDistanceMultiplier = 10.0f;
+	LegsMesh->StreamingDistanceMultiplier = 1.0f;
 
 	Flight1Mesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Flight1"));
 	Flight1Mesh->AlwaysLoadOnClient = true;
@@ -258,7 +258,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
 	Flight1Mesh->AttachParent = GetMesh();
 	Flight1Mesh->SetMasterPoseComponent(GetMesh());
-	Flight1Mesh->StreamingDistanceMultiplier = 10.0f;
+	Flight1Mesh->StreamingDistanceMultiplier = 1.0f;
 
 	Flight2Mesh = ObjectInitializer.CreateOptionalDefaultSubobject<USkeletalMeshComponent>(this, TEXT("Flight2"));
 	Flight2Mesh->AlwaysLoadOnClient = true;
@@ -273,7 +273,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	// Mesh acts as the head, as well as the parent for both animation and attachment.
 	Flight2Mesh->AttachParent = GetMesh();
 	Flight2Mesh->SetMasterPoseComponent(GetMesh());
-	Flight2Mesh->StreamingDistanceMultiplier = 10.0f;
+	Flight2Mesh->StreamingDistanceMultiplier = 1.0f;
 
 	PawnSensor = ObjectInitializer.CreateOptionalDefaultSubobject<UPawnSensingComponent>(this, TEXT("Pawn Sensor"));
 	PawnSensor->SensingInterval = .25f; // 4 times per second

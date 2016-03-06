@@ -108,6 +108,9 @@ public:
 	UPROPERTY(ReplicatedUsing = OnRep_MyParty, BlueprintReadOnly, Category = Lobby)
 		FSpaceParty MyParty;
 
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Lobby)
+		FString CurrentPartyName;
+
 	UFUNCTION(BlueprintCallable, server, Reliable, WithValidation, Category = HUD)
 		void ServerSetTyping(bool bTyping);
 		bool ServerSetTyping_Validate(bool bTyping) { return true; }

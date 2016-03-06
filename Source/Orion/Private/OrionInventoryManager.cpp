@@ -802,7 +802,7 @@ bool AOrionInventoryManager::UseItem(AOrionInventoryGrid *theGrid, int32 index)
 		case INVENTORYUSE_GRANTXP:
 			if (PC)
 			{
-				PC->AddXP(Inv->UseableItem.Value);
+				PC->AddXP(Inv->UseableItem.Value, true);
 			}
 			break;
 		case INVENTORYUSE_GRANTITEM:

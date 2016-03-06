@@ -695,7 +695,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Menu)
 		FString GetLobbyVersion() { return TEXT("LOBBY1.3.0"); }
 
-	void AddXP(int32 Value);
+	void AddXP(int32 Value, bool bAbsolute = false);
 	void DoLevelUp(int32 NewLevel);
 
 	EControllerButton ConvertControllerButtonToIndex(FString ButtonName);

@@ -429,6 +429,7 @@ void AOrionPRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 
 	//party time
 	DOREPLIFETIME_CONDITION(AOrionPRI, MyParty, COND_OwnerOnly);
+	DOREPLIFETIME(AOrionPRI, CurrentPartyName);
 
 	//playfab ids and stuff
 	DOREPLIFETIME(AOrionPRI, PlayFabID);

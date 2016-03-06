@@ -126,10 +126,11 @@ void AOrionAIController::HandleStuck()
 
 	LastStuckPos = GetPawn()->GetActorLocation();
 
-	if (StuckCounter >= 5.0f)
+	if (StuckCounter >= 10)
 	{
 		bIsStuck = true;
-		GetWorldTimerManager().SetTimer(StuckTimer, this, &AOrionAIController::ResetStuck, 3.0f, false);
+		//GetWorldTimerManager().SetTimer(StuckTimer, this, &AOrionAIController::ResetStuck, 3.0f, false);
+		ResetStuck();
 	}
 	else
 		bIsStuck = false;

@@ -373,7 +373,10 @@ void AOrionGameLobby::AddPlayerToParty(AOrionPlayerController *Member, FString P
 				{
 					AOrionPRI *aPRI = Cast<AOrionPRI>(SpaceParties[index].PartyMembers[i].PC->PlayerState);
 					if (aPRI)
+					{
 						aPRI->MyParty = SpaceParties[index];
+						aPRI->CurrentPartyName = SpaceParties[index].PartyName;
+					}
 				}
 			}
 		}
@@ -421,6 +424,10 @@ void AOrionGameLobby::RemovePlayerFromParty(AOrionPlayerController *Member, FStr
 						aPRI->MyParty = SpaceParties[index];
 				}
 			}
+
+			int32 Rand = FMath::RandRange(0, 999999999);
+			FString pName = FString::Printf(TEXT("%i"), Rand);
+			CreateParty(Member, pName, "", "", "", "", "", "", "", "");
 		}
 	}
 }
@@ -485,6 +492,16 @@ void AOrionGameLobby::HandleParties()
 	{
 		if (SpaceParties[i].PartyMembers.Num() == 0)
 			DestroyParty(SpaceParties[i].PartyName);
+		else
+		{
+			for (int32 j = 0; j < SpaceParties[i].PartyMembers.Num(); j++)
+			{
+				if (!SpaceParties[i].PartyMembers[j].PRI || !SpaceParties[i].PartyMembers[j].PRI->IsValidLowLevel())
+				{
+					SpaceParties[i].PartyMembers.RemoveAt(j);
+				}
+			}
+		}
 	}
 }
 
@@ -550,6 +567,7 @@ void AOrionGameLobby::UpdatePartySettings(AOrionPlayerController *Leader, FStrin
 			if (SpaceParties[index].PartyMembers[i].PRI)
 			{
 				SpaceParties[index].PartyMembers[i].PRI->MyParty = SpaceParties[index];
+				SpaceParties[index].PartyMembers[i].PRI->CurrentPartyName = SpaceParties[index].PartyName;
 			}
 		}
 	}
