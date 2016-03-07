@@ -18,6 +18,8 @@ public:
 	
 	virtual void Tick(float DeltaSeconds) override;
 
+	float LastPodTime;
+
 	//UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
 	//	class USkeletalMeshComponent* PreviewMesh;
 

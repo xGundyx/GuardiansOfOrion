@@ -289,7 +289,7 @@ void AOrionPlayerController::SetServerInfo_Implementation(FPhotonServerInfo Info
 
 	EventSetServerInfo();
 
-	SetLobbyName(Info.LobbyID, CurrentPartyName);
+	GetLobbyName();
 
 	//ServerSendGUID(Info.LobbyID);
 }
@@ -311,13 +311,26 @@ void AOrionPlayerController::CreateInGameLobby_Implementation(FPhotonServerInfo 
 
 		EventSetServerInfo();
 
-		SetLobbyName(Info.LobbyID, CurrentPartyName);
+		GetLobbyName();
 
 		//ServerSendGUID(Info.LobbyID);
 
 		//CreateLobbyForReal();
 	}
 #endif
+}
+
+void AOrionPlayerController::GetLobbyName()
+{
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+
+	if (PRI && PRI->CurrentPartyName.Len() > 1)
+		SetLobbyName(ServerInfo.LobbyID, PRI->CurrentPartyName);
+	else
+	{
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, this, &AOrionPlayerController::GetLobbyName, 0.1f, false);
+	}
 }
 
 void AOrionPlayerController::FindLobbyForParty_Implementation()
@@ -3266,7 +3279,7 @@ void AOrionPlayerController::SetLobbyName(FString lName, FString PartyName)
 
 	if (SteamAPI_Init())
 	{
-		FString ConnectionURL = FString::Printf(TEXT("?SteamConnectIP=\"%s\""), *LobbyName);
+		FString ConnectionURL = FString::Printf(TEXT("?SteamConnectIP=\"%sx8x%s\""), *LobbyName, *PartyName);
 		if (SteamFriends()->SetRichPresence("connect", TCHAR_TO_UTF8(*ConnectionURL)))
 		{
 			SteamFriends()->SetRichPresence("ROOMNAME", TCHAR_TO_UTF8(*LobbyName));
@@ -4004,7 +4017,7 @@ void AOrionPlayerController::ServerJoinParty_Implementation(const FString &Party
 void AOrionPlayerController::OnInviteAccepted(const bool bWasSuccessful, const int32 LocalUserNum, TSharedPtr<const FUniqueNetId> FriendID, const FOnlineSessionSearchResult &SessionToJoin)
 {
 	//add some error here?
-	if (!SessionToJoin.Session.SessionSettings.Settings.Contains("ROOMNAME"))
+	if (!SessionToJoin.Session.SessionSettings.Settings.Contains("ROOMNAME"))// || !SessionToJoin.Session.SessionSettings.Settings.Contains("TEAMNAME"))
 	{
 		if (SteamAPI_Init())
 		{
@@ -4032,7 +4045,7 @@ void AOrionPlayerController::OnInviteAccepted(const bool bWasSuccessful, const i
 	}
 
 	FString LobbyID = SessionToJoin.Session.SessionSettings.Settings.Find(FName("ROOMNAME"))->ToString();
-	FString TeamName = SessionToJoin.Session.SessionSettings.Settings.Find(FName("TEAMNAME"))->ToString();
+	//FString TeamName = SessionToJoin.Session.SessionSettings.Settings.Find(FName("TEAMNAME"))->ToString();
 
 	//trim off the end shenanigans
 	int32 index = LobbyID.Find(" :");
@@ -4040,6 +4053,14 @@ void AOrionPlayerController::OnInviteAccepted(const bool bWasSuccessful, const i
 	if (index != INDEX_NONE)
 	{
 		LobbyID = LobbyID.Left(index);
+	}
+
+	FString TeamName = "";
+	int32 index2 = LobbyID.Find("x8x");
+	if (index2 != INDEX_NONE)
+	{
+		TeamName = LobbyID.Mid(index2 + 3, 999);
+		LobbyID = LobbyID.Left(index2);
 	}
 
 	//JoinLobby(LobbyID);

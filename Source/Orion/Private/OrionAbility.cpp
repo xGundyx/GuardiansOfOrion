@@ -32,6 +32,8 @@ AOrionAbility::AOrionAbility(const FObjectInitializer& ObjectInitializer)
 	bReplicates = true;
 	//bReplicateInstigator = true;
 	bNetUseOwnerRelevancy = true;
+
+	LastSpawnTime = -50.0f;
 }
 
 void AOrionAbility::Tick(float DeltaSeconds)
@@ -179,6 +181,9 @@ void AOrionAbility::SpawnItem(AOrionPlayerController *PC, FVector pos, FRotator 
 	Energy = 0.0f;
 	//TimeSinceLastActive = GetWorld()->TimeSeconds;
 
+	if (GetWorld()->TimeSeconds - LastSpawnTime < 20.0f)
+		return;
+
 	if (!PlaceableItemClass)
 		return;
 
@@ -187,6 +192,8 @@ void AOrionAbility::SpawnItem(AOrionPlayerController *PC, FVector pos, FRotator 
 	SpawnInfo.Owner = PC;
 
 	GetWorld()->SpawnActor<AOrionPlaceableItem>(PlaceableItemClass, pos, rot, SpawnInfo);
+
+	LastSpawnTime = GetWorld()->TimeSeconds;
 }
 
 bool AOrionAbility::ActivateSkill()

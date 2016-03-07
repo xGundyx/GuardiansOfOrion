@@ -904,7 +904,7 @@ void AOrionInventoryManager::DestroyInventory()
 
 void AOrionInventoryManager::SaveInventory()
 {
-	if (bSaveInventoryOperationInProgress)
+	if (bSaveInventoryOperationInProgress || bReadInventoryOperationInProgress)
 		GetWorldTimerManager().SetTimer(SaveInventoryTimer, this, &AOrionInventoryManager::SaveInventory, 0.1f, false);
 	else if(IsFullyInitialized())
 	{
@@ -1238,6 +1238,7 @@ void AOrionInventoryManager::GetLifetimeReplicatedProps(TArray< FLifetimePropert
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, Money, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, OwnerController, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, MaxItemLevel, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, EquippedSlots, COND_OwnerOnly);
 }
 
 bool AOrionInventoryManager::HasStat(ESuperRareStat Stat)
@@ -1449,9 +1450,9 @@ TArray<FCharacterStatEntry> AOrionInventoryManager::GetEquippedStats()
 			ShieldMultiplier = 2.0f;
 	}
 
-	Entry.StatName = "DEFENSE"; Entry.Value = EquippedStats.Defense; Entry.Desc = "x8x extra Shields"; Entry.DescValue = 1.0f; Stats.Add(Entry);
-	Entry.StatName = "HEALTH"; Entry.Value = 100.0f + GetLevelScaledValue(FMath::Pow(LEVELPOWER, (EquippedStats.ItemLevel / 12) / LEVELINTERVAL) * 100.0f, EquippedStats.ItemLevel / 12); Entry.Desc = ""; Entry.DescValue = 0.0f; Stats.Add(Entry);
-	Entry.StatName = "SHIELD"; Entry.Value = ShieldMultiplier * (100.0f + EquippedStats.Defense); Entry.Desc = ""; Entry.DescValue = 0.0f; Stats.Add(Entry);
+	Entry.StatName = "DEFENSE"; Entry.Value = EquippedStats.RealDefense; Entry.Desc = "x8x extra Shields"; Entry.DescValue = 1.0f; Stats.Add(Entry);
+	Entry.StatName = "HEALTH"; Entry.Value = 100.0f + /*GetLevelScaledValue(*/FMath::Pow(LEVELPOWER, (EquippedStats.ItemLevel / 12) / LEVELINTERVAL) * 100.0f/*, EquippedStats.ItemLevel / 12)*/; Entry.Desc = ""; Entry.DescValue = 0.0f; Stats.Add(Entry);
+	Entry.StatName = "SHIELD"; Entry.Value = ShieldMultiplier * (100.0f + EquippedStats.RealDefense); Entry.Desc = ""; Entry.DescValue = 0.0f; Stats.Add(Entry);
 
 	Entry.StatName = "STRENGTH"; Entry.Value = EquippedStats.Primary[PRIMARYSTAT_STRENGTH]; Entry.Desc = "x8x% stronger melee"; Entry.DescValue = 0.01f; Stats.Add(Entry);
 	Entry.StatName = "DEXTERITY"; Entry.Value = EquippedStats.Primary[PRIMARYSTAT_DEXTERITY]; Entry.Desc = "x8x% faster grenade charge"; Entry.DescValue = 0.01f; Stats.Add(Entry);
@@ -1537,6 +1538,7 @@ void AOrionInventoryManager::GetStatsFromSlot(AOrionInventoryGrid *Slot, FArrayH
 		case ITEM_KNIFE:
 		case ITEM_GADGET:
 			Stats.Defense += GetLevelScaledValue(Item.MainStat, Item.ItemLevel);
+			Stats.RealDefense += Item.MainStat;
 			break;
 		}
 
