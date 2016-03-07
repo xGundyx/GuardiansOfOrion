@@ -107,6 +107,7 @@ public:
 		float EnergyRate;
 
 	float TimeSinceLastActive;
+	float LastSpawnTime;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Skill)
 		float RechargeDelay;

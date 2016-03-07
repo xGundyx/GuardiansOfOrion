@@ -798,7 +798,7 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 	}
 
 	//adjust damage based on amount of players in game, mainly just for coop games:p
-	if (GRI && PawnToDamage->PlayerState && PawnToDamage->PlayerState->bIsABot)
+	/*if (GRI && PawnToDamage->PlayerState && PawnToDamage->PlayerState->bIsABot)
 	{
 		int32 NumPlayers = GetOrionNumPlayers();// GRI->PlayerList.Num();
 
@@ -844,7 +844,7 @@ float AOrionGameMode::ModifyDamage(float Damage, AOrionCharacter *PawnToDamage, 
 			Damage *= 2.5f;
 		else if (Difficulty == DIFF_REDIKULOUS)
 			Damage *= 5.0f;
-	}
+	}*/
 
 	return Damage;
 }
@@ -1153,26 +1153,26 @@ void AOrionGameMode::StopSlowMotion()
 	GetWorldSettings()->TimeDilation = 1.0f;
 }
 
-int32 AOrionGameMode::GetEnemyItemLevel()
+int32 AOrionGameMode::GetEnemyItemLevel(bool bAdjusted)
 {
 	int32 iLvl = 1;
 
 	switch (Difficulty)
 	{
 	case DIFF_EASY:
-		iLvl = FMath::Clamp(ItemLevel, 1, 400);
+		iLvl = FMath::Clamp(ItemLevel, 1, 400) + (bAdjusted ? -50 : 0);
 		break;
 	case DIFF_MEDIUM:
 		iLvl = FMath::Clamp(ItemLevel, 1, 400);
 		break;
 	case DIFF_HARD:
-		iLvl = FMath::Clamp(ItemLevel, 100, 400);
+		iLvl = FMath::Clamp(ItemLevel, 100, 400) + (bAdjusted ? 50 : 0);
 		break;
 	case DIFF_INSANE:
-		iLvl = FMath::Clamp(ItemLevel, 200, 500);
+		iLvl = FMath::Clamp(ItemLevel, 200, 500) + (bAdjusted ? 100 : 0);
 		break;
 	case DIFF_REDIKULOUS:
-		iLvl = FMath::Clamp(ItemLevel, 300, 600);
+		iLvl = FMath::Clamp(ItemLevel, 300, 600) + (bAdjusted ? 175 : 0);
 		break;
 	}
 

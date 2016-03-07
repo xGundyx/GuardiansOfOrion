@@ -171,6 +171,7 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 	aStats.Add(FPlayerStats(STAT_FRAGGRENADESTHROWN, TEXT("FragGrenadesThrown"), TEXT("FRAG GRENADES THROWN")));
 	aStats.Add(FPlayerStats(STAT_EMPGRENADESTHROWN, TEXT("EMPGrenadesThrown"), TEXT("EMP GRENADES THROWN")));
 	aStats.Add(FPlayerStats(STAT_STUNGRENADESTHROWN, TEXT("StunGrenadesThrown"), TEXT("STUN GRENADES THROWN")));
+	aStats.Add(FPlayerStats(STAT_NAPALMGRENADESTHROWN, TEXT("NapalmGrenadesThrown"), TEXT("NAPALM GRENADES THROWN")));
 	aStats.Add(FPlayerStats(STAT_TIMESROLLED, TEXT("TimesRolled"), TEXT("TIMES ROLLED")));
 	aStats.Add(FPlayerStats(STAT_TIMESBLINKED, TEXT("TimesBlinked"), TEXT("TIMES BLINKED")));
 

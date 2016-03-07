@@ -232,7 +232,15 @@ FString AOrionGameLobby::InitNewPlayer(class APlayerController* NewPlayerControl
 
 	if (pfTeam != "")
 	{
-		AddPlayerToParty(Cast<AOrionPlayerController>(NewPlayerController), pfTeam);
+		FSpaceParty FindParty;
+		FindParty.PartyName = pfTeam;
+
+		int32 index = SpaceParties.Find(FindParty);
+
+		if (index != INDEX_NONE)
+			AddPlayerToParty(Cast<AOrionPlayerController>(NewPlayerController), pfTeam);
+		else
+			CreateParty(Cast<AOrionPlayerController>(NewPlayerController), pfTeam, "", "", "", "", "", "", "", "");
 	}
 	else
 	{

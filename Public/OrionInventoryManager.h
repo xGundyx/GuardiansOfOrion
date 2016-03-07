@@ -147,6 +147,7 @@ struct FArrayHelper
 	TArray<ESuperRareStat> LegendaryStats;
 
 	int32 Defense;
+	int32 RealDefense;
 	int32 ItemLevel;
 
 	bool bAllLegendary;
@@ -167,6 +168,7 @@ struct FArrayHelper
 		LegendaryStats.Empty();
 
 		Defense = 0;
+		RealDefense = 0;
 		ItemLevel = 0;
 		bAllLegendary = false;
 	}
@@ -430,7 +432,8 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		bool IsFullyInitialized();
 
-	TArray<FEquippedSlot> EquippedSlots;
+	UPROPERTY(Replicated)
+		TArray<FEquippedSlot> EquippedSlots;
 
 private:
 	bool TryToEquip(AOrionInventoryGrid *theGrid, int32 index);

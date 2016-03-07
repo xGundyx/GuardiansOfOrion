@@ -2238,6 +2238,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	bool bKnockBack = true;
 
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
 
 	//apply any gear related stats to this damage
 	if (PC)
@@ -2256,9 +2257,11 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 		}
 
 		int32 iLevel = 1;
-		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
-		if (GRI)
-			iLevel = GRI->ItemLevel;
+		//AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+		//if (GRI)
+		//	iLevel = GRI->ItemLevel;
+		if (Game)
+			Game->GetEnemyItemLevel(true);
 
 		Damage = (/*Damage + */FMath::Pow(LEVELPOWER, iLevel / LEVELINTERVAL) * Damage) / 4.0f;//((1000.0f + EnemyLevel * 12.0f) / 400.0f) * Damage * (1.0f + (EnemyLevel / 200.0f));
 
@@ -2302,8 +2305,8 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 			Damage *= 1.0f + (AttackerPC->GetSkillValue(SKILL_FLAMERDAMAGE) / 100.0f);
 	}
 
-	if (GRI && AttackerPawn && AttackerPawn->bIsHealableMachine)
-		Damage *= 0.1f * FMath::Pow(LEVELPOWER, FMath::Max(1, GRI->ItemLevel - LEVELSYNC) / LEVELINTERVAL);
+	if (Game && AttackerPawn && AttackerPawn->bIsHealableMachine)
+		Damage *= 0.1f * FMath::Pow(LEVELPOWER, FMath::Max(1, Game->GetEnemyItemLevel(true) - LEVELSYNC) / LEVELINTERVAL);
 
 	if (AttackerPC)
 	{
@@ -2443,7 +2446,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	float OriginalDamage = Damage;
 
 	// Modify based on game rules.
-	AOrionGameMode* const Game = GetWorld()->GetAuthGameMode<AOrionGameMode>();
+	//AOrionGameMode* const Game = GetWorld()->GetAuthGameMode<AOrionGameMode>();
 
 	if (!DamageType || !DamageType->bIgnoreModify)
 		Damage = Game ? Game->ModifyDamage(Damage, this, DamageEvent, EventInstigator, DamageCauser) : 0.f;
@@ -4602,6 +4605,8 @@ void AOrionCharacter::ActuallyTossGrenade(FVector dir)
 						PC->GetStats()->AddStatValue(STAT_EMPGRENADESTHROWN, 1);
 					else if (Grenade->GrenadeName.ToUpper() == TEXT("STUN"))
 						PC->GetStats()->AddStatValue(STAT_STUNGRENADESTHROWN, 1);
+					else if (Grenade->GrenadeName.ToUpper() == TEXT("NAPALM"))
+						PC->GetStats()->AddStatValue(STAT_NAPALMGRENADESTHROWN, 1);
 				}
 			}
 		}
@@ -5311,6 +5316,9 @@ void AOrionCharacter::ServerDoRoll_Implementation(ERollDir rDir, FRotator rRot)
 
 	//set roll after anim
 	bRolling = true;
+
+	if (PC && PC->GetStats())
+		PC->GetStats()->AddStatValue(STAT_TIMESROLLED, 1);
 
 	GetWorldTimerManager().SetTimer(RollTimer2, this, &AOrionCharacter::EndRoll, 0.9f*Length, false);
 }

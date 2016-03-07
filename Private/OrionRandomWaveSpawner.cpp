@@ -18,6 +18,8 @@ AOrionRandomWaveSpawner::AOrionRandomWaveSpawner(const FObjectInitializer& Objec
 
 	//RootComponent = PreviewMesh;
 
+	LastPodTime = -20.0f;
+
 	bRaptor = true;
 	bCompy = true;
 	bDilo = true;
@@ -233,7 +235,7 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], AActor *F
 				NewPawn->SpawnType = i;
 
 				//setup the enemies level for ilvl stuff
-				NewPawn->Level = Game->GetEnemyItemLevel();
+				NewPawn->Level = Game->GetEnemyItemLevel(true);
 
 				//setup health based on ilvl
 				NewPawn->HealthMax = NewPawn->HealthMax * FMath::Pow(LEVELPOWER, NewPawn->Level / LEVELINTERVAL) * 0.1f;

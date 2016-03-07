@@ -1233,6 +1233,8 @@ public:
 	UFUNCTION(Reliable, client)
 		void FindLobbyForParty();
 
+	void GetLobbyName();
+
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Find Party Lobby"))
 		void EventFindPartyLobby();
 
