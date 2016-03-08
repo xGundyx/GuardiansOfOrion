@@ -1005,7 +1005,7 @@ void AOrionGameMode::CheckLocal()
 	}
 }
 
-void AOrionGameMode::AddChatMessage(const FString &msg)
+void AOrionGameMode::AddChatMessage(const FString &msg, bool bTeamMsg, const FString &PartyName)
 {
 	TArray<AActor*> Controllers;
 
@@ -1016,7 +1016,7 @@ void AOrionGameMode::AddChatMessage(const FString &msg)
 		AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
 
 		if (C)
-			C->ClientReceiveChatMessage(msg);
+			C->ClientReceiveChatMessage(msg, bTeamMsg);
 	}
 }
 
@@ -1041,11 +1041,13 @@ void AOrionGameMode::PlayerAuthed(class AOrionPlayerController *PC, bool bSucces
 
 	if (!bSinglePlayer && PC)
 	{
-		if (!bLobbyCreated)
-			PC->CreateInGameLobby(ServerInfo);
-		else
-			PC->SetServerInfo(ServerInfo); //needed for situation when the original host leaves and new host needs the info
+		//if (!bLobbyCreated)
+		//	PC->CreateInGameLobby(ServerInfo);
+		//else
+		PC->SetServerInfo(ServerInfo); //needed for situation when the original host leaves and new host needs the info
 	}
+	else if(PC && bSinglePlayer)
+		PC->SetSinglePlayer();
 
 	bLobbyCreated = true;
 #endif

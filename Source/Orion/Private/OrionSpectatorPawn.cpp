@@ -15,7 +15,10 @@ void AOrionSpectatorPawn::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResul
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
 	if (PC && PC->DropPod)
+	{
 		PC->DropPod->SpawnCameraComponent->GetCameraView(DeltaTime, OutResult);
+		OutResult.FOV = PC->DropPod->PodFOV;
+	}
 	else if (PC && PC->OverviewCamera)
 	{
 		PC->OverviewCamera->GetCameraView(DeltaTime, OutResult);

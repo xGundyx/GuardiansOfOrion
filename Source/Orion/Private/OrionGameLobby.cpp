@@ -493,6 +493,27 @@ void AOrionGameLobby::KickPlayerFromParty(AOrionPRI *Player, const FString &Part
 	}
 }
 
+void AOrionGameLobby::AddChatMessage(const FString &msg, bool bTeamMsg, const FString &PartyName)
+{
+	TArray<AActor*> Controllers;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
+
+		if (C)
+		{
+			AOrionPRI *PRI = Cast<AOrionPRI>(C->PlayerState);
+			if (PRI && PRI->CurrentPartyName == PartyName)
+			{
+				C->ClientReceiveChatMessage(msg, bTeamMsg);
+			}
+		}
+	}
+}
+
 //make sure parties are all valid
 void AOrionGameLobby::HandleParties()
 {

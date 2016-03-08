@@ -2642,6 +2642,30 @@ int32 AOrionPlayerController::GetReviveButtonController()
 	return ConvertControllerButtonToIndex(UOrionGameSettingsManager::GetKeyForAction("Gamepad_Reload", false, 0.0f));
 }
 
+void AOrionPlayerController::SetSinglePlayer_Implementation()
+{
+	SetLobbyName("", "");
+
+	ServerInfo.RoomName = "";
+	ServerInfo.MapName = "";
+	ServerInfo.Difficulty = "";
+	ServerInfo.IP = "";
+	ServerInfo.Ticket = "";
+	ServerInfo.Privacy = "";
+	ServerInfo.LobbyID = "";
+	ServerInfo.TOD = "";
+	ServerInfo.GameMode = "";
+	ServerInfo.ItemLevel = "";
+	ServerInfo.Region = "";
+
+	EventSetServerInfo();
+}
+
+FString AOrionPlayerController::GetUseButtonKeyboard()
+{
+	return UOrionGameSettingsManager::GetKeyForAction("Use", false, 0.0f);
+}
+
 FString AOrionPlayerController::GetMeleeButtonKeyboard()
 {
 	return UOrionGameSettingsManager::GetKeyForAction("Melee", false, 0.0f);
@@ -3437,28 +3461,28 @@ void AOrionPlayerController::SetPresenceInfo(FString LobbyID, FString TeamName)
 	}
 }
 
-void AOrionPlayerController::ClientReceiveChatMessage_Implementation(const FString &msg)
+void AOrionPlayerController::ClientReceiveChatMessage_Implementation(const FString &msg, bool bTeamMsg)
 { 
-	EventAddChatMessage(msg); 
+	EventAddChatMessage(msg, bTeamMsg); 
 }
 
-void AOrionPlayerController::OrionSendChatMessage(const FString &msg)
+void AOrionPlayerController::OrionSendChatMessage(const FString &msg, bool bTeamMsg, const FString &PartyName)
 {
 	if (Role < ROLE_Authority)
 	{
-		ServerSendChatMessage(msg);
+		ServerSendChatMessage(msg, bTeamMsg, CurrentPartyName);
 		return;
 	}
 
 	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
 
 	if (Game)
-		Game->AddChatMessage(msg);
+		Game->AddChatMessage(msg, bTeamMsg, PartyName);
 }
 
-void AOrionPlayerController::ServerSendChatMessage_Implementation(const FString &msg)
+void AOrionPlayerController::ServerSendChatMessage_Implementation(const FString &msg, bool bTeamMsg, const FString &PartyName)
 {
-	OrionSendChatMessage(msg);
+	OrionSendChatMessage(msg, bTeamMsg, PartyName);
 }
 
 void AOrionPlayerController::JoinChatRoom(FString Room)

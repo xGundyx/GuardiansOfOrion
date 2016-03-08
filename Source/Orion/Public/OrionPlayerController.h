@@ -493,6 +493,9 @@ public:
 		void SetServerInfo(FPhotonServerInfo Info);
 
 	UFUNCTION(client, reliable)
+		void SetSinglePlayer();
+
+	UFUNCTION(client, reliable)
 		void UnlockAchievement(const FString &Header, const FString &Body);
 
 	UFUNCTION(client, reliable)
@@ -750,6 +753,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Button)
 		int32 GetReviveButtonController();
+
+	UFUNCTION(BlueprintCallable, Category = Button)
+		FString GetUseButtonKeyboard();
 
 	UFUNCTION(BlueprintCallable, Category = Button)
 		FString GetMeleeButtonKeyboard();
@@ -1012,13 +1018,13 @@ public:
 		void SetPresenceInfo(FString LobbyID, FString TeamName);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ReceiveChat"))
-		void EventAddChatMessage(const FString &msg);
+		void EventAddChatMessage(const FString &msg, bool bTeamMsg);
 
 	UFUNCTION(Reliable, client)
-		void ClientReceiveChatMessage(const FString &msg);
+		void ClientReceiveChatMessage(const FString &msg, bool bTeamMsg);
 
 	UFUNCTION(BlueprintCallable, Category = Chat)
-		void OrionSendChatMessage(const FString &msg);
+		void OrionSendChatMessage(const FString &msg, bool bTeamMsg, const FString &PartyName);
 
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerSetThirdPersonCamera(bool bOn);
@@ -1026,9 +1032,9 @@ public:
 		void ServerSetThirdPersonCamera_Implementation(bool bOn);
 
 	UFUNCTION(Reliable, server, WithValidation)
-		void ServerSendChatMessage(const FString &msg);
-		bool ServerSendChatMessage_Validate(const FString &msg) { return true; }
-		void ServerSendChatMessage_Implementation(const FString &msg);
+		void ServerSendChatMessage(const FString &msg, bool bTeamMsg, const FString &PartyName);
+		bool ServerSendChatMessage_Validate(const FString &msg, bool bTeamMsg, const FString &PartyName) { return true; }
+		void ServerSendChatMessage_Implementation(const FString &msg, bool bTeamMsg, const FString &PartyName);
 
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerSetDaveyCam(bool bOn);
