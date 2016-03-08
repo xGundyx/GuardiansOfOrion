@@ -38,7 +38,7 @@ public:
 
 	virtual void SetSpawnTimer() {}
 
-	void AddChatMessage(const FString &msg);
+	virtual void AddChatMessage(const FString &msg, bool bTeamMsg, const FString &PartyName);
 
 	float DinoKillZ;
 

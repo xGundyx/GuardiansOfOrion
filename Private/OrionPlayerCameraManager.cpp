@@ -57,8 +57,8 @@ void AOrionPlayerCameraManager::UpdateCamera(float DeltaTime)
 	}
 	else if (MyDropPod)
 	{
-		const float TargetFOV = NormalFOV;
-		DefaultFOV = FMath::FInterpTo(DefaultFOV, TargetFOV, DeltaTime, 7.5f);
+		//const float TargetFOV = NormalFOV;
+		//DefaultFOV = FMath::FInterpTo(DefaultFOV, TargetFOV, DeltaTime, 7.5f);
 	}
 
 	Super::UpdateCamera(DeltaTime);

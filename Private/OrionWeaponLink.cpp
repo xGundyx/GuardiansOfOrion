@@ -570,7 +570,7 @@ void AOrionWeaponLink::HandleLinkTargets(AOrionCharacter *Target, float DeltaSec
 	if (PC && P)
 	{
 		Inv = PC->GetInventoryManager();
-		if (P->bDowned && Inv && Inv->HasStat(RARESTAT_SUPERHEALER))
+		if (P->bDowned && !P->bIsHealableMachine && Inv && Inv->HasStat(RARESTAT_SUPERHEALER))
 			Rate *= 5.0f;
 	}
 
@@ -728,7 +728,7 @@ void AOrionWeaponLink::HandleTarget(float DeltaSeconds)
 	if (PC && P)
 	{
 		Inv = PC->GetInventoryManager();
-		if (P->bDowned && Inv && Inv->HasStat(RARESTAT_SUPERHEALER))
+		if (P->bDowned && !P->bIsHealableMachine && Inv && Inv->HasStat(RARESTAT_SUPERHEALER))
 			Rate *= 5.0f;
 	}
 

@@ -21,4 +21,7 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
 		class USkeletalMeshComponent* DropPodMesh;
+
+	UPROPERTY(BlueprintReadWrite, Category = Camera)
+		float PodFOV;
 };
