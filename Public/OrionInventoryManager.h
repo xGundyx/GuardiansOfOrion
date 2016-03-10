@@ -435,6 +435,21 @@ public:
 	UPROPERTY(Replicated)
 		TArray<FEquippedSlot> EquippedSlots;
 
+	UFUNCTION(client, reliable)
+		void ClientPlaySound(USoundCue *Sound);
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Inventory)
+		USoundCue *EquipSound;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Inventory)
+		USoundCue *DropSound;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Inventory)
+		USoundCue *BreakdownSound;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite, Category = Inventory)
+		USoundCue *DestroySound;
+
 private:
 	bool TryToEquip(AOrionInventoryGrid *theGrid, int32 index);
 	bool TryToUnEquip(AOrionInventoryGrid *theGrid, int32 index);

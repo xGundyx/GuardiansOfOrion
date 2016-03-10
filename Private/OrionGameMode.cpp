@@ -588,6 +588,7 @@ void AOrionGameMode::HandleStats(AController* Killer, AController* KilledPlayer,
 		if (Stats)
 		{
 			Stats->AddStatValue(KilledStatID, 1);
+			Stats->AddStatValue(STAT_DAILYKILLS, 1);
 		}
 
 		if (KillerPC->GetAchievements())

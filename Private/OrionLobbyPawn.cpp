@@ -62,7 +62,7 @@ void AOrionLobbyPawn::SetupPlayerInputComponent(class UInputComponent* InputComp
 	InputComponent->BindAxis("MoveForward", this, &AOrionCharacter::MoveForward);
 	InputComponent->BindAxis("MoveRight", this, &AOrionCharacter::MoveRight);
 
-	InputComponent->BindAction("Reload", IE_Pressed, this, &AOrionCharacter::Reload);
+	////InputComponent->BindAction("Reload", IE_Pressed, this, &AOrionCharacter::Reload);
 	////InputComponent->BindAction("Reload", IE_Released, this, &AOrionTopDownPawn::ReleaseReload);
 
 	////InputComponent->BindAction("Melee", IE_Pressed, this, &AOrionCharacter::DoMelee);
@@ -74,20 +74,20 @@ void AOrionLobbyPawn::SetupPlayerInputComponent(class UInputComponent* InputComp
 	InputComponent->BindAction("Run", IE_Pressed, this, &AOrionCharacter::Sprint);
 	InputComponent->BindAction("Run", IE_Released, this, &AOrionCharacter::StopSprint);
 
-	InputComponent->BindAction("Fire", IE_Pressed, this, &AOrionCharacter::OnFire);
-	InputComponent->BindAction("Fire", IE_Released, this, &AOrionCharacter::OnStopFire);
-	InputComponent->BindTouch(EInputEvent::IE_Pressed, this, &AOrionCharacter::TouchStarted);
+	////InputComponent->BindAction("Fire", IE_Pressed, this, &AOrionCharacter::OnFire);
+	////InputComponent->BindAction("Fire", IE_Released, this, &AOrionCharacter::OnStopFire);
+	////InputComponent->BindTouch(EInputEvent::IE_Pressed, this, &AOrionCharacter::TouchStarted);
 
-	InputComponent->BindAction("Aim", IE_Pressed, this, &AOrionCharacter::StartAiming);
-	InputComponent->BindAction("Aim", IE_Released, this, &AOrionCharacter::StopAiming);
+	////InputComponent->BindAction("Aim", IE_Pressed, this, &AOrionCharacter::StartAiming);
+	////InputComponent->BindAction("Aim", IE_Released, this, &AOrionCharacter::StopAiming);
 
 	InputComponent->BindAction("Use", IE_Pressed, this, &AOrionLobbyPawn::Use);
 
 	////InputComponent->BindAction("BehindView", IE_Pressed, this, &AOrionCharacter::BehindView);
 
-	InputComponent->BindAction("NextWeapon", IE_Pressed, this, &AOrionCharacter::OnNextWeapon);
-	InputComponent->BindAction("PrevWeapon", IE_Pressed, this, &AOrionCharacter::OnPrevWeapon);
-	InputComponent->BindAction("LastWeapon", IE_Pressed, this, &AOrionCharacter::OnNextWeapon);
+	////InputComponent->BindAction("NextWeapon", IE_Pressed, this, &AOrionCharacter::OnNextWeapon);
+	////InputComponent->BindAction("PrevWeapon", IE_Pressed, this, &AOrionCharacter::OnPrevWeapon);
+	////InputComponent->BindAction("LastWeapon", IE_Pressed, this, &AOrionCharacter::OnNextWeapon);
 
 	////InputComponent->BindAction("WeaponSlot1", IE_Pressed, this, &AOrionTopDownPawn::OnPrimaryWeapon);
 	////InputComponent->BindAction("WeaponSlot2", IE_Pressed, this, &AOrionTopDownPawn::OnSecondaryWeapon);

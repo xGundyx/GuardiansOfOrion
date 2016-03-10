@@ -336,7 +336,7 @@ void AOrionGRI::Tick(float DeltaSeconds)
 		for (int32 i = 0; i < Controllers.Num(); i++)
 		{
 			AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
-			if (C)
+			if (C && (!C->DropPod || C->DropPod->bHasLanded))
 			{
 				AOrionCharacter *P = Cast<AOrionCharacter>(C->GetPawn());
 				if (P)
@@ -397,7 +397,7 @@ void AOrionGRI::Tick(float DeltaSeconds)
 		MaxBounds *= FVector(1.0f, 1.25f, Scale);
 		MinBounds *= FVector(1.0f, 1.25f, Scale);
 
-		Distance = FMath::Max(Distance, FMath::Max(MaxBounds.Y - MinBounds.Y, MaxBounds.Z - MinBounds.Z) / (2.0f * FMath::Tan(FMath::DegreesToRadians(30.0f))));
+		Distance = FMath::Min(5000.0f, FMath::Max(Distance, FMath::Max(MaxBounds.Y - MinBounds.Y, MaxBounds.Z - MinBounds.Z) / (2.0f * FMath::Tan(FMath::DegreesToRadians(30.0f)))));
 
 		CoopCameraLocation = wCenter - rot.Vector() * Distance/*CameraDistance*/ + FVector(0.0f/*CameraDistX*/, 0.0f, 0.0f);
 		CoopCameraRotation = rot;

@@ -24,4 +24,13 @@ public:
 
 	UPROPERTY(BlueprintReadWrite, Category = Camera)
 		float PodFOV;
+
+	UPROPERTY(BlueprintReadWrite, Category = Spawn)
+		bool bHasLanded;
+
+	UPROPERTY(BlueprintReadWrite, Category = Spawn)
+		FVector LandCameraPos;
+
+	UPROPERTY(BlueprintReadWrite, Category = Spawn)
+		FRotator LandCameraRot;
 };

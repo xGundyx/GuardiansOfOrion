@@ -664,10 +664,10 @@ public:
 		AOrionChatManager *GetChatManager();
 
 	UFUNCTION(BlueprintCallable, Category = Respawn)
-		void SetDropPod(AOrionDropPod *Pod, AActor *Target);
+		void SetDropPod(AOrionDropPod *Pod, FVector Target);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SetPodInfo"))
-		void EventSetPodInfo(AOrionDropPod *Pod, AActor *Target);
+		void EventSetPodInfo(AOrionDropPod *Pod, FVector Target);
 
 	UFUNCTION(BlueprintCallable, Category = Menu)
 		TArray<FOptionsData> GetGameplayOptions();
@@ -737,7 +737,7 @@ public:
 		AOrionDropPod *DropPod;
 
 	UPROPERTY(BlueprintReadWrite, Category = Spawn)
-		AActor *DropPodTarget;
+		FVector DropPodTarget;
 
 	UFUNCTION(BlueprintCallable, Category = Photon)
 		void OpenLobby(FString MapName, FString MapDifficulty, FString Gamemode, FString Privacy, FString TOD, FString ItemLevel, FString Region);
@@ -769,7 +769,8 @@ public:
 	//UFUNCTION(BlueprintCallable, Category = Loading)
 	//	void PlayLoadingScreen(UUserWidget *Widget);
 
-	float LastCameraToggleTime;
+	UPROPERTY(BlueprintReadWrite, Category = Spawn)
+		float LastCameraToggleTime;
 
 	bool bLobbyLeader;
 
