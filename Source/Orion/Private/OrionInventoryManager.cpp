@@ -99,7 +99,10 @@ bool AOrionInventoryManager::SwapItems(AOrionInventoryGrid *theGrid1, int32 inde
 				Type = theGrid2->InventoryType;
 
 			if (Type != ITEM_ANY)
+			{
 				EquipItems();
+				ClientPlaySound(EquipSound);
+			}
 
 			AOrionPRI *PRI = Cast<AOrionPRI>(OwnerController->PlayerState);
 
@@ -1665,6 +1668,7 @@ bool AOrionInventoryManager::DropItem(AOrionInventoryGrid *theGrid, int32 index)
 			Pickup->EventSetColor(Pickup->Decoder.Rarity);
 
 			RemoveItemFromInventory(theGrid, index);
+			ClientPlaySound(DropSound);
 
 			bRet = true;
 		}
@@ -1699,6 +1703,7 @@ bool AOrionInventoryManager::SellItem(AOrionInventoryGrid *theGrid, int32 index)
 
 	//remove item
 	RemoveItemFromInventory(theGrid, index);
+	ClientPlaySound(DestroySound);
 
 	DrawInventory();
 
@@ -2092,6 +2097,7 @@ bool AOrionInventoryManager::BreakdownItem(AOrionInventoryGrid *theGrid, int32 i
 			{
 				DrawInventory();
 				ClientRedraw(ITEM_ANY, index);
+				ClientPlaySound(BreakdownSound);
 				return false;
 			}
 		}
@@ -2504,4 +2510,9 @@ int32 AOrionInventoryManager::GetMaxItemLevel()
 	}
 
 	return MaxLevel;
+}
+
+void AOrionInventoryManager::ClientPlaySound_Implementation(USoundCue *Sound)
+{
+	UGameplayStatics::PlaySound2D(GetWorld(), Sound);
 }

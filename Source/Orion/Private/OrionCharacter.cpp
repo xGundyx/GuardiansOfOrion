@@ -19,6 +19,7 @@
 #include "OrionGrenade.h"
 #include "Kismet/KismetSystemLibrary.h"
 #include "OrionWeaponDroid.h"
+#include "OrionLobbyPawn.h"
 #include "OrionSkeletalMeshComponent.h"
 
 //////////////////////////////////////////////////////////////////////////
@@ -307,7 +308,7 @@ AOrionCharacter::AOrionCharacter(const FObjectInitializer& ObjectInitializer)
 	StunScale = 1.0f;
 
 	bFirstPerson = true;
-	UpdatePawnMeshes();
+	//UpdatePawnMeshes();
 
 	bCanAttackJetpackers = false;
 
@@ -338,7 +339,7 @@ void AOrionCharacter::OnRep_Spawned()
 	{
 		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
-		if (PC)
+		if (PC && !PC->DropPod)
 		{
 			PC->EventBlackFade();
 			bShoulderCamera = true;
@@ -1212,7 +1213,9 @@ void AOrionCharacter::OnRep_ShipPawn()
 		AttachToShip();
 	}
 	else
+	{
 		DetachFromShip();
+	}
 }
 
 //replicate the buffs to clients for effects
@@ -1456,6 +1459,8 @@ void AOrionCharacter::DetachFromShip()
 	Info.Pawn3P = ExitShipAnim;
 
 	float length = 1.1f;
+
+	EnableCustomDepth();
 	
 	//if (IsLocallyControlled() && Role < ROLE_Authority)
 	//	ServerPlayAnimMontage(Info, 1.0f, TEXT(""), true, true, true);
@@ -3594,6 +3599,12 @@ void AOrionCharacter::UpdatePawnMeshes()
 	if (!GetMesh())
 		return;
 
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+	AOrionLobbyPawn *LPawn = Cast<AOrionLobbyPawn>(this);
+	bool bLobby = false;
+	if (GRI)
+		bLobby = GRI->bIsLobby || LPawn != nullptr;
+
 	//GetMesh()->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	GetMesh()->SetHiddenInGame(bFirst || bBlinking); //SetOwnerNoSee(bFirst);
 
@@ -3615,8 +3626,8 @@ void AOrionCharacter::UpdatePawnMeshes()
 	//Flight2Mesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	Flight2Mesh->SetHiddenInGame(bFirst || bBlinking); //SetOwnerNoSee(bFirst);
 
-	if(Arms1PArmorMesh)
-		Arms1PArmorMesh->SetHiddenInGame(!bFirst || bBlinking); //SetOwnerNoSee(!bFirst);
+	if (Arms1PArmorMesh)
+		Arms1PArmorMesh->SetHiddenInGame(!bFirst || bBlinking || bLobby); //SetOwnerNoSee(!bFirst);
 
 	//hide first person stuff for now
 	////if (Arms1PArmorMesh) Arms1PArmorMesh->SetHiddenInGame(true);
@@ -3630,6 +3641,25 @@ void AOrionCharacter::UpdatePawnMeshes()
 	}
 	//	CurrentWeapon->OnEquip();
 
+	if (GRI && GRI->bIsLocalCoop && Controller && Controller->IsLocalPlayerController())
+	{
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+
+		if (PC && (PC->DropPod == nullptr || PC->DropPod->bHasLanded))
+		{
+			GetMesh()->SetRenderCustomDepth(true);
+			BodyMesh->SetRenderCustomDepth(true);
+			HelmetMesh->SetRenderCustomDepth(true);
+			ArmsMesh->SetRenderCustomDepth(true);
+			LegsMesh->SetRenderCustomDepth(true);
+			Flight1Mesh->SetRenderCustomDepth(true);
+			Flight2Mesh->SetRenderCustomDepth(true);
+		}
+	}
+}
+
+void AOrionCharacter::EnableCustomDepth_Implementation()
+{
 	//if we're a local player controller, set us up to render outlines behind walls
 	if (Controller && Controller->IsLocalPlayerController())
 	{
@@ -3640,6 +3670,13 @@ void AOrionCharacter::UpdatePawnMeshes()
 		LegsMesh->SetRenderCustomDepth(true);
 		Flight1Mesh->SetRenderCustomDepth(true);
 		Flight2Mesh->SetRenderCustomDepth(true);
+
+		if(CurrentWeapon && PlayerState && !PlayerState->bIsABot)
+		{
+			CurrentWeapon->GetWeaponMesh(false)->SetRenderCustomDepth(true);
+			if (Cast<AOrionPlayerController>(Controller))
+				CurrentWeapon->GetWeaponMesh(false)->CustomDepthStencilValue = Cast<AOrionPlayerController>(Controller)->ControllerIndex + 1;
+		}
 	}
 }
 

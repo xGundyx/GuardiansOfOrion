@@ -854,6 +854,9 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = Spawn)
 		TSubclassOf<class UNavigationQueryFilter> DefaultFilterClass;
 
+	UFUNCTION(client, reliable, BlueprintCallable, Category = Spawn)
+		void EnableCustomDepth();
+
 	//how much base xp to award for killing
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = RPG)
 		int32 ExpValue;

@@ -233,6 +233,9 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 
 	aStats.Add(FPlayerStats(STAT_COMPYSLICE, TEXT("compyslice"), TEXT("COMPY HEADS CHOPPED OFF")));
 
+	//these guys are reset daily
+	aStats.Add(FPlayerStats(STAT_DAILYKILLS, TEXT("dailykills"), TEXT("TOTAL KILLS FOR TODAY")));
+
 	bInitialized = false;
 
 	bReplicates = true;

@@ -24,6 +24,8 @@ AOrionDropPod::AOrionDropPod(const FObjectInitializer& ObjectInitializer)
 	PrimaryActorTick.bStartWithTickEnabled = true;
 	PrimaryActorTick.bAllowTickOnDedicatedServer = true;
 	PrimaryActorTick.bCanEverTick = true;
+
+	bHasLanded = false;
 }
 
 

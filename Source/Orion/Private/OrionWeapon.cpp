@@ -162,13 +162,17 @@ void AOrionWeapon::AttachMeshToPawn()
 		FName AttachPoint = InstantConfig.AttachPoint;// TEXT("WeaponPoint");// MyPawn->GetWeaponAttachPoint();
 		if (MyPawn->IsLocallyControlled() == true)
 		{
+			AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+			AOrionLobbyPawn *LPawn = Cast<AOrionLobbyPawn>(MyPawn);
+			bool bLobby = false;
+			if (GRI) bLobby = GRI->bIsLobby || LPawn != nullptr;
 			AOrionPlayerController *PC = Cast<AOrionPlayerController>(MyPawn->Controller);
 			USkeletalMeshComponent* PawnMesh1p = MyPawn->GetSpecifcPawnMesh(true);
 			USkeletalMeshComponent* PawnMesh3p = MyPawn->GetSpecifcPawnMesh(false);
 			if (Mesh1P)
-				Mesh1P->SetHiddenInGame(!MyPawn->IsFirstPerson() || MyPawn->bBlinking || (PC && PC->bHideWeapons));
+				Mesh1P->SetHiddenInGame(!MyPawn->IsFirstPerson() || MyPawn->bBlinking || (PC && PC->bHideWeapons) || bLobby);
 			if (PawnMesh1p)
-				PawnMesh1p->SetHiddenInGame(!MyPawn->IsFirstPerson() || MyPawn->bBlinking || (PC && PC->bHideWeapons));
+				PawnMesh1p->SetHiddenInGame(!MyPawn->IsFirstPerson() || MyPawn->bBlinking || (PC && PC->bHideWeapons) || bLobby);
 			if (Mesh3P)
 				Mesh3P->SetHiddenInGame(MyPawn->IsFirstPerson() || MyPawn->bBlinking);
 			//Mesh1P->AttachTo(PawnMesh1p, AttachPoint);
@@ -185,11 +189,14 @@ void AOrionWeapon::AttachMeshToPawn()
 			}
 
 			//add it to the outliner
-			if (MyPawn->PlayerState && !MyPawn->PlayerState->bIsABot)
+			if (PC && (!PC->DropPod || PC->DropPod->bHasLanded))
 			{
-				Mesh3P->SetRenderCustomDepth(true);
-				if (PC)
-					Mesh3P->CustomDepthStencilValue = PC->ControllerIndex + 1;
+				if (MyPawn->PlayerState && !MyPawn->PlayerState->bIsABot)
+				{
+					Mesh3P->SetRenderCustomDepth(true);
+					if (PC)
+						Mesh3P->CustomDepthStencilValue = PC->ControllerIndex + 1;
+				}
 			}
 
 			if (PawnMesh1p && PawnMesh1p->SkeletalMesh)

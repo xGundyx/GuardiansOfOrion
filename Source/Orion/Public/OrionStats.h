@@ -259,6 +259,9 @@ enum EStatID// : uint8
 	//fatalities
 	STAT_COMPYSLICE,
 
+	//reset daily
+	STAT_DAILYKILLS,
+
 	STAT_MAX,
 	STAT_ERROR
 };

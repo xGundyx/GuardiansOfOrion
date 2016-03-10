@@ -206,6 +206,10 @@ void AOrionPlayerController::HideScores()
 //tell the blueprint to open the inventory
 void AOrionPlayerController::OpenInventory()
 {
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+	if (GRI && GRI->bIsLocalCoop)
+		return;
+
 	EventOpenInventoryScreen();
 }
 
@@ -587,7 +591,7 @@ void AOrionPlayerController::PostInitializeComponents()
 	////InitStatsAndAchievements();
 }
 
-void AOrionPlayerController::SetDropPod(AOrionDropPod *Pod, AActor *Target)
+void AOrionPlayerController::SetDropPod(AOrionDropPod *Pod, FVector Target)
 {
 	DropPod = Pod;
 	DropPodTarget = Target;
@@ -831,7 +835,8 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 			if (bFirstSpawn || !Cast<AOrionGameLobby>(GetWorld()->GetAuthGameMode()))
 			{
 				newPawn->bNotSpawnedYet = false;
-				EventBlackFade();
+				if (DropPod == nullptr)
+					EventBlackFade();
 				bFirstSpawn = false;
 			}
 
