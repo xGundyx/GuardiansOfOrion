@@ -781,11 +781,15 @@ void AOrionAIController::OnSeePawn(APawn *SeenPawn)
 	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
 	AOrionCharacter *pPawn = Cast<AOrionCharacter>(SeenPawn);
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GetGameState());
+	AOrionPlayerController *SeenPC = Cast<AOrionPlayerController>(SeenPawn->Controller);
 	//AOrionCharacter *E = Cast<AOrionCharacter>(GetEnemy());
 
 	//if we're inside a blocking volume like smoke, ignore things we see
 	//if (P && P->bIsHiddenFromView)
 	//	return;
+
+	if (SeenPC && SeenPC->DropPod)
+		return;
 
 	//no changing enemies during attacks/fatalities
 	if (P && P->GetCurrentMontage())

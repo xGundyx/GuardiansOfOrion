@@ -934,8 +934,6 @@ public:
 	void SetLobbyName(FString lName, FString PartyName);
 	FString LobbyName;
 
-	FString CurrentPartyName;
-
 	UFUNCTION(BlueprintCallable, Category = Lobby)
 		void UpdatePartySettings(const FString &MapName, const FString &Diff, const FString &Gamemode, const FString &DiffScale, const FString &MinILevel, const FString &Region, const FString &TOD, const FString &Privacy, const FString &IP, const FString &LobbyID);
 
@@ -1246,15 +1244,15 @@ public:
 		void EventFindPartyLobby();
 
 	UFUNCTION(BlueprintCallable, Category = Lobby)
-		void SetPartyLobbyInfo(const FString &LobbyID);
+		void SetPartyLobbyInfo(const FString &LobbyID, const FString &PartyName);
 
 	UFUNCTION(Reliable, server, WithValidation)
-		void ServerSetPartyLobbyInfo(const FString &LobbyID);
-		bool ServerSetPartyLobbyInfo_Validate(const FString &LobbyID) { return true; }
-		void ServerSetPartyLobbyInfo_Implementation(const FString& LobbyID);
+		void ServerSetPartyLobbyInfo(const FString &LobbyID, const FString &PartyName);
+		bool ServerSetPartyLobbyInfo_Validate(const FString &LobbyID, const FString &PartyName) { return true; }
+		void ServerSetPartyLobbyInfo_Implementation(const FString& LobbyID, const FString &PartyName);
 
 	UFUNCTION(Reliable, client)
-		void ConnectToLobbyID(const FString &LobbyID);
+		void ConnectToLobbyID(const FString &LobbyID, const FString &TeamName);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Connect To LobbyID"))
 		void EventConnectToLobbyID(const FString &LobbyID);

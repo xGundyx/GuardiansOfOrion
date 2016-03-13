@@ -170,11 +170,11 @@ void AOrionWeapon::AttachMeshToPawn()
 			USkeletalMeshComponent* PawnMesh1p = MyPawn->GetSpecifcPawnMesh(true);
 			USkeletalMeshComponent* PawnMesh3p = MyPawn->GetSpecifcPawnMesh(false);
 			if (Mesh1P)
-				Mesh1P->SetHiddenInGame(!MyPawn->IsFirstPerson() || MyPawn->bBlinking || (PC && PC->bHideWeapons) || bLobby);
+				Mesh1P->SetHiddenInGame(!MyPawn->IsFirstPerson() /*|| MyPawn->bBlinking*/ || (PC && PC->bHideWeapons) || bLobby);
 			if (PawnMesh1p)
-				PawnMesh1p->SetHiddenInGame(!MyPawn->IsFirstPerson() || MyPawn->bBlinking || (PC && PC->bHideWeapons) || bLobby);
+				PawnMesh1p->SetHiddenInGame(!MyPawn->IsFirstPerson() /*|| MyPawn->bBlinking*/ || (PC && PC->bHideWeapons) || bLobby);
 			if (Mesh3P)
-				Mesh3P->SetHiddenInGame(MyPawn->IsFirstPerson() || MyPawn->bBlinking);
+				Mesh3P->SetHiddenInGame(MyPawn->IsFirstPerson());// || MyPawn->bBlinking);
 			//Mesh1P->AttachTo(PawnMesh1p, AttachPoint);
 			if (PawnMesh1p && PawnMesh1p->SkeletalMesh)
 				Mesh1P->AttachTo(PawnMesh1p, AttachPoint); //AttachRootComponentTo(PawnMesh1p, AttachPoint);// , EAttachLocation::KeepWorldPosition);
@@ -731,7 +731,7 @@ void AOrionWeapon::FireWeapon()
 	{
 		const int32 RandomSeed = FMath::Rand();
 		FRandomStream WeaponRandomStream(RandomSeed);
-		const float CurrentSpread = GetCurrentSpread();
+		const float CurrentSpread = InstantConfig.WeaponName == "SNIPER RIFLE" && !bAiming ? 15.0f : GetCurrentSpread();
 		const float ConeHalfAngle = FMath::DegreesToRadians(CurrentSpread * 0.5f);
 
 		const FVector AimDir = GetAdjustedAim();

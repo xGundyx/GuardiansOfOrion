@@ -703,6 +703,10 @@ void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FS
 
 	ItemLevel = FMath::Max(1, FCString::Atoi(*GearLevel));
 
+	FString MinILevel = UGameplayStatics::ParseOption(Options, TEXT("MinILevel"));
+
+	int32 miLevel = FMath::Max(0, FCString::Atoi(*MinILevel));
+
 	//cap item level based on difficulty
 	switch (Difficulty)
 	{
@@ -765,6 +769,7 @@ void AOrionGameMode::InitGame(const FString& MapName, const FString& Options, FS
 	ServerInfo.LobbyID = LobbyID;
 	ServerInfo.GameMode = GetGameName();
 	ServerInfo.ItemLevel = FString::Printf(TEXT("%i"), ItemLevel);
+	ServerInfo.MinItemLevel = FString::Printf(TEXT("%i"), miLevel);
 	ServerInfo.Region = UGameplayStatics::ParseOption(Options, TEXT("Region"));
 
 	//if (GRI)
@@ -1156,26 +1161,26 @@ void AOrionGameMode::StopSlowMotion()
 	GetWorldSettings()->TimeDilation = 1.0f;
 }
 
-int32 AOrionGameMode::GetEnemyItemLevel(bool bAdjusted)
+int32 AOrionGameMode::GetEnemyItemLevel(bool bAdjusted, bool bHalved)
 {
 	int32 iLvl = 1;
 
 	switch (Difficulty)
 	{
 	case DIFF_EASY:
-		iLvl = FMath::Clamp(ItemLevel, 1, 400) + (bAdjusted ? -50 : 0);
+		iLvl = FMath::Max(FMath::Clamp(ItemLevel, 1, 400) + (bAdjusted ? -50 : 0), 1);
 		break;
 	case DIFF_MEDIUM:
 		iLvl = FMath::Clamp(ItemLevel, 1, 400);
 		break;
 	case DIFF_HARD:
-		iLvl = FMath::Clamp(ItemLevel, 100, 400) + (bAdjusted ? 50 : 0);
+		iLvl = FMath::Clamp(ItemLevel, 100, 400) + (bAdjusted ? 50 : 0);// / (bHalved ? 2 : 1);
 		break;
 	case DIFF_INSANE:
-		iLvl = FMath::Clamp(ItemLevel, 200, 500) + (bAdjusted ? 100 : 0);
+		iLvl = FMath::Clamp(ItemLevel, 200, 500) + (bAdjusted ? 125 : 0);// / (bHalved ? 2 : 1);
 		break;
 	case DIFF_REDIKULOUS:
-		iLvl = FMath::Clamp(ItemLevel, 300, 600) + (bAdjusted ? 175 : 0);
+		iLvl = FMath::Clamp(ItemLevel, 300, 600) + (bAdjusted ? 200 : 0);// / (bHalved ? 2 : 1);
 		break;
 	}
 

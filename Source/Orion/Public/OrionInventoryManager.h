@@ -432,7 +432,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		bool IsFullyInitialized();
 
-	UPROPERTY(Replicated)
+	//UPROPERTY(Replicated)
 		TArray<FEquippedSlot> EquippedSlots;
 
 	UFUNCTION(client, reliable)

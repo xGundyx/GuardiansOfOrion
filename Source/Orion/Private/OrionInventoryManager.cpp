@@ -579,7 +579,7 @@ bool AOrionInventoryManager::IsFullyInitialized()
 {
 	return HelmetSlot && BodySlot && HandsSlot && BeltSlot && LegsSlot && BootsSlot &&
 		WeaponSlot1 && WeaponSlot2 && GadgetSlot && AbilitySlot && GrenadeSlot && KnifeSlot &&
-		DisplaySlot && ShaderSlot;
+		DisplaySlot && ShaderSlot && Grid;
 }
 
 FInventoryItem AOrionInventoryManager::FillInCraftedStats(FInventoryItem Item, int32 Level)
@@ -1241,7 +1241,7 @@ void AOrionInventoryManager::GetLifetimeReplicatedProps(TArray< FLifetimePropert
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, Money, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, OwnerController, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, MaxItemLevel, COND_OwnerOnly);
-	DOREPLIFETIME_CONDITION(AOrionInventoryManager, EquippedSlots, COND_OwnerOnly);
+	//DOREPLIFETIME_CONDITION(AOrionInventoryManager, EquippedSlots, COND_OwnerOnly);
 }
 
 bool AOrionInventoryManager::HasStat(ESuperRareStat Stat)

@@ -90,12 +90,15 @@ void AOrionSideMission::SpawnMissionEnemies(FSpawnNumbers TypesToSpawn, AActor *
 	if (Game)
 	{
 		if (Game->Difficulty == DIFF_HARD)
-			BonusTime = 360.0f;
+			BonusTime = 300.0f;
 		else if (Game->Difficulty == DIFF_INSANE)
-			BonusTime = 240.0f;
-		else if (Game->Difficulty == DIFF_REDIKULOUS)
 			BonusTime = 180.0f;
+		else if (Game->Difficulty == DIFF_REDIKULOUS)
+			BonusTime = 120.0f;
 	}
+
+	//offset for when it actually becomes visible;
+	BonusTime += 10.0f;
 
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
 	if (GRI)
@@ -141,6 +144,8 @@ void AOrionSideMission::FinishWave()
 			{
 				SpawnInfo.Owner = PC;
 				AOrionLootCrate *Crate = GetWorld()->SpawnActor<AOrionLootCrate>(DefaultCrateClass, GetActorLocation() + Offset[Counter] * 250.0f, Offset[Counter].Rotation(), SpawnInfo);
+
+				Counter++;
 
 				if (Crate)
 				{
