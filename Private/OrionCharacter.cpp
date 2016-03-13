@@ -822,7 +822,7 @@ void AOrionCharacter::PlayVoice(EVoiceType Type)
 	VoiceRep.bToggle = !VoiceRep.bToggle;
 
 	if (Inv && Inv->HasStat(RARESTAT_BONESVOICE)) VoiceRep.VoiceType = 1;
-	else if (Inv && Inv->HasStat(RARESTAT_BONESVOICE)) VoiceRep.VoiceType = 2;
+	else if (Inv && Inv->HasStat(RARESTAT_GRUMPSVOICE)) VoiceRep.VoiceType = 2;
 	else VoiceRep.VoiceType = 0;
 
 #if !IS_SERVER
@@ -2251,7 +2251,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 		//dino damage is based on dino ilvl and expected health/shield of a player of equal level
 		int32 EnemyLevel = 1;
 
-		if (EventInstigator)
+		/*if (EventInstigator)
 		{
 			AOrionCharacter *EnemyPawn = Cast<AOrionCharacter>(EventInstigator->GetPawn());
 
@@ -2259,16 +2259,16 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 			{
 				EnemyLevel = EnemyPawn->Level;
 			}
-		}
+		}*/
 
-		int32 iLevel = 1;
+		//int32 iLevel = 1;
 		//AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
 		//if (GRI)
 		//	iLevel = GRI->ItemLevel;
 		if (Game)
-			Game->GetEnemyItemLevel(true);
+			EnemyLevel = Game->GetEnemyItemLevel(true);
 
-		Damage = (/*Damage + */FMath::Pow(LEVELPOWER, iLevel / LEVELINTERVAL) * Damage) / 4.0f;//((1000.0f + EnemyLevel * 12.0f) / 400.0f) * Damage * (1.0f + (EnemyLevel / 200.0f));
+		Damage = (/*Damage + */FMath::Pow(LEVELPOWER, EnemyLevel / LEVELINTERVAL) * Damage) / 4.0f;//((1000.0f + EnemyLevel * 12.0f) / 400.0f) * Damage * (1.0f + (EnemyLevel / 200.0f));
 
 		//do we have the dodge bullet legendary?
 		AOrionInventoryManager *Inv = PC->GetInventoryManager();
@@ -4264,10 +4264,43 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 		EquipWeaponFromSlot(1);
 	else if (IsLocallyControlled() && CurrentSkill && CurrentSkill->IsFlaming() && CurrentWeapon && CurrentWeapon->InstantConfig.WeaponSlot != 4)
 		EquipWeaponFromSlot(4);
+	else if (IsLocallyControlled() && Cast<AOrionLobbyPawn>(this) && CurrentWeapon && CurrentWeapon->InstantConfig.WeaponSlot != 2)
+		EquipWeaponFromSlot(2);
 
 	//hax for now
 	//if (CurrentWeapon == NULL && Inventory.Num() > 0)
 	//	EquipWeapon(Inventory[0]);
+}
+
+void AOrionCharacter::EquipWeaponFromSlot(int32 index)
+{
+	if (bDowned)
+		index = 2;
+
+	const int32 CurrentWeaponIdx = Inventory.IndexOfByKey(CurrentWeapon);
+
+	int32 nIndex = CurrentWeaponIdx + 1;
+
+	if (nIndex >= Inventory.Num())
+		nIndex = 0;
+
+	while (nIndex != CurrentWeaponIdx)
+	{
+		if (Inventory[nIndex] && Inventory[nIndex]->InstantConfig.WeaponSlot == index)
+			break;
+
+		nIndex++;
+
+		if (nIndex >= Inventory.Num())
+			nIndex = 0;
+	}
+
+	AOrionWeapon* NWeapon = Inventory[nIndex % Inventory.Num()];
+
+	if (NWeapon == CurrentWeapon)
+		return;
+
+	EquipWeapon(NWeapon);
 }
 
 bool AOrionCharacter::HasOrbEffect(EOrbType Type)

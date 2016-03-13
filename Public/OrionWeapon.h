@@ -305,6 +305,9 @@ public:
 		virtual USkeletalMeshComponent* GetWeaponMesh(bool bFirstPerson) const;
 
 	UFUNCTION(BlueprintCallable, Category = Mesh)
+		virtual USkeletalMeshComponent* GetKnifeMesh() { return KnifeMesh; }
+
+	UFUNCTION(BlueprintCallable, Category = Mesh)
 		virtual FVector GetLeftHandOffset() const;
 
 	UFUNCTION(reliable, server, WithValidation)

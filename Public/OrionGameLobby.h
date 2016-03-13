@@ -43,7 +43,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Lobby)
 		void AddPlayerToParty(AOrionPlayerController *Member, FString PartyName);
 	UFUNCTION(BlueprintCallable, Category = Lobby)
-		void RemovePlayerFromParty(AOrionPlayerController *Member, FString PartyName);
+		void RemovePlayerFromParty(AOrionPlayerController *Member, FString PartyName, bool bCreateNew = true);
 	UFUNCTION(BlueprintCallable, Category = Lobby)
 		void UpdatePartySettings(AOrionPlayerController *Leader, FString PartyName, FString MapName, FString Diff, FString Gamemode, FString DiffScale, FString MinILevel, FString Region, FString TOD, FString Privacy, const FString &IP, const FString &LID);
 };

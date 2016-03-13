@@ -1597,7 +1597,7 @@ public:
 
 	bool CanBeDowned(float Damage, struct FDamageEvent const& DamageEvent, class AController* EventInstigator, class AActor* DamageCauser);
 
-	virtual void EquipWeaponFromSlot(int32 index) {}
+	virtual void EquipWeaponFromSlot(int32 index);
 
 	//speed related boosts
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Speed)

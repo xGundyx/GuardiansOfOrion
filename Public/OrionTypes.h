@@ -979,7 +979,7 @@ struct FRareStats
 		StatsInfo.Add(FRareStatsInfo(TEXT("25% less damage taken from robots"), RARESTAT_ROBOTDR, ITEM_BOOTS));//
 		StatsInfo.Add(FRareStatsInfo(TEXT("Orbs last 10 seconds longer"), RARESTAT_ORBLENGTH, ITEM_BOOTS));//
 		StatsInfo.Add(FRareStatsInfo(TEXT("dilo spit pools heal you instead of damaging you"), RARESTAT_DILOSPITHEAL, ITEM_BOOTS));//
-		StatsInfo.Add(FRareStatsInfo(TEXT("knockback attacks deal half damage to you and don't knock you back"), RARESTAT_KNOCKBACKIMMUNE, ITEM_BOOTS));//
+		StatsInfo.Add(FRareStatsInfo(TEXT("knockback attacks deal half damage to you and doesn't knock you back"), RARESTAT_KNOCKBACKIMMUNE, ITEM_BOOTS));//
 
 		//grenade 
 		StatsInfo.Add(FRareStatsInfo(TEXT("grenade explosion drops a frag grenade"), RARESTAT_FRAGGRENADE, ITEM_GRENADE));//
@@ -1099,6 +1099,8 @@ struct FPhotonServerInfo
 		FString GameMode;
 	UPROPERTY(BlueprintReadWrite, Category = Photon)
 		FString ItemLevel;
+	UPROPERTY(BlueprintReadWrite, Category = Photon)
+		FString MinItemLevel;
 	UPROPERTY(BlueprintReadWrite, Category = Photon)
 		FString Region;
 };

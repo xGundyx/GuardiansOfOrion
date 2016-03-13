@@ -244,6 +244,18 @@ void AOrionPlayerController::ConnectToIP(FString IP)
 {
 	UOrionGameInstance *GI = Cast<UOrionGameInstance>(GetGameInstance());
 
+	//remove extra players from main menu
+	TArray<AActor*> Controllers;
+
+	UGameplayStatics::GetAllActorsOfClass(GetWorld(), AOrionPlayerController::StaticClass(), Controllers);
+
+	for (int32 i = 0; i < Controllers.Num(); i++)
+	{
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controllers[i]);
+		if (PC && PC->ControllerIndex > 0)
+			UGameplayStatics::RemovePlayer(PC, true);
+	}
+
 	//add our playfab credentials to the url so the server can verify us
 	FString newURL;
 
@@ -327,9 +339,12 @@ void AOrionPlayerController::CreateInGameLobby_Implementation(FPhotonServerInfo 
 void AOrionPlayerController::GetLobbyName()
 {
 	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
 
 	if (PRI && PRI->CurrentPartyName.Len() > 1)
 		SetLobbyName(ServerInfo.LobbyID, PRI->CurrentPartyName);
+	else if (GRI && !GRI->bIsLobby)
+		SetLobbyName(ServerInfo.LobbyID, "");
 	else
 	{
 		FTimerHandle Handle;
@@ -342,10 +357,10 @@ void AOrionPlayerController::FindLobbyForParty_Implementation()
 	EventFindPartyLobby();
 }
 
-void AOrionPlayerController::SetPartyLobbyInfo(const FString &LobbyID)
+void AOrionPlayerController::SetPartyLobbyInfo(const FString &LobbyID, const FString &PartyName)
 {
 	if (Role < ROLE_Authority)
-		ServerSetPartyLobbyInfo(LobbyID);
+		ServerSetPartyLobbyInfo(LobbyID, PartyName);
 	else
 	{
 		//make sure the match is actually over, don't want clients faking this call
@@ -364,19 +379,23 @@ void AOrionPlayerController::SetPartyLobbyInfo(const FString &LobbyID)
 			AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controllers[i]);
 			if (PC && PC != this)
 			{
-				PC->ConnectToLobbyID(LobbyID);
+				PC->ConnectToLobbyID(LobbyID, PartyName);
 			}
 		}
 	}
 }
 
-void AOrionPlayerController::ServerSetPartyLobbyInfo_Implementation(const FString &LobbyID)
+void AOrionPlayerController::ServerSetPartyLobbyInfo_Implementation(const FString &LobbyID, const FString &PartyName)
 {
-	SetPartyLobbyInfo(LobbyID);
+	SetPartyLobbyInfo(LobbyID, PartyName);
 }
 
-void AOrionPlayerController::ConnectToLobbyID_Implementation(const FString &LobbyID)
+void AOrionPlayerController::ConnectToLobbyID_Implementation(const FString &LobbyID, const FString &TeamName)
 {
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+	if (PRI)
+		PRI->CurrentPartyName = TeamName;
+
 	EventConnectToLobbyID(LobbyID);
 }
 
@@ -1397,7 +1416,7 @@ bool AOrionPlayerController::IsLobbyLeader()
 	{
 		if (PRI->MyParty.PartyMembers.Num() > 0)
 		{
-			if (PRI->MyParty.PartyMembers[0].PC == this)
+			if (PRI->MyParty.PartyMembers[0].PC == this || PRI->MyParty.PartyMembers[0].PRI == PlayerState)
 				return true;
 		}
 	}
@@ -1458,7 +1477,9 @@ void AOrionPlayerController::UpdatePartyPlayer(int32 sLevel, const FString &sCla
 		AOrionGameLobby *Lobby = Cast<AOrionGameLobby>(GetWorld()->GetAuthGameMode());
 		if (Lobby)
 		{
-			Lobby->UpdatePartyPlayer(CurrentPartyName, this, sLevel, sClass);
+			AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+			if (PRI)
+				Lobby->UpdatePartyPlayer(PRI->CurrentPartyName, this, sLevel, sClass);
 		}
 	}
 }
@@ -2661,6 +2682,7 @@ void AOrionPlayerController::SetSinglePlayer_Implementation()
 	ServerInfo.TOD = "";
 	ServerInfo.GameMode = "";
 	ServerInfo.ItemLevel = "";
+	ServerInfo.MinItemLevel = "";
 	ServerInfo.Region = "";
 
 	EventSetServerInfo();
@@ -3128,6 +3150,8 @@ int32 AOrionPlayerController::GetMaxLevel()
 		XP = FMath::Max(XP, PRI->SupportXP);
 		XP = FMath::Max(XP, PRI->ReconXP);
 		XP = FMath::Max(XP, PRI->TechXP);
+		XP = FMath::Max(XP, PRI->PyroXP);
+		XP = FMath::Max(XP, PRI->MarksmanXP);
 	}
 
 	return CalculateLevel(XP);
@@ -3285,7 +3309,9 @@ void AOrionPlayerController::JoinLobby(FString ServerIP, FString TeamName)
 void AOrionPlayerController::LeaveLobby()
 {
 #if !IS_SERVER
-	LeaveParty(CurrentPartyName);
+	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+	if (PRI)
+		LeaveParty(PRI->CurrentPartyName);
 	/*if (UPhotonProxy::GetListener())
 	{
 		UPhotonProxy::GetListener()->leave();
@@ -3475,7 +3501,9 @@ void AOrionPlayerController::OrionSendChatMessage(const FString &msg, bool bTeam
 {
 	if (Role < ROLE_Authority)
 	{
-		ServerSendChatMessage(msg, bTeamMsg, CurrentPartyName);
+		AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+		if (PRI)
+			ServerSendChatMessage(msg, bTeamMsg, PRI->CurrentPartyName);
 		return;
 	}
 
@@ -3976,7 +4004,9 @@ void AOrionPlayerController::UpdatePartySettings(const FString &MapName, const F
 		AOrionGameLobby *Lobby = Cast<AOrionGameLobby>(GetWorld()->GetAuthGameMode());
 		if (Lobby)
 		{
-			Lobby->UpdatePartySettings(this, CurrentPartyName, MapName, Diff, Gamemode, DiffScale, MinILevel, Region, TOD, Privacy, IP, LobbyID);
+			AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
+			if (PRI)
+				Lobby->UpdatePartySettings(this, PRI->CurrentPartyName, MapName, Diff, Gamemode, DiffScale, MinILevel, Region, TOD, Privacy, IP, LobbyID);
 		}
 	}
 }
