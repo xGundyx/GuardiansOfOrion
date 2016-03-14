@@ -22,6 +22,8 @@ public:
 	virtual void SetInitialTeam(APlayerController *PC);
 	virtual FString InitNewPlayer(class APlayerController* NewPlayerController, const TSharedPtr<const FUniqueNetId>& UniqueId, const FString& Options, const FString& Portal = TEXT(""));
 
+	void CloseServer();
+
 	virtual void AddSpawn(AOrionCharacter* P) {}
 
 	void CloseGame();

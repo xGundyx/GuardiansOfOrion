@@ -912,7 +912,7 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 	FString pfName = UGameplayStatics::ParseOption(Options, TEXT("PlayFabName"));
 	FString pfTicket = UGameplayStatics::ParseOption(Options, TEXT("LobbyTicket"));
 	FString pfClass = UGameplayStatics::ParseOption(Options, TEXT("CharacterClass"));
-	FString pfTeam = UGameplayStatics::ParseOption(Options, TEXT("TeamName"));
+	//FString pfTeam = UGameplayStatics::ParseOption(Options, TEXT("TeamName"));
 
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(NewPlayerController);
 
@@ -937,7 +937,7 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 			PRI->LobbyTicket = pfTicket;
 			PRI->CharacterClass = pfClass;
 			PRI->ClassType = pfClass;
-			PRI->TeamName = pfTeam;
+			//PRI->TeamName = pfTeam;
 			//PRI->ServerInfo = ServerInfo;
 		}
 
@@ -1130,6 +1130,13 @@ void AOrionGameMode::HandleEmptyServer(AController *Exiting)
 		GetWorldTimerManager().SetTimer(Handle, this, &AOrionGameMode::CloseGame, 5.0f, false);
 		return;
 	}
+}
+
+//force the game to end
+void AOrionGameMode::CloseServer()
+{
+	FTimerHandle Handle;
+	GetWorldTimerManager().SetTimer(Handle, this, &AOrionGameMode::CloseGame, 10.0f, false);
 }
 
 void AOrionGameMode::CloseGame()

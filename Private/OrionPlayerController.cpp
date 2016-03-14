@@ -363,6 +363,11 @@ void AOrionPlayerController::SetPartyLobbyInfo(const FString &LobbyID, const FSt
 		ServerSetPartyLobbyInfo(LobbyID, PartyName);
 	else
 	{
+		AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
+
+		if (Game)
+			Game->CloseServer();
+
 		//make sure the match is actually over, don't want clients faking this call
 		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
 
@@ -379,7 +384,9 @@ void AOrionPlayerController::SetPartyLobbyInfo(const FString &LobbyID, const FSt
 			AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controllers[i]);
 			if (PC && PC != this)
 			{
-				PC->ConnectToLobbyID(LobbyID, PartyName);
+				AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+				if (PRI)// && PRI->CurrentPartyName == PartyName)
+					PC->ConnectToLobbyID(LobbyID, PartyName);
 			}
 		}
 	}
@@ -943,6 +950,14 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 void AOrionPlayerController::ClientSetItemLevel_Implementation(int32 Level)
 {
 	ILevel = Level;
+}
+
+void AOrionPlayerController::ClientSetMaxItemLevel_Implementation(int32 MaxLevel)
+{
+	AOrionInventoryManager *Inv = GetInventoryManager();
+
+	if (Inv)
+		Inv->MaxItemLevel = MaxLevel;
 }
 
 int32 AOrionPlayerController::GetClassIndex()

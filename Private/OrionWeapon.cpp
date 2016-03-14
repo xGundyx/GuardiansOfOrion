@@ -731,7 +731,7 @@ void AOrionWeapon::FireWeapon()
 	{
 		const int32 RandomSeed = FMath::Rand();
 		FRandomStream WeaponRandomStream(RandomSeed);
-		const float CurrentSpread = InstantConfig.WeaponName == "SNIPER RIFLE" && !bAiming ? 15.0f : GetCurrentSpread();
+		const float CurrentSpread = InstantConfig.WeaponName == "SNIPER RIFLE" && !bAiming ? 25.0f : 5.0f;// GetCurrentSpread();
 		const float ConeHalfAngle = FMath::DegreesToRadians(CurrentSpread * 0.5f);
 
 		const FVector AimDir = GetAdjustedAim();

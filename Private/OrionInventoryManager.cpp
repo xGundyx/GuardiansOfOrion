@@ -385,6 +385,9 @@ void AOrionInventoryManager::EquipItems()
 			PC->GetAchievements()->UnlockAchievement(ACH_GEARMASTERVI, PC);
 	}
 
+	MaxItemLevel = GetMaxItemLevel();
+	PC->ClientSetMaxItemLevel(MaxItemLevel);
+
 	AOrionCharacter *Pawn = Cast<AOrionCharacter>(PC->GetPawn());
 
 	if (!Pawn)
@@ -426,8 +429,6 @@ void AOrionInventoryManager::EquipItems()
 	Pawn->MagicFind = EquippedStats.Secondary[SECONDARYSTAT_MAGICFIND] + (HasStat(RARESTAT_MAGICFIND) ? 100.0f : 0.0f) + PC->GetSkillValue(SKILL_MAGICFIND);
 	Pawn->LargeDinoBoost = EquippedStats.Secondary[SECONDARYSTAT_LARGEDINOBOOST]; 
 	Pawn->RobotBoost = EquippedStats.Secondary[SECONDARYSTAT_ROBOTBOOST];
-
-	MaxItemLevel = GetMaxItemLevel();
 }
 
 int32 AOrionInventoryManager::GetPrimaryWeaponDamage()

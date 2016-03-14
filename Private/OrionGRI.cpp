@@ -373,7 +373,7 @@ void AOrionGRI::Tick(float DeltaSeconds)
 		//	vCenter /= nPlayers;
 
 		//use the max/min to calculate our camera distance with an fov of 60.0f
-		float Distance = 2500.0f;
+		float Distance = 3000.0f;
 
 		//convert our camera location from camera space back to world space
 		FVector vCenter = FVector((MaxBounds.X + MinBounds.X) / 2.0f, (MaxBounds.Y + MinBounds.Y) / 2.0f, (MaxBounds.Z + MinBounds.Z) / 2.0f);
@@ -397,7 +397,7 @@ void AOrionGRI::Tick(float DeltaSeconds)
 		MaxBounds *= FVector(1.0f, 1.25f, Scale);
 		MinBounds *= FVector(1.0f, 1.25f, Scale);
 
-		Distance = FMath::Min(5000.0f, FMath::Max(Distance, FMath::Max(MaxBounds.Y - MinBounds.Y, MaxBounds.Z - MinBounds.Z) / (2.0f * FMath::Tan(FMath::DegreesToRadians(30.0f)))));
+		Distance = FMath::Min(3500.0f, FMath::Max(Distance, FMath::Max(MaxBounds.Y - MinBounds.Y, MaxBounds.Z - MinBounds.Z) / (2.0f * FMath::Tan(FMath::DegreesToRadians(30.0f)))));
 
 		CoopCameraLocation = wCenter - rot.Vector() * Distance/*CameraDistance*/ + FVector(0.0f/*CameraDistX*/, 0.0f, 0.0f);
 		CoopCameraRotation = rot;

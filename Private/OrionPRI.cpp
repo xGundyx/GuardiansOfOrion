@@ -344,7 +344,7 @@ void AOrionPRI::OnRep_MyParty()
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
 	if (PC)
 	{
-		PC->CurrentPartyName = MyParty.PartyName;
+		//PC->CurrentPartyName = MyParty.PartyName;
 		PC->SetLobbyName(PC->ServerInfo.LobbyID, MyParty.PartyName);
 		PC->EventUpdateParty();
 	}
