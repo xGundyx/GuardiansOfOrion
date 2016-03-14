@@ -782,6 +782,9 @@ public:
 	UFUNCTION(client, reliable)
 		void ClientSetItemLevel(int32 Level);
 
+	UFUNCTION(client, reliable)
+		void ClientSetMaxItemLevel(int32 MaxLevel);
+
 	UFUNCTION(Server, reliable, WithValidation)
 		void ServerSendGUID(const FString &ID);
 		bool ServerSendGUID_Validate(const FString &ID) { return true; }

@@ -30,6 +30,8 @@ public:
 	UPROPERTY(BlueprintReadWrite, Category = Lobby)
 		TArray<FSpaceParty> SpaceParties;
 
+	virtual void Logout(AController* Exiting) override;
+
 	virtual void AddChatMessage(const FString &msg, bool bTeamMsg, const FString &PartyName) override;
 
 	void UpdatePartyPlayer(FString PartyName, AOrionPlayerController *Member, int32 sLevel, FString sClass);

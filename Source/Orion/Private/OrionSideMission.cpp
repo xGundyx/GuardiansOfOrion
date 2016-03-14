@@ -143,7 +143,7 @@ void AOrionSideMission::FinishWave()
 			if (PC)
 			{
 				SpawnInfo.Owner = PC;
-				AOrionLootCrate *Crate = GetWorld()->SpawnActor<AOrionLootCrate>(DefaultCrateClass, GetActorLocation() + Offset[Counter] * 250.0f, Offset[Counter].Rotation(), SpawnInfo);
+				AOrionLootCrate *Crate = GetWorld()->SpawnActor<AOrionLootCrate>(DefaultCrateClass, GetActorLocation() + Offset[Counter] * 0.0f, Offset[Counter].Rotation(), SpawnInfo);
 
 				Counter++;
 
@@ -151,6 +151,11 @@ void AOrionSideMission::FinishWave()
 				{
 				}
 			}
+
+			//only spawn one chest in local coop, mwahahaha
+			AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+			if (GRI && GRI->bIsLocalCoop)
+				break;
 		}
 	}
 
