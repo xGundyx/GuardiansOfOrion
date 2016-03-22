@@ -693,10 +693,10 @@ public:
 		TArray<FControllerOptionsData> GetControllerOptions();
 
 	UFUNCTION(BlueprintCallable, Category = Menu)
-		FString GetBuildVersion() { return TEXT("EA1.3.0"); }
+		FString GetBuildVersion() { return TEXT("EA1.3.0d"); }
 
 	UFUNCTION(BlueprintCallable, Category = Menu)
-		FString GetLobbyVersion() { return TEXT("LOBBY1.3.0"); }
+		FString GetLobbyVersion() { return TEXT("LOBBY1.3.0e"); }
 
 	void AddXP(int32 Value, bool bAbsolute = false);
 	void DoLevelUp(int32 NewLevel);
@@ -1048,6 +1048,11 @@ public:
 
 	bool bDaveyCam;
 
+	UFUNCTION(Reliable, server, WithValidation)
+		void ServerSuicide();
+		bool ServerSuicide_Validate() { return true; }
+		void ServerSuicide_Implementation();
+
 	virtual void Destroyed() override;
 
 	UFUNCTION(exec, Blueprintcallable, Category = Playfab)
@@ -1237,6 +1242,12 @@ public:
 
 	UPROPERTY()//VisibleAnywhere, BlueprintReadOnly, Category = Rain)
 		UParticleSystemComponent *RainPSC;
+
+	UFUNCTION(exec)
+		void Suicide();
+
+	UFUNCTION(exec)
+		void HideSelf(bool bHide);
 
 	UFUNCTION(Reliable, client)
 		void FindLobbyForParty();

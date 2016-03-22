@@ -1303,8 +1303,8 @@ public:
 	void OnNextWeapon();
 	void OnPrevWeapon();
 
-	void StartAiming();
-	void StopAiming();
+	virtual void StartAiming();
+	virtual void StopAiming();
 
 	void DoMelee();
 	void UnMelee();

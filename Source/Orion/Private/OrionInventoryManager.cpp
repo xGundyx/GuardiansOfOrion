@@ -135,6 +135,26 @@ bool AOrionInventoryManager::SwapItems(AOrionInventoryGrid *theGrid1, int32 inde
 	return false;
 }
 
+void AOrionInventoryManager::UpdateMaxItemLevel()
+{
+	if (Role < ROLE_Authority)
+		ServerUpdateMaxItemLevel();
+	else
+	{
+		SaveEquippedSlots();
+
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(OwnerController);
+
+		if (PC)
+			PC->ClientSetMaxItemLevel(MaxItemLevel);
+	}
+}
+
+void AOrionInventoryManager::ServerUpdateMaxItemLevel_Implementation()
+{
+	UpdateMaxItemLevel();
+}
+
 FInventoryItem AOrionInventoryManager::GetItemAtSlot(EItemType Slot)
 {
 	switch (Slot)
@@ -833,6 +853,9 @@ bool AOrionInventoryManager::UseItem(AOrionInventoryGrid *theGrid, int32 index)
 			if(EventOpenBundle(Inv->UseableItem.BundleItems, Inv->UseableItem.Value))
 				RemoveItemFromInventory(theGrid, index);
 			return true;
+			break;
+		case INVENTORYUSE_ION:
+			GiveMoney(Inv->UseableItem.Value);
 			break;
 		}
 
@@ -2052,7 +2075,7 @@ bool AOrionInventoryManager::BreakdownItem(AOrionInventoryGrid *theGrid, int32 i
 			{
 				if (Grid->Inventory[i].ItemClass == ItemsToGrant[j])
 				{
-					if (Grid->Inventory[i].Amount < 500)
+					if (Grid->Inventory[i].Amount < 5000)
 					{
 						NumSpacesToFind--;
 						break;
@@ -2259,10 +2282,6 @@ FString AOrionInventoryManager::GetSecondaryStatName(ESecondaryStats Stat)
 
 void AOrionInventoryManager::SaveEquippedSlots()
 {
-	FInventoryItem DummyItem;
-
-	DummyItem.ItemClass = nullptr;
-
 	if (OwnerController)
 	{
 		AOrionPRI *PRI = Cast<AOrionPRI>(OwnerController->PlayerState);

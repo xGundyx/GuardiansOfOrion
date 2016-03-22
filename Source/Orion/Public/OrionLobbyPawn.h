@@ -18,9 +18,13 @@ public:
 
 	bool IsFirstPerson() const override;
 	virtual void BeginPlay() override;
+	virtual void CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult) override;
 	
 	void Say();
 	void TeamSay();
+
+	virtual void StartAiming() override;
+	virtual void StopAiming() override;
 
 	void Use();
 

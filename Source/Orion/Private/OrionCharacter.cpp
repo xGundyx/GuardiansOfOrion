@@ -3645,7 +3645,7 @@ void AOrionCharacter::UpdatePawnMeshes()
 	{
 		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
-		if (PC && (PC->DropPod == nullptr || PC->DropPod->bHasLanded))
+		if (Cast<AOrionLobbyPawn>(this) == nullptr && PC && (PC->DropPod == nullptr || PC->DropPod->bHasLanded))
 		{
 			GetMesh()->SetRenderCustomDepth(true);
 			BodyMesh->SetRenderCustomDepth(true);
@@ -3660,6 +3660,9 @@ void AOrionCharacter::UpdatePawnMeshes()
 
 void AOrionCharacter::EnableCustomDepth_Implementation()
 {
+	if (Cast<AOrionLobbyPawn>(this))
+		return;
+
 	//if we're a local player controller, set us up to render outlines behind walls
 	if (Controller && Controller->IsLocalPlayerController())
 	{
@@ -5115,8 +5118,13 @@ void AOrionCharacter::Blink(FVector dir)
 	if (!DefaultFilterClass)
 		return;
 
-	if (bFatality)
+	if (bFatality || bKnockedDown || bLatchedOnto)
+	{
+		BlinkCooldown.Energy += 4.5f;
+
+		EndBlink();
 		return;
+	}
 
 	if (GetWorld() && GetWorld()->GetNavigationSystem())
 	{

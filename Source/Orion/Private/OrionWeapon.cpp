@@ -158,23 +158,24 @@ void AOrionWeapon::AttachMeshToPawn()
 
 		//PlayWeaponAnimation(IdleAnim);
 
+		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
+		AOrionLobbyPawn *LPawn = Cast<AOrionLobbyPawn>(MyPawn);
+		bool bLobby = false;
+		if (GRI) bLobby = GRI->bIsLobby || LPawn != nullptr;
+
 		// For locally controller players we attach both weapons and let the bOnlyOwnerSee, bOwnerNoSee flags deal with visibility.
 		FName AttachPoint = InstantConfig.AttachPoint;// TEXT("WeaponPoint");// MyPawn->GetWeaponAttachPoint();
 		if (MyPawn->IsLocallyControlled() == true)
 		{
-			AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
-			AOrionLobbyPawn *LPawn = Cast<AOrionLobbyPawn>(MyPawn);
-			bool bLobby = false;
-			if (GRI) bLobby = GRI->bIsLobby || LPawn != nullptr;
 			AOrionPlayerController *PC = Cast<AOrionPlayerController>(MyPawn->Controller);
 			USkeletalMeshComponent* PawnMesh1p = MyPawn->GetSpecifcPawnMesh(true);
 			USkeletalMeshComponent* PawnMesh3p = MyPawn->GetSpecifcPawnMesh(false);
 			if (Mesh1P)
-				Mesh1P->SetHiddenInGame(!MyPawn->IsFirstPerson() /*|| MyPawn->bBlinking*/ || (PC && PC->bHideWeapons) || bLobby);
+				Mesh1P->SetHiddenInGame(!MyPawn->IsFirstPerson() /*|| MyPawn->bBlinking*/ || (PC && PC->bHideWeapons) || bLobby || LPawn);
 			if (PawnMesh1p)
-				PawnMesh1p->SetHiddenInGame(!MyPawn->IsFirstPerson() /*|| MyPawn->bBlinking*/ || (PC && PC->bHideWeapons) || bLobby);
+				PawnMesh1p->SetHiddenInGame(!MyPawn->IsFirstPerson() /*|| MyPawn->bBlinking*/ || (PC && PC->bHideWeapons) || bLobby || LPawn);
 			if (Mesh3P)
-				Mesh3P->SetHiddenInGame(MyPawn->IsFirstPerson());// || MyPawn->bBlinking);
+				Mesh3P->SetHiddenInGame(MyPawn->IsFirstPerson() || bLobby || LPawn);// || MyPawn->bBlinking);
 			//Mesh1P->AttachTo(PawnMesh1p, AttachPoint);
 			if (PawnMesh1p && PawnMesh1p->SkeletalMesh)
 				Mesh1P->AttachTo(PawnMesh1p, AttachPoint); //AttachRootComponentTo(PawnMesh1p, AttachPoint);// , EAttachLocation::KeepWorldPosition);
@@ -193,7 +194,7 @@ void AOrionWeapon::AttachMeshToPawn()
 			{
 				if (MyPawn->PlayerState && !MyPawn->PlayerState->bIsABot)
 				{
-					Mesh3P->SetRenderCustomDepth(true);
+					Mesh3P->SetRenderCustomDepth(!bLobby);
 					if (PC)
 						Mesh3P->CustomDepthStencilValue = PC->ControllerIndex + 1;
 				}
@@ -219,7 +220,7 @@ void AOrionWeapon::AttachMeshToPawn()
 			if (UseWeaponMesh && UsePawnMesh)
 			{
 				UseWeaponMesh->AttachTo(UsePawnMesh, AttachPoint);
-				UseWeaponMesh->SetHiddenInGame(false || MyPawn->bBlinking);
+				UseWeaponMesh->SetHiddenInGame(false || MyPawn->bBlinking || LPawn || bLobby);
 			}
 
 			//make sure knife is hidden
@@ -321,7 +322,7 @@ int32 AOrionWeapon::GetWeaponIndex()
 
 void AOrionWeapon::StartAiming(bool bPlaySound)
 {
-	if (MyPawn && bPlaySound && ZoomInSound)
+	if (MyPawn && bPlaySound && ZoomInSound && Cast<AOrionLobbyPawn>(MyPawn) == nullptr)
 		UGameplayStatics::PlaySoundAtLocation(GetWorld(), ZoomInSound, MyPawn->GetActorLocation());
 
 	bAiming = true;
@@ -348,7 +349,7 @@ void AOrionWeapon::StartAiming(bool bPlaySound)
 
 void AOrionWeapon::StopAiming()
 {
-	if (bAiming && MyPawn && ZoomOutSound)
+	if (bAiming && MyPawn && ZoomOutSound && Cast<AOrionLobbyPawn>(MyPawn) == nullptr)
 		UGameplayStatics::PlaySoundAtLocation(GetWorld(), ZoomOutSound, MyPawn->GetActorLocation());
 
 	bAiming = false;
@@ -620,6 +621,39 @@ void AOrionWeapon::FireProjectile(FName SocketName, FVector Direction)
 			Proj->GrenadeScale = Grenade->ExplosionScale;
 		}
 	}
+	else
+	{
+		//rockets and stuff with no gravity
+		AOrionProjectile *Proj = Cast<AOrionProjectile>(ProjectileClass.GetDefaultObject());
+		if (Proj && Role == ROLE_Authority)
+		{
+			FActorSpawnParameters SpawnInfo;
+			SpawnInfo.Instigator = Instigator;
+			SpawnInfo.Owner = Instigator;
+			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
+
+			FVector Origin(0.0f);
+
+			if (Cast<AOrionDroidPawn>(MyPawn))
+				Origin = MyPawn->GetMesh()->GetSocketLocation(SocketName);
+			else
+			{
+				USkeletalMeshComponent* UseMesh = GetWeaponMesh(MyPawn->IsFirstPerson());
+
+				if (UseMesh)
+					Origin = UseMesh->GetSocketLocation(SocketName);
+			}
+
+			AOrionProjectile *Rocket = GetWorld()->SpawnActor<AOrionProjectile>(ProjectileClass, Origin, Direction.Rotation(), SpawnInfo);
+
+			if (Proj)
+			{
+				Proj->Init(nullptr, Origin, Origin + Direction * 10000.0f);
+				Proj->SetLifeSpan(4.0f);
+				Proj->NewVelocity = Direction * 3000.0f;
+			}
+		}
+	}
 }
 
 void AOrionWeapon::FireSpecial(FName SocketName, FVector Direction)
@@ -731,7 +765,7 @@ void AOrionWeapon::FireWeapon()
 	{
 		const int32 RandomSeed = FMath::Rand();
 		FRandomStream WeaponRandomStream(RandomSeed);
-		const float CurrentSpread = InstantConfig.WeaponName == "SNIPER RIFLE" && !bAiming ? 25.0f : 5.0f;// GetCurrentSpread();
+		const float CurrentSpread = InstantConfig.WeaponName == "SNIPER RIFLE" ? (!bAiming ? 25.0f : 0.0f) : (bAiming ? 2.5f : 5.0f);// GetCurrentSpread();
 		const float ConeHalfAngle = FMath::DegreesToRadians(CurrentSpread * 0.5f);
 
 		const FVector AimDir = GetAdjustedAim();
@@ -1693,7 +1727,7 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 		if (TracerPSC)
 		{
 			TracerPSC->SetWorldScale3D((MyPawn && MyPawn->bThirdPersonCamera) ? FVector(1.0f) :FVector(1.0));
-			TracerPSC->SetFloatParameter("BulletLife", FMath::Clamp(((Origin - EndPoint).Size() / 6000.0f), 0.05f, 1.5f) - 0.05f);
+			TracerPSC->SetFloatParameter("BulletLife", FMath::Clamp(FMath::Clamp(((Origin - EndPoint).Size() / 6000.0f), 0.05f, 1.5f) - 0.05f, 0.05f, 1.5f));
 		}
 	}
 

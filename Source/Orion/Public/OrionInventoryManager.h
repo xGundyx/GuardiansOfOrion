@@ -375,6 +375,14 @@ public:
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
 		int32 MaxItemLevel;
 
+	UFUNCTION(BlueprintCallable, Category = Hax)
+		void UpdateMaxItemLevel();
+
+	UFUNCTION(server, reliable, WithValidation, Category = Inventory)
+		void ServerUpdateMaxItemLevel();
+		bool ServerUpdateMaxItemLevel_Validate() { return true; }
+		void ServerUpdateMaxItemLevel_Implementation();
+
 	//don't allow multiple operations of the same type to happen at the same time
 	UPROPERTY(BlueprintReadWrite, Category = Inventory)
 		bool bGrantItemOperationInProgress;
