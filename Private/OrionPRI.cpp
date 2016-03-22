@@ -50,9 +50,13 @@ int32 AOrionPRI::GetXPIntoLevel()
 
 	while (XPRemaining >= 0)
 	{
-		Level++;
 		Ret = XPRemaining;
-		XPRemaining -= (BASEXP + (XPINCREASE * (Level - 1)));
+		if (Level >= 30)
+			XPRemaining -= (BASEXP + 4 * (XPINCREASE * (Level)));
+		else
+			XPRemaining -= (BASEXP + (XPINCREASE * (Level)));
+
+		Level++;
 	}
 
 	return Ret;
@@ -393,7 +397,10 @@ int32 AOrionPRI::GetXPToLevel()
 
 	int32 Level = CalculateLevel(XP);
 
-	return BASEXP + (XPINCREASE * (Level - 1));
+	if (Level >= 30)
+		return BASEXP + 4 * (XPINCREASE * (Level - 1));
+	else
+		return BASEXP + (XPINCREASE * (Level - 1));
 }
 
 bool AOrionPRI::IsOnShip()

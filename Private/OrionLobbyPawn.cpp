@@ -7,16 +7,16 @@
 AOrionLobbyPawn::AOrionLobbyPawn(const FObjectInitializer& ObjectInitializer)
 	: Super(ObjectInitializer)
 {
-	GetMesh()->bOwnerNoSee = true;
+	/*GetMesh()->bOwnerNoSee = true;
 	HelmetMesh->bOwnerNoSee = true;
 	BodyMesh->bOwnerNoSee = true;
 	ArmsMesh->bOwnerNoSee = true;
 	LegsMesh->bOwnerNoSee = true;
 	Flight1Mesh->bOwnerNoSee = true;
-	Flight2Mesh->bOwnerNoSee = true;
+	Flight2Mesh->bOwnerNoSee = true;*/
 
-	//Arms1PArmorMesh->SetHiddenInGame(true);
-	//Arms1PMesh->SetHiddenInGame(true);
+	Arms1PArmorMesh->SetHiddenInGame(true);
+	Arms1PMesh->SetHiddenInGame(true);
 }
 
 void AOrionLobbyPawn::BeginPlay()
@@ -25,9 +25,120 @@ void AOrionLobbyPawn::BeginPlay()
 	bShoulderCamera = false;
 }
 
+void AOrionLobbyPawn::CalcCamera(float DeltaTime, FMinimalViewInfo& OutResult)
+{
+	FVector CamStart;
+
+	if (IsFirstPerson())
+	{
+		FirstPersonCameraComponent->GetCameraView(DeltaTime, OutResult);
+		if (Controller)
+			OutResult.Rotation = Controller->GetControlRotation();
+	}
+	else
+	{
+		ThirdPersonCameraComponent->GetCameraView(DeltaTime, OutResult);
+
+		//for spectating
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(GetWorld()->GetFirstPlayerController());
+		if (PC)
+			OutResult.Rotation = PC->GetControlRotation();
+
+		FVector X, Y, Z;
+
+		X = OutResult.Rotation.Vector();
+		Z = FVector(0.0f, 0.0f, 1.0f);
+		Y = FVector::CrossProduct(Z, X);
+		Y.Normalize();
+		Z = FVector::CrossProduct(X, Y);
+		Z.Normalize();
+
+		CamStart = GetActorLocation() + FVector(0.0f, 0.0f, 25.0f);// GetMesh()->GetBoneLocation(FName("Chr01_Spine02"));
+
+		FVector Offset = CamStart - GetActorLocation();
+
+		if (bBlinking)
+		{
+			float TeleportTime = FMath::Max(0.0f, 0.2f - (GetWorld()->GetTimeSeconds() - LastTeleportTime));
+
+			CamStart = BlinkPos.Start + (1.0f - (TeleportTime / 0.2f)) * (BlinkPos.End - BlinkPos.Start);
+			CamStart += Offset;
+		}
+
+		ThirdPersonAdjust = FMath::Lerp(ThirdPersonAdjust, bFatality ? 4.5f : (bAim ? 1.0f : 2.5f), DeltaTime * 6.0f);
+
+		OutResult.Location = CamStart - X*CameraOffset.X * ThirdPersonAdjust + CameraOffset.Y*Y + CameraOffset.Z*Z;
+
+		CameraLocation = OutResult.Location;
+	}
+
+	//add some weapon bob and view sway
+	//default eye height is 0,0,64 for firstperson
+	float OldBobTime = BobTime;
+	FRotator rot = GetActorRotation();
+	FVector X = rot.Vector();
+	FVector Z = FVector(0, 0, 1);
+	FVector Y = FVector::CrossProduct(Z, X);
+
+	float Speed2D = GetVelocity().Size2D();
+	if (GetMovementComponent() && GetMovementComponent()->IsFalling())
+		Speed2D = 0.0f;
+
+	if (IsRolling() || IsSprinting() || (CurrentSkill && CurrentSkill->IsJetpacking()))
+		Speed2D = 0.0f;
+
+	if (Speed2D < 10)
+		BobTime += 0.2 * FMath::Min(0.1f, DeltaTime);
+	else
+		BobTime += FMath::Min(0.1f, DeltaTime) * FMath::Min(1.0f, 0.3f + 0.7f * Speed2D / GetMovementComponent()->GetMaxSpeed());
+
+	//Bob = Lerp(Bob, (bIsWalking ? default.Bob : default.Bob*BobScaleWhenRunning), DeltaSeconds * 10);
+
+	float TimeDilation = 1.0f;
+
+	if (IsAiming())
+		TimeDilation = 0.4f;
+
+	WalkBob = Y * 0.01 * Speed2D * FMath::Sin(8.0f * BobTime * TimeDilation);
+	WalkBob.Z = 0.01 * Speed2D * FMath::Sin(16.0f * BobTime * TimeDilation);
+
+	//FirstPersonCameraComponent->SetRelativeLocation(FMath::Lerp(FirstPersonCameraComponent->RelativeLocation, FVector(0, 0, 64.0) + WalkBob, FMath::Min(0.5f,DeltaTime*10.0f)));
+	OutResult.Location += WalkBob * (IsAiming() ? 0.02f : 0.05f);
+
+	//camera collision
+	FHitResult Hit;
+
+	FCollisionQueryParams TraceParams(FName(TEXT("CameraTrace")), true, this);
+
+	TraceParams.AddIgnoredActor(this);
+	TraceParams.bTraceAsyncScene = true;
+	TraceParams.bReturnPhysicalMaterial = true;
+
+	FVector vStart = CamStart;
+	FVector vEnd = OutResult.Location;
+
+	//if (GWorld->LineTraceSingle(Hit, vStart, vEnd, COLLISION_WEAPON,TraceParams))
+	if (GWorld->SweepSingleByChannel(Hit, vStart, vEnd, FQuat::Identity, ECollisionChannel::ECC_Camera, FCollisionShape::MakeSphere(15), TraceParams))
+	{
+		if (Hit.bBlockingHit)
+		{
+			OutResult.Location = Hit.Location;
+			CameraLocation = OutResult.Location;
+		}
+	}
+
+	//add some aim kick
+	/*if (IsFirstPerson())
+	FirstPersonCameraComponent->SetRelativeRotation(AimKick);
+	else
+	ThirdPersonCameraComponent->SetRelativeRotation(AimKick);
+	*/
+	//OutResult.Rotation += AimKick;
+}
+
 bool AOrionLobbyPawn::IsFirstPerson() const
 {
-	return IsAlive() && Controller && Controller->IsLocalPlayerController();
+	return false;// IsAlive() && Controller && Controller->IsLocalPlayerController();
 }
 
 void AOrionLobbyPawn::Use()
@@ -78,8 +189,8 @@ void AOrionLobbyPawn::SetupPlayerInputComponent(class UInputComponent* InputComp
 	////InputComponent->BindAction("Fire", IE_Released, this, &AOrionCharacter::OnStopFire);
 	////InputComponent->BindTouch(EInputEvent::IE_Pressed, this, &AOrionCharacter::TouchStarted);
 
-	////InputComponent->BindAction("Aim", IE_Pressed, this, &AOrionCharacter::StartAiming);
-	////InputComponent->BindAction("Aim", IE_Released, this, &AOrionCharacter::StopAiming);
+	InputComponent->BindAction("Aim", IE_Pressed, this, &AOrionLobbyPawn::StartAiming);
+	InputComponent->BindAction("Aim", IE_Released, this, &AOrionLobbyPawn::StopAiming);
 
 	InputComponent->BindAction("Use", IE_Pressed, this, &AOrionLobbyPawn::Use);
 
@@ -121,8 +232,8 @@ void AOrionLobbyPawn::SetupPlayerInputComponent(class UInputComponent* InputComp
 	////InputComponent->BindAction("Gamepad_Fire", IE_Released, this, &AOrionCharacter::OnStopFire);
 	////InputComponent->BindTouch(EInputEvent::IE_Pressed, this, &AOrionCharacter::TouchStarted);
 
-	////InputComponent->BindAction("Gamepad_Aim", IE_Pressed, this, &AOrionCharacter::StartAiming);
-	////InputComponent->BindAction("Gamepad_Aim", IE_Released, this, &AOrionCharacter::StopAiming);
+	InputComponent->BindAction("Gamepad_Aim", IE_Pressed, this, &AOrionLobbyPawn::StartAiming);
+	InputComponent->BindAction("Gamepad_Aim", IE_Released, this, &AOrionLobbyPawn::StopAiming);
 
 	////InputComponent->BindAction("Gamepad_Use", IE_Pressed, this, &AOrionCharacter::Use);
 
@@ -131,6 +242,27 @@ void AOrionLobbyPawn::SetupPlayerInputComponent(class UInputComponent* InputComp
 
 	////InputComponent->BindAction("Gamepad_ActivateSkill", IE_Pressed, this, &AOrionCharacter::TryToActivateSkill);
 	////InputComponent->BindAction("Gamepad_ThrowGrenade", IE_Pressed, this, &AOrionCharacter::TossGrenade);
+}
+
+void AOrionLobbyPawn::StartAiming()
+{
+	if (ShouldIgnoreControls())
+		return;
+
+	if (Role < ROLE_Authority)
+		ServerAim(true);
+
+	StopSprint();
+
+	bAim = true;
+}
+
+void AOrionLobbyPawn::StopAiming()
+{
+	if (Role < ROLE_Authority)
+		ServerAim(false);
+
+	bAim = false;
 }
 
 void AOrionLobbyPawn::Say()

@@ -3,6 +3,7 @@
 #include "Orion.h"
 #include "OrionCharacter.h"
 #include "OrionWeapon.h"
+#include "OrionLobbyPawn.h"
 #include "OrionPlayerCameraManager.h"
 
 AOrionPlayerCameraManager::AOrionPlayerCameraManager(const FObjectInitializer& ObjectInitializer)
@@ -40,7 +41,11 @@ void AOrionPlayerCameraManager::UpdateCamera(float DeltaTime)
 			return;
 		}
 
-		if (MyPawn->GetWeapon())
+		if (Cast<AOrionLobbyPawn>(MyPawn))
+		{
+			TargetingFOV = 80.0f;
+		}
+		else if (MyPawn->GetWeapon())
 		{
 			TargetingFOV = MyPawn->GetWeapon()->InstantConfig.AimFOV;
 

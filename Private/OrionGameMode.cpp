@@ -70,7 +70,7 @@ AOrionGameMode::AOrionGameMode(const FObjectInitializer& ObjectInitializer)
 	HUDClass = AOrionHUD::StaticClass();
 
 	//this will keep players connected and keep their data persistent across map changes
-	bUseSeamlessTravel = true;
+	bUseSeamlessTravel = false;// true;
 
 	bAlwaysShowCursor = false;
 
@@ -479,7 +479,7 @@ void AOrionGameMode::AwardXPToAllPlayers(int32 Amount, AOrionPlayerController *P
 
 				AOrionInventoryManager *Inv = PC->GetInventoryManager();
 				if (Inv && Inv->HasStat(RARESTAT_BONUSXP) && DamageType->WeaponSlot == 1) XP *= 1.25f;
-				if (Inv && Inv->HasStat(RARESTAT_REGENENERGY) && DamageType->WeaponSlot == 1)
+				if (Inv && Inv->HasStat(RARESTAT_REGENENERGY) && DamageType->WeaponSlot == 2)
 				{
 					if (P && P->CurrentSkill)
 						P->CurrentSkill->SetEnergy(FMath::Min(100.0f, P->CurrentSkill->GetEnergy() + P->CurrentSkill->GetEnergy() * 0.1f));
@@ -562,7 +562,7 @@ void AOrionGameMode::SaveAllUsersStats()
 	for (int32 i = 0; i < Controllers.Num(); i++)
 	{
 		AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controllers[i]);
-		if (PC)
+		if (PC && PC->GetStats())
 		{
 			PC->GetStats()->FlushPlayerStats(PC);
 

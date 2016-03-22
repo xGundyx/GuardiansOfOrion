@@ -49,6 +49,11 @@ void AOrionGameMenu::InitGame(const FString& MapName, const FString& Options, FS
 	}
 	else
 		LobbyIP = IPName;
+
+//if a server ever gets here it was a failed space station:( so just force us to go there now
+#if IS_SERVER
+	UGameplayStatics::OpenLevel(GetWorld(), "OrbitalCommand", true, "Game=Orion.OrionGameLobby");
+#endif
 }
 
 void AOrionGameMenu::DisplayLoadingScreen()

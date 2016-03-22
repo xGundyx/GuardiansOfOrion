@@ -344,7 +344,7 @@ void AOrionPlayerController::GetLobbyName()
 	if (PRI && PRI->CurrentPartyName.Len() > 1)
 		SetLobbyName(ServerInfo.LobbyID, PRI->CurrentPartyName);
 	else if (GRI && !GRI->bIsLobby)
-		SetLobbyName(ServerInfo.LobbyID, "");
+		SetLobbyName(ServerInfo.LobbyID, "none");
 	else
 	{
 		FTimerHandle Handle;
@@ -892,7 +892,7 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 
 			////PRI->InventoryManager->EquipItems(newPawn, ITEM_ANY);
 			if (ClassIndex < 0)
-				ClassIndex = FMath::RandRange(0, 4);
+				ClassIndex = FMath::RandRange(0, 5);
 			
 			ChangeClass(ClassIndex);
 
@@ -1008,6 +1008,43 @@ bool AOrionPlayerController::InputKey(FKey Key, EInputEvent EventType, float Amo
 		EventPressKey(Key, bGamepad);
 
 	return bRet;
+}
+
+void AOrionPlayerController::Suicide()
+{
+	if (Role < ROLE_Authority)
+		ServerSuicide();
+	else
+	{
+		AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
+		if (P)
+		{
+			FDamageEvent dEvent = FDamageEvent::FDamageEvent();
+			dEvent.DamageTypeClass = UOrionDamageType::StaticClass();
+
+			P->Die(500000.0f, dEvent, nullptr, P);
+		}
+	}
+}
+
+void AOrionPlayerController::ServerSuicide_Implementation()
+{
+	Suicide();
+}
+
+void AOrionPlayerController::HideSelf(bool bHide)
+{
+	AOrionCharacter *P = Cast<AOrionCharacter>(GetPawn());
+	if (P)
+	{
+		P->GetMesh()->SetHiddenInGame(bHide);
+		P->BodyMesh->SetHiddenInGame(bHide);
+		P->HelmetMesh->SetHiddenInGame(bHide);
+		P->ArmsMesh->SetHiddenInGame(bHide);
+		P->LegsMesh->SetHiddenInGame(bHide);
+		P->Flight1Mesh->SetHiddenInGame(bHide);
+		P->Flight2Mesh->SetHiddenInGame(bHide);
+	}
 }
 
 void AOrionPlayerController::ChangeClass(int32 index)
@@ -3193,7 +3230,7 @@ void AOrionPlayerController::OpenLobby(FString MapName, FString MapDifficulty, F
 
 			FString Version = GetBuildVersion();
 
-			UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*MapDifficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), "", "", TCHAR_TO_UTF8(*ChatRoom), TCHAR_TO_UTF8(*Version), "", TCHAR_TO_UTF8(*TOD), TCHAR_TO_UTF8(*ItemLevel), TCHAR_TO_UTF8(*Region));
+			//UPhotonProxy::GetListener()->createRoom(TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*MapDifficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), "", "", TCHAR_TO_UTF8(*ChatRoom), TCHAR_TO_UTF8(*Version), "", TCHAR_TO_UTF8(*TOD), TCHAR_TO_UTF8(*ItemLevel), TCHAR_TO_UTF8(*Region));
 		}
 	}
 #endif
@@ -3536,34 +3573,34 @@ void AOrionPlayerController::ServerSendChatMessage_Implementation(const FString 
 void AOrionPlayerController::JoinChatRoom(FString Room)
 {
 #if !IS_SERVER
-	if (Room.Len() > 1)
+	/*if (Room.Len() > 1)
 	{
 		//only join chat rooms while in the main menu for lobbies, no chat channels while in game for now
 		AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
 
 		if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) || (GRI && GRI->bIsLobby))
 			UPhotonProxy::JoinChannel(TCHAR_TO_UTF8(*Room));
-	}
+	}*/
 #endif
 }
 
 void AOrionPlayerController::GrabLobbySettings()
 {
 #if !IS_SERVER
-	if (UPhotonProxy::GetListener())
+	/*if (UPhotonProxy::GetListener())
 	{
 		UPhotonProxy::GetListener()->GrabRoomSettings();
-	}
+	}*/
 #endif
 }
 
 void AOrionPlayerController::FlushLobbySettings(FString MapName, FString Difficulty, FString Gamemode, FString Privacy, FString IP, FString Ticket, FString Wave, FString Version, FString RoomName, FString TOD, FString ItemLevel, FString Region)
 {
 #if !IS_SERVER
-	if (UPhotonProxy::GetListener())
+	/*if (UPhotonProxy::GetListener())
 	{
 		UPhotonProxy::GetListener()->SetLobbySettings(TCHAR_TO_UTF8(*MapName), TCHAR_TO_UTF8(*Difficulty), TCHAR_TO_UTF8(*Gamemode), TCHAR_TO_UTF8(*Privacy), TCHAR_TO_UTF8(*IP), TCHAR_TO_UTF8(*Ticket), TCHAR_TO_UTF8(*Wave), TCHAR_TO_UTF8(*Version), TCHAR_TO_UTF8(*RoomName), TCHAR_TO_UTF8(*TOD), TCHAR_TO_UTF8(*ItemLevel), TCHAR_TO_UTF8(*Region));
-	}
+	}*/
 #endif
 }
 
@@ -3788,8 +3825,8 @@ void AOrionPlayerController::BeginPlay()
 		SetLobbyName("", "");
 
 		//if we're no in the main menu, reset photon junk
-		if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) == nullptr && GRI && !GRI->bIsLobby)
-			UPhotonProxy::Reset();
+		////if (Cast<AOrionGameMenu>(GetWorld()->GetAuthGameMode()) == nullptr && GRI && !GRI->bIsLobby)
+		////	UPhotonProxy::Reset();
 
 		SetThirdPerson();
 	}
@@ -4656,11 +4693,11 @@ void AOrionPlayerController::TickPhoton()
 void AOrionPlayerController::RefreshLobbyList()
 {
 #if !IS_SERVER
-	if (UPhotonProxy::GetListener())
+	/*if (UPhotonProxy::GetListener())
 	{
 		UPhotonProxy::GetListener()->PCOwner = this;
 		UPhotonProxy::GetListener()->RefreshRoomList();
-	}
+	}*/
 #endif
 }
 

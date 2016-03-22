@@ -146,8 +146,8 @@ void AOrionGameLobby::BeginPlay()
 
 void AOrionGameLobby::SetSpawnTimer()
 {
-	FTimerHandle Timer;
-	GetWorldTimerManager().SetTimer(Timer, this, &AOrionGameLobby::HandleRespawns, 1.0f, true);
+	if (!GetWorldTimerManager().IsTimerActive(EmptyTimer))
+		GetWorldTimerManager().SetTimer(EmptyTimer, this, &AOrionGameLobby::HandleRespawns, 1.0f, true);
 }
 
 void AOrionGameLobby::HandleRespawns()
@@ -162,6 +162,9 @@ void AOrionGameLobby::HandleRespawns()
 			if (!PC->bAuthenticated)
 				continue;
 #endif
+			if (PC->bDaveyCam)
+				continue;
+
 			AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
 
 			if (!PRI)
@@ -245,6 +248,12 @@ FString AOrionGameLobby::InitNewPlayer(class APlayerController* NewPlayerControl
 
 	if (pfTeam != "")
 	{
+		/*int32 index = -1;
+		for (int32 i = 0; i < SpaceParties.Num(); i++)
+		{
+			if (SpaceParties[i].PartyName == pfTeam)
+				index = i;
+		}*/
 		FSpaceParty FindParty;
 		FindParty.PartyName = pfTeam;
 
@@ -313,7 +322,7 @@ void AOrionGameLobby::DestroyParty(FString PartyName)
 	{
 		for (int32 i = 0; i < SpaceParties[index].PartyMembers.Num(); i++)
 		{
-			if (SpaceParties[index].PartyMembers[i].PC)
+			if (SpaceParties[index].PartyMembers[i].PC && SpaceParties[index].PartyMembers[i].PC->IsValidLowLevel())
 			{
 				FSpaceParty DummyParty;
 				AOrionPRI *PRI = Cast<AOrionPRI>(SpaceParties[index].PartyMembers[i].PC->PlayerState);
@@ -392,7 +401,7 @@ void AOrionGameLobby::AddPlayerToParty(AOrionPlayerController *Member, FString P
 
 			for (int32 i = 0; i < SpaceParties[index].PartyMembers.Num(); i++)
 			{
-				if (SpaceParties[index].PartyMembers[i].PC)
+				if (SpaceParties[index].PartyMembers[i].PC && SpaceParties[index].PartyMembers[i].PC->IsValidLowLevel())
 				{
 					AOrionPRI *aPRI = Cast<AOrionPRI>(SpaceParties[index].PartyMembers[i].PC->PlayerState);
 					if (aPRI)
@@ -408,6 +417,38 @@ void AOrionGameLobby::AddPlayerToParty(AOrionPlayerController *Member, FString P
 
 void AOrionGameLobby::RemovePlayerFromParty(AOrionPlayerController *Member, FString PartyName, bool bCreateEmpty)
 {
+	if (!Member || !Member->IsValidLowLevel())
+		return;
+
+	AOrionPRI *PRI = Cast<AOrionPRI>(Member->PlayerState);
+
+	if (PRI)
+	{
+		PRI->CurrentPartyName = "";
+		FSpaceParty DummyParty;
+		PRI->MyParty = DummyParty;
+	}
+
+	for (int32 i = 0; i < SpaceParties.Num(); i++)
+	{
+		for (int32 j = 0; j < SpaceParties[i].PartyMembers.Num(); j++)
+		{
+			if (SpaceParties[i].PartyMembers[j].PC == Member)
+			{
+				SpaceParties[i].PartyMembers.RemoveAt(j);
+			}
+		}
+	}
+
+	if (bCreateEmpty)
+	{
+		int32 Rand = FMath::RandRange(0, 999999999);
+		FString pName = FString::Printf(TEXT("%i"), Rand);
+		CreateParty(Member, pName, "", "", "", "", "", "", "", "");
+	}
+
+	return;
+
 	FSpaceParty FindParty;
 	FindParty.PartyName = PartyName;
 
@@ -486,7 +527,7 @@ void AOrionGameLobby::KickPlayerFromParty(AOrionPRI *Player, const FString &Part
 
 			for (int32 i = 0; i < SpaceParties[index].PartyMembers.Num(); i++)
 			{
-				if (SpaceParties[index].PartyMembers[i].PC)
+				if (SpaceParties[index].PartyMembers[i].PC && SpaceParties[index].PartyMembers[i].PC->IsValidLowLevel())
 				{
 					AOrionPRI *aPRI = Cast<AOrionPRI>(SpaceParties[index].PartyMembers[i].PC->PlayerState);
 					if (aPRI)
@@ -505,7 +546,7 @@ void AOrionGameLobby::KickPlayerFromParty(AOrionPRI *Player, const FString &Part
 			for (int32 i = 0; i < Controllers.Num(); i++)
 			{
 				AOrionPlayerController *C = Cast<AOrionPlayerController>(Controllers[i]);
-				if (C && C->PlayerState == Player)
+				if (C && C->IsValidLowLevel() && C->PlayerState == Player)
 				{
 					int32 Rand = FMath::RandRange(0, 999999999);
 					FString pName = FString::Printf(TEXT("%i"), Rand);
@@ -579,7 +620,7 @@ void AOrionGameLobby::HandleParties()
 	{
 		for (int32 j = 0; j < SpaceParties[i].PartyMembers.Num(); j++)
 		{
-			if (SpaceParties[i].PartyMembers[j].PC)
+			if (SpaceParties[i].PartyMembers[j].PC && SpaceParties[i].PartyMembers[j].PC->IsValidLowLevel())
 			{
 				AOrionPRI *aPRI = Cast<AOrionPRI>(SpaceParties[i].PartyMembers[j].PC->PlayerState);
 				if (aPRI)
@@ -632,14 +673,14 @@ void AOrionGameLobby::InvitePlayerToLobby(AOrionPRI *Player, const FString &Part
 //update party settings
 void AOrionGameLobby::UpdatePartySettings(AOrionPlayerController *Leader, FString PartyName, FString MapName, FString Diff, FString Gamemode, FString DiffScale, FString MinILevel, FString Region, FString TOD, FString Privacy, const FString &IP, const FString &LID)
 {
-	/*FSpaceParty FindParty;
+	FSpaceParty FindParty;
 	FindParty.PartyName = PartyName;
 
 	int32 index = SpaceParties.Find(FindParty);
 
 	if (index != INDEX_NONE)
 	{
-		SpaceParties[index].PartyName = PartyName;
+		/*SpaceParties[index].PartyName = PartyName;
 		SpaceParties[index].MapName = MapName;
 		SpaceParties[index].Difficulty = Diff;
 		SpaceParties[index].GameMode = Gamemode;
@@ -647,19 +688,19 @@ void AOrionGameLobby::UpdatePartySettings(AOrionPlayerController *Leader, FStrin
 		SpaceParties[index].MinILevel = MinILevel;
 		SpaceParties[index].Region = Region;
 		SpaceParties[index].TOD = TOD;
-		SpaceParties[index].Privacy = Privacy;
+		SpaceParties[index].Privacy = Privacy;*/
 		SpaceParties[index].IP = IP;
 		SpaceParties[index].LobbyID = LID;
 
 		for (int32 i = 0; i < SpaceParties[index].PartyMembers.Num(); i++)
 		{
-			if (SpaceParties[index].PartyMembers[i].PRI)
+			if (SpaceParties[index].PartyMembers[i].PRI && SpaceParties[index].PartyMembers[i].PRI->IsValidLowLevel())
 			{
 				SpaceParties[index].PartyMembers[i].PRI->MyParty = SpaceParties[index];
 				SpaceParties[index].PartyMembers[i].PRI->CurrentPartyName = SpaceParties[index].PartyName;
 			}
 		}
-	}*/
+	}
 }
 
 

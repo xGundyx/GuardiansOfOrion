@@ -11,13 +11,13 @@ void UOrionSkillTree::SetPointValue(int32 ClassIndex, int32 Category, int32 Inde
 		switch (Index % 3)
 		{
 		case 0:
-			Skills[ClassIndex].SkillCategory1[Index / 3].Skill1.Points = Value;
+			Skills[ClassIndex].SkillCategory1[Index / 3].Skill1.Points = FMath::Min(Value, Skills[ClassIndex].SkillCategory1[Index / 3].Skill1.MaxPoints);
 			break;
 		case 1:
-			Skills[ClassIndex].SkillCategory1[Index / 3].Skill2.Points = Value;
+			Skills[ClassIndex].SkillCategory1[Index / 3].Skill2.Points = FMath::Min(Value, Skills[ClassIndex].SkillCategory1[Index / 3].Skill2.MaxPoints);
 			break;
 		case 2:
-			Skills[ClassIndex].SkillCategory1[Index / 3].Skill3.Points = Value;
+			Skills[ClassIndex].SkillCategory1[Index / 3].Skill3.Points = FMath::Min(Value, Skills[ClassIndex].SkillCategory1[Index / 3].Skill3.MaxPoints);
 			break;
 		}
 		break;
@@ -25,13 +25,13 @@ void UOrionSkillTree::SetPointValue(int32 ClassIndex, int32 Category, int32 Inde
 		switch (Index % 3)
 		{
 		case 0:
-			Skills[ClassIndex].SkillCategory2[Index / 3].Skill1.Points = Value;
+			Skills[ClassIndex].SkillCategory2[Index / 3].Skill1.Points = FMath::Min(Value, Skills[ClassIndex].SkillCategory2[Index / 3].Skill1.MaxPoints);
 			break;
 		case 1:
-			Skills[ClassIndex].SkillCategory2[Index / 3].Skill2.Points = Value;
+			Skills[ClassIndex].SkillCategory2[Index / 3].Skill2.Points = FMath::Min(Value, Skills[ClassIndex].SkillCategory2[Index / 3].Skill2.MaxPoints);
 			break;
 		case 2:
-			Skills[ClassIndex].SkillCategory2[Index / 3].Skill3.Points = Value;
+			Skills[ClassIndex].SkillCategory2[Index / 3].Skill3.Points = FMath::Min(Value, Skills[ClassIndex].SkillCategory2[Index / 3].Skill3.MaxPoints);
 			break;
 		}
 		break;
@@ -39,13 +39,13 @@ void UOrionSkillTree::SetPointValue(int32 ClassIndex, int32 Category, int32 Inde
 		switch (Index % 3)
 		{
 		case 0:
-			Skills[ClassIndex].SkillCategory3[Index / 3].Skill1.Points = Value;
+			Skills[ClassIndex].SkillCategory3[Index / 3].Skill1.Points = FMath::Min(Value, Skills[ClassIndex].SkillCategory3[Index / 3].Skill1.MaxPoints);
 			break;
 		case 1:
-			Skills[ClassIndex].SkillCategory3[Index / 3].Skill2.Points = Value;
+			Skills[ClassIndex].SkillCategory3[Index / 3].Skill2.Points = FMath::Min(Value, Skills[ClassIndex].SkillCategory3[Index / 3].Skill2.MaxPoints);
 			break;
 		case 2:
-			Skills[ClassIndex].SkillCategory3[Index / 3].Skill3.Points = Value;
+			Skills[ClassIndex].SkillCategory3[Index / 3].Skill3.Points = FMath::Min(Value, Skills[ClassIndex].SkillCategory3[Index / 3].Skill3.MaxPoints);
 			break;
 		}
 		break;
@@ -84,5 +84,5 @@ int32 UOrionSkillTree::GetPointValue(int32 ClassIndex, int32 Category, int32 Ind
 		break;
 	}
 
-	return Entry.Points;
+	return FMath::Min(Entry.MaxPoints, Entry.Points);
 }
