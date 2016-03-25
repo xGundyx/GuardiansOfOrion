@@ -693,10 +693,16 @@ public:
 		TArray<FControllerOptionsData> GetControllerOptions();
 
 	UFUNCTION(BlueprintCallable, Category = Menu)
-		FString GetBuildVersion() { return TEXT("EA1.3.0d"); }
+		FString GetBuildVersion() { return TEXT("EA1.3.3"); }
 
 	UFUNCTION(BlueprintCallable, Category = Menu)
-		FString GetLobbyVersion() { return TEXT("LOBBY1.3.0e"); }
+		FString GetLobbyVersion() { return TEXT("LOBBY1.3.3"); }
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
+		FString GetLobbyGamemode() { return TEXT("LOBBY1.3.3"); }
+
+	UFUNCTION(BlueprintCallable, Category = Menu)
+		FString GetBuildGamemode() { return TEXT("SURVIVAL1.3.3"); }
 
 	void AddXP(int32 Value, bool bAbsolute = false);
 	void DoLevelUp(int32 NewLevel);

@@ -445,6 +445,7 @@ void AOrionPRI::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & OutLife
 	DOREPLIFETIME(AOrionPRI, PlayFabName);
 	DOREPLIFETIME(AOrionPRI, UnlockedSkills);
 	DOREPLIFETIME(AOrionPRI, TeamName);
+	DOREPLIFETIME(AOrionPRI, MaxItemLevel);
 
 	//scores
 	DOREPLIFETIME(AOrionPRI, Kills);

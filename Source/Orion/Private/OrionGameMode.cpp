@@ -482,7 +482,7 @@ void AOrionGameMode::AwardXPToAllPlayers(int32 Amount, AOrionPlayerController *P
 				if (Inv && Inv->HasStat(RARESTAT_REGENENERGY) && DamageType->WeaponSlot == 2)
 				{
 					if (P && P->CurrentSkill)
-						P->CurrentSkill->SetEnergy(FMath::Min(100.0f, P->CurrentSkill->GetEnergy() + P->CurrentSkill->GetEnergy() * 0.1f));
+						P->CurrentSkill->SetEnergy(FMath::Min(100.0f, P->CurrentSkill->GetEnergy() + 10.0f));
 				}
 			}
 
@@ -1187,7 +1187,7 @@ int32 AOrionGameMode::GetEnemyItemLevel(bool bAdjusted, bool bHalved)
 		iLvl = FMath::Clamp(ItemLevel, 200, 500) + (bAdjusted ? 125 : 0);// / (bHalved ? 2 : 1);
 		break;
 	case DIFF_REDIKULOUS:
-		iLvl = FMath::Clamp(ItemLevel, 300, 600) + (bAdjusted ? 200 : 0);// / (bHalved ? 2 : 1);
+		iLvl = FMath::Clamp(ItemLevel, 300, 600) + (bAdjusted ? 175 : 0);// / (bHalved ? 2 : 1);
 		break;
 	}
 
@@ -1418,31 +1418,39 @@ void AOrionGameMode::SpawnItems(AController *Killer, AActor *Spawner, const UDam
 
 				if (Pickup)
 				{
-					int32 MinAmount = 50;
+					int32 MinAmount = 10;
 					int32 MaxAmount = 50;
 
-					switch (Difficulty)
+					if (IsSlaughter())
 					{
-					case DIFF_EASY:
-						MinAmount = 10;
-						MaxAmount = 50;
-						break;
-					case DIFF_MEDIUM:
-						MinAmount = 10;
-						MaxAmount = 50;
-						break;
-					case DIFF_HARD:
-						MinAmount = 20;
-						MaxAmount = 100;
-						break;
-					case DIFF_INSANE:
 						MinAmount = 40;
-						MaxAmount = 200;
-						break;
-					case DIFF_REDIKULOUS:
-						MinAmount = 80;
-						MaxAmount = 400;
-						break;
+						MaxAmount = 120;
+					}
+					else
+					{
+						switch (Difficulty)
+						{
+						case DIFF_EASY:
+							MinAmount = 10;
+							MaxAmount = 50;
+							break;
+						case DIFF_MEDIUM:
+							MinAmount = 10;
+							MaxAmount = 50;
+							break;
+						case DIFF_HARD:
+							MinAmount = 20;
+							MaxAmount = 100;
+							break;
+						case DIFF_INSANE:
+							MinAmount = 40;
+							MaxAmount = 200;
+							break;
+						case DIFF_REDIKULOUS:
+							MinAmount = 80;
+							MaxAmount = 400;
+							break;
+						}
 					}
 
 					Pickup->CoinAmount = (1.0f + float(PC->GetSkillValue(SKILL_GOLDHEAL)) / 100.0f) * int32(float(FMath::RandRange(MinAmount, MaxAmount)) * (1.0f + float(ItemLevel) / 100.0f));

@@ -1306,6 +1306,8 @@ public:
 	virtual void StartAiming();
 	virtual void StopAiming();
 
+	virtual void TornOff() override;
+
 	void DoMelee();
 	void UnMelee();
 	void EndMelee();

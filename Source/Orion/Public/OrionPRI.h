@@ -102,6 +102,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = RPG)
 		int32 GetCharacterLevelFromClass(FString Type);
 
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = RPG)
+		int32 MaxItemLevel;
+
 	UFUNCTION()
 		void OnRep_MyParty();
 
