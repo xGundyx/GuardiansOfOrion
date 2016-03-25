@@ -776,48 +776,48 @@ void AOrionWeapon::FireWeapon()
 		FHitResult Impact;
 
 		AOrionPlayerController *PC = Cast<AOrionPlayerController>(MyPawn->Controller);
-		if (MyPawn->CurrentSkill && MyPawn->CurrentSkill->IsThermalVisioning() && PC && PC->GetSkillValue(SKILL_THERMALPENETRATE) > 0)
+		AOrionInventoryManager *Inv = nullptr;
+		if(PC)
+			Inv = PC->GetInventoryManager();
+
+		if (InstantConfig.WeaponName == "SNIPER RIFLE" && Inv && Inv->HasStat(RARESTAT_MARKPENETRATE))
 		{
-			AOrionInventoryManager *Inv = PC->GetInventoryManager();
-			if (Inv && Inv->HasStat(RARESTAT_MARKPENETRATE))
+			FVector vStart = StartTrace;
+			int32 Counter = 0;
+			AOrionCharacter *LastHitEnemy = nullptr;
+			while (true)
 			{
-				FVector vStart = StartTrace;
-				int32 Counter = 0;
-				AOrionCharacter *LastHitEnemy = nullptr;
-				while (true)
-				{
-					Impact = WeaponPenetrateTrace(vStart, EndTrace);
-					ProcessInstantHit(Impact, vStart, ShootDir, RandomSeed, CurrentSpread);
+				Impact = WeaponPenetrateTrace(vStart, EndTrace);
+				ProcessInstantHit(Impact, vStart, ShootDir, RandomSeed, CurrentSpread);
 
-					if ((Impact.ImpactPoint - EndTrace).Size() < 1.0f)
-						break;
+				if ((Impact.ImpactPoint - EndTrace).Size() < 1.0f)
+					break;
 
-					if (Impact.ImpactPoint.Size() < 1.0f)
-						return;
+				if (Impact.ImpactPoint.Size() < 1.0f)
+					return;
 
-					FVector dir = (EndTrace - StartTrace).GetSafeNormal();
+				FVector dir = (EndTrace - StartTrace).GetSafeNormal();
 
-					if (FVector::DotProduct((EndTrace - Impact.ImpactPoint).GetSafeNormal(), dir) < 0.98f)
-						break;
+				if (FVector::DotProduct((EndTrace - Impact.ImpactPoint).GetSafeNormal(), dir) < 0.98f)
+					break;
 
-					vStart = Impact.ImpactPoint + dir * 50.0f;
+				vStart = Impact.ImpactPoint + dir * 50.0f;
 
-					if (LastHitEnemy && Impact.GetActor() == LastHitEnemy)
-						continue;
+				if (LastHitEnemy && Impact.GetActor() == LastHitEnemy)
+					continue;
 
-					LastHitEnemy = Cast<AOrionCharacter>(Impact.GetActor());
+				LastHitEnemy = Cast<AOrionCharacter>(Impact.GetActor());
 
-					Counter++;
+				Counter++;
 
-					if (Counter >= 10)
-						break;
-				}
+				if (Counter >= 10)
+					break;
 			}
-			else
-			{
-				Impact = WeaponPenetrateTrace(StartTrace, EndTrace);
-				ProcessInstantHit(Impact, StartTrace, ShootDir, RandomSeed, CurrentSpread);
-			}
+		}
+		else if (MyPawn->CurrentSkill && MyPawn->CurrentSkill->IsThermalVisioning() && PC && PC->GetSkillValue(SKILL_THERMALPENETRATE) > 0)
+		{
+			Impact = WeaponPenetrateTrace(StartTrace, EndTrace);
+			ProcessInstantHit(Impact, StartTrace, ShootDir, RandomSeed, CurrentSpread);
 		}
 		else
 		{
@@ -1727,7 +1727,7 @@ void AOrionWeapon::SpawnTrailEffect(const FVector& EndPoint)
 		if (TracerPSC)
 		{
 			TracerPSC->SetWorldScale3D((MyPawn && MyPawn->bThirdPersonCamera) ? FVector(1.0f) :FVector(1.0));
-			TracerPSC->SetFloatParameter("BulletLife", FMath::Clamp(FMath::Clamp(((Origin - EndPoint).Size() / 6000.0f), 0.05f, 1.5f) - 0.05f, 0.05f, 1.5f));
+			TracerPSC->SetFloatParameter("BulletLife", FMath::Clamp(FMath::Clamp(((Origin - EndPoint).Size() / 11000.0f), 0.05f, 1.5f) - 0.05f, 0.05f, 1.5f));
 		}
 	}
 

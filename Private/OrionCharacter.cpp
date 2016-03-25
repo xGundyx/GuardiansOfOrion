@@ -2158,6 +2158,9 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 {
 	UOrionDamageType *DamageType = Cast<UOrionDamageType>(DamageEvent.DamageTypeClass.GetDefaultObject());
 
+	//this is needed for damage that has no controller or self inflicted damage so it doesn't get applied multiple times
+	bool bSelfDamage = (EventInstigator == Controller);
+
 	if (!DamageType)
 		return 0.0f;
 
@@ -2245,6 +2248,10 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	AOrionGRI *GRI = Cast<AOrionGRI>(GetWorld()->GameState);
 	AOrionGameMode *Game = Cast<AOrionGameMode>(GetWorld()->GetAuthGameMode());
 
+	AOrionCharacter *AttackerPawn = nullptr;
+	if (EventInstigator)
+		AttackerPawn = Cast<AOrionCharacter>(EventInstigator->GetPawn());
+
 	//apply any gear related stats to this damage
 	if (PC)
 	{
@@ -2284,8 +2291,11 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 			if (Inv->HasStat(RARESTAT_BULLETDODGER) && DamageType->bIsBullet && FMath::FRand() <= 0.5f) return 0.0f;
 
 			//legendary bonuses
-			if (Inv->HasStat(RARESTAT_LARGEDINODR) && bIsBigDino) Damage *= 0.75f;
-			if (Inv->HasStat(RARESTAT_ROBOTDR) && Cast<AOrionDroidPawn>(this)) Damage *= 0.75f;
+			if (AttackerPawn)
+			{
+				if (Inv->HasStat(RARESTAT_LARGEDINODR) && AttackerPawn->bIsBigDino) Damage *= 0.75f;
+				if (Inv->HasStat(RARESTAT_ROBOTDR) && Cast<AOrionDroidPawn>(AttackerPawn)) Damage *= 0.75f;
+			}
 
 			if (Inv->HasStat(RARESTAT_KNOCKBACKIMMUNE))
 			{
@@ -2295,11 +2305,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 		}
 	}
 
-	AOrionCharacter *AttackerPawn = nullptr;
-	if (EventInstigator)
-		AttackerPawn = Cast<AOrionCharacter>(EventInstigator->GetPawn());
-
-	if (AttackerPC && AttackerPawn && AttackerPawn->GetWeapon())
+	if (!bSelfDamage && AttackerPC && AttackerPawn && AttackerPawn->GetWeapon())
 	{
 		if (AttackerPawn->GetWeapon()->InstantConfig.WeaponName == "SNIPER RIFLE")
 		{
@@ -2313,7 +2319,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 	if (Game && AttackerPawn && AttackerPawn->bIsHealableMachine)
 		Damage *= 0.1f * FMath::Pow(LEVELPOWER, FMath::Max(1, Game->GetEnemyItemLevel(true) - LEVELSYNC) / LEVELINTERVAL);
 
-	if (AttackerPC)
+	if (!bSelfDamage && AttackerPC)
 	{
 		//AOrionCharacter *AttackerPawn = Cast<AOrionCharacter>(AttackerPC->GetPawn());
 
@@ -2642,7 +2648,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 						if (Inv->HasStat(RARESTAT_EXPLODEKILLS) && DamageType->WeaponSlot == 1) Explode(AttackerPC);
 						if (Inv->HasStat(RARESTAT_KNIFEREGEN) && DamageType->bIsKnife && bFinishingMove && AttackerPawn) AttackerPawn->Health = FMath::Min(AttackerPawn->HealthMax, AttackerPawn->Health + 0.5f * AttackerPawn->HealthMax);
-						if (Inv->HasStat(RARESTAT_KNIFERELOAD) && DamageType->bIsKnife && AttackerPawn && AttackerPawn->GetWeapon()) AttackerPawn->GetWeapon()->AmmoInClip = AttackerPawn->GetWeapon()->InstantConfig.ClipSize;
+						if (Inv->HasStat(RARESTAT_KNIFERELOAD) && DamageType->bIsKnife && AttackerPawn && AttackerPawn->GetWeapon()) AttackerPawn->GetWeapon()->ReloadWeapon();// ->AmmoInClip = AttackerPawn->GetWeapon()->InstantConfig.ClipSize;
 					}
 				}
 				Die(ActualDamage, DamageEvent, EventInstigator, DamageCauser);
@@ -3207,6 +3213,14 @@ void AOrionCharacter::OnDeath(float KillingDamage, struct FDamageEvent const& Da
 	{
 		SetRagdollPhysics();
 	}
+}
+
+void AOrionCharacter::TornOff()
+{
+	Super::TornOff();
+
+	SetLifeSpan(45.f);
+	SetRagdollPhysics();
 }
 
 void AOrionCharacter::ClientEquipWeapon_Implementation(AOrionWeapon *Weapon)

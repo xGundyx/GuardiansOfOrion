@@ -408,6 +408,10 @@ void AOrionInventoryManager::EquipItems()
 	MaxItemLevel = GetMaxItemLevel();
 	PC->ClientSetMaxItemLevel(MaxItemLevel);
 
+	AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+	if (PRI)
+		PRI->MaxItemLevel = MaxItemLevel;
+
 	AOrionCharacter *Pawn = Cast<AOrionCharacter>(PC->GetPawn());
 
 	if (!Pawn)
