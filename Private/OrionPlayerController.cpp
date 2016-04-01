@@ -1605,7 +1605,7 @@ void AOrionPlayerController::TestSettings()
 }
 #endif
 
-void AOrionPlayerController::AddXP(int32 Value, bool bAbsolute)
+int32 AOrionPlayerController::AddXP(int32 Value, bool bAbsolute)
 {
 //#if IS_SERVER
 	AOrionPRI *PRI = Cast<AOrionPRI>(PlayerState);
@@ -1643,7 +1643,7 @@ void AOrionPlayerController::AddXP(int32 Value, bool bAbsolute)
 
 	//make sure stats are valid
 	if (!Stats)
-		return;
+		return Value;
 
 	if (Value > 0)
 	{
@@ -1701,6 +1701,8 @@ void AOrionPlayerController::AddXP(int32 Value, bool bAbsolute)
 			DoLevelUp(NewLevel);
 		}
 	}
+
+	return Value;
 //#endif
 }
 
@@ -3188,6 +3190,11 @@ FOptionsValueData AOrionPlayerController::GetMouseSmooth()
 	Data.Value = UOrionGameSettingsManager::GetMouseSmoothing();
 
 	return Data;
+}
+
+void AOrionPlayerController::GundySpaceLobby()
+{
+	EventCreateSpaceLobby();
 }
 
 int32 AOrionPlayerController::GetMaxLevel()

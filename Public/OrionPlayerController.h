@@ -704,7 +704,7 @@ public:
 	UFUNCTION(BlueprintCallable, Category = Menu)
 		FString GetBuildGamemode() { return TEXT("SURVIVAL1.3.3"); }
 
-	void AddXP(int32 Value, bool bAbsolute = false);
+	int32 AddXP(int32 Value, bool bAbsolute = false);
 	void DoLevelUp(int32 NewLevel);
 
 	EControllerButton ConvertControllerButtonToIndex(FString ButtonName);
@@ -1213,6 +1213,12 @@ public:
 	bool InputKey(FKey Key, EInputEvent EventType, float AmountDepressed, bool bGamepad) override;
 
 	void SendTutorialMessage(FString Title, FString Desc);
+
+	UFUNCTION(exec)
+		void GundySpaceLobby();
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "CreateSpaceLobby"))
+		void EventCreateSpaceLobby();
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "OrbMessage"))
 		void EventSetOrbMessage(const FString &Message, EOrbType Type);

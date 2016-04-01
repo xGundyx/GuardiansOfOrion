@@ -127,6 +127,11 @@ void AOrionAchievements::Init()
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("SLICER III"), TEXT("slicerthree"), TEXT("CUT OFF 500 COMPY HEADS"), ACH_COMPYSLICEIII, STAT_COMPYSLICE, 500, NULL, TEXT(""), 250));
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("SLICER IV"), TEXT("slicerfour"), TEXT("CUT OFF 1000 COMPY HEADS"), ACH_COMPYSLICEIV, STAT_COMPYSLICE, 1000, NULL, TEXT(""), 500));
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("SLICER V"), TEXT("slicerfive"), TEXT("CUT OFF 2500 COMPY HEADS"), ACH_COMPYSLICEV, STAT_COMPYSLICE, 2500, NULL, TEXT(""), 500));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("ALLO MASTER I"), TEXT("allomasterone"), TEXT("KILL 5 ALLOS"), ACH_ALLOSKILLEDI, STAT_ALLOKILL, 5, NULL, TEXT(""), 50));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("ALLO MASTER II"), TEXT("allomastertwo"), TEXT("KILL 25 ALLOS"), ACH_ALLOSKILLEDII, STAT_ALLOKILL, 25, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("ALLO MASTER III"), TEXT("allomasterthree"), TEXT("KILL 50 ALLOS"), ACH_ALLOSKILLEDIII, STAT_ALLOKILL, 50, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("ALLO MASTER IV"), TEXT("allomasterfour"), TEXT("KILL 100 ALLOS"), ACH_ALLOSKILLEDIV, STAT_ALLOKILL, 100, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("ALLO MASTER V"), TEXT("allomasterfive"), TEXT("KILL 200 ALLOS"), ACH_ALLOSKILLEDV, STAT_ALLOKILL, 200, NULL, TEXT(""), 250));
 
 	//weapon/equipment/gear
 	Achievements.Add(FAchievement(ACHCATEGORY_GEAR, TEXT("AUTO-RIFLE MASTER I"), TEXT("autoriflemasterone"), TEXT("KILL 100 ENEMIES WITH THE AUTO-RIFLE"), ACH_AUTORIFLEKILLSI, STAT_AUTORIFLEKILLS, 100, NULL, TEXT(""), 50));
@@ -269,6 +274,7 @@ void AOrionAchievements::UnlockAchievement(int32 AchID, AOrionPlayerController *
 
 	////if (PRI)
 	////	UPlayFabRequestProxy::ServerAddUserVirtualCurrency(PRI->PlayFabID, TEXT("TC"), Achievements[AchID].Coins);
+	EventAwardCurrency(PRI, Achievements[AchID].Coins);
 
 	EventSavePlayerAchievements(PC);
 
@@ -464,6 +470,7 @@ void AOrionAchievements::UpdateUnlocks()
 
 			////if (PRI)
 			////	UPlayFabRequestProxy::ServerAddUserVirtualCurrency(PRI->PlayFabID, TEXT("TC"), Achievements[i].Coins);
+			EventAwardCurrency(PRI, Achievements[i].Coins);
 
 			bUnlocked = true;
 		}
@@ -518,7 +525,8 @@ void AOrionAchievements::CheckForSlayer()
 			PCOwner->GetStats()->aStats[STAT_NAMORKILL].StatValue +
 			PCOwner->GetStats()->aStats[STAT_ORBKILL].StatValue +
 			PCOwner->GetStats()->aStats[STAT_BONESKILL].StatValue +
-			PCOwner->GetStats()->aStats[STAT_GRUMPSKILL].StatValue;
+			PCOwner->GetStats()->aStats[STAT_GRUMPSKILL].StatValue +
+			PCOwner->GetStats()->aStats[STAT_ALLOKILL].StatValue;
 
 		if (TotalKills >= 100000)
 			UnlockAchievement(ACH_DINOSLAYER, PCOwner);

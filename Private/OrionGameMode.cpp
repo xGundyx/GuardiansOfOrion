@@ -442,11 +442,11 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 			if (PC->HasOrbEffect(ORB_EXP))
 				XP *= 2;
 
-			PC->ClientAddXPNumber(XP, KilledPawn->GetActorLocation());
+			//PC->ClientAddXPNumber(XP, KilledPawn->GetActorLocation());
 		}
 
 		const UOrionDamageType *dType = Cast<UOrionDamageType>(DamageType);
-		AwardXPToAllPlayers(Dino->ExpValue * 2, PC, dType);
+		AwardXPToAllPlayers(Dino->ExpValue * 2, PC, dType, KilledPawn->GetActorLocation());
 	}
 }
 
@@ -454,7 +454,7 @@ void AOrionGameMode::PlayRandomVoiceFromPlayer(EVoiceType Type)
 {
 }
 
-void AOrionGameMode::AwardXPToAllPlayers(int32 Amount, AOrionPlayerController *PC, const UOrionDamageType *DamageType)
+void AOrionGameMode::AwardXPToAllPlayers(int32 Amount, AOrionPlayerController *PC, const UOrionDamageType *DamageType, FVector Pos)
 {
 	//all players on the team receive the same xp
 	TArray<AActor*> Controllers;
@@ -486,7 +486,10 @@ void AOrionGameMode::AwardXPToAllPlayers(int32 Amount, AOrionPlayerController *P
 				}
 			}
 
-			C->AddXP(XP);
+			if (PC == C)
+				C->ClientAddXPNumber(C->AddXP(XP), Pos);
+			else
+				C->AddXP(XP);
 		}
 	}
 }
@@ -548,6 +551,8 @@ EStatID AOrionGameMode::GetStatID(AController *KilledController, bool bVictim)
 			return bVictim ? (AI->bIsElite ? STAT_ELITEPYRODEATH : STAT_PYRODEATH) : (AI->bIsElite ? STAT_ELITEPYROKILL : STAT_PYROKILL);
 		else if (AI->AIName == TEXT("Marksman"))
 			return bVictim ? (AI->bIsElite ? STAT_ELITEMARKSMANDEATH : STAT_MARKSMANDEATH) : (AI->bIsElite ? STAT_ELITEMARKSMANKILL : STAT_MARKSMANKILL);
+		else if (AI->AIName == TEXT("Allo"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITEALLODEATH : STAT_ALLODEATH) : (AI->bIsElite ? STAT_ELITEALLOKILL : STAT_ALLOKILL);
 	}
 
 	return STAT_ERROR;

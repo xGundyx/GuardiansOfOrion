@@ -1790,6 +1790,11 @@ UAudioComponent* AOrionWeapon::PlayWeaponSound(USoundCue* Sound)
 	return AC;
 }
 
+void AOrionWeapon::ClientStopFire_Implementation()
+{
+	StopFire();
+}
+
 void AOrionWeapon::StopFire()
 {
 	if (Role < ROLE_Authority)

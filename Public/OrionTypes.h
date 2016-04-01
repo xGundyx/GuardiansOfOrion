@@ -912,7 +912,8 @@ enum ECharacterClass
 	CLASS_RECON,
 	CLASS_TECH,
 	CLASS_PYRO,
-	CLASS_MARKSMAN
+	CLASS_MARKSMAN,
+	CLASS_ROCKETEER,
 };
 
 UENUM(BlueprintType)
@@ -1630,4 +1631,57 @@ public:
 		FString LobbyID;
 
 	bool operator==(const FSpaceParty Other) const { return PartyName == Other.PartyName; }
+};
+
+UENUM(BlueprintType)
+enum EDailyQuest
+{
+	DAILY_NONE,
+	DAILY_KILLRAPTORS,
+	DAILY_KILLROBOTS,
+	DAILY_GATHERGEMS,
+	DAILY_EARNGOLD,
+	DAILY_KILLSLAUGHTER,
+	DAILY_CRAFTITEMS,
+	DAILY_WININSANE,
+	DAILY_FATALITYKILLS,
+	DAILY_GATHERDINOBONES,
+	DAILY_GATHERROBOTPARTS,
+	DAILY_BLOWLIMBSOFF,
+	DAILY_MELEEKILLS,
+	DAILY_GRENADEKILLS
+};
+
+//weekly always has no respawns, but infinite revives, no self revives
+//choose 1 positive boost and 3 negative each week
+//fight a possible boss at the end?
+//no fatalities?
+UENUM(BlueprintType)
+enum EWeeklyQuest
+{
+	WEEKLY_POSITIVE,
+
+	WEEKLY_PISTOLDOUBLEDAMAGE,
+	WEEKLY_DOUBLESHIELDHALFHEALTH,
+	WEEKLY_HARVLASER, //harv shoots his lasers even when full hp
+	WEEKLY_TRIPLEMELEEDAMAGE,
+	WEEKLY_STRONGERGRENADES,
+
+	WEEKLY_NEGATIVE,
+
+	WEEKLY_HALFHARVTIMER,
+	WEEKLY_DINOREGEN,
+	WEEKLY_SHIELDEDENEMIES,
+	WEEKLY_FASTENEMIES,
+	WEEKLY_DOUBLEENEMYDAMAGE,
+	WEEKLY_POISONINSTAKILL,
+	WEEKLY_MOREROBOTS,
+	//WEEKLY_HEALERDRONES,
+	WEEKLY_SUPERRHAMS, //rhams have triple health and deal triple damage and spawn more often
+	WEEKLY_SUPERCOMPIES, //compies deal twice as much damage and have twice as much hp
+	WEEKLY_DENSEFOG, //fog gets really thick
+	WEEKLY_SLOWERBLINKCHARGE,
+	WEEKLY_HALFHARVHEAL,
+
+	WEEKLY_NUM,
 };

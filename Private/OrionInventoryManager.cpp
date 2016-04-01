@@ -1270,6 +1270,11 @@ void AOrionInventoryManager::GetLifetimeReplicatedProps(TArray< FLifetimePropert
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, OwnerController, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, MaxItemLevel, COND_OwnerOnly);
 	//DOREPLIFETIME_CONDITION(AOrionInventoryManager, EquippedSlots, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, PreludeHats, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, CustomShaders, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, Guardians, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, CustomArmors, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, TrekCoins, COND_OwnerOnly);
 }
 
 bool AOrionInventoryManager::HasStat(ESuperRareStat Stat)
@@ -1793,6 +1798,44 @@ FRareStatsInfo AOrionInventoryManager::GetRareStat(int32 Index)
 	return RareStats.StatsInfo[Index];
 }
 
+bool AOrionInventoryManager::OwnsItem(FString ItemName, FString ItemType)
+{
+	if (ItemType == "PRELUDEHAT")
+	{
+		for (int32 i = 0; i < PreludeHats.Num(); i++)
+		{
+			if (PreludeHats[i].ItemName == ItemName)
+				return true;
+		}
+	}
+	else if (ItemType == "CUSTOMARMOR")
+	{
+		for (int32 i = 0; i < CustomArmors.Num(); i++)
+		{
+			if (CustomArmors[i].ItemName == ItemName)
+				return true;
+		}
+	}
+	else if (ItemType == "CUSTOMSHADER")
+	{
+		for (int32 i = 0; i < CustomShaders.Num(); i++)
+		{
+			if (CustomShaders[i].ItemName == ItemName)
+				return true;
+		}
+	}
+	else if (ItemType == "GUARDIAN")
+	{
+		for (int32 i = 0; i < Guardians.Num(); i++)
+		{
+			if (Guardians[i].ItemName == ItemName)
+				return true;
+		}
+	}
+
+	return false;
+}
+
 void AOrionInventoryManager::ForceAddInventoryItem(FInventoryItem Item, FString ClassName)
 {
 	//decode the weapon slot
@@ -1808,7 +1851,7 @@ void AOrionInventoryManager::ForceAddInventoryItem(FInventoryItem Item, FString 
 
 	FString cName = "";
 	FString Slot = WeaponSlot.Left(index);
-
+	 
 	if (index2 != INDEX_NONE)
 	{
 		cName = WeaponSlot.Left(index2);
@@ -1835,6 +1878,47 @@ void AOrionInventoryManager::ForceAddInventoryItem(FInventoryItem Item, FString 
 				if (InventoryClass)
 				{
 					UOrionInventoryItem *Inv = InventoryClass.GetDefaultObject();
+
+					if (Inv)
+					{
+						FInventoryItem NewItem;
+
+						NewItem.Amount = 1;
+						NewItem.ItemClass = InventoryClass;
+						NewItem.ItemName = Inv->ItemName;
+						NewItem.ItemDesc = Inv->ItemDesc;
+						NewItem.Rarity = Item.Rarity;
+						NewItem.Slot = Inv->ItemType;
+						NewItem.ItemLevel = 1;
+						NewItem.MainStat = 0;
+						NewItem.SellValue = 0;
+						NewItem.BreakdownClasses.Empty();
+						NewItem.ItemID = Item.ItemID;
+						NewItem.InstanceID = Item.InstanceID;
+						NewItem.bDirty = false;
+						NewItem.SlotIndex = Item.SlotIndex;
+
+						if (Slot == "PRELUDEHAT")
+						{
+							PreludeHats.Add(NewItem);
+							return;
+						}
+						else if (Slot == "CUSTOMARMOR")
+						{
+							CustomArmors.Add(NewItem);
+							return;
+						}
+						else if (Slot == "CUSTOMSHADER")
+						{
+							CustomShaders.Add(NewItem);
+							return;
+						}
+						else if (Slot == "GUARDIAN")
+						{
+							Guardians.Add(NewItem);
+							return;
+						}
+					}
 
 					//check and make sure values are within the limits, mainly to fix outdated gear
 					//make sure our main stat is in valid bounds
