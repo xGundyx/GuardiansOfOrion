@@ -325,6 +325,9 @@ public:
 		bool ServerStopFire_Validate();
 		void ServerStopFire_Implementation();
 
+	UFUNCTION(reliable, client)
+		void ClientStopFire();
+
 	UFUNCTION(reliable, server, WithValidation)
 		void ServerStartReload();
 		bool ServerStartReload_Validate();

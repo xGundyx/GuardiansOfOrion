@@ -48,6 +48,24 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
 		USkeletalMesh* ItemMesh1P;
 
+	//hat mesh, need to remove helmet mesh for this
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
+		UStaticMesh* HatMesh;
+
+	//hat socket
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
+		FName HatSocket;
+
+	//custom shader material
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
+		UMaterialInstance *CustomMat;
+
+	/*UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
+		float HatScale;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
+		FVector HatOffset;*/
+
 	//type of item
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Item)
 		TEnumAsByte<EItemType> ItemType;

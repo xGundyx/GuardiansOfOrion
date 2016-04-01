@@ -190,6 +190,19 @@ public:
 
 	void GetStatsFromSlot(AOrionInventoryGrid *Slot, FArrayHelper &Stats);
 
+	//store purchased display items
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
+		TArray<FInventoryItem> PreludeHats;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
+		TArray<FInventoryItem> CustomShaders;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
+		TArray<FInventoryItem> Guardians;
+
+	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
+		TArray<FInventoryItem> CustomArmors;
+
 	//2 dimensional inventory grid representation
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
 		AOrionInventoryGrid *Grid;
@@ -256,8 +269,14 @@ public:
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = Inventory)
 		int32 Money;
 
+	UPROPERTY(Replicated, BlueprintReadWrite, Category = Inventory)
+		int32 TrekCoins;
+
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		void GiveMoney(int32 Amount);
+
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		bool OwnsItem(FString ItemName, FString ItemType);
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		int32 AddItemToInventory(AOrionInventoryGrid *theGrid, FInventoryItem newItem, int32 Index = -1);

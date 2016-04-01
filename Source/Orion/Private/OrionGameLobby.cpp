@@ -81,6 +81,33 @@ AOrionGameLobby::AOrionGameLobby(const FObjectInitializer& ObjectInitializer)
 	InactivePlayerStateLifeSpan = 0.1f;
 }
 
+AActor* AOrionGameLobby::FindPlayerStart_Implementation(AController* Player, const FString& IncomingName)
+{
+	//populate our spawn points
+	if (SpawnPoints.Num() == 0)
+	{
+		for (TActorIterator<APlayerStart> Itr(GetWorld()); Itr; ++Itr)
+		{
+			SpawnPoints.Add(*Itr);
+		}
+	}
+
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Player);
+	if (!PC)
+		return nullptr;
+
+	AOrionPRI *PRI = Cast<AOrionPRI>(PC->PlayerState);
+
+	if (!PRI)
+		return nullptr;
+
+	//choose a random spawn point from our list
+	if (SpawnPoints.Num() > 0)
+		return SpawnPoints[FMath::RandRange(0, SpawnPoints.Num() - 1)];
+
+	return nullptr;
+}
+
 void AOrionGameLobby::HandleEmptyServer(AController *Exiting)
 {
 	//if there are 0 players left after this player leaves, close the server

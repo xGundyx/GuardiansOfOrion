@@ -57,7 +57,7 @@ public:
 	//keep track of the enemies we have yet to spawn
 	int32 SpawnTypes[SPAWN_NUM];
 
-	void AwardXPToAllPlayers(int32 Amount, AOrionPlayerController *PC, const UOrionDamageType *DamageType);
+	void AwardXPToAllPlayers(int32 Amount, AOrionPlayerController *PC, const UOrionDamageType *DamageType, FVector Pos);
 
 	virtual int32 GetEnemyItemLevel(bool bAdjusted, bool bHalved = false);
 

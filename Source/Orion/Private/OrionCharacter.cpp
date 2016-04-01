@@ -2608,7 +2608,7 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 
 				//can only use pistol when downed
 				if(CurrentWeapon)
-					CurrentWeapon->StopFire();
+					CurrentWeapon->ClientStopFire();
 
 				EquipWeaponFromSlot(2);
 				bRun = false;
@@ -3970,7 +3970,7 @@ void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAni
 		{
 			if (TheVictim->CurrentWeapon->InstantConfig.bSingleShellReload)
 				TheVictim->CurrentWeapon->CancelReload();
-			TheVictim->CurrentWeapon->StopFire();
+			TheVictim->CurrentWeapon->ClientStopFire();
 		}
 
 		TheVictim->StopAllAnimMontages();

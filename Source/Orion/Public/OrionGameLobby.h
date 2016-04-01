@@ -24,6 +24,9 @@ public:
 	virtual void SetSpawnTimer() override;
 	virtual void HandleEmptyServer(AController *Exiting = nullptr) override;
 	virtual FString InitNewPlayer(class APlayerController* NewPlayerController, const TSharedPtr<const FUniqueNetId>& UniqueId, const FString& Options, const FString& Portal) override;
+	AActor* FindPlayerStart_Implementation(AController* Player, const FString& IncomingName = TEXT("")) override;
+
+	TArray<AActor*> SpawnPoints;
 
 	FTimerHandle EmptyServerTimer;
 

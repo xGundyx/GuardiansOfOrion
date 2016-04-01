@@ -119,7 +119,7 @@ void AOrionRandomWaveSpawner::BeginPlay()
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//recon
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//tech
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//demo
-		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//allo
+		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Allo.bot_Allo'")));//allo
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Raptor.bot_Raptor'")));//para
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Dinosaurs/Blueprints/bot_Steg.bot_Steg'")));//steg
 		SpawnClasses.Add(GetBlueprintFromPath(TEXT("Blueprint'/Game/Bots/Blueprints/GrumpsBot.GrumpsBot'")));//grumps

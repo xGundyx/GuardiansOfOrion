@@ -125,6 +125,11 @@ enum EAchievementID
 	ACH_COMPYSLICEIII,
 	ACH_COMPYSLICEIV,
 	ACH_COMPYSLICEV,
+	ACH_ALLOSKILLEDI,
+	ACH_ALLOSKILLEDII,
+	ACH_ALLOSKILLEDIII,
+	ACH_ALLOSKILLEDIV,
+	ACH_ALLOSKILLEDV,
 
 	//equipment/weapons
 	ACH_AUTORIFLEKILLSI,
@@ -346,6 +351,9 @@ public:
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Save Player Achievements to Playfab"))
 		void EventSavePlayerAchievements(AOrionPlayerController* PC);
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "Award Currency"))
+		void EventAwardCurrency(AOrionPRI *PRI, int32 Amount);
 
 	void CheckForLevelUnlocks(int32 NewLevel, AOrionPlayerController *PC);
 	void CheckForStatUnlocks();
