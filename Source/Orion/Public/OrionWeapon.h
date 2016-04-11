@@ -435,6 +435,11 @@ public:
 
 	virtual void FireProjectile(FName SocketName, FVector Direction);
 
+	UFUNCTION(server, reliable, WithValidation)
+		void ServerFireProjectile(FName SocketName, FVector Direction);
+		bool ServerFireProjectile_Validate(FName SocketName, FVector Direction) { return true; }
+		void ServerFireProjectile_Implementation(FName SocketName, FVector Direction);
+
 	virtual FVector GetBarrelLocation(FName SocketName);
 
 	FVector GetAdjustedAim() const;

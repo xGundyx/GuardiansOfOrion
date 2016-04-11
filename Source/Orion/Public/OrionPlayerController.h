@@ -442,7 +442,7 @@ public:
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ToggleHUD"))
 		void EventToggleHUD();
 
-	UFUNCTION(client, reliable)
+	UFUNCTION(BlueprintCallable, client, reliable, Category = Inventory)
 		void ClientItemAddedToInventory(FInventoryItem Item, bool bSuccess);
 
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ItemAddedToInventory"))
@@ -693,16 +693,16 @@ public:
 		TArray<FControllerOptionsData> GetControllerOptions();
 
 	UFUNCTION(BlueprintCallable, Category = Menu)
-		FString GetBuildVersion() { return TEXT("EA1.3.3"); }
+		FString GetBuildVersion() { return TEXT("EA1.3.4"); }
 
 	UFUNCTION(BlueprintCallable, Category = Menu)
-		FString GetLobbyVersion() { return TEXT("LOBBY1.3.3"); }
+		FString GetLobbyVersion() { return TEXT("LOBBY1.3.4"); }
 
 	UFUNCTION(BlueprintCallable, Category = Menu)
-		FString GetLobbyGamemode() { return TEXT("LOBBY1.3.3"); }
+		FString GetLobbyGamemode() { return TEXT("LOBBY1.3.4"); }
 
 	UFUNCTION(BlueprintCallable, Category = Menu)
-		FString GetBuildGamemode() { return TEXT("SURVIVAL1.3.3"); }
+		FString GetBuildGamemode() { return TEXT("SURVIVAL1.3.4"); }
 
 	int32 AddXP(int32 Value, bool bAbsolute = false);
 	void DoLevelUp(int32 NewLevel);

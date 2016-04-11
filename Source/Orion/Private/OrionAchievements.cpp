@@ -48,6 +48,11 @@ void AOrionAchievements::Init()
 	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("MARKSMAN III"), TEXT("marksmanthree"), TEXT("REACH LEVEL 30 WITH MARKSMAN"), ACH_MARKSMANLEVEL30, -1, 1, NULL, TEXT(""), 100));
 	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("MARKSMAN IV"), TEXT("marksmanfour"), TEXT("REACH LEVEL 40 WITH MARKSMAN"), ACH_MARKSMANLEVEL40, -1, 1, NULL, TEXT(""), 100));
 	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("MARKSMAN V"), TEXT("marksmanfive"), TEXT("REACH LEVEL 50 WITH MARKSMAN"), ACH_MARKSMANLEVEL50, -1, 1, NULL, TEXT(""), 250));
+	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("ROCKETEER I"), TEXT("rocketeerone"), TEXT("REACH LEVEL 10 WITH ROCKETEER"), ACH_ROCKETEERLEVEL10, -1, 1, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("ROCKETEER II"), TEXT("rocketeertwo"), TEXT("REACH LEVEL 20 WITH ROCKETEER"), ACH_ROCKETEERLEVEL20, -1, 1, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("ROCKETEER III"), TEXT("rocketeerthree"), TEXT("REACH LEVEL 30 WITH ROCKETEER"), ACH_ROCKETEERLEVEL30, -1, 1, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("ROCKETEER IV"), TEXT("rocketeerfour"), TEXT("REACH LEVEL 40 WITH ROCKETEER"), ACH_ROCKETEERLEVEL40, -1, 1, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("ROCKETEER V"), TEXT("rocketeerfive"), TEXT("REACH LEVEL 50 WITH ROCKETEER"), ACH_ROCKETEERLEVEL50, -1, 1, NULL, TEXT(""), 250));
 	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("REACHING THE SKY"), TEXT("reachingthesky"), TEXT("REACH LEVEL 50 WITH ANY CLASS"), ACH_LEVEL50I, -1, 1, NULL, TEXT(""), 500));
 	Achievements.Add(FAchievement(ACHCATEGORY_CHARACTERS, TEXT("REACHING OVER THE SKY"), TEXT("reachingoverthesky"), TEXT("REACH LEVEL 50 WITH 5 CLASSES"), ACH_LEVEL50II, -1, 1, NULL, TEXT(""), 2500));
 	
@@ -127,6 +132,16 @@ void AOrionAchievements::Init()
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("SLICER III"), TEXT("slicerthree"), TEXT("CUT OFF 500 COMPY HEADS"), ACH_COMPYSLICEIII, STAT_COMPYSLICE, 500, NULL, TEXT(""), 250));
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("SLICER IV"), TEXT("slicerfour"), TEXT("CUT OFF 1000 COMPY HEADS"), ACH_COMPYSLICEIV, STAT_COMPYSLICE, 1000, NULL, TEXT(""), 500));
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("SLICER V"), TEXT("slicerfive"), TEXT("CUT OFF 2500 COMPY HEADS"), ACH_COMPYSLICEV, STAT_COMPYSLICE, 2500, NULL, TEXT(""), 500));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("SCALPER I"), TEXT("scalperone"), TEXT("SMASH 10 RAPTOR HEADS"), ACH_RAPTORSTABI, STAT_RAPTORSTAB, 10, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("SCALPER II"), TEXT("scalpertwo"), TEXT("SMASH 100 RAPTOR HEADS"), ACH_RAPTORSTABII, STAT_RAPTORSTAB, 100, NULL, TEXT(""), 250));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("SCALPER III"), TEXT("scalperthree"), TEXT("SMASH 500 RAPTOR HEADS"), ACH_RAPTORSTABIII, STAT_RAPTORSTAB, 500, NULL, TEXT(""), 250));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("SCALPER IV"), TEXT("scalperfour"), TEXT("SMASH 1000 RAPTOR HEADS"), ACH_RAPTORSTABIV, STAT_RAPTORSTAB, 1000, NULL, TEXT(""), 500));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("SCALPER V"), TEXT("scalperfive"), TEXT("SMASH 2500 RAPTOR HEADS"), ACH_RAPTORSTABV, STAT_RAPTORSTAB, 2500, NULL, TEXT(""), 500));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("DINO HUGGER I"), TEXT("dinohuggerone"), TEXT("SLIT 5 DILO THROATS"), ACH_DILOHUGI, STAT_DILOHUG, 5, NULL, TEXT(""), 100));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("DINO HUGGER II"), TEXT("dinohuggertwo"), TEXT("SLIT 10 DILO THROATS"), ACH_DILOHUGII, STAT_DILOHUG, 10, NULL, TEXT(""), 250));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("DINO HUGGER III"), TEXT("dinohuggerthree"), TEXT("SLIT 50 DILO THROATS"), ACH_DILOHUGIII, STAT_DILOHUG, 50, NULL, TEXT(""), 250));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("DINO HUGGER IV"), TEXT("dinohuggerfour"), TEXT("SLIT 100 DILO THROATS"), ACH_DILOHUGIV, STAT_DILOHUG, 100, NULL, TEXT(""), 500));
+	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("DINO HUGGER V"), TEXT("dinohuggerfive"), TEXT("SLIT 250 DILO THROATS"), ACH_DILOHUGV, STAT_DILOHUG, 250, NULL, TEXT(""), 500));
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("ALLO MASTER I"), TEXT("allomasterone"), TEXT("KILL 5 ALLOS"), ACH_ALLOSKILLEDI, STAT_ALLOKILL, 5, NULL, TEXT(""), 50));
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("ALLO MASTER II"), TEXT("allomastertwo"), TEXT("KILL 25 ALLOS"), ACH_ALLOSKILLEDII, STAT_ALLOKILL, 25, NULL, TEXT(""), 100));
 	Achievements.Add(FAchievement(ACHCATEGORY_COMBAT, TEXT("ALLO MASTER III"), TEXT("allomasterthree"), TEXT("KILL 50 ALLOS"), ACH_ALLOSKILLEDIII, STAT_ALLOKILL, 50, NULL, TEXT(""), 100));
@@ -412,6 +427,18 @@ void AOrionAchievements::CheckForLevelUnlocks(int32 NewLevel, AOrionPlayerContro
 		if (NewLevel >= 50)
 			UnlockAchievement(ACH_MARKSMANLEVEL50, PC);
 		break;
+	case 6:
+		if (NewLevel >= 10)
+			UnlockAchievement(ACH_ROCKETEERLEVEL10, PC);
+		if (NewLevel >= 20)
+			UnlockAchievement(ACH_ROCKETEERLEVEL20, PC);
+		if (NewLevel >= 30)
+			UnlockAchievement(ACH_ROCKETEERLEVEL30, PC);
+		if (NewLevel >= 40)
+			UnlockAchievement(ACH_ROCKETEERLEVEL40, PC);
+		if (NewLevel >= 50)
+			UnlockAchievement(ACH_ROCKETEERLEVEL50, PC);
+		break;
 	}
 
 	//check how many level 50s we have
@@ -425,6 +452,7 @@ void AOrionAchievements::CheckForLevelUnlocks(int32 NewLevel, AOrionPlayerContro
 		if (CalculateLevel(Stats->aStats[STAT_TECHEXP].StatValue) >= 50) Num50++;
 		if (CalculateLevel(Stats->aStats[STAT_PYROEXP].StatValue) >= 50) Num50++;
 		if (CalculateLevel(Stats->aStats[STAT_MARKSMANEXP].StatValue) >= 50) Num50++;
+		if (CalculateLevel(Stats->aStats[STAT_ROCKETEEREXP].StatValue) >= 50) Num50++;
 
 		if (Num50 >= 1) UnlockAchievement(ACH_LEVEL50I, PCOwner);
 		if (Num50 >= 5) UnlockAchievement(ACH_LEVEL50II, PCOwner);

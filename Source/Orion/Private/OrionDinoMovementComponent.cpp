@@ -25,7 +25,7 @@ void UOrionDinoMovementComponent::TickComponent(float DeltaTime, enum ELevelTick
 void UOrionDinoMovementComponent::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
 {
 	// Do not update velocity when using root motion
-	if (!HasValidData() || HasRootMotion() || DeltaTime < MIN_TICK_TIME)
+	if (!HasValidData() || HasAnimRootMotion() || DeltaTime < MIN_TICK_TIME)
 	{
 		return;
 	}

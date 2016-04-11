@@ -395,6 +395,18 @@ struct FDirectionalAnim
 		UAnimMontage* Right;
 };
 
+USTRUCT(BlueprintType)
+struct FHatHelper
+{
+	GENERATED_BODY();
+
+	UPROPERTY(BlueprintReadOnly, Category = Hat)
+		UStaticMesh *HatMesh;
+
+	UPROPERTY(BlueprintReadOnly, Category = Hat)
+		FString SocketName;
+};
+
 UCLASS(BlueprintType, Blueprintable, config = Game)
 class ORION_API AOrionCharacter : public ACharacter
 {
@@ -468,6 +480,26 @@ public:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Health)
 		uint32 bIsDying : 1;
+
+	void UpdateCosmetics();
+
+	UFUNCTION()
+		void OnRep_HatMesh();
+
+	UPROPERTY(ReplicatedUsing = OnRep_HatMesh, BlueprintReadWrite, Category = Cosmetic)
+		FHatHelper HatMesh;
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SetHatMesh"))
+		void EventSetHatMesh(FHatHelper newMesh) const;
+
+	UFUNCTION()
+		void OnRep_CharacterShader();
+
+	UPROPERTY(ReplicatedUsing = OnRep_CharacterShader, BlueprintReadWrite, Category = Cosmetic)
+		UMaterialInstance *CharacterShader;
+
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SetCharacterShader"))
+		void EventSetCharacterShader(UMaterialInstance *newMat) const;
 
 	UFUNCTION(BlueprintCallable, Category = "Game|Weapon")
 		class AOrionWeapon* GetWeapon() const;
@@ -641,7 +673,7 @@ public:
 	
 	void ResetFatality();
 
-	bool CheckForCompySlice();
+	bool CheckForCompySlice(FName SocketName, FString DinoType);
 
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = Fatality)
 		AOrionCharacter *FatalityVictim;
@@ -731,9 +763,9 @@ public:
 	FVector CameraTargetISO;
 
 	UFUNCTION(Reliable, server, WithValidation)
-		void ServerCompySlice(AOrionCharacter *Target);
-		bool ServerCompySlice_Validate(AOrionCharacter *Target) { return true; }
-		void ServerCompySlice_Implementation(AOrionCharacter *Target);
+		void ServerCompySlice(AOrionCharacter *Target, FName SocketName, const FString& DinoType);
+		bool ServerCompySlice_Validate(AOrionCharacter *Target, FName SocketName, const FString& DinoType) { return true; }
+		void ServerCompySlice_Implementation(AOrionCharacter *Target, FName SocketName, const FString& DinoType);
 
 	UFUNCTION(Reliable, server, WithValidation)
 		void ServerDuck(bool bNewDuck);
@@ -814,6 +846,18 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Compy)
 		UAnimMontage* CompySliceAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Compy)
+		UAnimMontage* PlayerScalpAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Compy)
+		UAnimMontage* RaptorScalpAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Compy)
+		UAnimMontage* PlayerHugAnim;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Compy)
+		UAnimMontage* DiloHugAnim;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
 		UAnimMontage* DeathAnim;
@@ -1442,7 +1486,8 @@ public:
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Skill)
 		UMaterialInstance *CloakParent;
 
-	virtual void InitMaterials();
+	UFUNCTION(BlueprintCallable, Category = Character)
+		virtual void InitMaterials();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Awareness)
 		 UPawnSensingComponent *PawnSensor;

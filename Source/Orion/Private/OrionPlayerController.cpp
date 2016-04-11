@@ -922,6 +922,10 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 				PRI->ClassType = TEXT("MARKSMAN");
 				PRI->CharacterClass = TEXT("MARKSMAN");
 				break;
+			case 6:
+				PRI->ClassType = TEXT("ROCKETEER");
+				PRI->CharacterClass = TEXT("ROCKETEER");
+				break;
 			default:
 				PRI->ClassType = TEXT("NONE");
 				PRI->CharacterClass = TEXT("NONE");
@@ -943,6 +947,8 @@ void AOrionPlayerController::Possess(APawn* aPawn)
 
 			PRI->InventoryManager->UpdateEquippedSlots();
 			PRI->InventoryManager->EquipItems();
+
+			newPawn->UpdateCosmetics();
 		}
 	}
 }
@@ -989,6 +995,8 @@ int32 AOrionPlayerController::GetClassIndex()
 		return 4;
 	else if (ClassType == TEXT("MARKSMAN"))
 		return 5;
+	else if (ClassType == TEXT("ROCKETEER"))
+		return 6;
 
 	return 0;
 }
@@ -1510,6 +1518,8 @@ void AOrionPlayerController::SendPlayerInfoToPhoton()
 				Level = CalculateLevel(PRI->PyroXP);
 			else if (GI->CharacterClass == TEXT("MARKSMAN"))
 				Level = CalculateLevel(PRI->MarksmanXP);
+			else if (GI->CharacterClass == TEXT("ROCKETEER"))
+				Level = CalculateLevel(PRI->RocketeerXP);
 
 			//FString strLevel = FString::Printf(TEXT("%i"),Level);
 
@@ -1691,6 +1701,13 @@ int32 AOrionPlayerController::AddXP(int32 Value, bool bAbsolute)
 			Stats->AddStatValue(STAT_MARKSMANEXP, Value);
 			PRI->MarksmanXP = Stats->aStats[STAT_MARKSMANEXP].StatValue;
 			NewCharacterXP = Stats->aStats[STAT_MARKSMANEXP].StatValue;
+		}
+		else if (ClassIndex == 6)
+		{
+			OldCharacterXP = Stats->aStats[STAT_ROCKETEEREXP].StatValue;
+			Stats->AddStatValue(STAT_ROCKETEEREXP, Value);
+			PRI->RocketeerXP = Stats->aStats[STAT_ROCKETEEREXP].StatValue;
+			NewCharacterXP = Stats->aStats[STAT_ROCKETEEREXP].StatValue;
 		}
 
 		int32 OldLevel = CalculateLevel(OldCharacterXP);
@@ -2229,9 +2246,9 @@ TArray<FOptionsData> AOrionPlayerController::GetVideoOptions(bool Basic)
 		NewOption.Value = NewOption.Options[Settings->ScalabilityQuality.PostProcessQuality];
 		Options.Add(NewOption);
 
-		NewOption.Title = TEXT("RESOLUTION QUALITY");
-		NewOption.Value = NewOption.Options[Settings->ScalabilityQuality.ResolutionQuality >= 100 ? 3 : (Settings->ScalabilityQuality.ResolutionQuality >= 90 ? 2 : (Settings->ScalabilityQuality.ResolutionQuality >= 75 ? 1 : 0))];
-		Options.Add(NewOption);
+		////NewOption.Title = TEXT("RESOLUTION QUALITY");
+		////NewOption.Value = NewOption.Options[Settings->ScalabilityQuality.ResolutionQuality >= 100 ? 3 : (Settings->ScalabilityQuality.ResolutionQuality >= 90 ? 2 : (Settings->ScalabilityQuality.ResolutionQuality >= 75 ? 1 : 0))];
+		////Options.Add(NewOption);
 
 		NewOption.Title = TEXT("SHADOW QUALITY");
 		NewOption.Value = NewOption.Options[Settings->ScalabilityQuality.ShadowQuality];
@@ -2392,7 +2409,7 @@ bool AOrionPlayerController::CreateGameFile(FString Slot)
 
 				TArray<FSavedCharacterData> CharacterData;
 
-				for (int32 i = 0; i < 6; i++)
+				for (int32 i = 0; i < 7; i++)
 				{
 					FSavedCharacterData Data;
 
@@ -2489,6 +2506,12 @@ void AOrionPlayerController::LoadGameFromFile(FString Slot)
 			PRI->ClassType = SavedGame->CharacterClass;
 			PRI->CharacterClass = SavedGame->CharacterClass;
 		}
+		else if (SavedGame->CharacterClass == "ROCKETEER")
+		{
+			ClassIndex = 6;
+			PRI->ClassType = SavedGame->CharacterClass;
+			PRI->CharacterClass = SavedGame->CharacterClass;
+		}
 		else
 		{
 			ClassIndex = 0;
@@ -2560,6 +2583,9 @@ void AOrionPlayerController::SaveGameToFile(FString Slot)
 		case 5:
 			SavedGame->CharacterClass = TEXT("MARKSMAN");
 			break;
+		case 6:
+			SavedGame->CharacterClass = TEXT("ROCKETEER");
+			break;
 		default:
 			SavedGame->CharacterClass = TEXT("ASSAULT");
 			break;
@@ -2623,6 +2649,9 @@ void AOrionPlayerController::SaveGameToFile(FString Slot)
 					case CLASS_MARKSMAN:
 						Level = CalculateLevel(PRI->MarksmanXP);
 						break;
+					case CLASS_ROCKETEER:
+						Level = CalculateLevel(PRI->RocketeerXP);
+						break;
 					};
 				}
 
@@ -2682,6 +2711,7 @@ TArray<FString> AOrionPlayerController::GetCharacters()
 	Characters.Add(TEXT("TECH"));
 	Characters.Add(TEXT("PYRO"));
 	Characters.Add(TEXT("MARKSMAN"));
+	Characters.Add(TEXT("ROCKETEER"));
 
 	return Characters;
 }
@@ -3211,6 +3241,7 @@ int32 AOrionPlayerController::GetMaxLevel()
 		XP = FMath::Max(XP, PRI->TechXP);
 		XP = FMath::Max(XP, PRI->PyroXP);
 		XP = FMath::Max(XP, PRI->MarksmanXP);
+		XP = FMath::Max(XP, PRI->RocketeerXP);
 	}
 
 	return CalculateLevel(XP);

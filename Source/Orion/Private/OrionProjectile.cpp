@@ -18,8 +18,8 @@ AOrionProjectile::AOrionProjectile(const FObjectInitializer& ObjectInitializer)
 	// Use a ProjectileMovementComponent to govern this projectile's movement
 	ProjectileMovement = ObjectInitializer.CreateDefaultSubobject<UProjectileMovementComponent>(this, TEXT("ProjectileComp"));
 	ProjectileMovement->UpdatedComponent = CollisionComp;
-	ProjectileMovement->InitialSpeed = 5000.f;
-	ProjectileMovement->MaxSpeed = 5000.f;
+	ProjectileMovement->InitialSpeed = 3000.f;
+	ProjectileMovement->MaxSpeed = 3000.f;
 	ProjectileMovement->bRotationFollowsVelocity = true;
 	ProjectileMovement->bShouldBounce = false;
 	ProjectileMovement->ProjectileGravityScale = 0.0f;
@@ -48,6 +48,9 @@ void AOrionProjectile::Tick(float DeltaTime)
 
 void AOrionProjectile::ValidatePosition()
 {
+	if (Role < ROLE_Authority)
+		return;
+
 	if (!bAlwaysMoving && TargetDir.SizeSquared() <= 0.1f)
 		return;
 
@@ -111,7 +114,7 @@ void AOrionProjectile::OnHit(AActor* OtherActor, UPrimitiveComponent* OtherComp,
 
 	EventHandleImpact(OtherActor, Hit);
 
-	Destroy();
+	//Destroy();
 }
 
 void AOrionProjectile::OnRep_Velocity()

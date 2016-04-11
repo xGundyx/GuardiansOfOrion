@@ -193,9 +193,9 @@ void AOrionRandomWaveSpawner::SpawnWave(int32 TypesToSpawn[SPAWN_NUM], AActor *F
 				}
 			}
 
-			TSharedPtr<const FNavigationQueryFilter> QueryFilter = UNavigationQueryFilter::GetQueryFilter(GetWorld()->GetNavigationSystem()->MainNavData, DefaultFilterClass);
+			FSharedConstNavQueryFilter QueryFilter = UNavigationQueryFilter::GetQueryFilter(GetWorld()->GetNavigationSystem()->MainNavData, DefaultFilterClass);
 
-			if (!GetWorld()->GetNavigationSystem()->TestPathSync(FPathFindingQuery(nullptr, GetWorld()->GetNavigationSystem()->MainNavData, vStart, Loc, QueryFilter)))
+			if (!GetWorld()->GetNavigationSystem()->TestPathSync(FPathFindingQuery(nullptr, *GetWorld()->GetNavigationSystem()->MainNavData, vStart, Loc, QueryFilter)))
 			{
 				Game->SpawnTypes[i]++;
 				continue;

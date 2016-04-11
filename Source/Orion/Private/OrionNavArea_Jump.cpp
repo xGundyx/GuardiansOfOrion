@@ -6,7 +6,7 @@
 UOrionNavArea_Jump::UOrionNavArea_Jump(const FObjectInitializer& ObjectInitializer)
 	:Super(ObjectInitializer)
 {
-	FNavAreaHelper::Set(AreaFlags, ENavAreaFlag::Jump);
+	//FNavAreaHelper::Set(AreaFlags, ENavAreaFlag::Jump);
 }
 
 

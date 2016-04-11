@@ -5,7 +5,7 @@
 #include "AI/Navigation/NavAreas/NavArea.h"
 #include "OrionNavArea_Jump.generated.h"
 
-UENUM()
+/*UENUM()
 namespace ENavAreaFlag
 {
 	// up to 15 values
@@ -24,7 +24,7 @@ namespace FNavAreaHelper
 
 	FORCEINLINE bool IsNavLink(const FNavPathPoint& PathVert) { return (FNavMeshNodeFlags(PathVert.Flags).PathFlags & RECAST_STRAIGHTPATH_OFFMESH_CONNECTION) != 0; }
 	FORCEINLINE bool HasJumpFlag(const FNavPathPoint& PathVert) { return     IsSet(FNavMeshNodeFlags(PathVert.Flags).AreaFlags, ENavAreaFlag::Jump); }
-}
+}*/
 
 /**
  * 
