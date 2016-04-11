@@ -103,6 +103,8 @@ AOrionStats::AOrionStats(const FObjectInitializer& ObjectInitializer)
 	aStats.Add(FPlayerStats(STAT_SUMMITWINS, TEXT("SummitWins"), TEXT("SUMMIT WINS")));
 	aStats.Add(FPlayerStats(STAT_WHITEOUTLOSSES, TEXT("WhiteOutLosses"), TEXT("WHITEOUT LOSSES")));
 	aStats.Add(FPlayerStats(STAT_WHITEOUTWINS, TEXT("WhiteOutWins"), TEXT("WHITEOUT WINS")));
+	aStats.Add(FPlayerStats(STAT_HAVENLOSSES, TEXT("HavenLosses"), TEXT("HAVEN LOSSES")));
+	aStats.Add(FPlayerStats(STAT_HAVENWINS, TEXT("HavenWins"), TEXT("HAVEN WINS")));
 
 	aStats.Add(FPlayerStats(STAT_SUPPORTEXP, TEXT("SupportExp"), TEXT("")));
 	aStats.Add(FPlayerStats(STAT_ASSAULTEXP, TEXT("AssaultExp"), TEXT("")));

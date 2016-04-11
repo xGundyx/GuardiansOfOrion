@@ -104,6 +104,8 @@ FOrionGameplaySettings UOrionGameSettingsManager::GetGameplaySettings()
 	OutGameplay.AchievementNotify = Settings->AchievementNotifiesEnabled;
 	OutGameplay.Rumble = Settings->ControllerRumbleEnabled;
 	OutGameplay.ThirdPerson = Settings->ThirdPersonEnabled;
+	OutGameplay.ShowSillyHats = Settings->ShowSillyHats;
+	OutGameplay.ShowCustomShaders = Settings->ShowCustomShaders;
 
 	return OutGameplay;
 }
@@ -118,6 +120,9 @@ void UOrionGameSettingsManager::SetGameplaySettings(FOrionGameplaySettings InSet
 	Settings->AchievementNotifiesEnabled = InSettings.AchievementNotify;
 	Settings->ControllerRumbleEnabled = InSettings.Rumble;
 	Settings->ThirdPersonEnabled = InSettings.ThirdPerson;
+	Settings->ShowSillyHats = InSettings.ShowSillyHats;
+	Settings->ShowCustomShaders = InSettings.ShowCustomShaders;
+
 
 	if (Settings)
 		Settings->SaveConfig();

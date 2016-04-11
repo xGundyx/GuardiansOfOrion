@@ -25,6 +25,12 @@ struct FOrionGameplaySettings
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay Settings")
 		bool ThirdPerson;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay Settings")
+		bool ShowSillyHats;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Gameplay Settings")
+		bool ShowCustomShaders;
 };
 
 USTRUCT(BlueprintType)
