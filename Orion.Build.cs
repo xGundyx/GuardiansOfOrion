@@ -7,7 +7,7 @@ public class Orion : ModuleRules
 {
     private string ModulePath
     {
-        get { return Path.GetDirectoryName(RulesCompiler.GetModuleFilename(this.GetType().Name)); }
+        get { return Path.GetDirectoryName(RulesCompiler.GetFileNameFromType(GetType())); }
     }
 
     private string ThirdPartyPath
@@ -22,7 +22,7 @@ public class Orion : ModuleRules
         {
             PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "InputCore", "RHI", "RenderCore", "OnlineSubsystem", "ShaderCore", "Slate", "SlateCore", 
                 "UMG", "Sockets", "Networking", "Json", "JsonUtilities", /*"OrionVoxel", */"UnrealEd", "ProceduralMeshComponent", "PlayFab", "PhotonClient", "Steamworks","OnlineSubsystemSteam", "Landscape",
-                "OnlineSubsystemUtils", "MoviePlayer", "EngineSettings"
+                "OnlineSubsystemUtils", "MoviePlayer", "EngineSettings", "MediaAssets"
             });
 
            // DynamicallyLoadedModuleNames.Add("OnlineSubsystemSteam");
@@ -31,7 +31,7 @@ public class Orion : ModuleRules
         {
             PublicDependencyModuleNames.AddRange(new string[] { "AIModule", "Core", "CoreUObject", "Engine", "InputCore", /*"RHI", "RenderCore",*/ "OnlineSubsystem", "ShaderCore", /*"Slate", "SlateCore", */
              "UMG", /*"Sockets", "Networking",*/ "Json", "JsonUtilities", /*"OrionVoxel",*//* "UnrealEd",*/ "ProceduralMeshComponent", "PlayFab", "PhotonClient","Steamworks", "OnlineSubsystemSteam", "Landscape",
-             "PlayFab", "OnlineSubsystemUtils", "MoviePlayer", "EngineSettings"
+             "PlayFab", "OnlineSubsystemUtils", "MoviePlayer", "EngineSettings", "MediaAssets"
             });
 
           //  DynamicallyLoadedModuleNames.Add("OnlineSubsystemSteam");

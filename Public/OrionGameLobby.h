@@ -9,6 +9,25 @@
 /**
  * 
  */
+
+USTRUCT(BlueprintType)
+struct FStoreHelper
+{
+	GENERATED_BODY()
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		FString SlotIndex;
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		FString Class;
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		FString ItemID;
+
+	FORCEINLINE	bool	operator==(const FStoreHelper Other) const
+	{
+		return ItemID == Other.ItemID;
+	}
+};
+
 UCLASS()
 class ORION_API AOrionGameLobby : public AOrionGameMode
 {
@@ -27,6 +46,9 @@ public:
 	AActor* FindPlayerStart_Implementation(AController* Player, const FString& IncomingName = TEXT("")) override;
 
 	TArray<AActor*> SpawnPoints;
+
+	UPROPERTY(BlueprintReadWrite, Category = Store)
+		TArray<FStoreHelper > StoreItems;
 
 	FTimerHandle EmptyServerTimer;
 

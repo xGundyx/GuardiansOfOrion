@@ -1000,8 +1000,8 @@ void AOrionCharacter::EquipAdrenaline()
 void AOrionCharacter::EquipWeapon(AOrionWeapon* Weapon)
 {
 	//keep us on adrenaline weapon when activated
-	if (CurrentSkill && CurrentSkill->IsFlaming() && Weapon && Weapon->InstantConfig.WeaponSlot != 4)
-		return;
+	//if (CurrentSkill && (CurrentSkill->IsFlaming() || CurrentSkill->IsRocketing()) && Weapon && Weapon->InstantConfig.WeaponSlot != 4)
+	//	return;
 
 	if (Weapon)
 	{
@@ -1276,6 +1276,10 @@ void AOrionCharacter::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & O
 	DOREPLIFETIME_CONDITION(AOrionCharacter, FatalityVictim, COND_SkipOwner);
 	DOREPLIFETIME(AOrionCharacter, bDoubleShield);
 	DOREPLIFETIME(AOrionCharacter, SpeedMultiplier);
+
+	//cosmetics
+	DOREPLIFETIME(AOrionCharacter, HatMesh);
+	DOREPLIFETIME(AOrionCharacter, CharacterShader);
 
 	DOREPLIFETIME(AOrionCharacter, bDowned);
 	DOREPLIFETIME(AOrionCharacter, DownedTime);
@@ -2653,6 +2657,21 @@ float AOrionCharacter::TakeDamage(float Damage, struct FDamageEvent const& Damag
 				}
 				Die(ActualDamage, DamageEvent, EventInstigator, DamageCauser);
 
+				if (DamageType && DamageType->WeaponName == "RocketLauncher" && AttackerPC && AttackerPC->GetSkillValue(SKILL_ROCKETLIFELEECH))
+				{
+					if (AttackerPawn)
+						AttackerPawn->AddHealth(AttackerPawn->HealthMax / 10.0f);
+				}
+
+				if (DamageType && DamageType->WeaponName == "RocketLauncher")
+				{
+					AOrionInventoryManager *Inv = AttackerPC->GetInventoryManager();
+					if (Inv)
+					{
+						if (Inv->HasStat(RARESTAT_ROCKETNADE)) Explode(AttackerPC);
+					}
+				}
+
 				if (DamageType && DamageType->bGibAll)
 				{
 					const FPointDamageEvent *RealEvent = (FPointDamageEvent*)&DamageEvent;
@@ -3351,7 +3370,7 @@ void AOrionCharacter::StopAnimMontage(class UAnimMontage* AnimMontage)
 
 	if (bShouldStopMontage)
 	{
-		AnimInstance->Montage_Stop(MontageToStop->BlendOutTime);
+		AnimInstance->Montage_Stop(MontageToStop->BlendOut.GetBlendTime());
 
 		if (!IsFirstPerson() && CurrentWeapon && CurrentWeapon->GetWeaponMesh(false) && AnimMontage == CurrentWeapon->ReloadAnim.Pawn3P)
 		{
@@ -3540,6 +3559,34 @@ void AOrionCharacter::PossessedBy(class AController* InController)
 				Flight1Mesh->CustomDepthStencilValue = PC->ControllerIndex + 1;
 				Flight2Mesh->CustomDepthStencilValue = PC->ControllerIndex + 1;
 			}
+
+			//update our cosmetics
+			UpdateCosmetics();
+		}
+	}
+}
+
+void AOrionCharacter::UpdateCosmetics()
+{
+	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
+	if (PC)
+	{
+		AOrionInventoryManager *Inv = PC->GetInventoryManager();
+		if (Inv)
+		{
+			if (Inv->Outfits.Num() > PC->ClassIndex)
+			{
+				HatMesh.HatMesh = Inv->Outfits[PC->ClassIndex].Hat.CustomMesh;
+				HatMesh.SocketName = Inv->Outfits[PC->ClassIndex].Hat.CustomSocket;
+
+				CharacterShader = Inv->Outfits[PC->ClassIndex].CharacterShader.CustomShader;
+
+				if (PC->IsLocalController())
+				{
+					EventSetHatMesh(HatMesh);
+					EventSetCharacterShader(CharacterShader);
+				}
+			}
 		}
 	}
 }
@@ -3626,7 +3673,7 @@ void AOrionCharacter::UpdatePawnMeshes()
 	BodyMesh->SetHiddenInGame(bFirst || bBlinking); //SetOwnerNoSee(bFirst);
 
 	//HelmetMesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
-	HelmetMesh->SetHiddenInGame(bFirst || bBlinking); //SetOwnerNoSee(bFirst);
+	HelmetMesh->SetHiddenInGame(bFirst || bBlinking || HatMesh.HatMesh != nullptr); //SetOwnerNoSee(bFirst);
 
 	//ArmsMesh->MeshComponentUpdateFlag = bFirst ? EMeshComponentUpdateFlag::OnlyTickPoseWhenRendered : EMeshComponentUpdateFlag::AlwaysTickPoseAndRefreshBones;
 	ArmsMesh->SetHiddenInGame(bFirst || bBlinking); //SetOwnerNoSee(bFirst);
@@ -3979,8 +4026,8 @@ void AOrionCharacter::PerformFatality(UAnimMontage *Anim, UAnimMontage *EnemyAni
 
 		if (PRI && PRI->bIsABot)
 			TheVictim->GetMesh()->AttachTo(GetMesh(), "Swallow");
-		else
-			TheVictim->GetMesh()->AttachTo(GetMesh(), "CompySlice");
+		//else
+		//	TheVictim->GetMesh()->AttachTo(GetMesh(), "CompySlice");
 
 		//hide weapon
 		if (TheVictim->CurrentWeapon)
@@ -4277,10 +4324,10 @@ void AOrionCharacter::Tick(float DeltaSeconds)
 		HealTarget = 5.0f;
 	}
 
-	if (IsLocallyControlled() && CurrentSkill && !CurrentSkill->IsFlaming() && CurrentWeapon && CurrentWeapon->InstantConfig.WeaponSlot == 4)
+	if (IsLocallyControlled() && CurrentSkill && !CurrentSkill->IsFlaming() && !CurrentSkill->IsRocketing() && CurrentWeapon && CurrentWeapon->InstantConfig.WeaponSlot == 4)
 		EquipWeaponFromSlot(1);
-	else if (IsLocallyControlled() && CurrentSkill && CurrentSkill->IsFlaming() && CurrentWeapon && CurrentWeapon->InstantConfig.WeaponSlot != 4)
-		EquipWeaponFromSlot(4);
+	//else if (IsLocallyControlled() && CurrentSkill && CurrentSkill->IsFlaming() && CurrentWeapon && CurrentWeapon->InstantConfig.WeaponSlot != 4)
+	//	EquipWeaponFromSlot(4);
 	else if (IsLocallyControlled() && Cast<AOrionLobbyPawn>(this) && CurrentWeapon && CurrentWeapon->InstantConfig.WeaponSlot != 2)
 		EquipWeaponFromSlot(2);
 
@@ -5120,6 +5167,28 @@ void AOrionCharacter::OnRep_Teleport()
 	//GetWorldTimerManager().SetTimer(TeleportTimer, this, &AOrionCharacter::EndBlink, 0.2, false);
 }
 
+void AOrionCharacter::OnRep_HatMesh()
+{
+	if (!HelmetMesh || !HelmetMesh->SkeletalMesh)
+	{
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, this, &AOrionCharacter::OnRep_HatMesh, 0.1f, false);
+	}
+	else
+		EventSetHatMesh(HatMesh);
+}
+
+void AOrionCharacter::OnRep_CharacterShader()
+{
+	if (!HelmetMesh || !HelmetMesh->SkeletalMesh)
+	{
+		FTimerHandle Handle;
+		GetWorldTimerManager().SetTimer(Handle, this, &AOrionCharacter::OnRep_CharacterShader, 0.1f, false);
+	}
+	else
+		EventSetCharacterShader(CharacterShader);
+}
+
 void AOrionCharacter::Blink(FVector dir)
 {
 	BlinkCooldown.Energy -= 5.0f;
@@ -5169,7 +5238,7 @@ void AOrionCharacter::Blink(FVector dir)
 				//Query.StartLocation = GetActorLocation();
 				//Query.EndLocation = loc.Location;
 
-				TSharedPtr<const FNavigationQueryFilter> QueryFilter = GetWorld()->GetNavigationSystem()->MainNavData->GetQueryFilter(DefaultFilterClass);// UNavigationQueryFilter::GetQueryFilter(GetWorld()->GetNavigationSystem()->MainNavData, DefaultFilterClass);
+				FSharedConstNavQueryFilter QueryFilter = GetWorld()->GetNavigationSystem()->MainNavData->GetQueryFilter(DefaultFilterClass);// UNavigationQueryFilter::GetQueryFilter(GetWorld()->GetNavigationSystem()->MainNavData, DefaultFilterClass);
 
 				if (!GetWorld()->GetNavigationSystem()->TestPathSync(FPathFindingQuery(nullptr, *GetWorld()->GetNavigationSystem()->MainNavData, GetActorLocation(), loc.Location, QueryFilter)))
 					continue;
@@ -5753,29 +5822,47 @@ void AOrionCharacter::EndMelee()
 //if it is being held, check for a valid fatality
 void AOrionCharacter::UnMelee()
 {
-	if (CurrentWeapon && !CheckForCompySlice())
-		CurrentWeapon->Melee();
+	if (CurrentWeapon && !CheckForCompySlice("CompySlice", "COMPY"))
+		if (CurrentWeapon && !CheckForCompySlice("RaptorScalp", "RAPTOR"))
+			if (CurrentWeapon && !CheckForCompySlice("DiloHug", "DILO"))
+				CurrentWeapon->Melee();
 }
 
-void AOrionCharacter::ServerCompySlice_Implementation(AOrionCharacter *Target)
+void AOrionCharacter::ServerCompySlice_Implementation(AOrionCharacter *Target, FName SocketName, const FString& DinoType)
 {
-	PerformFatality(PlayerSliceAnim, CompySliceAnim, Target, false);
+	if (DinoType == "COMPY")
+		PerformFatality(PlayerSliceAnim, CompySliceAnim, Target, false);
+	else if (DinoType == "RAPTOR")
+		PerformFatality(PlayerScalpAnim, RaptorScalpAnim, Target, false);
+	else if (DinoType == "DILO")
+		PerformFatality(PlayerHugAnim, DiloHugAnim, Target, false);
+
 	FatalityVictim = Target;
 
 	AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
 	if (PC && PC->GetStats())
-		PC->GetStats()->AddStatValue(STAT_COMPYSLICE, 1);
+	{
+		if (DinoType == "COMPY")
+			PC->GetStats()->AddStatValue(STAT_COMPYSLICE, 1);
+		else if (DinoType == "RAPTOR")
+			PC->GetStats()->AddStatValue(STAT_RAPTORSTAB, 1);
+		else if (DinoType == "DILO")
+			PC->GetStats()->AddStatValue(STAT_DILOHUG, 1);
+	}
+
+	if (Target)
+		Target->GetMesh()->AttachTo(GetMesh(), SocketName);
 }
 
-bool AOrionCharacter::CheckForCompySlice()
+bool AOrionCharacter::CheckForCompySlice(FName SocketName, FString DinoType)
 {
 	if (ShouldIgnoreControls())
 		return false;
 
 	//see if there are any compies in our slice range, and if there are, start a slicin
 	FVector pos;
-	pos = GetMesh()->GetSocketLocation("CompySlice");
+	pos = GetMesh()->GetSocketLocation(SocketName);
 
 	float radius = 100.0f;
 
@@ -5793,21 +5880,36 @@ bool AOrionCharacter::CheckForCompySlice()
 	{
 		AOrionDinoPawn *Dino = Cast<AOrionDinoPawn>(Result[0]);
 
-		if (Dino && Dino->Health > 0.0f && Dino->DinoName == "COMPY" && !Dino->bFatality)
+		if (Dino && Dino->Health > 0.0f && Dino->DinoName == FName(*DinoType) && !Dino->bFatality)
 		{
 			if (Role < ROLE_Authority)
-				ServerCompySlice(Dino);
+				ServerCompySlice(Dino, SocketName, DinoType);
 			else
 			{
 				AOrionPlayerController *PC = Cast<AOrionPlayerController>(Controller);
 
 				if (PC && PC->GetStats())
-					PC->GetStats()->AddStatValue(STAT_COMPYSLICE, 1);
+				{
+					if (DinoType == "COMPY")
+						PC->GetStats()->AddStatValue(STAT_COMPYSLICE, 1);
+					else if (DinoType == "RAPTOR")
+						PC->GetStats()->AddStatValue(STAT_RAPTORSTAB, 1);
+					else if (DinoType == "DILO")
+						PC->GetStats()->AddStatValue(STAT_DILOHUG, 1);
+				}
 
-				PerformFatality(PlayerSliceAnim, CompySliceAnim, Dino, false);
+				if (DinoType == "COMPY")
+					PerformFatality(PlayerSliceAnim, CompySliceAnim, Dino, false);
+				else if (DinoType == "RAPTOR")
+					PerformFatality(PlayerScalpAnim, RaptorScalpAnim, Dino, false);
+				else if (DinoType == "DILO")
+					PerformFatality(PlayerHugAnim, DiloHugAnim, Dino, false);
 			}
 
 			FatalityVictim = Dino;
+
+			if (Dino)
+				Dino->GetMesh()->AttachTo(GetMesh(), SocketName);
 
 			return true;
 		}
@@ -6194,6 +6296,9 @@ void AOrionCharacter::EquipArmor(AOrionArmor *Armor)
 	};
 
 	InitMaterials();
+
+	EventSetHatMesh(HatMesh);
+	EventSetCharacterShader(CharacterShader);
 }
 
 void AOrionCharacter::UnEquipArmor(EItemType Slot)

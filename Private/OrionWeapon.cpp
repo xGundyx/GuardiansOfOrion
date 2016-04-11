@@ -194,7 +194,7 @@ void AOrionWeapon::AttachMeshToPawn()
 			{
 				if (MyPawn->PlayerState && !MyPawn->PlayerState->bIsABot)
 				{
-					Mesh3P->SetRenderCustomDepth(!bLobby);
+					Mesh3P->SetRenderCustomDepth(!bLobby && (PC->DropPod == nullptr || PC->DropPod->bHasLanded));
 					if (PC)
 						Mesh3P->CustomDepthStencilValue = PC->ControllerIndex + 1;
 				}
@@ -549,6 +549,12 @@ void AOrionWeapon::StartFire()
 		if (PC->HasOrbEffect(ORB_ROF))
 			FireRate *= 0.75f;
 
+		AOrionInventoryManager *Inv = PC->GetInventoryManager();
+		if (Inv && Inv->HasStat(RARESTAT_ROCKETFIRESPEED) && InstantConfig.WeaponName == "Rocket Launcher")
+		{
+			FireRate /= 2.0f;
+		}
+
 		//AOrionInventoryManager *Inv = PC->GetInventoryManager();
 		//if (Inv && Inv->HasStat(RARESTAT_NORELOAD) && InstantConfig.WeaponSlot == 1)
 		//	FireRate *= 2.0f;
@@ -585,10 +591,22 @@ void AOrionWeapon::CancelMelee()
 	WeaponState = WEAP_IDLE;
 }
 
+void AOrionWeapon::ServerFireProjectile_Implementation(FName SocketName, FVector Direction)
+{
+	FireProjectile(SocketName, Direction);
+}
+
 void AOrionWeapon::FireProjectile(FName SocketName, FVector Direction)
 {
 	if (!ProjectileClass || !MyPawn || SocketName == "")
 		return;
+
+	//make sure this only occurs on the server, and just replicate it to clients
+	if (Role < ROLE_Authority)
+	{
+		//ServerFireProjectile(SocketName, Direction);
+		return;
+	}
 
 	//make sure we have a projectile class
 	AOrionGrenade *Grenade = Cast<AOrionGrenade>(ProjectileClass.GetDefaultObject());
@@ -629,7 +647,8 @@ void AOrionWeapon::FireProjectile(FName SocketName, FVector Direction)
 		{
 			FActorSpawnParameters SpawnInfo;
 			SpawnInfo.Instigator = Instigator;
-			SpawnInfo.Owner = Instigator;
+			if (Instigator)
+				SpawnInfo.Owner = Instigator->Controller;
 			SpawnInfo.SpawnCollisionHandlingOverride = ESpawnActorCollisionHandlingMethod::AlwaysSpawn;
 
 			FVector Origin(0.0f);
@@ -644,14 +663,30 @@ void AOrionWeapon::FireProjectile(FName SocketName, FVector Direction)
 					Origin = UseMesh->GetSocketLocation(SocketName);
 			}
 
+			//Direction = (MyPawn->AimPos - Origin).GetSafeNormal();
+
 			AOrionProjectile *Rocket = GetWorld()->SpawnActor<AOrionProjectile>(ProjectileClass, Origin, Direction.Rotation(), SpawnInfo);
 
 			if (Proj)
 			{
 				Proj->Init(nullptr, Origin, Origin + Direction * 10000.0f);
-				Proj->SetLifeSpan(4.0f);
-				Proj->NewVelocity = Direction * 3000.0f;
+			//	Proj->SetLifeSpan(4.0f);
+			//	Proj->NewVelocity = Direction * 3000.0f;
 			}
+
+			if (MuzzleFX.Num() > 0 && MyPawn)
+			{
+				UParticleSystemComponent* MuzzlePSC = UGameplayStatics::SpawnEmitterAttached(MuzzleFX[0], GetWeaponMesh(MyPawn->IsFirstPerson()), MuzzleAttachPoint[0]);
+				if (MuzzlePSC > 0)
+				{
+					//MuzzlePSC->SetVectorParameter(FName("FlashScale"), FVector(InstantConfig.MuzzleScale));
+					MuzzlePSC->SetWorldScale3D(FVector(InstantConfig.MuzzleScale * (MyPawn && MyPawn->IsTopDown() && !MyPawn->bThirdPersonCamera ? 2.5 : MyPawn && MyPawn->IsFirstPerson() ? 0.35 : 1.0)));
+				}
+			}
+
+			//play animation
+			if (MyPawn)
+				MyPawn->OrionPlayAnimMontage(FireAnim, 1.0f, "", true, true, true);
 		}
 	}
 }
@@ -716,7 +751,7 @@ void AOrionWeapon::FireBurst()
 		GetWorldTimerManager().SetTimer(BurstTimer, this, &AOrionWeapon::FireBurst, FireRate, false);
 	else
 	{
-		LastFireTime = GetWorld()->GetTimeSeconds() + 0.5f;
+		LastFireTime = GetWorld()->GetTimeSeconds() + 0.15f;
 	}
 }
 
@@ -750,8 +785,11 @@ void AOrionWeapon::FireWeapon()
 
 	if (bProjectile)
 	{
-		if (MuzzleAttachPoint.Num() > 0)
-			FireProjectile(MuzzleAttachPoint[0], GetAdjustedAim());
+		if (MuzzleAttachPoint.Num() > 0 && Mesh3P)
+		{
+			FVector Origin = Mesh3P->GetSocketLocation(MuzzleAttachPoint[0]);
+			FireProjectile(MuzzleAttachPoint[0], (MyPawn->AimPos - Origin).GetSafeNormal());// GetAdjustedAim());
+		}
 		return;
 	}
 
@@ -1142,6 +1180,10 @@ void AOrionWeapon::UseAmmo()
 {
 	//make ai not use any ammo
 	if (MyPawn && MyPawn->PlayerState && MyPawn->PlayerState->bIsABot)
+		return;
+
+	//adrenaline weapons have no reloading required (for now)
+	if (InstantConfig.WeaponSlot == 4)
 		return;
 	
 	if (Role == ROLE_Authority)

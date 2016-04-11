@@ -74,6 +74,9 @@ public:
 		bool IsFlaming() { return Cast<AOrionCharacter>(GetOwner()) && Cast<AOrionCharacter>(GetOwner())->Health > 0.0f && bIsFlaming; }
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
+		bool IsRocketing() { return Cast<AOrionCharacter>(GetOwner()) && Cast<AOrionCharacter>(GetOwner())->Health > 0.0f && bIsRocketing; }
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
 		bool IsThermalVisioning() { return Cast<AOrionCharacter>(GetOwner()) && Cast<AOrionCharacter>(GetOwner())->Health > 0.0f && bIsThermalVisioning; }
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
@@ -90,6 +93,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
 		void SetFlaming(bool bActive) { bIsFlaming = bActive; }
+
+	UFUNCTION(BlueprintCallable, Category = Skill)
+		void SetRocketing(bool bActive) { bIsRocketing = bActive; }
 
 	UFUNCTION(BlueprintCallable, Category = Skill)
 		void SetThermalVisioning(bool bActive) { bIsThermalVisioning = bActive; }
@@ -146,6 +152,8 @@ private:
 		bool bIsOvercharging;
 	UPROPERTY(Replicated)
 		bool bIsFlaming;
+	UPROPERTY(Replicated)
+		bool bIsRocketing;
 	UPROPERTY(Replicated)
 		bool bIsThermalVisioning;
 

@@ -748,7 +748,8 @@ bool AOrionAIController::IsValidTarget(AOrionCharacter *pTarget)
 	if (!P)
 		return false;
 
-	TSharedPtr<const FNavigationQueryFilter> QueryFilter = GetWorld()->GetNavigationSystem()->MainNavData->GetQueryFilter(P->DefaultFilterClass);// UNavigationQueryFilter::GetQueryFilter(GetWorld()->GetNavigationSystem()->MainNavData, P->DefaultFilterClass);
+	FSharedConstNavQueryFilter
+	/*TSharedPtr<const FNavigationQueryFilter>*/ QueryFilter = GetWorld()->GetNavigationSystem()->MainNavData->GetQueryFilter(P->DefaultFilterClass);// UNavigationQueryFilter::GetQueryFilter(GetWorld()->GetNavigationSystem()->MainNavData, P->DefaultFilterClass);
 	if (!GetWorld()->GetNavigationSystem()->TestPathSync(FPathFindingQuery(nullptr, *GetWorld()->GetNavigationSystem()->MainNavData, 
 		P->GetActorLocation() - 0.9f * P->GetCapsuleComponent()->GetScaledCapsuleHalfHeight(), pTarget->GetActorLocation() - 0.9f * pTarget->GetCapsuleComponent()->GetScaledCapsuleHalfHeight(), QueryFilter)))
 	{

@@ -54,6 +54,110 @@ AOrionInventoryManager::AOrionInventoryManager(const FObjectInitializer& ObjectI
 	bAlwaysRelevant = true;
 }
 
+void AOrionInventoryManager::OnRep_Outfits()
+{
+	//SaveConfig();
+}
+
+void AOrionInventoryManager::OnRep_StoreStuff()
+{
+	DrawInventory();
+}
+
+void AOrionInventoryManager::SetCustomHat(int32 ClassIndex, FInventoryItem Item, bool bForce)
+{
+	if (Role < ROLE_Authority)
+		ServerSetCustomHat(ClassIndex, Item);
+	else
+	{
+		if (Outfits.Num() <= ClassIndex)
+		{
+			for (int32 i = Outfits.Num(); i <= ClassIndex; i++)
+			{
+				FOutfitData Data;
+				Outfits.Add(Data);
+			}
+		}
+
+		int32 Index = OwnsItem(Item.ItemID, "PRELUDEHAT");
+		if (bForce || Index >= 0)
+		{
+			Outfits[ClassIndex].Hat = Item;
+		}
+		else
+		{
+			FInventoryItem DummyItem;
+			Outfits[ClassIndex].Hat = DummyItem;
+		}
+
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(OwnerController);
+
+		if (PC)
+		{
+			AOrionCharacter *P = Cast<AOrionCharacter>(PC->GetPawn());
+			if (P)
+			{
+				P->UpdateCosmetics();
+			}
+		}
+
+		if (!bForce)
+			EventSaveOutfits();
+	}
+}
+
+void AOrionInventoryManager::ServerSetCustomShader_Implementation(int32 ClassIndex, FInventoryItem Item)
+{
+	SetCustomShader(ClassIndex, Item);
+}
+
+void AOrionInventoryManager::SetCustomShader(int32 ClassIndex, FInventoryItem Item, bool bForce)
+{
+	if (Role < ROLE_Authority)
+		ServerSetCustomShader(ClassIndex, Item);
+	else
+	{
+		if (Outfits.Num() <= ClassIndex)
+		{
+			for (int32 i = Outfits.Num(); i <= ClassIndex; i++)
+			{
+				FOutfitData Data;
+				Outfits.Add(Data);
+			}
+		}
+
+		int32 Index = OwnsItem(Item.ItemID, "CUSTOMSHADER");
+		if (bForce || Index >= 0)
+		{
+			Outfits[ClassIndex].CharacterShader = Item;
+		}
+		else
+		{
+			FInventoryItem DummyItem;
+			Outfits[ClassIndex].CharacterShader = DummyItem;
+		}
+
+		AOrionPlayerController *PC = Cast<AOrionPlayerController>(OwnerController);
+
+		if (PC)
+		{
+			AOrionCharacter *P = Cast<AOrionCharacter>(PC->GetPawn());
+			if (P)
+			{
+				P->UpdateCosmetics();
+			}
+		}
+
+		if (!bForce)
+			EventSaveOutfits();
+	}
+}
+
+void AOrionInventoryManager::ServerSetCustomHat_Implementation(int32 ClassIndex, FInventoryItem Item)
+{
+	SetCustomHat(ClassIndex, Item);
+}
+
 bool AOrionInventoryManager::ServerSwapItems_Validate(AOrionInventoryGrid *theGrid1, int32 index1, AOrionInventoryGrid *theGrid2, int32 index2)
 {
 	return true;
@@ -521,7 +625,7 @@ void AOrionInventoryManager::Init(AOrionPlayerController *PC)
 	EquippedSlots.Empty();
 
 	//14 slots * 5 classes
-	for (int32 i = 0; i < 14 * 6; i++)
+	for (int32 i = 0; i < 14 * 7; i++)
 	{
 		FEquippedSlot NewSlot;
 
@@ -1275,6 +1379,7 @@ void AOrionInventoryManager::GetLifetimeReplicatedProps(TArray< FLifetimePropert
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, Guardians, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, CustomArmors, COND_OwnerOnly);
 	DOREPLIFETIME_CONDITION(AOrionInventoryManager, TrekCoins, COND_OwnerOnly);
+	DOREPLIFETIME_CONDITION(AOrionInventoryManager, Outfits, COND_OwnerOnly);
 }
 
 bool AOrionInventoryManager::HasStat(ESuperRareStat Stat)
@@ -1613,7 +1718,17 @@ bool AOrionInventoryManager::CraftItem(FInventoryItem ItemToCraft, TArray<FInven
 		PC->GetStats()->AddStatValue(STAT_CRAFTITEMS, 1);
 
 	//add the crafted item to our inventory
-	return AddItemToInventory(Grid, ItemToCraft, -1) >= 0;
+	bool bSuccess = AddItemToInventory(Grid, ItemToCraft, -1) >= 0;
+
+	if (bSuccess)
+	{
+		if (PC->IsLocalPlayerController())
+			PC->EventItemAddedToInventory(ItemToCraft, true);
+		else
+			PC->ClientItemAddedToInventory(ItemToCraft, true);
+	}
+
+	return bSuccess;
 }
 
 void AOrionInventoryManager::ServerDropItem_Implementation(AOrionInventoryGrid *theGrid, int32 index)
@@ -1798,45 +1913,108 @@ FRareStatsInfo AOrionInventoryManager::GetRareStat(int32 Index)
 	return RareStats.StatsInfo[Index];
 }
 
-bool AOrionInventoryManager::OwnsItem(FString ItemName, FString ItemType)
+int32 AOrionInventoryManager::OwnsItem(FString ItemName, FString ItemType)
 {
 	if (ItemType == "PRELUDEHAT")
 	{
 		for (int32 i = 0; i < PreludeHats.Num(); i++)
 		{
-			if (PreludeHats[i].ItemName == ItemName)
-				return true;
+			if (PreludeHats[i].ItemID == ItemName)
+				return i;
 		}
 	}
 	else if (ItemType == "CUSTOMARMOR")
 	{
 		for (int32 i = 0; i < CustomArmors.Num(); i++)
 		{
-			if (CustomArmors[i].ItemName == ItemName)
-				return true;
+			if (CustomArmors[i].ItemID == ItemName)
+				return i;
 		}
 	}
 	else if (ItemType == "CUSTOMSHADER")
 	{
 		for (int32 i = 0; i < CustomShaders.Num(); i++)
 		{
-			if (CustomShaders[i].ItemName == ItemName)
-				return true;
+			if (CustomShaders[i].ItemID == ItemName)
+				return i;
 		}
 	}
 	else if (ItemType == "GUARDIAN")
 	{
 		for (int32 i = 0; i < Guardians.Num(); i++)
 		{
-			if (Guardians[i].ItemName == ItemName)
-				return true;
+			if (Guardians[i].ItemID == ItemName)
+				return i;
 		}
 	}
 
-	return false;
+	return -1;
 }
 
-void AOrionInventoryManager::ForceAddInventoryItem(FInventoryItem Item, FString ClassName)
+void AOrionInventoryManager::ResetStoreItems()
+{
+	PreludeHats.Empty();
+	CustomArmors.Empty();
+	CustomShaders.Empty();
+	Guardians.Empty();
+}
+
+void AOrionInventoryManager::SetOutfit(FInventoryItem Item, FString ClassName, int32 ClassIndex)
+{
+	TSubclassOf<UOrionInventoryItem> InventoryClass = LoadClass<UOrionInventoryItem>(nullptr, *ClassName, nullptr, LOAD_None, nullptr);
+
+	if (InventoryClass)
+	{
+		UOrionInventoryItem *Inv = InventoryClass.GetDefaultObject();
+
+		if (Inv)
+		{
+			FInventoryItem NewItem;
+
+			NewItem.Amount = 1;
+			NewItem.ItemClass = InventoryClass;
+			NewItem.ItemName = Inv->ItemName;
+			NewItem.ItemDesc = Inv->ItemDesc;
+			NewItem.Rarity = RARITY_COMMON;
+			NewItem.Slot = Inv->ItemType;
+			NewItem.ItemLevel = 10;
+			NewItem.MainStat = 0;
+			NewItem.SellValue = 0;
+			NewItem.BreakdownClasses.Empty();
+			NewItem.ItemID = Inv->ItemID;
+			NewItem.InstanceID = Item.InstanceID;
+			NewItem.bDirty = false;
+			NewItem.SlotIndex = Item.SlotIndex;
+			NewItem.CustomMesh = Inv->HatMesh;
+			NewItem.CustomShader = Inv->CustomMat;
+			NewItem.CustomSocket = Inv->HatSocket.ToString();
+
+			//decode the weapon slot
+			FString WeaponSlot = Item.SlotIndex;
+
+			int32 index = WeaponSlot.Find("x8x");
+
+			//need some kind of error handling here
+			if (index == INDEX_NONE)
+				return;
+
+			int32 index2 = WeaponSlot.Find("y8y");
+
+			FString cName = "";
+			FString Slot = WeaponSlot.Left(index);
+
+			if (index2 != INDEX_NONE)
+				Slot = WeaponSlot.Mid(index2 + 3, index - index2 - 3);
+
+			if (Slot == "PRELUDEHAT")
+				SetCustomHat(ClassIndex, NewItem, true);
+			else if (Slot == "CUSTOMSHADER")
+				SetCustomShader(ClassIndex, NewItem, true);
+		}
+	}
+}
+
+void AOrionInventoryManager::ForceAddInventoryItem(FInventoryItem Item, FString ClassName, bool bStoreItem)
 {
 	//decode the weapon slot
 	FString WeaponSlot = Item.SlotIndex;
@@ -1862,11 +2040,11 @@ void AOrionInventoryManager::ForceAddInventoryItem(FInventoryItem Item, FString 
 
 	AOrionInventoryGrid *pGrid = GetGridFromName(Slot);
 
-	if (pGrid)
+	if (pGrid || bStoreItem)
 	{
 		if (InventoryIndex >= 0)
 		{
-			if (pGrid->Inventory.Num() <= InventoryIndex)// || Item.ItemClass == nullptr)
+			if (pGrid && pGrid->Inventory.Num() <= InventoryIndex)// || Item.ItemClass == nullptr)
 			{
 				return;
 			}
@@ -1900,6 +2078,7 @@ void AOrionInventoryManager::ForceAddInventoryItem(FInventoryItem Item, FString 
 
 						if (Slot == "PRELUDEHAT")
 						{
+							NewItem.CustomMesh = Inv->HatMesh;
 							PreludeHats.Add(NewItem);
 							return;
 						}
@@ -1910,6 +2089,7 @@ void AOrionInventoryManager::ForceAddInventoryItem(FInventoryItem Item, FString 
 						}
 						else if (Slot == "CUSTOMSHADER")
 						{
+							NewItem.CustomShader = Inv->CustomMat;
 							CustomShaders.Add(NewItem);
 							return;
 						}
@@ -1919,6 +2099,9 @@ void AOrionInventoryManager::ForceAddInventoryItem(FInventoryItem Item, FString 
 							return;
 						}
 					}
+
+					if (bStoreItem)
+						return;
 
 					//check and make sure values are within the limits, mainly to fix outdated gear
 					//make sure our main stat is in valid bounds
@@ -1984,6 +2167,8 @@ void AOrionInventoryManager::ForceAddInventoryItem(FInventoryItem Item, FString 
 									index = 4;
 								else if (cName == "MARKSMAN")
 									index = 5;
+								else if (cName == "ROCKETEER")
+									index = 6;
 
 								int32 sIndex = -1;
 
@@ -2036,7 +2221,7 @@ void AOrionInventoryManager::ForceAddInventoryItem(FInventoryItem Item, FString 
 
 					MaxItemLevel = GetMaxItemLevel();
 
-					if (Inv)
+					if (Inv && pGrid)
 					{
 						FInventoryItem NewItem;
 
@@ -2212,6 +2397,13 @@ bool AOrionInventoryManager::BreakdownItem(AOrionInventoryGrid *theGrid, int32 i
 				ClientPlaySound(BreakdownSound);
 				return false;
 			}
+
+			AOrionPlayerController *PC = Cast<AOrionPlayerController>(OwnerController);
+
+			if (PC && PC->IsLocalPlayerController())
+				PC->EventItemAddedToInventory(NewItem, true);
+			else if (PC)
+				PC->ClientItemAddedToInventory(NewItem, true);
 		}
 
 		DrawInventory();
@@ -2389,6 +2581,8 @@ void AOrionInventoryManager::SaveEquippedSlots()
 				index = 4;
 			else if (PRI->ClassType == "MARKSMAN")
 				index = 5;
+			else if (PRI->ClassType == "ROCKETEER")
+				index = 6;
 
 			if (index >= 0)
 			{
@@ -2481,6 +2675,8 @@ void AOrionInventoryManager::UpdateEquippedSlots()
 				index = 4;
 			else if (PRI->ClassType == "MARKSMAN")
 				index = 5;
+			else if (PRI->ClassType == "ROCKETEER")
+				index = 6;
 
 			if (index >= 0)
 			{

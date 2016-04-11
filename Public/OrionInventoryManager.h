@@ -174,6 +174,30 @@ struct FArrayHelper
 	}
 };
 
+USTRUCT(BlueprintType)
+struct FOutfitData
+{
+	GENERATED_BODY();
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		FInventoryItem Hat;
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		FInventoryItem Chest;
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		FInventoryItem Legs;
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		FInventoryItem Arms;
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		FInventoryItem Cape;
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		FInventoryItem CharacterShader;
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		FInventoryItem WeaponShader;
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		FInventoryItem BaseMeshShader;
+};
+
 UCLASS()
 class ORION_API AOrionInventoryManager : public AActor
 {
@@ -190,11 +214,40 @@ public:
 
 	void GetStatsFromSlot(AOrionInventoryGrid *Slot, FArrayHelper &Stats);
 
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		void ResetStoreItems();
+
+	UFUNCTION()
+		void OnRep_Outfits();
+
+	//locally store the last outfit this player was using, per character
+	UPROPERTY(ReplicatedUsing = OnRep_Outfits, BlueprintReadWrite, Category = Inventory)
+		TArray<FOutfitData> Outfits;
+
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		void SetCustomHat(int32 ClassIndex, FInventoryItem Item, bool bForce = false);
+
+	UFUNCTION(server, reliable, WithValidation)
+		void ServerSetCustomHat(int32 ClassIndex, FInventoryItem Item);
+		bool ServerSetCustomHat_Validate(int32 ClassIndex, FInventoryItem Item) { return true; }
+		void ServerSetCustomHat_Implementation(int32 ClassIndex, FInventoryItem Item);
+
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		void SetCustomShader(int32 ClassIndex, FInventoryItem Item, bool bForce = false);
+
+	UFUNCTION(server, reliable, WithValidation)
+		void ServerSetCustomShader(int32 ClassIndex, FInventoryItem Item);
+		bool ServerSetCustomShader_Validate(int32 ClassIndex, FInventoryItem Item) { return true; }
+		void ServerSetCustomShader_Implementation(int32 ClassIndex, FInventoryItem Item);
+
+	UFUNCTION()
+		void OnRep_StoreStuff();
+
 	//store purchased display items
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
+	UPROPERTY(ReplicatedUsing=OnRep_StoreStuff, BlueprintReadOnly, Category = Inventory)
 		TArray<FInventoryItem> PreludeHats;
 
-	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
+	UPROPERTY(ReplicatedUsing = OnRep_StoreStuff, BlueprintReadOnly, Category = Inventory)
 		TArray<FInventoryItem> CustomShaders;
 
 	UPROPERTY(Replicated, BlueprintReadOnly, Category = Inventory)
@@ -269,6 +322,9 @@ public:
 	UPROPERTY(Replicated, EditAnywhere, BlueprintReadWrite, Category = Inventory)
 		int32 Money;
 
+	UFUNCTION(BlueprintCallable, Category = Inventory)
+		void SetOutfit(FInventoryItem Item, FString ClassName, int32 ClassIndex);
+
 	UPROPERTY(Replicated, BlueprintReadWrite, Category = Inventory)
 		int32 TrekCoins;
 
@@ -276,7 +332,7 @@ public:
 		void GiveMoney(int32 Amount);
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
-		bool OwnsItem(FString ItemName, FString ItemType);
+		int32 OwnsItem(FString ItemName, FString ItemType);
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		int32 AddItemToInventory(AOrionInventoryGrid *theGrid, FInventoryItem newItem, int32 Index = -1);
@@ -365,6 +421,9 @@ public:
 		bool ServerUseItem_Validate(AOrionInventoryGrid *theGrid, int32 index) { return true; }
 		void ServerUseItem_Implementation(AOrionInventoryGrid *theGrid, int32 index);
 
+	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "SaveOutfits"))
+		void EventSaveOutfits();
+
 	UFUNCTION(BlueprintImplementableEvent, meta = (DisplayName = "ReadPlayfabInventory"))
 		void EventReadInventoryFromPlayfab();
 
@@ -440,7 +499,7 @@ public:
 		FRareStatsInfo GetRareStat(int32 Index);
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
-		void ForceAddInventoryItem(FInventoryItem Item, FString ClassName);
+		void ForceAddInventoryItem(FInventoryItem Item, FString ClassName, bool bStoreItem = false);
 
 	UFUNCTION(BlueprintCallable, Category = Inventory)
 		AOrionInventoryGrid *GetGridFromName(FString Slot);

@@ -15,7 +15,7 @@ UOrionMovementComponent::UOrionMovementComponent(const FObjectInitializer& Objec
 	//bReplicates = true;
 }
 
-FOrionNetworkPredictionData_Client_Character::FOrionNetworkPredictionData_Client_Character(const UCharacterMovementComponent& ClientMovement) 
+/*FOrionNetworkPredictionData_Client_Character::FOrionNetworkPredictionData_Client_Character(const UCharacterMovementComponent& ClientMovement) 
 	: FNetworkPredictionData_Client_Character(ClientMovement)
 {
 }
@@ -144,7 +144,7 @@ void FOrionSavedMove_Character::SetMoveFor(ACharacter* Character, float InDeltaT
 		bExitShip = P->bExitShip;
 
 	TimeStamp = ClientData.CurrentTimeStamp;
-}
+}*/
 
 /*void UOrionMovementComponent::ServerMove_Implementation(
 	float TimeStamp,
@@ -307,7 +307,7 @@ float UOrionMovementComponent::GetMaxSpeed() const
 	return SpeedMod;
 }
 
-bool UOrionMovementComponent::IsCrouching() const
+/*bool UOrionMovementComponent::IsCrouching() const
 {
 	const AOrionCharacter* OrionCharacterOwner = Cast<AOrionCharacter>(PawnOwner);
 	if (OrionCharacterOwner)
@@ -316,7 +316,7 @@ bool UOrionMovementComponent::IsCrouching() const
 	}
 
 	return false;
-}
+}*/
 
 void UOrionMovementComponent::CalcVelocity(float DeltaTime, float Friction, bool bFluid, float BrakingDeceleration)
 {
@@ -433,7 +433,7 @@ void UOrionMovementComponent::PerformMovement(float DeltaSeconds)
 		}
 
 		// if we're about to use root motion, convert it to world space first.
-		if (HasRootMotion())
+		if (HasAnimRootMotion())
 		{
 			USkeletalMeshComponent * SkelMeshComp = CharacterOwner->GetMesh();
 			if (SkelMeshComp)
@@ -478,13 +478,13 @@ void UOrionMovementComponent::PerformMovement(float DeltaSeconds)
 			UnCrouch(false);
 		}
 
-		if (!HasRootMotion() && !CharacterOwner->IsMatineeControlled())
+		if (!HasAnimRootMotion() && !CharacterOwner->IsMatineeControlled())
 		{
 			PhysicsRotation(DeltaSeconds);
 		}
 
 		// Apply Root Motion rotation after movement is complete.
-		if (HasRootMotion())
+		if (HasAnimRootMotion())
 		{
 			const FQuat OldActorRotationQuat = UpdatedComponent->GetComponentQuat();
 			const FQuat RootMotionRotationQuat = RootMotionParams.RootMotionTransform.GetRotation();

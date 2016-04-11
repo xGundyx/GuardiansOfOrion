@@ -38,6 +38,11 @@ AOrionAbility::AOrionAbility(const FObjectInitializer& ObjectInitializer)
 
 void AOrionAbility::Tick(float DeltaSeconds)
 {
+	//do nothing if we're being fatalitied or performing one
+	AOrionCharacter *P = Cast<AOrionCharacter>(GetOwner());
+	if (P && (P->bFatality || P->bFinishingMove))
+		return;
+
 	Super::Tick(DeltaSeconds);
 
 	if (Role == ROLE_Authority)
@@ -50,7 +55,7 @@ void AOrionAbility::Tick(float DeltaSeconds)
 
 				if (IsCloaking())
 				{
-					AOrionCharacter *P = Cast<AOrionCharacter>(GetOwner());
+
 					if (P)
 					{
 						AOrionPlayerController *PC = Cast<AOrionPlayerController>(P->Controller);
@@ -58,8 +63,27 @@ void AOrionAbility::Tick(float DeltaSeconds)
 							Rate = 100.0f / ((100.0f / EnergyRate) + float(PC->GetSkillValue(SKILL_CLOAKDURATION)));
 					}
 				}
-
-				if (IsThermalVisioning())
+				else if(IsRocketing())
+				{
+					AOrionCharacter *P = Cast<AOrionCharacter>(GetOwner());
+					if (P)
+					{
+						AOrionPlayerController *PC = Cast<AOrionPlayerController>(P->Controller);
+						if (PC)
+							Rate = 100.0f / ((100.0f / EnergyRate) + float(PC->GetSkillValue(SKILL_ROCKETLENGTH)));
+					}
+				}
+				else if (IsFlaming())
+				{
+					AOrionCharacter *P = Cast<AOrionCharacter>(GetOwner());
+					if (P)
+					{
+						AOrionPlayerController *PC = Cast<AOrionPlayerController>(P->Controller);
+						if (PC)
+							Rate = 100.0f / ((100.0f / EnergyRate) + float(PC->GetSkillValue(SKILL_FLAMERLENGTH)));
+					}
+				}
+				else if (IsThermalVisioning())
 				{
 					AOrionCharacter *P = Cast<AOrionCharacter>(GetOwner());
 					if (P)
@@ -85,7 +109,7 @@ void AOrionAbility::Tick(float DeltaSeconds)
 				}
 			}
 		}
-		else if (Energy < 100.0f && !IsFlaming())
+		else if (Energy < 100.0f && !IsFlaming() && !IsRocketing())
 		{
 			if (GetWorld()->TimeSeconds - TimeSinceLastActive > RechargeDelay)
 			{
@@ -238,12 +262,13 @@ bool AOrionAbility::ActivateSkill()
 
 void AOrionAbility::DeactivateSkill()
 {
-	if (bIsSkillActive || bIsFlaming)
+	if (bIsSkillActive || bIsFlaming || bIsRocketing)
 	{
 		DoDeactivateEffects();
 		TimeSinceLastActive = GetWorld()->TimeSeconds;
 		bIsSkillActive = false;
 		bIsFlaming = false;
+		bIsRocketing = false;
 	}
 }
 
@@ -258,6 +283,7 @@ void AOrionAbility::GetLifetimeReplicatedProps(TArray< FLifetimeProperty > & Out
 	DOREPLIFETIME(AOrionAbility, bIsCloaking);
 	DOREPLIFETIME(AOrionAbility, bIsOvercharging);
 	DOREPLIFETIME(AOrionAbility, bIsFlaming);
+	DOREPLIFETIME(AOrionAbility, bIsRocketing);
 	DOREPLIFETIME(AOrionAbility, bIsThermalVisioning);
 }
 

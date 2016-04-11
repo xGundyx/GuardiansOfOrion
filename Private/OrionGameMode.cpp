@@ -391,6 +391,9 @@ void AOrionGameMode::Killed(AController* Killer, AController* KilledPlayer, APaw
 						case 5:
 							C->GetStats()->AddStatValue(STAT_ASSISTSASMARKSMAN, 1);
 							break;
+						case 6: 
+							C->GetStats()->AddStatValue(STAT_ASSISTSASROCKETEER, 1);
+							break;
 						};
 
 						C->GetStats()->AddStatValue(STAT_ASSISTS, 1);
@@ -551,6 +554,8 @@ EStatID AOrionGameMode::GetStatID(AController *KilledController, bool bVictim)
 			return bVictim ? (AI->bIsElite ? STAT_ELITEPYRODEATH : STAT_PYRODEATH) : (AI->bIsElite ? STAT_ELITEPYROKILL : STAT_PYROKILL);
 		else if (AI->AIName == TEXT("Marksman"))
 			return bVictim ? (AI->bIsElite ? STAT_ELITEMARKSMANDEATH : STAT_MARKSMANDEATH) : (AI->bIsElite ? STAT_ELITEMARKSMANKILL : STAT_MARKSMANKILL);
+		else if (AI->AIName == TEXT("Rocketeer"))
+			return bVictim ? (AI->bIsElite ? STAT_ELITEROCKETEERDEATH : STAT_ROCKETEERDEATH) : (AI->bIsElite ? STAT_ELITEROCKETEERKILL : STAT_ROCKETEERKILL);
 		else if (AI->AIName == TEXT("Allo"))
 			return bVictim ? (AI->bIsElite ? STAT_ELITEALLODEATH : STAT_ALLODEATH) : (AI->bIsElite ? STAT_ELITEALLOKILL : STAT_ALLOKILL);
 	}
@@ -639,6 +644,9 @@ void AOrionGameMode::HandleStats(AController* Killer, AController* KilledPlayer,
 				case 5:
 					KillerPC->GetStats()->AddStatValue(STAT_KILLSASMARKSMAN, 1);
 					break;
+				case 6:
+					KillerPC->GetStats()->AddStatValue(STAT_KILLSASROCKETEER, 1);
+					break;
 				};
 			}
 			KillerPRI->Kills++;
@@ -674,6 +682,9 @@ void AOrionGameMode::HandleStats(AController* Killer, AController* KilledPlayer,
 					break;
 				case 5:
 					KilledPC->GetStats()->AddStatValue(STAT_DEATHSASMARKSMAN, 1);
+					break;
+				case 6:
+					KilledPC->GetStats()->AddStatValue(STAT_DEATHSASROCKETEER, 1);
 					break;
 				};
 			}
@@ -950,7 +961,7 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 		PC->ValidateLobbyTicket(LobbyID, pfTicket);
 #else
 		//can't do this here, it requires the secret key
-		//PC->ValidatePlayFabInfo(pfID, pfSession);
+		//PC->ValidateLobbyTicket(LobbyID, pfTicket);
 		//hax for now
 		PlayerAuthed(PC, true);
 #endif
@@ -967,6 +978,8 @@ FString AOrionGameMode::InitNewPlayer(class APlayerController* NewPlayerControll
 			PC->ClassIndex = 4;
 		else if (pfClass == TEXT("MARKSMAN"))
 			PC->ClassIndex = 5;
+		else if (pfClass == TEXT("ROCKETEER"))
+			PC->ClassIndex = 6;
 		else
 			PC->ClassIndex = 0;
 	}

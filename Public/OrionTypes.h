@@ -502,6 +502,9 @@ enum ESuperRareStat
 	RARESTAT_MARKTHERMALLENGTH,
 	RARESTAT_BONESVOICE,
 	RARESTAT_GRUMPSVOICE,
+	RARESTAT_ROCKETNADE,
+	RARESTAT_ROCKETHEALING,
+	RARESTAT_ROCKETFIRESPEED,
 
 	RARESTAT_NUM //don't put anything after this
 };
@@ -1034,6 +1037,9 @@ struct FRareStats
 		StatsInfo.Add(FRareStatsInfo(TEXT("double thermal vision length"), RARESTAT_MARKTHERMALLENGTH, ITEM_ABILITY));
 		StatsInfo.Add(FRareStatsInfo(TEXT("changes your voice to sound like a bones droid"), RARESTAT_BONESVOICE, ITEM_HELMET));
 		StatsInfo.Add(FRareStatsInfo(TEXT("changes your voice to sound like a grumps droid"), RARESTAT_GRUMPSVOICE, ITEM_HELMET));
+		StatsInfo.Add(FRareStatsInfo(TEXT("rocket launcher kills make enemies explode"), RARESTAT_ROCKETNADE, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("rocket launcher heals teammates while damaging enemies"), RARESTAT_ROCKETHEALING, ITEM_ABILITY));
+		StatsInfo.Add(FRareStatsInfo(TEXT("rocket launcher firing rate is increased by 50%"), RARESTAT_ROCKETFIRESPEED, ITEM_ABILITY));
 	};
 };
 
@@ -1191,6 +1197,11 @@ enum ESkillTreeUnlocks
 	SKILL_GOLDAMOUNT,
 	SKILL_SELFHEAL,
 	SKILL_GOLDHEAL,
+	//guardianskills
+	SKILL_ROCKETLENGTH,
+	SKILL_ROCKETEXPLOSIONRADIUS,
+	SKILL_ROCKETDAMAGE,
+	SKILL_ROCKETLIFELEECH,
 
 	SKILL_NUMPLUSONE
 };
@@ -1442,6 +1453,15 @@ struct FInventoryItem
 	UPROPERTY(BlueprintReadWrite, Category = Inventory)
 		FString SlotIndex;
 
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		UStaticMesh *CustomMesh;
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		UMaterialInstance *CustomShader;
+
+	UPROPERTY(BlueprintReadWrite, Category = Inventory)
+		FString CustomSocket;
+
 	FInventoryItem()
 	{
 		Reset();
@@ -1467,7 +1487,11 @@ struct FInventoryItem
 		SecondaryStats.Empty();
 		RareStats.Empty();
 
+		CustomMesh = nullptr;
+		CustomShader = nullptr;
+
 		SlotIndex = "NONE";
+		CustomSocket = "";
 	}
 
 	FInventoryItem(const FInventoryItem &Other)
@@ -1486,6 +1510,9 @@ struct FInventoryItem
 		ItemLevel = Other.ItemLevel;
 		BreakdownClasses = Other.BreakdownClasses;
 		Slot = Other.Slot;
+		CustomMesh = Other.CustomMesh;
+		CustomShader = Other.CustomShader;
+		CustomSocket = Other.CustomSocket;
 
 		if (Slot == ITEM_BREAKDOWNABLE || Slot == ITEM_GENERICCRAFTING || Slot == ITEM_USEABLE || Slot == ITEM_DISPLAYARMOR || Slot == ITEM_SHADER || Slot == ITEM_BREAKDOWNABLE)
 		{
