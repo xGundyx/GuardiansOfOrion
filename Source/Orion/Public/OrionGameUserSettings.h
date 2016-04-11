@@ -56,6 +56,12 @@ public:
 	UPROPERTY(config)
 		bool ThirdPersonEnabled;
 
+	UPROPERTY(config)
+		bool ShowSillyHats;
+
+	UPROPERTY(config)
+		bool ShowCustomShaders;
+
 	int32 BloomQuality;
 	int32 MotionBlurQuality;
 };

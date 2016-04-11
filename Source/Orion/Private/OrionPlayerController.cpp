@@ -2107,6 +2107,14 @@ TArray<FOptionsData> AOrionPlayerController::GetGameplayOptions()
 	NewOption.Value = Settings->ControllerRumbleEnabled ? "ENABLED" : "DISABLED";
 	Options.Add(NewOption);
 
+	NewOption.Title = TEXT("SILLY HATS");
+	NewOption.Value = Settings->ControllerRumbleEnabled ? "ENABLED" : "DISABLED";
+	Options.Add(NewOption);
+
+	NewOption.Title = TEXT("CUSTOM SHADERS");
+	NewOption.Value = Settings->ControllerRumbleEnabled ? "ENABLED" : "DISABLED";
+	Options.Add(NewOption);
+
 	//NewOption.Title = TEXT("THIRD PERSON CAMERA");
 	//NewOption.Value = Settings->ThirdPersonEnabled ? "ENABLED" : "DISABLED";
 	//Options.Add(NewOption);
@@ -2696,6 +2704,7 @@ TArray<FString> AOrionPlayerController::GetMaps()
 	Maps.Add(TEXT("GOO-ARID"));
 	Maps.Add(TEXT("GOO-SUMMIT"));
 	Maps.Add(TEXT("GOO-WHITEOUT"));
+	Maps.Add(TEXT("GOO-HAVEN"));
 
 	return Maps;
 }
